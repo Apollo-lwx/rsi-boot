@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Set
 
 from ..bootstrap import build_runtime, detect_user_id
+from ..project import load_or_create_identity
 from ..core.masking import mask_text
 from ..core.models import KnowledgeItem
 from ..scanner.code_scanner import aggregate_imports, group_by_directory, scan_code
@@ -148,7 +149,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
     if not project_root.is_dir():
         print(f"项目目录不存在: {project_root}", file=sys.stderr)
         return 2
-    project_id = project_root.name
+    project_id = load_or_create_identity(project_root).project_id
     max_file_size = _parse_size(args.max_file_size)
     rsi_dir = project_root / ".rsi"
 

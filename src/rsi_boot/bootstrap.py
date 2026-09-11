@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
 import subprocess
 from importlib import resources
 from pathlib import Path
@@ -32,6 +31,13 @@ from .learning.proposal_engine import ProposalEngine
 from .learning.skill_loader import SkillLoader
 from .learning.snapshot_store import SnapshotStore
 from .learning.static_gate import StaticGate
+from .project import (
+    WORKSPACE_PROJECT_ID,
+    load_or_create_identity,
+    project_db_path,
+    resolve_project_root,
+    rsi_home,
+)
 from .services.knowledge_service import KnowledgeService
 from .services.log_service import LogService
 from .services.profile_service import ProfileService
@@ -58,12 +64,21 @@ def _enhance_view(config: dict[str, Any]) -> dict[str, Any]:
 
 
 class Runtime:
-    def __init__(self, watcher: ConfigWatcher, db: SQLiteClient, vec: Optional[VectorBackend] = None,
-                 project_root: Optional[Path] = None):
+    def __init__(
+        self,
+        watcher: ConfigWatcher,
+        db: SQLiteClient,
+        vec: Optional[VectorBackend] = None,
+        project_root: Optional[Path] = None,
+        project_id: Optional[str] = None,
+        global_db: Optional[SQLiteClient] = None,
+    ):
         self.watcher = watcher
         self.db = db
+        self.global_db = global_db or db
+        self.project_id = project_id
         self.logs = LogService(db)
-        self.profiles = ProfileService(db)  # 仅依赖 DB，热加载不重建（缓存跨配置生效）
+        self.profiles = ProfileService(db, global_db=self.global_db)
         # §4.2 异步反馈队列，serve 时 start；profiles 用于 copied/referenced 兴趣加权
         self.feedback_worker = FeedbackWorker(db, profiles=self.profiles)
         # Genome 快照仅依赖 DB 与 ~/.rsi，热加载不重建
@@ -109,11 +124,13 @@ class Runtime:
         self.injector = RuleInjector(self.db, project_root=self._project_root)
         self.knowledge = KnowledgeService(
             self.db, self.retriever, embedding=embedding, vec=self.vec if embedding else None,
+            bound_project_id=self.project_id,
         )
         self.knowledge.on_change = self.injector.rewrite  # 记忆变更 → 规则文件重写（§4.2）
         self.recall_arms = RecallArmSelector(self.db)
         self.recall = RecallService(
             self.db, self.retriever, self.recall_arms, self.feedback_secret, profiles=self.profiles,
+            bound_project_id=self.project_id,
         )
         self.extractor = KnowledgeExtractor(self.db, embedding=embedding, adapter=adapter, config=config)
         gate: Any = StaticGate()
@@ -150,27 +167,39 @@ class Runtime:
             pass
         await self.feedback_worker.stop()
         await self.db.close()
+        if self.global_db is not self.db:
+            await self.global_db.close()
 
 
-def rsi_home() -> Path:
-    """数据目录：默认 ~/.rsi，可用 RSI_HOME 环境变量覆盖（测试/便携场景）"""
-    return Path(os.environ.get("RSI_HOME", str(Path.home() / ".rsi")))
-
-
-def default_db_path() -> Path:
-    return rsi_home() / "rsi.db"
+def default_db_path(project_root: Optional[Path] = None) -> Path:
+    """当前项目库路径。无参时按 cwd 解析项目根（不再回落 ~/.rsi/rsi.db）。"""
+    root = resolve_project_root(explicit=project_root)
+    return project_db_path(root)
 
 
 async def build_runtime(db_path: Optional[Path] = None, project_root: Optional[Path] = None) -> Runtime:
-    watcher = ConfigWatcher(project_root=project_root)
-    db = SQLiteClient(db_path or default_db_path())
+    root = Path(project_root).resolve() if project_root is not None else None
+    identity = load_or_create_identity(root) if root is not None else None
+    project_id = identity.project_id if identity is not None else None
+    resolved_db = Path(db_path) if db_path is not None else (
+        project_db_path(root) if root is not None else default_db_path()
+    )
+    watcher = ConfigWatcher(project_root=root)
+    db = SQLiteClient(resolved_db)
     await migrate(db)
+    if root is not None and project_id is not None:
+        from .services.legacy_migrate import maybe_auto_migrate, remap_to_workspace_id
+
+        await remap_to_workspace_id(db, WORKSPACE_PROJECT_ID)
+        await maybe_auto_migrate(root, project_id, db)
     vec = None
     if watcher.config.get("enhance", {}).get("embedding"):
         from .data.vec import create_vector_backend
 
         vec = await create_vector_backend(db, watcher.config)
-    return Runtime(watcher, db, vec=vec, project_root=project_root)
+    return Runtime(
+        watcher, db, vec=vec, project_root=root, project_id=project_id, global_db=db,
+    )
 
 
 def detect_user_id() -> str:

@@ -21,7 +21,8 @@ INPUT_SCHEMA: dict[str, Any] = {
     "properties": {
         "action": {"type": "string", "enum": ["list", "resolve", "scan"],
                    "description": "list=查询冲突（默认） resolve=裁决 scan=立即扫描"},
-        "project_id": {"type": "string", "maxLength": 128, "description": "项目标识，缺省 default"},
+        "project_id": {"type": "string", "maxLength": 128,
+                       "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "status": {"type": "string", "default": "open",
                    "description": "list 过滤：open/user_wins/memory_wins/keep_peer/keep_item/coexist/closed/all"},
         "conflict_id": {"type": "string", "description": "resolve 必填：冲突 id"},
@@ -38,7 +39,9 @@ INPUT_SCHEMA: dict[str, Any] = {
 
 async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     detector = runtime.conflict_detector
-    project_id = str(arguments.get("project_id") or "default")
+    from ...project import tool_project_id
+
+    project_id = tool_project_id(runtime, arguments)
     action = str(arguments.get("action") or "list")
 
     if action == "scan":

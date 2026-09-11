@@ -17,7 +17,7 @@ INPUT_SCHEMA: dict[str, Any] = {
     "properties": {
         "title": {"type": "string", "description": "条目标题"},
         "content": {"type": "string", "description": "条目正文"},
-        "project_id": {"type": "string", "description": "项目标识，缺省 default"},
+        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "tags": {"type": "array", "items": {"type": "string"}, "description": "标签"},
         "roles": {"type": "array", "items": {"type": "string"}, "description": "适用角色，空=通用"},
         "domain": {"type": "string", "description": "领域"},
@@ -32,7 +32,7 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
     if not title or not content:
         return {"status": "error", "message": "title 与 content 必填"}
     item = KnowledgeItem(
-        project_id=str(arguments.get("project_id") or "default"),
+        project_id=str(arguments.get("project_id") or ""),
         title=title,
         content=content,
         tags=[str(t) for t in arguments.get("tags") or []],

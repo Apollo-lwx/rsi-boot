@@ -12,6 +12,7 @@
 | 4 | P2 | 设计局限 | 冲突检测子串匹配与极性窗口误报 | fixed (2026-09-11) |
 | 5 | P3 | UX | Windows 下 CLI 日志走 stderr 显示为红色错误 | fixed (2026-09-11) |
 | 6 | P3 | 设计观察 | 禁止项冷启动为空 | fixed (2026-09-11) |
+| 7 | P0 | 隔离 bug | 多项目 MCP 共用 `~/.rsi/rsi.db` + 缺省 `project_id=default` 串记忆 | fixed (2026-09-11) |
 
 ---
 
@@ -266,4 +267,24 @@ documentation 优先级最低，限量把 2171 篇文档（含全部废弃契约
 
 bootstrap 结束会跑冲突扫描，报告新增 `version_conflicts`。日期快照无兄弟文档的单篇暂不建家族（避免噪声）。IDE 对话文件仍走 `--consent`，不在此读取。
 
-测试：`tests/test_version_conflict.py` 12 例。回归基线：361 passed, 1 skipped。
+测试：`tests/test_version_conflict.py` 12 例。
+
+---
+
+## ISSUE-7 [P0] 跨项目串记忆
+
+**现象**：不同仓库都装了 RSI MCP 后，召回/写入/审批会看到别的项目的约定。
+
+**根因**（规范 §10.4 已要求每项目 `.rsi/rsi.db`，实现未落地）：
+1. 所有 `rsi serve` 共用 `~/.rsi/rsi.db`
+2. MCP 工具缺省 `project_id="default"`，宿主通常不传参 → 全进同一命名空间
+3. bootstrap 用目录名写入，与 `default` 对不上；两个都叫 `frontend` 的仓库还会撞车
+
+**完整闭环（2026-09-11，按 Superpowers 收口）**：
+- 一个工作目录一份 `.rsi/`：记忆/画像/归档都在 `<workspace>/.rsi/rsi.db`，不写 `~/.rsi/global.db`
+- 库内 `project_id` 恒为 `local`；隔离靠目录，不靠路径哈希
+- 工作区发现：已有 `.rsi/` 向上认领，否则用 cwd；不爬无关 git 顶层（避免子项目写到父仓）
+- `~/.rsi` 只放用户 `config.yaml`；可用 `RSI_PROJECT_ROOT` 指定工作区
+- 旧版 `~/.rsi/rsi.db`：仅按目录名认领；`default` 须 `rsi migrate adopt`
+
+测试：`tests/test_project_isolation.py`。

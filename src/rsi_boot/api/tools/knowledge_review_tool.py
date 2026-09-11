@@ -24,7 +24,7 @@ INPUT_SCHEMA: dict[str, Any] = {
         "all_pending": {"type": "boolean", "description": "true = 审批全部 pending_review 条目"},
         "content_type": {"type": "string", "description": "批量审批时按内容类型过滤（convention/architecture/faq/documentation）"},
         "include_archived": {"type": "boolean", "description": "批量审批时包含 archived（bootstrap 限量溢出）条目"},
-        "project_id": {"type": "string", "description": "项目标识，缺省 default"},
+        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "action": {"type": "string", "enum": ["approve", "reject"], "description": "审批动作"},
     },
     "required": ["action"],
@@ -32,7 +32,7 @@ INPUT_SCHEMA: dict[str, Any] = {
 
 
 async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict[str, Any]:
-    project_id = str(arguments.get("project_id") or "default")
+    project_id = str(arguments.get("project_id") or "")
     action = str(arguments.get("action", ""))
     if action not in ("approve", "reject"):
         return {"status": "error", "message": "action 非法（approve/reject）"}

@@ -34,13 +34,20 @@ class KnowledgeService:
         retriever: KnowledgeRetriever,
         embedding: Optional[EmbeddingService] = None,
         vec: Optional[VectorBackend] = None,
+        bound_project_id: Optional[str] = None,
     ):
         self._db = db
         self._retriever = retriever
         self._embedding = embedding
         self._vec = vec
+        self.bound_project_id = bound_project_id
         # 记忆变更回调（Spec v3.0 §4.2：add/review/delete 后触发规则注入重写）
         self.on_change: Optional[Any] = None
+
+    def _scope(self, project_id: Optional[str] = None) -> str:
+        from ..project import bind_project_id
+
+        return bind_project_id(self.bound_project_id, project_id)
 
     async def _notify_change(self, project_id: str) -> None:
         if self.on_change is None:
@@ -64,6 +71,7 @@ class KnowledgeService:
         title = mask_text(item.title)
         content = mask_text(item.content)
         status = item.status or "active"
+        item.project_id = self._scope(item.project_id)
 
         # 嵌入生成（失败降级仅 FTS，不阻塞写入，§2.3）；pending_review 审批通过时才生成
         blob: Optional[bytes] = None
@@ -110,6 +118,7 @@ class KnowledgeService:
         return item_id
 
     async def list(self, project_id: str, limit: int = 50) -> List[dict[str, Any]]:
+        project_id = self._scope(project_id)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT id, title, content_type, domain, tags, status, created_at "
@@ -127,12 +136,15 @@ class KnowledgeService:
         top_k: int = 5,
         api_key: Optional[str] = None,
     ) -> List[KnowledgeItem]:
-        return await self._retriever.search(query, project_id, role=role, top_k=top_k, api_key=api_key)
+        return await self._retriever.search(
+            query, self._scope(project_id), role=role, top_k=top_k, api_key=api_key,
+        )
 
     async def review(self, item_id: str, project_id: str, approve: bool) -> Optional[str]:
         """人工确认（§4.3）：pending_review 草稿 approve → active 并生成 embedding 入检索；
         reject → rejected（留存 30 天由每日任务清理）。返回新状态；条目不存在或非待审返回 None。
         archived（bootstrap 审批队列限量溢出）同样可审批恢复"""
+        project_id = self._scope(project_id)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT rowid, title, content, status FROM knowledge_items WHERE id = ? AND project_id = ?",
@@ -185,6 +197,7 @@ class KnowledgeService:
         """批量审批（bootstrap 队列洪水场景）：默认处理全部 pending_review；
         ids 给定时只处理这些条目；content_type 过滤；include_archived 含限量溢出条目。
         单次提交 + 单次缓存失效 + 单次注入重写，返回 {processed, new_status}"""
+        project_id = self._scope(project_id)
         conn = await self._db.connect()
         allowed = ("pending_review", "archived") if include_archived else ("pending_review",)
         clauses = [f"status IN ({','.join('?' for _ in allowed)})", "project_id = ?"]
@@ -227,6 +240,7 @@ class KnowledgeService:
         return {"processed": len(rows), "new_status": new_status}
 
     async def delete(self, item_id: str, project_id: str) -> bool:
+        project_id = self._scope(project_id)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT rowid FROM knowledge_items WHERE id = ? AND project_id = ?", (item_id, project_id)

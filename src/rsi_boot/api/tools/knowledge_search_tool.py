@@ -15,7 +15,7 @@ INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "query": {"type": "string", "description": "检索查询"},
-        "project_id": {"type": "string", "description": "项目标识，缺省 default"},
+        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "role": {"type": "string", "description": "角色过滤"},
         "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "description": "返回条数上限"},
     },
@@ -30,7 +30,7 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
     top_k = min(20, max(1, int(arguments.get("top_k") or 5)))
     items = await knowledge.search(
         query,
-        str(arguments.get("project_id") or "default"),
+        str(arguments.get("project_id") or ""),
         role=arguments.get("role") or None,
         top_k=top_k,
     )

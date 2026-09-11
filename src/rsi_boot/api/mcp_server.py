@@ -96,7 +96,9 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
             elif name == conflicts_tool.TOOL_NAME:
                 payload = await conflicts_tool.handle(runtime, arguments)
             elif name == stats_tool.TOOL_NAME:
-                payload = await stats_tool.handle(StatsService(runtime.db), arguments)
+                stats = StatsService(runtime.db)
+                stats.bound_project_id = runtime.project_id
+                payload = await stats_tool.handle(stats, arguments)
             else:
                 payload = {"status": "error", "message": f"unknown tool: {name}"}
         except Exception as exc:  # 工具级兜底，避免 MCP 连接中断

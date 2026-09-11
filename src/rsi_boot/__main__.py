@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import sys
 from pathlib import Path
 
-from .bootstrap import build_runtime, default_db_path, detect_user_id, rsi_home
+from .bootstrap import build_runtime, detect_user_id, rsi_home
 from .common.logger import setup_cli_logging, setup_logging
 from .core.models import KnowledgeItem
+from .project import resolve_project_root
 
 
 def _print_json(payload: object) -> None:
@@ -37,15 +39,7 @@ async def cmd_init(args: argparse.Namespace) -> int:
             encoding="utf-8",
         )
 
-    runtime = await build_runtime(db_path=default_db_path())
-    try:
-        ok = await runtime.db.integrity_check()
-    finally:
-        await runtime.close()
-    if not ok:
-        print("数据库自检失败", file=sys.stderr)
-        return 1
-    print(f"初始化完成：{home}（数据库 {default_db_path()}）")
+    print(f"初始化完成：{home}（用户配置）。项目记忆在各工作目录 .rsi/，首次 serve/bootstrap 时创建")
     return 0
 
 
@@ -55,21 +49,25 @@ async def cmd_serve(args: argparse.Namespace) -> int:
     from .scheduler.manager import SchedulerManager
     from .scanner.incremental import IncrementalLearner
 
-    runtime = await build_runtime(project_root=Path.cwd())
+    explicit = Path(args.project_root) if getattr(args, "project_root", None) else None
+    project_root = resolve_project_root(explicit=explicit)
+    logging.getLogger(__name__).info("工作区 %s → %s", project_root, project_root / ".rsi" / "rsi.db")
+    runtime = await build_runtime(project_root=project_root)
+    archive_dir = project_root / ".rsi" / "archive"
     # 配置热加载（P1.14）与离线任务调度（P1.12）：与 MCP server 并行的后台任务
     scheduler = SchedulerManager(
-        runtime.db, rsi_home() / "archive", profiles=runtime.profiles,
+        runtime.db, archive_dir, profiles=runtime.profiles,
         extractor_provider=lambda: runtime.extractor,
         proposal_engine_provider=lambda: runtime.proposal_engine,
         conflict_detector_provider=lambda: runtime.conflict_detector,
-        project_ids=["default", Path.cwd().name],
+        project_ids=[runtime.project_id] if runtime.project_id else [],
     )
     scheduler.start()
     watch_task = asyncio.create_task(runtime.watcher.watch_loop())
     # --watch：静默学习（§10.9.5 文件监听模式，P2.6）
     learner = None
     if getattr(args, "watch", False):
-        learner = IncrementalLearner(runtime, Path.cwd(), Path.cwd().name)
+        learner = IncrementalLearner(runtime, project_root, runtime.project_id or project_root.name)
         learner.start()
     try:
         await serve(runtime, runtime.logs, runtime.feedback_secret)
@@ -85,10 +83,11 @@ async def cmd_serve(args: argparse.Namespace) -> int:
 async def cmd_recall(args: argparse.Namespace) -> int:
     """调试：执行一次记忆召回（v3.0 起替代原 query 冒烟——主链路无生成环节）"""
     setup_cli_logging(getattr(args, "verbose", False))
-    runtime = await build_runtime(project_root=Path.cwd())
+    runtime = await build_runtime(project_root=resolve_project_root())
     try:
         payload = await runtime.recall.recall(
-            args.task, args.project, user_id=detect_user_id(), role=args.role,
+            args.task, runtime.project_id or args.project,
+            user_id=detect_user_id(), role=args.role,
         )
         _print_json(payload)
         return 0
@@ -96,11 +95,44 @@ async def cmd_recall(args: argparse.Namespace) -> int:
         await runtime.close()
 
 
+async def cmd_migrate(args: argparse.Namespace) -> int:
+    """把旧版 ~/.rsi/rsi.db 里的命名空间拆进当前项目库（default 须显式认领）"""
+    setup_cli_logging(getattr(args, "verbose", False))
+    from .project import legacy_shared_db_path
+    from .services.legacy_migrate import adopt_namespaces, list_legacy_namespaces
+
+    if args.migrate_action == "status":
+        ns = await list_legacy_namespaces()
+        _print_json({"legacy_db": str(legacy_shared_db_path()), "namespaces": ns})
+        return 0
+    if args.migrate_action == "adopt":
+        root = resolve_project_root(explicit=Path(args.project_root))
+        runtime = await build_runtime(project_root=root)
+        try:
+            if not runtime.project_id:
+                print("无法解析当前项目身份", file=sys.stderr)
+                return 2
+            rows = await adopt_namespaces(
+                legacy_shared_db_path(), runtime.db, [args.namespace], runtime.project_id,
+            )
+            _print_json({
+                "adopted": args.namespace,
+                "dest_project_id": runtime.project_id,
+                "dest_db": str(runtime.db.db_path),
+                "rows": rows,
+            })
+            return 0
+        finally:
+            await runtime.close()
+    print("未知 migrate 子命令", file=sys.stderr)
+    return 2
+
+
 async def cmd_knowledge(args: argparse.Namespace) -> int:
     setup_cli_logging(getattr(args, "verbose", False))
-    runtime = await build_runtime(project_root=Path.cwd())
+    runtime = await build_runtime(project_root=resolve_project_root())
     try:
-        project = args.project
+        project = runtime.project_id or args.project
         if args.knowledge_action == "add":
             content = args.content
             if args.file:
@@ -139,9 +171,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rsi", description="RSI Boot：个人本地 MCP 智能助手")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_init = sub.add_parser("init", help="初始化 ~/.rsi 目录与数据库")
+    p_init = sub.add_parser("init", help="初始化 ~/.rsi 用户配置目录")
     _add_verbose(p_init)
     p_serve = sub.add_parser("serve", help="启动 MCP stdio server")
+    p_serve.add_argument(
+        "--project-root", default=None,
+        help="工作区根（全局 MCP 请传 ${workspaceFolder}；缺省读 WORKSPACE_FOLDER_PATHS / cwd）",
+    )
     p_serve.add_argument("--watch", action="store_true", help="文件监听静默学习（§10.9.5）")
     _add_verbose(p_serve)  # serve 恒 INFO+stderr（stdio 协议），--verbose 仅为兼容接受
 
@@ -160,7 +196,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_recall = sub.add_parser("recall", help="调试：执行一次记忆召回（禁止项置顶 + 相关经验）")
     p_recall.add_argument("task", help="任务描述")
-    p_recall.add_argument("--project", default="default", help="项目标识")
+    p_recall.add_argument("--project", default=None, help="已废弃：由当前目录绑定")
     p_recall.add_argument("--role", default=None, help="调用方角色")
     _add_verbose(p_recall)
 
@@ -176,15 +212,24 @@ def build_parser() -> argparse.ArgumentParser:
                        help="内容类型（prohibition=禁止项，召回置顶并常驻注入）")
     p_add.add_argument("--tags", default="", help="逗号分隔")
     p_add.add_argument("--roles", default="", help="逗号分隔，空=通用")
-    p_add.add_argument("--project", default="default")
+    p_add.add_argument("--project", default=None, help="已废弃：由当前目录绑定")
     _add_verbose(p_add)
     p_list = kn_sub.add_parser("list", help="列出知识条目")
-    p_list.add_argument("--project", default="default")
+    p_list.add_argument("--project", default=None, help="已废弃：由当前目录绑定")
     _add_verbose(p_list)
     p_del = kn_sub.add_parser("delete", help="删除知识条目")
     p_del.add_argument("id")
-    p_del.add_argument("--project", default="default")
+    p_del.add_argument("--project", default=None, help="已废弃：由当前目录绑定")
     _add_verbose(p_del)
+
+    p_mig = sub.add_parser("migrate", help="从旧版 ~/.rsi/rsi.db 认领命名空间到当前项目")
+    _add_verbose(p_mig)
+    mig_sub = p_mig.add_subparsers(dest="migrate_action", required=True)
+    mig_sub.add_parser("status", help="列出遗留共享库中的 project_id 命名空间")
+    p_adopt = mig_sub.add_parser("adopt", help="把指定命名空间拷入当前项目库")
+    p_adopt.add_argument("namespace", help="旧库中的 project_id，如 default 或目录名")
+    p_adopt.add_argument("--project-root", default=".", help="目标项目根，默认当前目录")
+    _add_verbose(p_adopt)
     return parser
 
 
@@ -195,6 +240,7 @@ def main() -> None:
         "serve": cmd_serve,
         "recall": cmd_recall,
         "knowledge": cmd_knowledge,
+        "migrate": cmd_migrate,
     }
     if args.command == "bootstrap":
         from .cli.bootstrap_command import run_bootstrap

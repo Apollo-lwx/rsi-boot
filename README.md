@@ -4,7 +4,7 @@
 把交互中验证有效的经验、约定与禁止项沉淀为记忆，经审批后自动注入宿主规则文件
 （`.cursor/rules/rsi-*.mdc` + `AGENTS.md` 托管块），并在任务开始前经 `rsi_recall` 召回——
 下次同类任务自动规避已踩过的坑。**零 API Key**：主链路无模型调用，生成全部透传宿主模型；
-数据全部落在本地 SQLite（`~/.rsi/rsi.db`）。
+数据落在当前工作目录的 `.rsi/`（和 Superpowers 的 `.superpowers/` 一样：一个工作区一份）。
 
 ## 安装
 
@@ -15,7 +15,7 @@ pip install -e .
 ## 快速上手
 
 ```bash
-# 1. 初始化（创建 ~/.rsi/ 与数据库，执行迁移）
+# 1. 初始化用户配置（~/.rsi/config.yaml）；项目记忆在工作目录 .rsi/
 rsi init
 
 # 2. 冒烟：记忆召回（零 Key，无需任何配置）
@@ -40,11 +40,13 @@ rsi serve
   "mcpServers": {
     "rsi-boot": {
       "command": "rsi",
-      "args": ["serve"]
+      "args": ["serve", "--project-root", "${workspaceFolder}"]
     }
   }
 }
 ```
+
+`rsi` 可以全局安装。Cursor 拉起 MCP 时进程 cwd **常常不是仓库根**，所以必须把工作区传进去：`--project-root ${workspaceFolder}`，或依赖 Cursor 注入的 `WORKSPACE_FOLDER_PATHS`。每个窗口仍会在**该仓库**下创建自己的 `.rsi/`，和 Superpowers 的 `.superpowers/` 一样。
 
 暴露工具（v3.0）：
 
@@ -63,7 +65,7 @@ rsi serve
 ## 配置链
 
 包内 `default.yaml` → `~/.rsi/config.yaml` → 项目根 `rsi-boot.yaml` → 请求参数（受保护路径除外）。
-`RSI_HOME` 可覆盖数据目录（默认 `~/.rsi`）。`rsi serve` 运行期间配置文件变更自动热加载（last-good-wins）。
+`RSI_HOME` 只覆盖**用户配置**目录（默认 `~/.rsi`：`config.yaml`、可选 skills）。项目记忆、画像、归档都在工作目录 `.rsi/`（`rsi.db` / `identity.json` / `archive/`），打开另一个仓库就是另一份，不会串。若 MCP 不是从仓库根启动，设环境变量 `RSI_PROJECT_ROOT`，或把 server 配在项目 `.cursor/mcp.json` 里以保证 cwd 为工作区。旧版 `~/.rsi/rsi.db` 可用 `rsi migrate status` / `rsi migrate adopt <namespace>` 认领进当前 `.rsi/`（`default` 不会自动灌入）。`rsi serve` 运行期间配置文件变更自动热加载（last-good-wins）。
 
 主链路零配置可用。可选增强（`enhance.*`，需自配模型 Key）见 `~/.rsi/config.yaml` 示例：
 `enhance.embedding`（向量检索）、`enhance.extract_llm`（LLM 知识提取）、`enhance.proposal_llm`、
@@ -72,7 +74,7 @@ rsi serve
 
 安全要点：项目 `rsi-boot.yaml` 禁止明文密钥（发现即拒绝启动）；`~/.rsi/config.yaml` 中可用 `env:VAR_NAME` 引用环境变量；
 日志落库前执行十条规则脱敏；注入宿主上下文前过三道闸（脱敏 + 审批闸门 + 注入黑名单）；
-超 90 天日志自动归档到 `~/.rsi/archive/YYYYMM.jsonl` 后删除。
+超 90 天日志自动归档到项目 `.rsi/archive/YYYYMM.jsonl` 后删除。
 
 ## 角色支持
 

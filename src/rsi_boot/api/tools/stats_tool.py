@@ -19,7 +19,7 @@ INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "period": {"type": "string", "enum": ["day", "week", "month"], "description": "统计周期（必填）"},
-        "project_id": {"type": "string", "description": "项目标识过滤，缺省统计全部项目"},
+        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "group_by": {"type": "string", "enum": ["intent", "arm"],
                      "description": "分组维度：intent 或召回臂 arm"},
         "format": {"type": "string", "enum": ["json", "csv"], "description": "导出格式（默认 json）"},
@@ -39,7 +39,12 @@ async def handle(stats: StatsService, arguments: dict[str, Any]) -> dict[str, An
     fmt = str(arguments.get("format") or "json")
     if fmt not in ("json", "csv"):
         return {"status": "error", "message": "format 仅支持 json/csv"}
-    project_id = arguments.get("project_id") or None
+    from ...project import bind_project_id
+
+    bound = getattr(stats, "bound_project_id", None)
+    project_id = bind_project_id(bound, arguments.get("project_id") or None)
+    if project_id == "default" and bound is None and not arguments.get("project_id"):
+        project_id = None  # 单测直调未绑定：保持「不过滤」口径
 
     payload: dict[str, Any] = {
         "period": period,

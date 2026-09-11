@@ -33,12 +33,14 @@ class RecallService:
         arms: RecallArmSelector,
         feedback_secret: str,
         profiles: Optional[ProfileService] = None,
+        bound_project_id: Optional[str] = None,
     ):
         self._db = db
         self._retriever = retriever
         self._arms = arms
         self._secret = feedback_secret
         self._profiles = profiles
+        self.bound_project_id = bound_project_id
         self._logs = LogService(db)
         self._bg_tasks: set[asyncio.Task] = set()  # 画像增量后台任务，close 前 drain
 
@@ -50,6 +52,9 @@ class RecallService:
         role: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> Dict[str, Any]:
+        from ..project import bind_project_id
+
+        project_id = bind_project_id(self.bound_project_id, project_id)
         started = time.monotonic()
         arm = await self._arms.pick(project_id)
         limit = min(top_k, 10) if top_k else arm.top_n

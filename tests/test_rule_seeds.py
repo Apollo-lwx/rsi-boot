@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from rsi_boot.bootstrap import default_db_path
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.data.sqlite import SQLiteClient
+from rsi_boot.project import project_scope
 from rsi_boot.injector.targets import AgentsMdTarget
 from rsi_boot.scanner.rule_seed_scanner import extract_prohibition_lines, scan_rule_seeds
 
@@ -130,7 +130,8 @@ async def test_bootstrap_produces_prohibition_drafts(tmp_path, monkeypatch):
     (root / "README.md").write_text("# Demo\n\n## 使用\ndemo run\n", encoding="utf-8")
 
     assert await run_bootstrap(_args(root)) == 0
-    rows = await _prohibition_rows(default_db_path(), root.name)
+    db_path, pid = project_scope(root)
+    rows = await _prohibition_rows(db_path, pid)
     assert len(rows) == 2
     assert all(r["status"] == "pending_review" for r in rows)
     assert any("Mapper" in r["title"] for r in rows)
@@ -150,5 +151,6 @@ async def test_bootstrap_prohibition_seeds_idempotent(tmp_path, monkeypatch):
 
     assert await run_bootstrap(_args(root)) == 0
     assert await run_bootstrap(_args(root, force=True)) == 0
-    rows = await _prohibition_rows(default_db_path(), root.name)
+    db_path, pid = project_scope(root)
+    rows = await _prohibition_rows(db_path, pid)
     assert len(rows) == 1

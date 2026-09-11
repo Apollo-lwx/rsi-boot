@@ -19,7 +19,7 @@ INPUT_SCHEMA: dict[str, Any] = {
         "task": {"type": "string", "minLength": 1, "maxLength": 8192,
                  "description": "即将开始的任务描述（自然语言）"},
         "project_id": {"type": "string", "maxLength": 128,
-                       "description": "项目标识，缺省 default"},
+                       "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "role": {"type": "string", "description": "调用方角色（如 developer/test/pm）"},
         "top_k": {"type": "integer", "minimum": 1, "maximum": 10,
                   "description": "返回条数上限（缺省由召回策略臂决定）"},
@@ -32,7 +32,9 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     task = str(arguments.get("task", "")).strip()
     if not task:
         return {"status": "error", "message": "task 不能为空"}
-    project_id = str(arguments.get("project_id") or "default")
+    from ...project import tool_project_id
+
+    project_id = tool_project_id(runtime, arguments)
     payload = await runtime.recall.recall(
         task,
         project_id,

@@ -41,9 +41,16 @@ def _decay(days_since: float) -> float:
 
 
 class ProfileService:
-    def __init__(self, db: SQLiteClient):
+    def __init__(self, db: SQLiteClient, global_db: Optional[SQLiteClient] = None):
         self._db = db
+        self._global_db = global_db or db
         self._cache: TTLCache = TTLCache(maxsize=50, ttl=600)
+
+    def _store_for(self, project_id: Optional[str]) -> SQLiteClient:
+        """project_id 为空 = 全局画像，落 global.db；否则落项目库"""
+        if not project_id:
+            return self._global_db
+        return self._db
 
     @staticmethod
     def _key(user_id: str, project_id: Optional[str]) -> str:
@@ -62,15 +69,13 @@ class ProfileService:
         profiles: List[UserProfile] = []
         try:
             self._db.breaker.allow_request()
-            conn = await self._db.connect()
-            for pid in ("", project_id or ""):
-                async with conn.execute(
-                    "SELECT profile_data FROM user_profiles WHERE user_id = ? AND project_id = ?",
-                    (user_id, pid),
-                ) as cur:
-                    row = await cur.fetchone()
-                if row:
-                    profiles.append(UserProfile(**json.loads(row["profile_data"])))
+            global_row = await self._load_row(user_id, "")
+            if global_row:
+                profiles.append(UserProfile(**json.loads(global_row)))
+            if project_id:
+                project_row = await self._load_row(user_id, project_id)
+                if project_row:
+                    profiles.append(UserProfile(**json.loads(project_row)))
             self._db.breaker.on_success()
         except Exception as exc:
             if not isinstance(exc, CircuitOpenError):
@@ -86,6 +91,16 @@ class ProfileService:
             profile = self._merge(global_p=profiles[0], project_p=profiles[1])
         self._cache[key] = profile
         return profile
+
+    async def _load_row(self, user_id: str, project_id: str) -> Optional[str]:
+        store = self._store_for(project_id)
+        conn = await store.connect()
+        async with conn.execute(
+            "SELECT profile_data FROM user_profiles WHERE user_id = ? AND project_id = ?",
+            (user_id, project_id),
+        ) as cur:
+            row = await cur.fetchone()
+        return str(row["profile_data"]) if row else None
 
     @staticmethod
     def _merge(global_p: UserProfile, project_p: UserProfile) -> UserProfile:
@@ -119,7 +134,8 @@ class ProfileService:
 
     async def upsert(self, profile: UserProfile) -> None:
         profile.updated_at = datetime.now(timezone.utc)
-        conn = await self._db.connect()
+        store = self._store_for(profile.project_id)
+        conn = await store.connect()
         now = _utc_iso()
         await conn.execute(
             """
@@ -184,14 +200,16 @@ class ProfileService:
         now = datetime.now(timezone.utc)
         # created_at 为 ISO8601 TEXT：截止时间在 Python 侧计算，同格式字典序可比
         cutoff = (now - timedelta(days=90)).isoformat()
-        async with conn.execute(
-            """
+        sql = """
             SELECT intent, model_name, feedback_action, created_at
             FROM interaction_logs
             WHERE user_id = ? AND status = 'success' AND created_at >= ?
-            """,
-            (user_id, cutoff),
-        ) as cur:
+        """
+        params: list[Any] = [user_id, cutoff]
+        if project_id:
+            sql += " AND project_id = ?"
+            params.append(project_id)
+        async with conn.execute(sql, params) as cur:
             logs = await cur.fetchall()
 
         profile = await self.get(user_id, project_id)

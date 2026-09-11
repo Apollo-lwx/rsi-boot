@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 
 from rsi_boot.api.tools import knowledge_review_tool
-from rsi_boot.bootstrap import default_db_path
 from rsi_boot.cli.bootstrap_command import run_bootstrap
+from rsi_boot.project import project_scope
 from rsi_boot.core.models import KnowledgeItem
 from rsi_boot.data.sqlite import SQLiteClient
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
@@ -65,16 +65,17 @@ async def test_bootstrap_caps_review_queue(tmp_path, monkeypatch):
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
 
-    counts = await _status_counts(default_db_path(), root.name)
+    db_path, pid = project_scope(root)
+    counts = await _status_counts(db_path, pid)
     assert counts.get("pending_review", 0) == 5  # 限量生效
     assert counts.get("archived", 0) >= 3        # 8 篇文档 + 配置摘要 - 5
 
-    db = SQLiteClient(default_db_path())
+    db = SQLiteClient(db_path)
     try:
         conn = await db.connect()
         async with conn.execute(
             "SELECT content_type FROM knowledge_items WHERE project_id = ? AND status = 'pending_review'",
-            (root.name,),
+            (pid,),
         ) as cur:
             types = [r["content_type"] for r in await cur.fetchall()]
         assert "convention" in types  # 配置摘要按优先级保留
@@ -87,12 +88,13 @@ async def test_bootstrap_force_rerun_does_not_requeue_archived(tmp_path, monkeyp
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
-    before = await _status_counts(default_db_path(), root.name)
+    db_path, pid = project_scope(root)
+    before = await _status_counts(db_path, pid)
 
     assert await run_bootstrap(_args(root, force=True)) == 0
     report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
     assert report["knowledge_written"] == 0
-    after = await _status_counts(default_db_path(), root.name)
+    after = await _status_counts(db_path, pid)
     assert after == before  # 总量不变：archived 未被重新入队
 
 

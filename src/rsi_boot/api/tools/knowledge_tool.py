@@ -15,7 +15,7 @@ INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "id": {"type": "string", "description": "知识条目 ID"},
-        "project_id": {"type": "string", "description": "项目标识，缺省 default"},
+        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
     },
     "required": ["id"],
 }
@@ -23,7 +23,7 @@ INPUT_SCHEMA: dict[str, Any] = {
 
 async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict[str, Any]:
     item_id = str(arguments.get("id", ""))
-    project_id = str(arguments.get("project_id") or "default")
+    project_id = knowledge._scope(arguments.get("project_id"))
     if not item_id:
         return {"status": "error", "message": "缺少 id"}
     deleted = await knowledge.delete(item_id, project_id)

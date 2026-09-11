@@ -12,9 +12,10 @@ import argparse
 import json
 from pathlib import Path
 
-from rsi_boot.bootstrap import build_runtime, default_db_path
+from rsi_boot.bootstrap import build_runtime
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.data.sqlite import SQLiteClient
+from rsi_boot.project import project_scope
 from rsi_boot.scanner.incremental import IncrementalLearner
 
 
@@ -25,6 +26,11 @@ def _args(root: Path, **overrides) -> argparse.Namespace:
         max_file_size="1MB", max_commits=500,
     )
     return argparse.Namespace(**{**defaults, **overrides})
+
+
+async def _proj_items(root: Path):
+    db_path, project_id = project_scope(root)
+    return await _items(db_path, project_id)
 
 
 async def _items(db_path: Path, project_id: str):
@@ -73,12 +79,12 @@ async def test_full_rewrite_supersedes_old_chunks(tmp_path, monkeypatch):
     root = _make_doc_project(tmp_path / "proj")
 
     assert await run_bootstrap(_args(root)) == 0
-    before = await _items(default_db_path(), root.name)
+    before = await _proj_items(root)
     assert before and all(i["status"] == "pending_review" for i in before)
 
     (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
     assert await run_bootstrap(_args(root)) == 0
-    after = await _items(default_db_path(), root.name)
+    after = await _proj_items(root)
 
     old_ids = {i["id"] for i in before}
     pay_old = [i for i in after if i["id"] in old_ids and "支付" in i["title"]]
@@ -93,12 +99,12 @@ async def test_partial_edit_keeps_unchanged_sections(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
-    before = await _items(default_db_path(), root.name)
+    before = await _proj_items(root)
     login_before = next(i for i in before if "登录" in i["title"])
 
     (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
     assert await run_bootstrap(_args(root)) == 0
-    after = await _items(default_db_path(), root.name)
+    after = await _proj_items(root)
 
     login_after = next(i for i in after if i["id"] == login_before["id"])
     assert login_after["status"] == "pending_review"  # 未变章节不收敛、不重建
@@ -109,7 +115,7 @@ async def test_revert_revives_archived_items(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
-    v1_items = await _items(default_db_path(), root.name)
+    v1_items = await _proj_items(root)
     v1_pay = next(i for i in v1_items if "支付" in i["title"])
 
     (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
@@ -117,7 +123,7 @@ async def test_revert_revives_archived_items(tmp_path, monkeypatch):
     # 切回 v1（revert）
     (root / "requirements.md").write_text(_doc(_PAY_V1), encoding="utf-8")
     assert await run_bootstrap(_args(root)) == 0
-    after = await _items(default_db_path(), root.name)
+    after = await _proj_items(root)
 
     revived = next(i for i in after if i["id"] == v1_pay["id"])
     assert revived["status"] == "pending_review"
@@ -134,7 +140,7 @@ async def test_deleted_file_archives_pending_review_too(tmp_path, monkeypatch):
 
     (root / "requirements.md").unlink()
     assert await run_bootstrap(_args(root)) == 0
-    after = await _items(default_db_path(), root.name)
+    after = await _proj_items(root)
     assert after and all(i["status"] == "archived" for i in after)
 
 
@@ -147,15 +153,15 @@ async def test_watch_relearn_converges_old_chunks(tmp_path, monkeypatch):
     root = _make_doc_project(tmp_path / "proj")
     runtime = await build_runtime(project_root=root)
     try:
-        learner = IncrementalLearner(runtime, root, root.name)
+        learner = IncrementalLearner(runtime, root, runtime.project_id)
         doc = root / "requirements.md"
         await learner._relearn(doc)
-        before = await _items(default_db_path(), root.name)
+        before = await _proj_items(root)
         assert before and all(i["status"] == "active" for i in before)
 
         doc.write_text(_doc(_PAY_V2), encoding="utf-8")
         await learner._relearn(doc)
-        after = await _items(default_db_path(), root.name)
+        after = await _proj_items(root)
         old_ids = {i["id"] for i in before}
         pay_old = [i for i in after if i["id"] in old_ids and "支付" in i["title"]]
         assert pay_old and all(i["status"] == "archived" for i in pay_old)
@@ -178,7 +184,7 @@ async def test_config_summary_churn_supersedes(tmp_path, monkeypatch):
     pyproject.write_text('[project]\ndependencies = ["pydantic>=2"]\n', encoding="utf-8")
 
     assert await run_bootstrap(_args(root, scope="config")) == 0
-    before = await _items(default_db_path(), root.name)
+    before = await _proj_items(root)
     cfg_before = [i for i in before if "signal:config" in (i["tags"] or "")]
     assert len(cfg_before) == 1
 
@@ -186,7 +192,7 @@ async def test_config_summary_churn_supersedes(tmp_path, monkeypatch):
         '[project]\ndependencies = ["pydantic>=2", "fastapi>=0.115"]\n', encoding="utf-8"
     )
     assert await run_bootstrap(_args(root, scope="config")) == 0
-    after = await _items(default_db_path(), root.name)
+    after = await _proj_items(root)
     cfg_after = [i for i in after if "signal:config" in (i["tags"] or "")]
     assert len(cfg_after) == 2
     old = next(i for i in cfg_after if i["id"] == cfg_before[0]["id"])
@@ -206,13 +212,13 @@ async def test_rule_seed_churn_supersedes(tmp_path, monkeypatch):
     (rules / "a.mdc").write_text("- 禁止使用裸 SQL，一律参数化查询\n", encoding="utf-8")
 
     assert await run_bootstrap(_args(root, scope="config")) == 0
-    before = await _items(default_db_path(), root.name)
+    before = await _proj_items(root)
     seeds_before = [i for i in before if i["content_type"] == "prohibition"]
     assert len(seeds_before) == 1
 
     (rules / "a.mdc").write_text("- 禁止直调 Mapper，必须经 Service 层\n", encoding="utf-8")
     assert await run_bootstrap(_args(root, scope="config")) == 0
-    after = await _items(default_db_path(), root.name)
+    after = await _proj_items(root)
     seeds_after = [i for i in after if i["content_type"] == "prohibition"]
     assert len(seeds_after) == 2
     old = next(i for i in seeds_after if i["id"] == seeds_before[0]["id"])

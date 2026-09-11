@@ -33,16 +33,18 @@ class SchedulerManager:
         proposal_engine_provider: Optional[Any] = None,
         conflict_detector_provider: Optional[Any] = None,
         project_ids: Optional[List[str]] = None,
+        global_db: Optional[SQLiteClient] = None,
     ):
         self._db = db
         self._archive_dir = archive_dir
         self._profiles = profiles
+        self._global_db = global_db
         # provider 模式：提取器/提案引擎/冲突检测随配置热加载重建，调度器持有 provider 而非实例
         self._extractor_provider = extractor_provider
         self._proposal_engine_provider = proposal_engine_provider
         self._conflict_detector_provider = conflict_detector_provider
         # Harness 任务作用的项目集合（个人工具项目数少，缺省仅 default + 当前项目由调用方给出）
-        self._project_ids = project_ids or ["default"]
+        self._project_ids = [p for p in (project_ids or []) if p]
         self._tasks: List[asyncio.Task] = []
 
     async def _daily_loop(self) -> None:
@@ -130,9 +132,14 @@ class SchedulerManager:
         """§3.8 离线聚合：对库中所有画像属主执行衰减重算"""
         if self._profiles is None:
             return
+        owners: List[Any] = []
         conn = await self._db.connect()
         async with conn.execute("SELECT DISTINCT user_id, project_id FROM user_profiles") as cur:
-            owners = await cur.fetchall()
+            owners.extend(await cur.fetchall())
+        if self._global_db is not None and self._global_db is not self._db:
+            gconn = await self._global_db.connect()
+            async with gconn.execute("SELECT DISTINCT user_id, project_id FROM user_profiles") as cur:
+                owners.extend(await cur.fetchall())
         for row in owners:
             await self._profiles.rebuild(row["user_id"], row["project_id"] or None)
         if owners:

@@ -12,11 +12,13 @@ from pathlib import Path
 
 from rsi_boot.bootstrap import default_db_path
 from rsi_boot.data.sqlite import SQLiteClient
+from rsi_boot.project import resolve_project_root
 from rsi_boot.services.export_service import EXPORTABLE_TABLES, export_table
 
 
 async def _run(args: argparse.Namespace) -> int:
-    db = SQLiteClient(args.db or default_db_path())
+    db_path = args.db or default_db_path(resolve_project_root(explicit=args.project_root))
+    db = SQLiteClient(db_path)
     try:
         return await export_table(args.table, args.format, args.out, db)
     finally:
@@ -28,7 +30,8 @@ def main() -> None:
     parser.add_argument("--table", required=True, choices=EXPORTABLE_TABLES)
     parser.add_argument("--format", default="json", choices=["json", "csv"])
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--db", default=None, type=Path, help="数据库路径，缺省 ~/.rsi/rsi.db")
+    parser.add_argument("--db", default=None, type=Path, help="数据库路径，缺省为当前项目 .rsi/rsi.db")
+    parser.add_argument("--project-root", default=None, type=Path, help="项目根（与 --db 二选一）")
     args = parser.parse_args()
 
     count = asyncio.run(_run(args))

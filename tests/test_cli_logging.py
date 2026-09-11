@@ -66,11 +66,14 @@ def test_init_no_stderr_red_block(tmp_path, monkeypatch, capsys):
 
 
 def test_init_verbose_restores_info_stderr(tmp_path, monkeypatch, capsys):
-    """rsi init --verbose：迁移 INFO 日志恢复到 stderr"""
+    """rsi init --verbose：日志回到 INFO + stderr（init 不再建库，可无迁移行）"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi"))
     monkeypatch.setattr(sys, "argv", ["rsi", "init", "--verbose"])
     with pytest.raises(SystemExit) as exc:
         main()
     assert exc.value.code == 0
     captured = capsys.readouterr()
-    assert "应用迁移" in captured.err  # migrate.py 的 INFO 日志
+    assert "初始化完成" in captured.out
+    root = logging.getLogger("rsi_boot")
+    assert root.level == logging.INFO
+    assert root.handlers[0].stream is sys.stderr
