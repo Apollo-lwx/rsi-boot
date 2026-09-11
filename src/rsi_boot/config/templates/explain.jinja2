@@ -1,0 +1,7 @@
+{% extends "base.jinja2" %}
+{% block instructions %}# 任务：解释说明
+请由浅入深解释，先给一句话结论，再展开原理与细节，必要时举例。
+{% if code_content %}```
+{{ code_content }}
+```{% endif %}
+{% endblock %}

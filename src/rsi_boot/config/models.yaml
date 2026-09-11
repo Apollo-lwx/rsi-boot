@@ -1,0 +1,31 @@
+# 模型单价表（§6.1，美元 / 1M tokens）。改价不影响历史记录（历史按当时单价已落库）。
+# 未在此表中的模型 cost_usd 记 NULL 并产生 warning 日志。
+
+gpt-4o-mini:
+  prompt: 0.15
+  completion: 0.60
+
+gpt-4o:
+  prompt: 2.50
+  completion: 10.00
+
+# P4.1 多模型适配（§6.1：Phase 4 接入 Anthropic / DeepSeek 后补充对应单价）
+claude-3-5-sonnet:
+  prompt: 3.00
+  completion: 15.00
+
+claude-3-5-haiku:
+  prompt: 0.80
+  completion: 4.00
+
+deepseek-chat:
+  prompt: 0.27
+  completion: 1.10
+
+deepseek-reasoner:
+  prompt: 0.55
+  completion: 2.19
+
+mock:
+  prompt: 0.0
+  completion: 0.0

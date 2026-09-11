@@ -1,0 +1,7 @@
+{% extends "base.jinja2" %}
+{% block instructions %}# 任务：调试分析
+请分析以下问题的根因，按「现象 → 定位思路 → 修复方案 → 预防措施」结构输出。
+{% if code_content %}```
+{{ code_content }}
+```{% endif %}
+{% endblock %}

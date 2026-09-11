@@ -1,0 +1,14 @@
+{# 基础模板：所有意图模板继承（§3.4）。变量：project_name/project_context/user_expertise/user_style/knowledge_items/code_content/language #}
+{% if project_context %}# 项目上下文
+{{ project_context }}
+{% endif %}
+{%- if user_expertise %}# 用户画像
+专长领域：{{ user_expertise | join('、') }}
+{% endif %}
+{%- if knowledge_items %}# 项目知识（以下来自本地知识库，供参考）
+{% for item in knowledge_items %}
+## {{ item.title }}（来源：knowledge:{{ item.id }}）
+{{ item.content }}
+{% endfor %}
+{% endif %}
+{%- block instructions %}{% endblock %}

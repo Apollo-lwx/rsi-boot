@@ -1,0 +1,80 @@
+"""学习报告（§10.9.12）：终端摘要 + JSON 落盘（.rsi/bootstrap_report.json）。"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, List
+
+
+@dataclass
+class BootstrapReport:
+    project_root: str
+    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    signals: Dict[str, int] = field(default_factory=dict)       # kind -> 发现文件数
+    planned_scopes: Dict[str, bool] = field(default_factory=dict)
+    knowledge_written: int = 0
+    chunks_skipped: int = 0
+    duplicates_skipped: int = 0
+    archived: int = 0                                           # 信号源删除归档数（§10.9.10）
+    superseded: int = 0                                         # 内容变更收敛的旧版本条目数（§10.9.10）
+    revived: int = 0                                            # revert/切回复活的条目数
+    review_queue_archived: int = 0                              # 审批队列限量溢出置 archived 数
+    prohibition_seeds: int = 0                                  # 用户规则禁止句式种子数（ISSUE-6）
+    version_conflicts: int = 0                                  # 多版本文档家族冲突（待用户裁决）
+    code_modules: int = 0                                       # AST 骨架模块数（P2.6）
+    git_summary: str = ""                                       # Git 分析摘要（P2.6）
+    conversation_patterns: int = 0                              # 对话/决策模式数（P2.6）
+    correlations: Dict[str, int] = field(default_factory=dict)  # 关联推理成果（P2.6）
+    errors: List[str] = field(default_factory=list)
+    profile_summary: Dict[str, str] = field(default_factory=dict)
+    dry_run: bool = False
+
+    def render_terminal(self) -> str:
+        lines = ["", "=== RSI Boot 学习报告 ===", f"项目: {self.project_root}"]
+        lines.append("信号发现: " + (", ".join(f"{k}({v})" for k, v in self.signals.items() if v) or "无"))
+        skipped = [k for k, v in self.planned_scopes.items() if not v]
+        if skipped:
+            lines.append(f"跳过维度: {', '.join(skipped)}")
+        if self.dry_run:
+            lines.append("（dry-run：未写入任何数据）")
+        else:
+            lines.append(
+                f"知识写入: {self.knowledge_written} 条；跳过: {self.chunks_skipped}；"
+                f"去重: {self.duplicates_skipped}；归档: {self.archived}"
+            )
+            if self.superseded or self.revived:
+                lines.append(
+                    f"变更收敛: {self.superseded} 条旧版本归档；复活: {self.revived} 条（§10.9.10）"
+                )
+            if self.version_conflicts:
+                lines.append(
+                    f"版本冲突: {self.version_conflicts} 组（rsi_conflicts 裁决，不自动归档）"
+                )
+            if self.prohibition_seeds:
+                lines.append(f"禁止项种子: {self.prohibition_seeds} 条（来自用户规则文件，待审批）")
+            if self.review_queue_archived:
+                lines.append(
+                    f"审批队列限量: {self.review_queue_archived} 条溢出置 archived"
+                    "（rsi_knowledge_review 批量审批可恢复）"
+                )
+            if self.code_modules:
+                lines.append(f"代码骨架: {self.code_modules} 个模块")
+            if self.git_summary:
+                lines.append(f"Git: {self.git_summary}")
+            if self.conversation_patterns:
+                lines.append(f"对话模式: {self.conversation_patterns} 条")
+            if self.correlations:
+                lines.append("关联推理: " + ", ".join(f"{k}={v}" for k, v in sorted(self.correlations.items())))
+            if self.profile_summary:
+                summary = ", ".join(f"{k}={v}" for k, v in self.profile_summary.items() if v)
+                lines.append(f"画像: {summary or '信号不足，留空'}")
+        if self.errors:
+            lines.append(f"错误 {len(self.errors)} 条（详见 JSON 报告）")
+        return "\n".join(lines)
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(asdict(self), ensure_ascii=False, indent=2), encoding="utf-8")

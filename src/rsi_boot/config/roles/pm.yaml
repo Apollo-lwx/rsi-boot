@@ -1,0 +1,34 @@
+# Product Manager 角色意图注册（§3.6）：请求携带 role=pm 时优先于通用意图匹配
+# P2.7：patterns 经 tests/eval 角色评测集校准（基线 Top-1 ≥ 85%）
+role: pm
+intents:
+  - name: req_analyze
+    patterns:
+      - "(?i)requirement analysis|user stor|需求分析|需求.*拆解|拆.*用户故事"
+      - "用户场景|需求价值|核心痛点|需求边界|优先级|依赖关系|epic|验收标准"
+    fallback: explain
+    prompt_template: req_analyze.jinja2
+  - name: doc_review
+    patterns:
+      - "(?i)(review|check)\\s+\\w*\\s*(prd|spec|doc)|评审.*(PRD|文档|需求|方案)"
+      - "文档.*(一致性|漏洞|矛盾|完整)|逻辑.*自洽|还缺什么|边界条件"
+    fallback: code_review
+    prompt_template: doc_review.jinja2
+  - name: prd_gen
+    patterns:
+      - "(?i)prd|需求文档|功能说明|产品文档|需求规格|功能清单|原型说明"
+      - "起草.*需求|写.*PRD"
+    fallback: code_gen
+    prompt_template: prd_gen.jinja2
+  - name: data_analysis
+    patterns:
+      - "(?i)data analysis|metric|漏斗|看板|留存|转化|a/b"
+      - "数据分析|指标|下降.*原因|波动|解读|周报数据|显著|对比两个版本"
+    fallback: explain
+    prompt_template: data_analysis.jinja2
+  - name: stakeholder_comm
+    patterns:
+      - "(?i)stakeholder|汇报|纪要|邮件|公告"
+      - "说明邮件|同步文档|进展同步|评审会|口径|周报|faq|沟通"
+    fallback: general_assist
+    prompt_template: stakeholder_comm.jinja2

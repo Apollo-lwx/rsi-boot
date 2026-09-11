@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "FeedbackAction": {
+      "enum": [
+        "accepted",
+        "modified",
+        "ignored",
+        "rejected",
+        "copied",
+        "applied",
+        "referenced"
+      ],
+      "title": "FeedbackAction",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "feedback_token": {
+      "title": "Feedback Token",
+      "type": "string"
+    },
+    "user_id": {
+      "pattern": "^[a-zA-Z0-9_@.\\-]{1,128}$",
+      "title": "User Id",
+      "type": "string"
+    },
+    "project_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Id"
+    },
+    "action": {
+      "$ref": "#/$defs/FeedbackAction"
+    },
+    "modified_content": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Modified Content"
+    },
+    "rating": {
+      "anyOf": [
+        {
+          "maximum": 5,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rating"
+    },
+    "comment": {
+      "anyOf": [
+        {
+          "maxLength": 2048,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Comment"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    }
+  },
+  "required": [
+    "feedback_token",
+    "user_id",
+    "action"
+  ],
+  "title": "Feedback",
+  "type": "object"
+}

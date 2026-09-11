@@ -1,0 +1,480 @@
+{"input": "为登录接口生成测试用例", "intent": "test_gen", "role": "test"}
+{"input": "帮我写登录接口的 pytest 单测", "intent": "test_gen", "role": "test"}
+{"input": "generate test cases for 登录接口", "intent": "test_gen", "role": "test"}
+{"input": "补一下登录接口的边界测试", "intent": "test_gen", "role": "test"}
+{"input": "给登录接口写测试场景", "intent": "test_gen", "role": "test"}
+{"input": "create unit tests for 登录接口", "intent": "test_gen", "role": "test"}
+{"input": "登录接口的测试用例帮我生成", "intent": "test_gen", "role": "test"}
+{"input": "为登录接口设计参数化测试", "intent": "test_gen", "role": "test"}
+{"input": "写登录接口的集成测试", "intent": "test_gen", "role": "test"}
+{"input": "帮我补登录接口的异常路径用例", "intent": "test_gen", "role": "test"}
+{"input": "为支付回调生成测试用例", "intent": "test_gen", "role": "test"}
+{"input": "帮我写支付回调的 pytest 单测", "intent": "test_gen", "role": "test"}
+{"input": "generate test cases for 支付回调", "intent": "test_gen", "role": "test"}
+{"input": "补一下支付回调的边界测试", "intent": "test_gen", "role": "test"}
+{"input": "给支付回调写测试场景", "intent": "test_gen", "role": "test"}
+{"input": "create unit tests for 支付回调", "intent": "test_gen", "role": "test"}
+{"input": "支付回调的测试用例帮我生成", "intent": "test_gen", "role": "test"}
+{"input": "为支付回调设计参数化测试", "intent": "test_gen", "role": "test"}
+{"input": "写支付回调的集成测试", "intent": "test_gen", "role": "test"}
+{"input": "帮我补支付回调的异常路径用例", "intent": "test_gen", "role": "test"}
+{"input": "为分页函数生成测试用例", "intent": "test_gen", "role": "test"}
+{"input": "帮我写分页函数的 pytest 单测", "intent": "test_gen", "role": "test"}
+{"input": "generate test cases for 分页函数", "intent": "test_gen", "role": "test"}
+{"input": "补一下分页函数的边界测试", "intent": "test_gen", "role": "test"}
+{"input": "给分页函数写测试场景", "intent": "test_gen", "role": "test"}
+{"input": "create unit tests for 分页函数", "intent": "test_gen", "role": "test"}
+{"input": "分页函数的测试用例帮我生成", "intent": "test_gen", "role": "test"}
+{"input": "为分页函数设计参数化测试", "intent": "test_gen", "role": "test"}
+{"input": "写分页函数的集成测试", "intent": "test_gen", "role": "test"}
+{"input": "帮我补分页函数的异常路径用例", "intent": "test_gen", "role": "test"}
+{"input": "为缓存模块生成测试用例", "intent": "test_gen", "role": "test"}
+{"input": "帮我写缓存模块的 pytest 单测", "intent": "test_gen", "role": "test"}
+{"input": "generate test cases for 缓存模块", "intent": "test_gen", "role": "test"}
+{"input": "补一下缓存模块的边界测试", "intent": "test_gen", "role": "test"}
+{"input": "给缓存模块写测试场景", "intent": "test_gen", "role": "test"}
+{"input": "create unit tests for 缓存模块", "intent": "test_gen", "role": "test"}
+{"input": "缓存模块的测试用例帮我生成", "intent": "test_gen", "role": "test"}
+{"input": "为缓存模块设计参数化测试", "intent": "test_gen", "role": "test"}
+{"input": "写缓存模块的集成测试", "intent": "test_gen", "role": "test"}
+{"input": "帮我补缓存模块的异常路径用例", "intent": "test_gen", "role": "test"}
+{"input": "为鉴权中间件生成测试用例", "intent": "test_gen", "role": "test"}
+{"input": "帮我写鉴权中间件的 pytest 单测", "intent": "test_gen", "role": "test"}
+{"input": "generate test cases for 鉴权中间件", "intent": "test_gen", "role": "test"}
+{"input": "补一下鉴权中间件的边界测试", "intent": "test_gen", "role": "test"}
+{"input": "给鉴权中间件写测试场景", "intent": "test_gen", "role": "test"}
+{"input": "create unit tests for 鉴权中间件", "intent": "test_gen", "role": "test"}
+{"input": "鉴权中间件的测试用例帮我生成", "intent": "test_gen", "role": "test"}
+{"input": "为鉴权中间件设计参数化测试", "intent": "test_gen", "role": "test"}
+{"input": "写鉴权中间件的集成测试", "intent": "test_gen", "role": "test"}
+{"input": "帮我补鉴权中间件的异常路径用例", "intent": "test_gen", "role": "test"}
+{"input": "评审一下这组登录用例", "intent": "test_review", "role": "test"}
+{"input": "review my test plan for 登录", "intent": "test_review", "role": "test"}
+{"input": "这个登录测试有没有遗漏场景", "intent": "test_review", "role": "test"}
+{"input": "帮我审查登录的测试覆盖", "intent": "test_review", "role": "test"}
+{"input": "测试评审：登录", "intent": "test_review", "role": "test"}
+{"input": "看看这些用例质量怎么样", "intent": "test_review", "role": "test"}
+{"input": "审查登录的测试设计", "intent": "test_review", "role": "test"}
+{"input": "这份测试方案帮我把关", "intent": "test_review", "role": "test"}
+{"input": "evaluate my test cases for 登录", "intent": "test_review", "role": "test"}
+{"input": "检查登录测试的断言是否充分", "intent": "test_review", "role": "test"}
+{"input": "评审一下这组订单用例", "intent": "test_review", "role": "test"}
+{"input": "review my test plan for 订单", "intent": "test_review", "role": "test"}
+{"input": "这个订单测试有没有遗漏场景", "intent": "test_review", "role": "test"}
+{"input": "帮我审查订单的测试覆盖", "intent": "test_review", "role": "test"}
+{"input": "测试评审：订单", "intent": "test_review", "role": "test"}
+{"input": "审查订单的测试设计", "intent": "test_review", "role": "test"}
+{"input": "evaluate my test cases for 订单", "intent": "test_review", "role": "test"}
+{"input": "检查订单测试的断言是否充分", "intent": "test_review", "role": "test"}
+{"input": "评审一下这组支付用例", "intent": "test_review", "role": "test"}
+{"input": "review my test plan for 支付", "intent": "test_review", "role": "test"}
+{"input": "这个支付测试有没有遗漏场景", "intent": "test_review", "role": "test"}
+{"input": "帮我审查支付的测试覆盖", "intent": "test_review", "role": "test"}
+{"input": "测试评审：支付", "intent": "test_review", "role": "test"}
+{"input": "审查支付的测试设计", "intent": "test_review", "role": "test"}
+{"input": "evaluate my test cases for 支付", "intent": "test_review", "role": "test"}
+{"input": "检查支付测试的断言是否充分", "intent": "test_review", "role": "test"}
+{"input": "评审一下这组搜索用例", "intent": "test_review", "role": "test"}
+{"input": "review my test plan for 搜索", "intent": "test_review", "role": "test"}
+{"input": "这个搜索测试有没有遗漏场景", "intent": "test_review", "role": "test"}
+{"input": "帮我审查搜索的测试覆盖", "intent": "test_review", "role": "test"}
+{"input": "测试评审：搜索", "intent": "test_review", "role": "test"}
+{"input": "审查搜索的测试设计", "intent": "test_review", "role": "test"}
+{"input": "evaluate my test cases for 搜索", "intent": "test_review", "role": "test"}
+{"input": "检查搜索测试的断言是否充分", "intent": "test_review", "role": "test"}
+{"input": "评审一下这组导入用例", "intent": "test_review", "role": "test"}
+{"input": "review my test plan for 导入", "intent": "test_review", "role": "test"}
+{"input": "这个导入测试有没有遗漏场景", "intent": "test_review", "role": "test"}
+{"input": "帮我审查导入的测试覆盖", "intent": "test_review", "role": "test"}
+{"input": "测试评审：导入", "intent": "test_review", "role": "test"}
+{"input": "审查导入的测试设计", "intent": "test_review", "role": "test"}
+{"input": "evaluate my test cases for 导入", "intent": "test_review", "role": "test"}
+{"input": "检查导入测试的断言是否充分", "intent": "test_review", "role": "test"}
+{"input": "分析这个崩溃崩溃的根因", "intent": "bug_analyze", "role": "test"}
+{"input": "这个 bug 偶发，帮我整理复现条件", "intent": "bug_analyze", "role": "test"}
+{"input": "root cause analysis for 崩溃", "intent": "bug_analyze", "role": "test"}
+{"input": "定位崩溃失败的原因", "intent": "bug_analyze", "role": "test"}
+{"input": "帮我分析这个缺陷的引入点", "intent": "bug_analyze", "role": "test"}
+{"input": "why did 崩溃 fail in CI", "intent": "bug_analyze", "role": "test"}
+{"input": "分析崩溃的报错堆栈", "intent": "bug_analyze", "role": "test"}
+{"input": "这个崩溃缺陷的影响面", "intent": "bug_analyze", "role": "test"}
+{"input": "排查崩溃的回归原因", "intent": "bug_analyze", "role": "test"}
+{"input": "帮我归类这个崩溃问题", "intent": "bug_analyze", "role": "test"}
+{"input": "分析这个超时崩溃的根因", "intent": "bug_analyze", "role": "test"}
+{"input": "root cause analysis for 超时", "intent": "bug_analyze", "role": "test"}
+{"input": "定位超时失败的原因", "intent": "bug_analyze", "role": "test"}
+{"input": "why did 超时 fail in CI", "intent": "bug_analyze", "role": "test"}
+{"input": "分析超时的报错堆栈", "intent": "bug_analyze", "role": "test"}
+{"input": "这个超时缺陷的影响面", "intent": "bug_analyze", "role": "test"}
+{"input": "排查超时的回归原因", "intent": "bug_analyze", "role": "test"}
+{"input": "帮我归类这个超时问题", "intent": "bug_analyze", "role": "test"}
+{"input": "分析这个脏数据崩溃的根因", "intent": "bug_analyze", "role": "test"}
+{"input": "root cause analysis for 脏数据", "intent": "bug_analyze", "role": "test"}
+{"input": "定位脏数据失败的原因", "intent": "bug_analyze", "role": "test"}
+{"input": "why did 脏数据 fail in CI", "intent": "bug_analyze", "role": "test"}
+{"input": "分析脏数据的报错堆栈", "intent": "bug_analyze", "role": "test"}
+{"input": "这个脏数据缺陷的影响面", "intent": "bug_analyze", "role": "test"}
+{"input": "排查脏数据的回归原因", "intent": "bug_analyze", "role": "test"}
+{"input": "帮我归类这个脏数据问题", "intent": "bug_analyze", "role": "test"}
+{"input": "分析这个并发崩溃的根因", "intent": "bug_analyze", "role": "test"}
+{"input": "root cause analysis for 并发", "intent": "bug_analyze", "role": "test"}
+{"input": "定位并发失败的原因", "intent": "bug_analyze", "role": "test"}
+{"input": "why did 并发 fail in CI", "intent": "bug_analyze", "role": "test"}
+{"input": "分析并发的报错堆栈", "intent": "bug_analyze", "role": "test"}
+{"input": "这个并发缺陷的影响面", "intent": "bug_analyze", "role": "test"}
+{"input": "排查并发的回归原因", "intent": "bug_analyze", "role": "test"}
+{"input": "帮我归类这个并发问题", "intent": "bug_analyze", "role": "test"}
+{"input": "分析这个内存崩溃的根因", "intent": "bug_analyze", "role": "test"}
+{"input": "root cause analysis for 内存", "intent": "bug_analyze", "role": "test"}
+{"input": "定位内存失败的原因", "intent": "bug_analyze", "role": "test"}
+{"input": "why did 内存 fail in CI", "intent": "bug_analyze", "role": "test"}
+{"input": "分析内存的报错堆栈", "intent": "bug_analyze", "role": "test"}
+{"input": "这个内存缺陷的影响面", "intent": "bug_analyze", "role": "test"}
+{"input": "排查内存的回归原因", "intent": "bug_analyze", "role": "test"}
+{"input": "帮我归类这个内存问题", "intent": "bug_analyze", "role": "test"}
+{"input": "帮我造用户条用户测试数据", "intent": "test_data", "role": "test"}
+{"input": "生成用户的 mock 数据", "intent": "test_data", "role": "test"}
+{"input": "构造用户的测试 fixture", "intent": "test_data", "role": "test"}
+{"input": "造一些用户的边界值数据", "intent": "test_data", "role": "test"}
+{"input": "prepare test data for 用户", "intent": "test_data", "role": "test"}
+{"input": "给我用户的测试数据集", "intent": "test_data", "role": "test"}
+{"input": "生成符合用户规则的数据", "intent": "test_data", "role": "test"}
+{"input": "mock 用户 的响应报文", "intent": "test_data", "role": "test"}
+{"input": "构造用户的异常数据", "intent": "test_data", "role": "test"}
+{"input": "帮我准备用户的压测数据", "intent": "test_data", "role": "test"}
+{"input": "帮我造订单条订单测试数据", "intent": "test_data", "role": "test"}
+{"input": "生成订单的 mock 数据", "intent": "test_data", "role": "test"}
+{"input": "构造订单的测试 fixture", "intent": "test_data", "role": "test"}
+{"input": "造一些订单的边界值数据", "intent": "test_data", "role": "test"}
+{"input": "prepare test data for 订单", "intent": "test_data", "role": "test"}
+{"input": "给我订单的测试数据集", "intent": "test_data", "role": "test"}
+{"input": "生成符合订单规则的数据", "intent": "test_data", "role": "test"}
+{"input": "mock 订单 的响应报文", "intent": "test_data", "role": "test"}
+{"input": "构造订单的异常数据", "intent": "test_data", "role": "test"}
+{"input": "帮我准备订单的压测数据", "intent": "test_data", "role": "test"}
+{"input": "帮我造身份证条身份证测试数据", "intent": "test_data", "role": "test"}
+{"input": "生成身份证的 mock 数据", "intent": "test_data", "role": "test"}
+{"input": "构造身份证的测试 fixture", "intent": "test_data", "role": "test"}
+{"input": "造一些身份证的边界值数据", "intent": "test_data", "role": "test"}
+{"input": "prepare test data for 身份证", "intent": "test_data", "role": "test"}
+{"input": "给我身份证的测试数据集", "intent": "test_data", "role": "test"}
+{"input": "生成符合身份证规则的数据", "intent": "test_data", "role": "test"}
+{"input": "mock 身份证 的响应报文", "intent": "test_data", "role": "test"}
+{"input": "构造身份证的异常数据", "intent": "test_data", "role": "test"}
+{"input": "帮我准备身份证的压测数据", "intent": "test_data", "role": "test"}
+{"input": "帮我造100条100测试数据", "intent": "test_data", "role": "test"}
+{"input": "生成100的 mock 数据", "intent": "test_data", "role": "test"}
+{"input": "构造100的测试 fixture", "intent": "test_data", "role": "test"}
+{"input": "造一些100的边界值数据", "intent": "test_data", "role": "test"}
+{"input": "prepare test data for 100", "intent": "test_data", "role": "test"}
+{"input": "给我100的测试数据集", "intent": "test_data", "role": "test"}
+{"input": "生成符合100规则的数据", "intent": "test_data", "role": "test"}
+{"input": "mock 100 的响应报文", "intent": "test_data", "role": "test"}
+{"input": "构造100的异常数据", "intent": "test_data", "role": "test"}
+{"input": "帮我准备100的压测数据", "intent": "test_data", "role": "test"}
+{"input": "帮我造500条500测试数据", "intent": "test_data", "role": "test"}
+{"input": "生成500的 mock 数据", "intent": "test_data", "role": "test"}
+{"input": "构造500的测试 fixture", "intent": "test_data", "role": "test"}
+{"input": "造一些500的边界值数据", "intent": "test_data", "role": "test"}
+{"input": "prepare test data for 500", "intent": "test_data", "role": "test"}
+{"input": "给我500的测试数据集", "intent": "test_data", "role": "test"}
+{"input": "生成符合500规则的数据", "intent": "test_data", "role": "test"}
+{"input": "mock 500 的响应报文", "intent": "test_data", "role": "test"}
+{"input": "构造500的异常数据", "intent": "test_data", "role": "test"}
+{"input": "帮我准备500的压测数据", "intent": "test_data", "role": "test"}
+{"input": "看看支付模块还有哪些分支没覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "分析支付模块的覆盖率缺口", "intent": "coverage_check", "role": "test"}
+{"input": "which branches of 支付模块 are not tested", "intent": "coverage_check", "role": "test"}
+{"input": "这次变更影响哪些用例", "intent": "coverage_check", "role": "test"}
+{"input": "检查支付模块的测试覆盖率", "intent": "coverage_check", "role": "test"}
+{"input": "支付模块的覆盖率为什么上不去", "intent": "coverage_check", "role": "test"}
+{"input": "帮我找出支付模块的漏测点", "intent": "coverage_check", "role": "test"}
+{"input": "coverage report for 支付模块", "intent": "coverage_check", "role": "test"}
+{"input": "哪些支付模块路径没有测试", "intent": "coverage_check", "role": "test"}
+{"input": "统计支付模块的用例覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "看看鉴权还有哪些分支没覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "分析鉴权的覆盖率缺口", "intent": "coverage_check", "role": "test"}
+{"input": "which branches of 鉴权 are not tested", "intent": "coverage_check", "role": "test"}
+{"input": "检查鉴权的测试覆盖率", "intent": "coverage_check", "role": "test"}
+{"input": "鉴权的覆盖率为什么上不去", "intent": "coverage_check", "role": "test"}
+{"input": "帮我找出鉴权的漏测点", "intent": "coverage_check", "role": "test"}
+{"input": "coverage report for 鉴权", "intent": "coverage_check", "role": "test"}
+{"input": "哪些鉴权路径没有测试", "intent": "coverage_check", "role": "test"}
+{"input": "统计鉴权的用例覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "看看订单流还有哪些分支没覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "分析订单流的覆盖率缺口", "intent": "coverage_check", "role": "test"}
+{"input": "which branches of 订单流 are not tested", "intent": "coverage_check", "role": "test"}
+{"input": "检查订单流的测试覆盖率", "intent": "coverage_check", "role": "test"}
+{"input": "订单流的覆盖率为什么上不去", "intent": "coverage_check", "role": "test"}
+{"input": "帮我找出订单流的漏测点", "intent": "coverage_check", "role": "test"}
+{"input": "coverage report for 订单流", "intent": "coverage_check", "role": "test"}
+{"input": "哪些订单流路径没有测试", "intent": "coverage_check", "role": "test"}
+{"input": "统计订单流的用例覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "看看缓存还有哪些分支没覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "分析缓存的覆盖率缺口", "intent": "coverage_check", "role": "test"}
+{"input": "which branches of 缓存 are not tested", "intent": "coverage_check", "role": "test"}
+{"input": "检查缓存的测试覆盖率", "intent": "coverage_check", "role": "test"}
+{"input": "缓存的覆盖率为什么上不去", "intent": "coverage_check", "role": "test"}
+{"input": "帮我找出缓存的漏测点", "intent": "coverage_check", "role": "test"}
+{"input": "coverage report for 缓存", "intent": "coverage_check", "role": "test"}
+{"input": "哪些缓存路径没有测试", "intent": "coverage_check", "role": "test"}
+{"input": "统计缓存的用例覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "看看消息队列还有哪些分支没覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "分析消息队列的覆盖率缺口", "intent": "coverage_check", "role": "test"}
+{"input": "which branches of 消息队列 are not tested", "intent": "coverage_check", "role": "test"}
+{"input": "检查消息队列的测试覆盖率", "intent": "coverage_check", "role": "test"}
+{"input": "消息队列的覆盖率为什么上不去", "intent": "coverage_check", "role": "test"}
+{"input": "帮我找出消息队列的漏测点", "intent": "coverage_check", "role": "test"}
+{"input": "coverage report for 消息队列", "intent": "coverage_check", "role": "test"}
+{"input": "哪些消息队列路径没有测试", "intent": "coverage_check", "role": "test"}
+{"input": "统计消息队列的用例覆盖", "intent": "coverage_check", "role": "test"}
+{"input": "帮我分析收藏功能的用户场景", "intent": "req_analyze", "role": "pm"}
+{"input": "把收藏功能拆成用户故事", "intent": "req_analyze", "role": "pm"}
+{"input": "analyze the requirement for 收藏功能", "intent": "req_analyze", "role": "pm"}
+{"input": "收藏功能的需求价值评估一下", "intent": "req_analyze", "role": "pm"}
+{"input": "这个收藏功能需求的核心痛点是什么", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我梳理收藏功能的需求边界", "intent": "req_analyze", "role": "pm"}
+{"input": "评估收藏功能的优先级", "intent": "req_analyze", "role": "pm"}
+{"input": "收藏功能需求的依赖关系分析", "intent": "req_analyze", "role": "pm"}
+{"input": "拆解收藏功能这个 epic", "intent": "req_analyze", "role": "pm"}
+{"input": "分析收藏功能需求的验收标准", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我分析导出的用户场景", "intent": "req_analyze", "role": "pm"}
+{"input": "把导出拆成用户故事", "intent": "req_analyze", "role": "pm"}
+{"input": "analyze the requirement for 导出", "intent": "req_analyze", "role": "pm"}
+{"input": "导出的需求价值评估一下", "intent": "req_analyze", "role": "pm"}
+{"input": "这个导出需求的核心痛点是什么", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我梳理导出的需求边界", "intent": "req_analyze", "role": "pm"}
+{"input": "评估导出的优先级", "intent": "req_analyze", "role": "pm"}
+{"input": "导出需求的依赖关系分析", "intent": "req_analyze", "role": "pm"}
+{"input": "拆解导出这个 epic", "intent": "req_analyze", "role": "pm"}
+{"input": "分析导出需求的验收标准", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我分析消息通知的用户场景", "intent": "req_analyze", "role": "pm"}
+{"input": "把消息通知拆成用户故事", "intent": "req_analyze", "role": "pm"}
+{"input": "analyze the requirement for 消息通知", "intent": "req_analyze", "role": "pm"}
+{"input": "消息通知的需求价值评估一下", "intent": "req_analyze", "role": "pm"}
+{"input": "这个消息通知需求的核心痛点是什么", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我梳理消息通知的需求边界", "intent": "req_analyze", "role": "pm"}
+{"input": "评估消息通知的优先级", "intent": "req_analyze", "role": "pm"}
+{"input": "消息通知需求的依赖关系分析", "intent": "req_analyze", "role": "pm"}
+{"input": "拆解消息通知这个 epic", "intent": "req_analyze", "role": "pm"}
+{"input": "分析消息通知需求的验收标准", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我分析搜索的用户场景", "intent": "req_analyze", "role": "pm"}
+{"input": "把搜索拆成用户故事", "intent": "req_analyze", "role": "pm"}
+{"input": "analyze the requirement for 搜索", "intent": "req_analyze", "role": "pm"}
+{"input": "搜索的需求价值评估一下", "intent": "req_analyze", "role": "pm"}
+{"input": "这个搜索需求的核心痛点是什么", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我梳理搜索的需求边界", "intent": "req_analyze", "role": "pm"}
+{"input": "评估搜索的优先级", "intent": "req_analyze", "role": "pm"}
+{"input": "搜索需求的依赖关系分析", "intent": "req_analyze", "role": "pm"}
+{"input": "拆解搜索这个 epic", "intent": "req_analyze", "role": "pm"}
+{"input": "分析搜索需求的验收标准", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我分析会员体系的用户场景", "intent": "req_analyze", "role": "pm"}
+{"input": "把会员体系拆成用户故事", "intent": "req_analyze", "role": "pm"}
+{"input": "analyze the requirement for 会员体系", "intent": "req_analyze", "role": "pm"}
+{"input": "会员体系的需求价值评估一下", "intent": "req_analyze", "role": "pm"}
+{"input": "这个会员体系需求的核心痛点是什么", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我梳理会员体系的需求边界", "intent": "req_analyze", "role": "pm"}
+{"input": "评估会员体系的优先级", "intent": "req_analyze", "role": "pm"}
+{"input": "会员体系需求的依赖关系分析", "intent": "req_analyze", "role": "pm"}
+{"input": "拆解会员体系这个 epic", "intent": "req_analyze", "role": "pm"}
+{"input": "分析会员体系需求的验收标准", "intent": "req_analyze", "role": "pm"}
+{"input": "帮我写一份导出功能的 PRD", "intent": "prd_gen", "role": "pm"}
+{"input": "draft a PRD for 导出功能", "intent": "prd_gen", "role": "pm"}
+{"input": "生成导出功能的需求文档", "intent": "prd_gen", "role": "pm"}
+{"input": "写导出功能的功能说明书", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我起草导出功能的 PRD 初稿", "intent": "prd_gen", "role": "pm"}
+{"input": "导出功能的产品文档帮我整理", "intent": "prd_gen", "role": "pm"}
+{"input": "输出导出功能的需求规格", "intent": "prd_gen", "role": "pm"}
+{"input": "写导出功能的功能清单", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我完善导出功能的 PRD 结构", "intent": "prd_gen", "role": "pm"}
+{"input": "生成导出功能的原型说明", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我写一份签到的 PRD", "intent": "prd_gen", "role": "pm"}
+{"input": "draft a PRD for 签到", "intent": "prd_gen", "role": "pm"}
+{"input": "生成签到的需求文档", "intent": "prd_gen", "role": "pm"}
+{"input": "写签到的功能说明书", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我起草签到的 PRD 初稿", "intent": "prd_gen", "role": "pm"}
+{"input": "签到的产品文档帮我整理", "intent": "prd_gen", "role": "pm"}
+{"input": "输出签到的需求规格", "intent": "prd_gen", "role": "pm"}
+{"input": "写签到的功能清单", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我完善签到的 PRD 结构", "intent": "prd_gen", "role": "pm"}
+{"input": "生成签到的原型说明", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我写一份积分的 PRD", "intent": "prd_gen", "role": "pm"}
+{"input": "draft a PRD for 积分", "intent": "prd_gen", "role": "pm"}
+{"input": "生成积分的需求文档", "intent": "prd_gen", "role": "pm"}
+{"input": "写积分的功能说明书", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我起草积分的 PRD 初稿", "intent": "prd_gen", "role": "pm"}
+{"input": "积分的产品文档帮我整理", "intent": "prd_gen", "role": "pm"}
+{"input": "输出积分的需求规格", "intent": "prd_gen", "role": "pm"}
+{"input": "写积分的功能清单", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我完善积分的 PRD 结构", "intent": "prd_gen", "role": "pm"}
+{"input": "生成积分的原型说明", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我写一份搜索的 PRD", "intent": "prd_gen", "role": "pm"}
+{"input": "draft a PRD for 搜索", "intent": "prd_gen", "role": "pm"}
+{"input": "生成搜索的需求文档", "intent": "prd_gen", "role": "pm"}
+{"input": "写搜索的功能说明书", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我起草搜索的 PRD 初稿", "intent": "prd_gen", "role": "pm"}
+{"input": "搜索的产品文档帮我整理", "intent": "prd_gen", "role": "pm"}
+{"input": "输出搜索的需求规格", "intent": "prd_gen", "role": "pm"}
+{"input": "写搜索的功能清单", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我完善搜索的 PRD 结构", "intent": "prd_gen", "role": "pm"}
+{"input": "生成搜索的原型说明", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我写一份分享的 PRD", "intent": "prd_gen", "role": "pm"}
+{"input": "draft a PRD for 分享", "intent": "prd_gen", "role": "pm"}
+{"input": "生成分享的需求文档", "intent": "prd_gen", "role": "pm"}
+{"input": "写分享的功能说明书", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我起草分享的 PRD 初稿", "intent": "prd_gen", "role": "pm"}
+{"input": "分享的产品文档帮我整理", "intent": "prd_gen", "role": "pm"}
+{"input": "输出分享的需求规格", "intent": "prd_gen", "role": "pm"}
+{"input": "写分享的功能清单", "intent": "prd_gen", "role": "pm"}
+{"input": "帮我完善分享的 PRD 结构", "intent": "prd_gen", "role": "pm"}
+{"input": "生成分享的原型说明", "intent": "prd_gen", "role": "pm"}
+{"input": "评审这份支付 PRD 有没有漏洞", "intent": "doc_review", "role": "pm"}
+{"input": "check 支付 spec for missing edge cases", "intent": "doc_review", "role": "pm"}
+{"input": "帮我审查支付文档的一致性", "intent": "doc_review", "role": "pm"}
+{"input": "这份支付需求文档评审一下", "intent": "doc_review", "role": "pm"}
+{"input": "看看支付 PRD 的逻辑是否自洽", "intent": "doc_review", "role": "pm"}
+{"input": "review the 支付 requirements doc", "intent": "doc_review", "role": "pm"}
+{"input": "支付文档里的矛盾点帮我找一下", "intent": "doc_review", "role": "pm"}
+{"input": "审查支付方案的完整性", "intent": "doc_review", "role": "pm"}
+{"input": "这份支付文档还缺什么", "intent": "doc_review", "role": "pm"}
+{"input": "帮我检查支付 PRD 的边界条件", "intent": "doc_review", "role": "pm"}
+{"input": "评审这份登录 PRD 有没有漏洞", "intent": "doc_review", "role": "pm"}
+{"input": "check 登录 spec for missing edge cases", "intent": "doc_review", "role": "pm"}
+{"input": "帮我审查登录文档的一致性", "intent": "doc_review", "role": "pm"}
+{"input": "这份登录需求文档评审一下", "intent": "doc_review", "role": "pm"}
+{"input": "看看登录 PRD 的逻辑是否自洽", "intent": "doc_review", "role": "pm"}
+{"input": "review the 登录 requirements doc", "intent": "doc_review", "role": "pm"}
+{"input": "登录文档里的矛盾点帮我找一下", "intent": "doc_review", "role": "pm"}
+{"input": "审查登录方案的完整性", "intent": "doc_review", "role": "pm"}
+{"input": "这份登录文档还缺什么", "intent": "doc_review", "role": "pm"}
+{"input": "帮我检查登录 PRD 的边界条件", "intent": "doc_review", "role": "pm"}
+{"input": "评审这份导出 PRD 有没有漏洞", "intent": "doc_review", "role": "pm"}
+{"input": "check 导出 spec for missing edge cases", "intent": "doc_review", "role": "pm"}
+{"input": "帮我审查导出文档的一致性", "intent": "doc_review", "role": "pm"}
+{"input": "这份导出需求文档评审一下", "intent": "doc_review", "role": "pm"}
+{"input": "看看导出 PRD 的逻辑是否自洽", "intent": "doc_review", "role": "pm"}
+{"input": "review the 导出 requirements doc", "intent": "doc_review", "role": "pm"}
+{"input": "导出文档里的矛盾点帮我找一下", "intent": "doc_review", "role": "pm"}
+{"input": "审查导出方案的完整性", "intent": "doc_review", "role": "pm"}
+{"input": "这份导出文档还缺什么", "intent": "doc_review", "role": "pm"}
+{"input": "帮我检查导出 PRD 的边界条件", "intent": "doc_review", "role": "pm"}
+{"input": "评审这份搜索 PRD 有没有漏洞", "intent": "doc_review", "role": "pm"}
+{"input": "check 搜索 spec for missing edge cases", "intent": "doc_review", "role": "pm"}
+{"input": "帮我审查搜索文档的一致性", "intent": "doc_review", "role": "pm"}
+{"input": "这份搜索需求文档评审一下", "intent": "doc_review", "role": "pm"}
+{"input": "看看搜索 PRD 的逻辑是否自洽", "intent": "doc_review", "role": "pm"}
+{"input": "review the 搜索 requirements doc", "intent": "doc_review", "role": "pm"}
+{"input": "搜索文档里的矛盾点帮我找一下", "intent": "doc_review", "role": "pm"}
+{"input": "审查搜索方案的完整性", "intent": "doc_review", "role": "pm"}
+{"input": "这份搜索文档还缺什么", "intent": "doc_review", "role": "pm"}
+{"input": "帮我检查搜索 PRD 的边界条件", "intent": "doc_review", "role": "pm"}
+{"input": "评审这份通知 PRD 有没有漏洞", "intent": "doc_review", "role": "pm"}
+{"input": "check 通知 spec for missing edge cases", "intent": "doc_review", "role": "pm"}
+{"input": "帮我审查通知文档的一致性", "intent": "doc_review", "role": "pm"}
+{"input": "这份通知需求文档评审一下", "intent": "doc_review", "role": "pm"}
+{"input": "看看通知 PRD 的逻辑是否自洽", "intent": "doc_review", "role": "pm"}
+{"input": "review the 通知 requirements doc", "intent": "doc_review", "role": "pm"}
+{"input": "通知文档里的矛盾点帮我找一下", "intent": "doc_review", "role": "pm"}
+{"input": "审查通知方案的完整性", "intent": "doc_review", "role": "pm"}
+{"input": "这份通知文档还缺什么", "intent": "doc_review", "role": "pm"}
+{"input": "帮我检查通知 PRD 的边界条件", "intent": "doc_review", "role": "pm"}
+{"input": "分析一下留存率下降的原因", "intent": "data_analysis", "role": "pm"}
+{"input": "帮我设计留存率的数据看板指标", "intent": "data_analysis", "role": "pm"}
+{"input": "留存率波动帮我解读一下", "intent": "data_analysis", "role": "pm"}
+{"input": "分析留存率的转化漏斗", "intent": "data_analysis", "role": "pm"}
+{"input": "这周留存率为什么涨了", "intent": "data_analysis", "role": "pm"}
+{"input": "build a metrics framework for 留存率", "intent": "data_analysis", "role": "pm"}
+{"input": "留存率的留存数据帮我分析", "intent": "data_analysis", "role": "pm"}
+{"input": "给我留存率的周报数据解读", "intent": "data_analysis", "role": "pm"}
+{"input": "对比两个版本的留存率", "intent": "data_analysis", "role": "pm"}
+{"input": "留存率的 A/B 结果显著吗", "intent": "data_analysis", "role": "pm"}
+{"input": "分析一下DAU下降的原因", "intent": "data_analysis", "role": "pm"}
+{"input": "帮我设计DAU的数据看板指标", "intent": "data_analysis", "role": "pm"}
+{"input": "DAU波动帮我解读一下", "intent": "data_analysis", "role": "pm"}
+{"input": "分析DAU的转化漏斗", "intent": "data_analysis", "role": "pm"}
+{"input": "这周DAU为什么涨了", "intent": "data_analysis", "role": "pm"}
+{"input": "build a metrics framework for DAU", "intent": "data_analysis", "role": "pm"}
+{"input": "DAU的留存数据帮我分析", "intent": "data_analysis", "role": "pm"}
+{"input": "给我DAU的周报数据解读", "intent": "data_analysis", "role": "pm"}
+{"input": "对比两个版本的DAU", "intent": "data_analysis", "role": "pm"}
+{"input": "DAU的 A/B 结果显著吗", "intent": "data_analysis", "role": "pm"}
+{"input": "分析一下转化率下降的原因", "intent": "data_analysis", "role": "pm"}
+{"input": "帮我设计转化率的数据看板指标", "intent": "data_analysis", "role": "pm"}
+{"input": "转化率波动帮我解读一下", "intent": "data_analysis", "role": "pm"}
+{"input": "分析转化率的转化漏斗", "intent": "data_analysis", "role": "pm"}
+{"input": "这周转化率为什么涨了", "intent": "data_analysis", "role": "pm"}
+{"input": "build a metrics framework for 转化率", "intent": "data_analysis", "role": "pm"}
+{"input": "转化率的留存数据帮我分析", "intent": "data_analysis", "role": "pm"}
+{"input": "给我转化率的周报数据解读", "intent": "data_analysis", "role": "pm"}
+{"input": "对比两个版本的转化率", "intent": "data_analysis", "role": "pm"}
+{"input": "转化率的 A/B 结果显著吗", "intent": "data_analysis", "role": "pm"}
+{"input": "分析一下新功能下降的原因", "intent": "data_analysis", "role": "pm"}
+{"input": "帮我设计新功能的数据看板指标", "intent": "data_analysis", "role": "pm"}
+{"input": "新功能波动帮我解读一下", "intent": "data_analysis", "role": "pm"}
+{"input": "分析新功能的转化漏斗", "intent": "data_analysis", "role": "pm"}
+{"input": "这周新功能为什么涨了", "intent": "data_analysis", "role": "pm"}
+{"input": "build a metrics framework for 新功能", "intent": "data_analysis", "role": "pm"}
+{"input": "新功能的留存数据帮我分析", "intent": "data_analysis", "role": "pm"}
+{"input": "给我新功能的周报数据解读", "intent": "data_analysis", "role": "pm"}
+{"input": "对比两个版本的新功能", "intent": "data_analysis", "role": "pm"}
+{"input": "新功能的 A/B 结果显著吗", "intent": "data_analysis", "role": "pm"}
+{"input": "分析一下活动下降的原因", "intent": "data_analysis", "role": "pm"}
+{"input": "帮我设计活动的数据看板指标", "intent": "data_analysis", "role": "pm"}
+{"input": "活动波动帮我解读一下", "intent": "data_analysis", "role": "pm"}
+{"input": "分析活动的转化漏斗", "intent": "data_analysis", "role": "pm"}
+{"input": "这周活动为什么涨了", "intent": "data_analysis", "role": "pm"}
+{"input": "build a metrics framework for 活动", "intent": "data_analysis", "role": "pm"}
+{"input": "活动的留存数据帮我分析", "intent": "data_analysis", "role": "pm"}
+{"input": "给我活动的周报数据解读", "intent": "data_analysis", "role": "pm"}
+{"input": "对比两个版本的活动", "intent": "data_analysis", "role": "pm"}
+{"input": "活动的 A/B 结果显著吗", "intent": "data_analysis", "role": "pm"}
+{"input": "帮我写一封项目延期的说明邮件", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "准备给项目延期的项目延期汇报大纲", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写一份项目延期的会议纪要", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我起草项目延期的同步文档", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给项目延期解释项目延期的口径", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写项目延期的周报", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我准备项目延期评审会材料", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "起草项目延期的延期公告", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给项目延期写项目延期的进展同步", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "整理项目延期的 FAQ 给客服", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我写一封老板的说明邮件", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "准备给老板的老板汇报大纲", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写一份老板的会议纪要", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我起草老板的同步文档", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给老板解释老板的口径", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写老板的周报", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我准备老板评审会材料", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "起草老板的延期公告", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给老板写老板的进展同步", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "整理老板的 FAQ 给客服", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我写一封客户的说明邮件", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "准备给客户的客户汇报大纲", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写一份客户的会议纪要", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我起草客户的同步文档", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给客户解释客户的口径", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写客户的周报", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我准备客户评审会材料", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "起草客户的延期公告", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给客户写客户的进展同步", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "整理客户的 FAQ 给客服", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我写一封新功能的说明邮件", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "准备给新功能的新功能汇报大纲", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写一份新功能的会议纪要", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我起草新功能的同步文档", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给新功能解释新功能的口径", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写新功能的周报", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我准备新功能评审会材料", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "起草新功能的延期公告", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给新功能写新功能的进展同步", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "整理新功能的 FAQ 给客服", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我写一封上线的说明邮件", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "准备给上线的上线汇报大纲", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写一份上线的会议纪要", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我起草上线的同步文档", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给上线解释上线的口径", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "写上线的周报", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "帮我准备上线评审会材料", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "起草上线的延期公告", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "给上线写上线的进展同步", "intent": "stakeholder_comm", "role": "pm"}
+{"input": "整理上线的 FAQ 给客服", "intent": "stakeholder_comm", "role": "pm"}

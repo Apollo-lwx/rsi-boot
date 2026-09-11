@@ -1,0 +1,250 @@
+{"input": "帮我 review 这段Python代码", "intent": "code_review"}
+{"input": "审查一下这个Python有没有问题", "intent": "code_review"}
+{"input": "review my Python changes", "intent": "code_review"}
+{"input": "这段代码有什么潜在缺陷，帮我审阅", "intent": "code_review"}
+{"input": "code review: Python", "intent": "code_review"}
+{"input": "看看这个 PR 的Python写得对不对", "intent": "code_review"}
+{"input": "帮我检查Python的代码质量", "intent": "code_review"}
+{"input": "请审查以下实现是否合理", "intent": "code_review"}
+{"input": "can you review this Python snippet", "intent": "code_review"}
+{"input": "审阅这段Python函数的逻辑", "intent": "code_review"}
+{"input": "帮我 review 这段Go代码", "intent": "code_review"}
+{"input": "审查一下这个Go有没有问题", "intent": "code_review"}
+{"input": "review my Go changes", "intent": "code_review"}
+{"input": "code review: Go", "intent": "code_review"}
+{"input": "看看这个 PR 的Go写得对不对", "intent": "code_review"}
+{"input": "帮我检查Go的代码质量", "intent": "code_review"}
+{"input": "can you review this Go snippet", "intent": "code_review"}
+{"input": "审阅这段Go函数的逻辑", "intent": "code_review"}
+{"input": "帮我 review 这段SQL代码", "intent": "code_review"}
+{"input": "审查一下这个SQL有没有问题", "intent": "code_review"}
+{"input": "review my SQL changes", "intent": "code_review"}
+{"input": "code review: SQL", "intent": "code_review"}
+{"input": "看看这个 PR 的SQL写得对不对", "intent": "code_review"}
+{"input": "帮我检查SQL的代码质量", "intent": "code_review"}
+{"input": "can you review this SQL snippet", "intent": "code_review"}
+{"input": "审阅这段SQL函数的逻辑", "intent": "code_review"}
+{"input": "帮我 review 这段接口代码", "intent": "code_review"}
+{"input": "审查一下这个接口有没有问题", "intent": "code_review"}
+{"input": "review my 接口 changes", "intent": "code_review"}
+{"input": "code review: 接口", "intent": "code_review"}
+{"input": "看看这个 PR 的接口写得对不对", "intent": "code_review"}
+{"input": "帮我检查接口的代码质量", "intent": "code_review"}
+{"input": "can you review this 接口 snippet", "intent": "code_review"}
+{"input": "审阅这段接口函数的逻辑", "intent": "code_review"}
+{"input": "帮我 review 这段模块代码", "intent": "code_review"}
+{"input": "审查一下这个模块有没有问题", "intent": "code_review"}
+{"input": "review my 模块 changes", "intent": "code_review"}
+{"input": "code review: 模块", "intent": "code_review"}
+{"input": "看看这个 PR 的模块写得对不对", "intent": "code_review"}
+{"input": "帮我检查模块的代码质量", "intent": "code_review"}
+{"input": "can you review this 模块 snippet", "intent": "code_review"}
+{"input": "审阅这段模块函数的逻辑", "intent": "code_review"}
+{"input": "帮我 review 这段补丁代码", "intent": "code_review"}
+{"input": "审查一下这个补丁有没有问题", "intent": "code_review"}
+{"input": "review my 补丁 changes", "intent": "code_review"}
+{"input": "code review: 补丁", "intent": "code_review"}
+{"input": "看看这个 PR 的补丁写得对不对", "intent": "code_review"}
+{"input": "帮我检查补丁的代码质量", "intent": "code_review"}
+{"input": "can you review this 补丁 snippet", "intent": "code_review"}
+{"input": "审阅这段补丁函数的逻辑", "intent": "code_review"}
+{"input": "帮我实现一个缓存", "intent": "code_gen"}
+{"input": "生成一个缓存的代码", "intent": "code_gen"}
+{"input": "write a 缓存 in 缓存", "intent": "code_gen"}
+{"input": "创建一个缓存函数", "intent": "code_gen"}
+{"input": "implement 缓存 with retry", "intent": "code_gen"}
+{"input": "帮我写缓存的单元工具", "intent": "code_gen"}
+{"input": "generate a pydantic model for 缓存", "intent": "code_gen"}
+{"input": "用缓存写一个缓存", "intent": "code_gen"}
+{"input": "造一个缓存的脚手架", "intent": "code_gen"}
+{"input": "给我实现缓存功能", "intent": "code_gen"}
+{"input": "帮我实现一个HTTP 客户端", "intent": "code_gen"}
+{"input": "生成一个HTTP 客户端的代码", "intent": "code_gen"}
+{"input": "write a HTTP 客户端 in HTTP 客户端", "intent": "code_gen"}
+{"input": "创建一个HTTP 客户端函数", "intent": "code_gen"}
+{"input": "implement HTTP 客户端 with retry", "intent": "code_gen"}
+{"input": "帮我写HTTP 客户端的单元工具", "intent": "code_gen"}
+{"input": "generate a pydantic model for HTTP 客户端", "intent": "code_gen"}
+{"input": "用HTTP 客户端写一个HTTP 客户端", "intent": "code_gen"}
+{"input": "造一个HTTP 客户端的脚手架", "intent": "code_gen"}
+{"input": "给我实现HTTP 客户端功能", "intent": "code_gen"}
+{"input": "帮我实现一个分页", "intent": "code_gen"}
+{"input": "生成一个分页的代码", "intent": "code_gen"}
+{"input": "write a 分页 in 分页", "intent": "code_gen"}
+{"input": "创建一个分页函数", "intent": "code_gen"}
+{"input": "implement 分页 with retry", "intent": "code_gen"}
+{"input": "帮我写分页的单元工具", "intent": "code_gen"}
+{"input": "generate a pydantic model for 分页", "intent": "code_gen"}
+{"input": "用分页写一个分页", "intent": "code_gen"}
+{"input": "造一个分页的脚手架", "intent": "code_gen"}
+{"input": "给我实现分页功能", "intent": "code_gen"}
+{"input": "帮我实现一个鉴权", "intent": "code_gen"}
+{"input": "生成一个鉴权的代码", "intent": "code_gen"}
+{"input": "write a 鉴权 in 鉴权", "intent": "code_gen"}
+{"input": "创建一个鉴权函数", "intent": "code_gen"}
+{"input": "implement 鉴权 with retry", "intent": "code_gen"}
+{"input": "帮我写鉴权的单元工具", "intent": "code_gen"}
+{"input": "generate a pydantic model for 鉴权", "intent": "code_gen"}
+{"input": "用鉴权写一个鉴权", "intent": "code_gen"}
+{"input": "造一个鉴权的脚手架", "intent": "code_gen"}
+{"input": "给我实现鉴权功能", "intent": "code_gen"}
+{"input": "帮我实现一个Python", "intent": "code_gen"}
+{"input": "生成一个Python的代码", "intent": "code_gen"}
+{"input": "write a Python in Python", "intent": "code_gen"}
+{"input": "创建一个Python函数", "intent": "code_gen"}
+{"input": "implement Python with retry", "intent": "code_gen"}
+{"input": "帮我写Python的单元工具", "intent": "code_gen"}
+{"input": "generate a pydantic model for Python", "intent": "code_gen"}
+{"input": "用Python写一个Python", "intent": "code_gen"}
+{"input": "造一个Python的脚手架", "intent": "code_gen"}
+{"input": "给我实现Python功能", "intent": "code_gen"}
+{"input": "这个接口一直报错，帮我看看", "intent": "debug"}
+{"input": "why does 接口 fail with 接口", "intent": "debug"}
+{"input": "帮我 debug 这个接口", "intent": "debug"}
+{"input": "修复这个接口错误", "intent": "debug"}
+{"input": "接口 偶发失败，排查一下", "intent": "debug"}
+{"input": "程序抛出 接口，什么原因", "intent": "debug"}
+{"input": "帮我定位接口的 bug", "intent": "debug"}
+{"input": "this test is broken, fix it", "intent": "debug"}
+{"input": "线上接口 panic 了，帮忙分析", "intent": "debug"}
+{"input": "为什么接口结果不对", "intent": "debug"}
+{"input": "这个任务一直报错，帮我看看", "intent": "debug"}
+{"input": "why does 任务 fail with 任务", "intent": "debug"}
+{"input": "帮我 debug 这个任务", "intent": "debug"}
+{"input": "修复这个任务错误", "intent": "debug"}
+{"input": "任务 偶发失败，排查一下", "intent": "debug"}
+{"input": "程序抛出 任务，什么原因", "intent": "debug"}
+{"input": "帮我定位任务的 bug", "intent": "debug"}
+{"input": "线上任务 panic 了，帮忙分析", "intent": "debug"}
+{"input": "为什么任务结果不对", "intent": "debug"}
+{"input": "这个脚本一直报错，帮我看看", "intent": "debug"}
+{"input": "why does 脚本 fail with 脚本", "intent": "debug"}
+{"input": "帮我 debug 这个脚本", "intent": "debug"}
+{"input": "修复这个脚本错误", "intent": "debug"}
+{"input": "脚本 偶发失败，排查一下", "intent": "debug"}
+{"input": "程序抛出 脚本，什么原因", "intent": "debug"}
+{"input": "帮我定位脚本的 bug", "intent": "debug"}
+{"input": "线上脚本 panic 了，帮忙分析", "intent": "debug"}
+{"input": "为什么脚本结果不对", "intent": "debug"}
+{"input": "这个KeyError一直报错，帮我看看", "intent": "debug"}
+{"input": "why does KeyError fail with KeyError", "intent": "debug"}
+{"input": "帮我 debug 这个KeyError", "intent": "debug"}
+{"input": "修复这个KeyError错误", "intent": "debug"}
+{"input": "KeyError 偶发失败，排查一下", "intent": "debug"}
+{"input": "程序抛出 KeyError，什么原因", "intent": "debug"}
+{"input": "帮我定位KeyError的 bug", "intent": "debug"}
+{"input": "线上KeyError panic 了，帮忙分析", "intent": "debug"}
+{"input": "为什么KeyError结果不对", "intent": "debug"}
+{"input": "这个TimeoutError一直报错，帮我看看", "intent": "debug"}
+{"input": "why does TimeoutError fail with TimeoutError", "intent": "debug"}
+{"input": "帮我 debug 这个TimeoutError", "intent": "debug"}
+{"input": "修复这个TimeoutError错误", "intent": "debug"}
+{"input": "TimeoutError 偶发失败，排查一下", "intent": "debug"}
+{"input": "程序抛出 TimeoutError，什么原因", "intent": "debug"}
+{"input": "帮我定位TimeoutError的 bug", "intent": "debug"}
+{"input": "线上TimeoutError panic 了，帮忙分析", "intent": "debug"}
+{"input": "为什么TimeoutError结果不对", "intent": "debug"}
+{"input": "这个空指针一直报错，帮我看看", "intent": "debug"}
+{"input": "why does 空指针 fail with 空指针", "intent": "debug"}
+{"input": "帮我 debug 这个空指针", "intent": "debug"}
+{"input": "修复这个空指针错误", "intent": "debug"}
+{"input": "解释一下GIL是什么", "intent": "explain"}
+{"input": "什么是GIL", "intent": "explain"}
+{"input": "how does GIL work", "intent": "explain"}
+{"input": "GIL的原理是什么", "intent": "explain"}
+{"input": "说明一下这段GIL的逻辑", "intent": "explain"}
+{"input": "what is GIL used for", "intent": "explain"}
+{"input": "给我讲讲GIL的机制", "intent": "explain"}
+{"input": "为什么GIL要这样设计", "intent": "explain"}
+{"input": "explain the difference between GIL and WAL 模式", "intent": "explain"}
+{"input": "GIL 的底层实现讲一下", "intent": "explain"}
+{"input": "解释一下WAL 模式是什么", "intent": "explain"}
+{"input": "什么是WAL 模式", "intent": "explain"}
+{"input": "how does WAL 模式 work", "intent": "explain"}
+{"input": "WAL 模式的原理是什么", "intent": "explain"}
+{"input": "说明一下这段WAL 模式的逻辑", "intent": "explain"}
+{"input": "what is WAL 模式 used for", "intent": "explain"}
+{"input": "给我讲讲WAL 模式的机制", "intent": "explain"}
+{"input": "为什么WAL 模式要这样设计", "intent": "explain"}
+{"input": "explain the difference between WAL 模式 and 协程", "intent": "explain"}
+{"input": "WAL 模式 的底层实现讲一下", "intent": "explain"}
+{"input": "解释一下协程是什么", "intent": "explain"}
+{"input": "什么是协程", "intent": "explain"}
+{"input": "how does 协程 work", "intent": "explain"}
+{"input": "协程的原理是什么", "intent": "explain"}
+{"input": "说明一下这段协程的逻辑", "intent": "explain"}
+{"input": "what is 协程 used for", "intent": "explain"}
+{"input": "给我讲讲协程的机制", "intent": "explain"}
+{"input": "为什么协程要这样设计", "intent": "explain"}
+{"input": "explain the difference between 协程 and 索引", "intent": "explain"}
+{"input": "协程 的底层实现讲一下", "intent": "explain"}
+{"input": "解释一下索引是什么", "intent": "explain"}
+{"input": "什么是索引", "intent": "explain"}
+{"input": "how does 索引 work", "intent": "explain"}
+{"input": "索引的原理是什么", "intent": "explain"}
+{"input": "说明一下这段索引的逻辑", "intent": "explain"}
+{"input": "what is 索引 used for", "intent": "explain"}
+{"input": "给我讲讲索引的机制", "intent": "explain"}
+{"input": "为什么索引要这样设计", "intent": "explain"}
+{"input": "explain the difference between 索引 and 缓存穿透", "intent": "explain"}
+{"input": "索引 的底层实现讲一下", "intent": "explain"}
+{"input": "解释一下缓存穿透是什么", "intent": "explain"}
+{"input": "什么是缓存穿透", "intent": "explain"}
+{"input": "how does 缓存穿透 work", "intent": "explain"}
+{"input": "缓存穿透的原理是什么", "intent": "explain"}
+{"input": "说明一下这段缓存穿透的逻辑", "intent": "explain"}
+{"input": "what is 缓存穿透 used for", "intent": "explain"}
+{"input": "给我讲讲缓存穿透的机制", "intent": "explain"}
+{"input": "为什么缓存穿透要这样设计", "intent": "explain"}
+{"input": "explain the difference between 缓存穿透 and 索引", "intent": "explain"}
+{"input": "缓存穿透 的底层实现讲一下", "intent": "explain"}
+{"input": "帮我把这段话翻译成英文", "intent": "general_assist"}
+{"input": "写一封英文邮件", "intent": "general_assist"}
+{"input": "今天英文要准备什么", "intent": "general_assist"}
+{"input": "帮我润色这段英文", "intent": "general_assist"}
+{"input": "总结一下这篇英文的要点", "intent": "general_assist"}
+{"input": "帮我想几个英文的名字", "intent": "general_assist"}
+{"input": "整理一下英文的清单", "intent": "general_assist"}
+{"input": "这个英文怎么描述更好", "intent": "general_assist"}
+{"input": "帮我列一个英文计划", "intent": "general_assist"}
+{"input": "把英文转成表格", "intent": "general_assist"}
+{"input": "帮我把这段话翻译成周报", "intent": "general_assist"}
+{"input": "写一封周报邮件", "intent": "general_assist"}
+{"input": "今天周报要准备什么", "intent": "general_assist"}
+{"input": "帮我润色这段周报", "intent": "general_assist"}
+{"input": "总结一下这篇周报的要点", "intent": "general_assist"}
+{"input": "帮我想几个周报的名字", "intent": "general_assist"}
+{"input": "整理一下周报的清单", "intent": "general_assist"}
+{"input": "这个周报怎么描述更好", "intent": "general_assist"}
+{"input": "帮我列一个周报计划", "intent": "general_assist"}
+{"input": "把周报转成表格", "intent": "general_assist"}
+{"input": "帮我把这段话翻译成项目", "intent": "general_assist"}
+{"input": "写一封项目邮件", "intent": "general_assist"}
+{"input": "今天项目要准备什么", "intent": "general_assist"}
+{"input": "帮我润色这段项目", "intent": "general_assist"}
+{"input": "总结一下这篇项目的要点", "intent": "general_assist"}
+{"input": "帮我想几个项目的名字", "intent": "general_assist"}
+{"input": "整理一下项目的清单", "intent": "general_assist"}
+{"input": "这个项目怎么描述更好", "intent": "general_assist"}
+{"input": "帮我列一个项目计划", "intent": "general_assist"}
+{"input": "把项目转成表格", "intent": "general_assist"}
+{"input": "帮我把这段话翻译成会议", "intent": "general_assist"}
+{"input": "写一封会议邮件", "intent": "general_assist"}
+{"input": "今天会议要准备什么", "intent": "general_assist"}
+{"input": "帮我润色这段会议", "intent": "general_assist"}
+{"input": "总结一下这篇会议的要点", "intent": "general_assist"}
+{"input": "帮我想几个会议的名字", "intent": "general_assist"}
+{"input": "整理一下会议的清单", "intent": "general_assist"}
+{"input": "这个会议怎么描述更好", "intent": "general_assist"}
+{"input": "帮我列一个会议计划", "intent": "general_assist"}
+{"input": "把会议转成表格", "intent": "general_assist"}
+{"input": "帮我把这段话翻译成文档", "intent": "general_assist"}
+{"input": "写一封文档邮件", "intent": "general_assist"}
+{"input": "今天文档要准备什么", "intent": "general_assist"}
+{"input": "帮我润色这段文档", "intent": "general_assist"}
+{"input": "总结一下这篇文档的要点", "intent": "general_assist"}
+{"input": "帮我想几个文档的名字", "intent": "general_assist"}
+{"input": "整理一下文档的清单", "intent": "general_assist"}
+{"input": "这个文档怎么描述更好", "intent": "general_assist"}
+{"input": "帮我列一个文档计划", "intent": "general_assist"}
+{"input": "把文档转成表格", "intent": "general_assist"}

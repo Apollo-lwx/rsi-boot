@@ -1,0 +1,34 @@
+# Test Engineer 角色意图注册（§3.6）：请求携带 role=test 时优先于通用意图匹配
+# P2.7：patterns 经 tests/eval 角色评测集校准（基线 Top-1 ≥ 85%）
+role: test
+intents:
+  - name: test_review
+    patterns:
+      - "(?i)(review|evaluate|audit|check)\\s+\\w*\\s*test|test (review|plan|quality)"
+      - "测试评审|审查.*(测试|用例)|评审.*(用例|测试)|测试覆盖评审|测试设计|测试方案|用例质量|断言是否充分"
+    fallback: code_review
+    prompt_template: test_review.jinja2
+  - name: test_gen
+    patterns:
+      - "(?i)(generate|write|create|add)\\s+\\w*\\s*test|test scenario"
+      - "写测试|生成测试|测试用例|补测试|单测|测试场景|参数化测试|集成测试|异常路径|边界测试"
+    fallback: code_gen
+    prompt_template: test_gen.jinja2
+  - name: bug_analyze
+    patterns:
+      - "(?i)analyze bug|bug analysis|root cause|why did this fail|复现"
+      - "缺陷分析|根因|定位|为什么失败|引入点|影响面|回归原因|归类|崩溃.*分析|堆栈"
+    fallback: debug
+    prompt_template: bug_analysis.jinja2
+  - name: test_data
+    patterns:
+      - "(?i)test data|mock data|fixture|测试数据|构造数据|造数|造.*数据"
+      - "边界值数据|测试数据集|响应报文|压测数据|异常数据|数据准备|规则的数据|规则的测试"
+    fallback: code_gen
+    prompt_template: test_data.jinja2
+  - name: coverage_check
+    patterns:
+      - "(?i)coverage|覆盖率|覆盖检查|哪些没测|没覆盖|漏测"
+      - "分支.*覆盖|覆盖.*缺口|影响哪些用例|用例覆盖|路径.*没有测试"
+    fallback: general_assist
+    prompt_template: coverage_check.jinja2

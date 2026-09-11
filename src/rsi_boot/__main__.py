@@ -1,0 +1,216 @@
+"""rsi CLI（§7）：init / serve / query / knowledge 子命令。"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import sys
+from pathlib import Path
+
+from .bootstrap import build_runtime, default_db_path, detect_user_id, rsi_home
+from .common.logger import setup_cli_logging, setup_logging
+from .core.models import KnowledgeItem
+
+
+def _print_json(payload: object) -> None:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
+
+
+async def cmd_init(args: argparse.Namespace) -> int:
+    setup_cli_logging(getattr(args, "verbose", False))
+    home = rsi_home()
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "skills").mkdir(exist_ok=True)
+
+    config_file = home / "config.yaml"
+    if not config_file.exists():
+        config_file.write_text(
+            "# RSI Boot 用户级配置（合并于包内 default.yaml 之上，§2.5）\n"
+            "# v3.0 主链路零 API Key；以下增强项按需开启（Spec v3.0 附录 C）：\n"
+            "# enhance:\n"
+            "#   embedding: true        # 混合检索\n"
+            "#   extract_llm: true      # LLM 知识提取\n"
+            "#   model:\n"
+            "#     api_key: env:OPENAI_API_KEY\n",
+            encoding="utf-8",
+        )
+
+    runtime = await build_runtime(db_path=default_db_path())
+    try:
+        ok = await runtime.db.integrity_check()
+    finally:
+        await runtime.close()
+    if not ok:
+        print("数据库自检失败", file=sys.stderr)
+        return 1
+    print(f"初始化完成：{home}（数据库 {default_db_path()}）")
+    return 0
+
+
+async def cmd_serve(args: argparse.Namespace) -> int:
+    setup_logging()
+    from .api.mcp_server import serve
+    from .scheduler.manager import SchedulerManager
+    from .scanner.incremental import IncrementalLearner
+
+    runtime = await build_runtime(project_root=Path.cwd())
+    # 配置热加载（P1.14）与离线任务调度（P1.12）：与 MCP server 并行的后台任务
+    scheduler = SchedulerManager(
+        runtime.db, rsi_home() / "archive", profiles=runtime.profiles,
+        extractor_provider=lambda: runtime.extractor,
+        proposal_engine_provider=lambda: runtime.proposal_engine,
+        conflict_detector_provider=lambda: runtime.conflict_detector,
+        project_ids=["default", Path.cwd().name],
+    )
+    scheduler.start()
+    watch_task = asyncio.create_task(runtime.watcher.watch_loop())
+    # --watch：静默学习（§10.9.5 文件监听模式，P2.6）
+    learner = None
+    if getattr(args, "watch", False):
+        learner = IncrementalLearner(runtime, Path.cwd(), Path.cwd().name)
+        learner.start()
+    try:
+        await serve(runtime, runtime.logs, runtime.feedback_secret)
+    finally:
+        watch_task.cancel()
+        if learner is not None:
+            await learner.stop()
+        await scheduler.stop()
+        await runtime.close()
+    return 0
+
+
+async def cmd_recall(args: argparse.Namespace) -> int:
+    """调试：执行一次记忆召回（v3.0 起替代原 query 冒烟——主链路无生成环节）"""
+    setup_cli_logging(getattr(args, "verbose", False))
+    runtime = await build_runtime(project_root=Path.cwd())
+    try:
+        payload = await runtime.recall.recall(
+            args.task, args.project, user_id=detect_user_id(), role=args.role,
+        )
+        _print_json(payload)
+        return 0
+    finally:
+        await runtime.close()
+
+
+async def cmd_knowledge(args: argparse.Namespace) -> int:
+    setup_cli_logging(getattr(args, "verbose", False))
+    runtime = await build_runtime(project_root=Path.cwd())
+    try:
+        project = args.project
+        if args.knowledge_action == "add":
+            content = args.content
+            if args.file:
+                content = Path(args.file).read_text(encoding="utf-8")
+            if not content:
+                print("knowledge add 需要 --content 或 --file", file=sys.stderr)
+                return 2
+            item = KnowledgeItem(
+                project_id=project, title=args.title, content=content,
+                content_type=args.type,
+                tags=[t for t in (args.tags or "").split(",") if t],
+                roles=[r for r in (args.roles or "").split(",") if r],
+            )
+            item_id = await runtime.knowledge.add(item)
+            print(f"已添加知识条目：{item_id}")
+            return 0
+        if args.knowledge_action == "list":
+            _print_json(await runtime.knowledge.list(project))
+            return 0
+        if args.knowledge_action == "delete":
+            ok = await runtime.knowledge.delete(args.id, project)
+            print("已删除" if ok else "未找到该条目")
+            return 0 if ok else 1
+        print("未知 knowledge 子命令", file=sys.stderr)
+        return 2
+    finally:
+        await runtime.close()
+
+
+def _add_verbose(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--verbose", action="store_true",
+                   help="恢复 INFO 级日志并走 stderr（默认 WARNING + stdout，避免 PowerShell 红块）")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="rsi", description="RSI Boot：个人本地 MCP 智能助手")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_init = sub.add_parser("init", help="初始化 ~/.rsi 目录与数据库")
+    _add_verbose(p_init)
+    p_serve = sub.add_parser("serve", help="启动 MCP stdio server")
+    p_serve.add_argument("--watch", action="store_true", help="文件监听静默学习（§10.9.5）")
+    _add_verbose(p_serve)  # serve 恒 INFO+stderr（stdio 协议），--verbose 仅为兼容接受
+
+    p_boot = sub.add_parser("bootstrap", help="项目自学习：扫描信号源生成知识与画像（§10.9）")
+    p_boot.add_argument("--scope", default="", help="逗号分隔：docs,code,git,conversation,config")
+    p_boot.add_argument("--project-root", default=".", help="项目根目录，默认当前目录")
+    p_boot.add_argument("--dry-run", action="store_true", help="预览扫描计划，不写入")
+    p_boot.add_argument("--consent", action="store_true", help="显式同意扫描对话上下文")
+    p_boot.add_argument("--then-start", action="store_true", help="学习完成后启动服务")
+    p_boot.add_argument("--force", action="store_true", help="忽略 manifest 指纹全量重学")
+    p_boot.add_argument("--strict", action="store_true", help="严格模式：任何验证失败即中断")
+    p_boot.add_argument("--allow-sensitive", action="store_true", help="敏感内容脱敏后写入（默认跳过）")
+    p_boot.add_argument("--max-file-size", default="1MB", help="单文件大小上限，如 1MB")
+    p_boot.add_argument("--max-commits", type=int, default=500, help="Git 历史上限（P2.6 生效）")
+    _add_verbose(p_boot)
+
+    p_recall = sub.add_parser("recall", help="调试：执行一次记忆召回（禁止项置顶 + 相关经验）")
+    p_recall.add_argument("task", help="任务描述")
+    p_recall.add_argument("--project", default="default", help="项目标识")
+    p_recall.add_argument("--role", default=None, help="调用方角色")
+    _add_verbose(p_recall)
+
+    p_kn = sub.add_parser("knowledge", help="知识库管理")
+    _add_verbose(p_kn)
+    kn_sub = p_kn.add_subparsers(dest="knowledge_action", required=True)
+    p_add = kn_sub.add_parser("add", help="添加知识条目")
+    p_add.add_argument("--title", required=True)
+    p_add.add_argument("--content", default=None)
+    p_add.add_argument("--file", default=None, help="从文件读取内容（UTF-8）")
+    p_add.add_argument("--type", default="convention", dest="type",
+                       choices=["convention", "prohibition", "documentation", "experience"],
+                       help="内容类型（prohibition=禁止项，召回置顶并常驻注入）")
+    p_add.add_argument("--tags", default="", help="逗号分隔")
+    p_add.add_argument("--roles", default="", help="逗号分隔，空=通用")
+    p_add.add_argument("--project", default="default")
+    _add_verbose(p_add)
+    p_list = kn_sub.add_parser("list", help="列出知识条目")
+    p_list.add_argument("--project", default="default")
+    _add_verbose(p_list)
+    p_del = kn_sub.add_parser("delete", help="删除知识条目")
+    p_del.add_argument("id")
+    p_del.add_argument("--project", default="default")
+    _add_verbose(p_del)
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    handlers = {
+        "init": cmd_init,
+        "serve": cmd_serve,
+        "recall": cmd_recall,
+        "knowledge": cmd_knowledge,
+    }
+    if args.command == "bootstrap":
+        from .cli.bootstrap_command import run_bootstrap
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            code = asyncio.run(run_bootstrap(args))
+        except KeyboardInterrupt:
+            code = 130
+        sys.exit(code)
+    try:
+        code = asyncio.run(handlers[args.command](args))
+    except KeyboardInterrupt:
+        code = 130
+    sys.exit(code)
+
+
+if __name__ == "__main__":
+    main()

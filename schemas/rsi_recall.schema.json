@@ -1,0 +1,62 @@
+{
+  "description": "rsi_recall 工具入参（Spec v3.0 §6）：任务描述驱动的记忆召回",
+  "properties": {
+    "task": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Task",
+      "type": "string"
+    },
+    "project_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-zA-Z0-9_\\-]{1,64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Id"
+    },
+    "user_id": {
+      "default": "local",
+      "pattern": "^[a-zA-Z0-9_@.\\-]{1,128}$",
+      "title": "User Id",
+      "type": "string"
+    },
+    "role": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_\\-]{0,49}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Role"
+    },
+    "top_k": {
+      "anyOf": [
+        {
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Top K"
+    }
+  },
+  "required": [
+    "task"
+  ],
+  "title": "RecallRequest",
+  "type": "object"
+}

@@ -1,0 +1,231 @@
+{
+  "$defs": {
+    "ContentItem": {
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ContentType"
+        },
+        "body": {
+          "maxLength": 65536,
+          "title": "Body",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "structured_data": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Structured Data"
+        },
+        "order": {
+          "default": 0,
+          "title": "Order",
+          "type": "integer"
+        },
+        "applicable_roles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applicable Roles"
+        }
+      },
+      "required": [
+        "type",
+        "body"
+      ],
+      "title": "ContentItem",
+      "type": "object"
+    },
+    "ContentType": {
+      "enum": [
+        "text",
+        "code",
+        "markdown",
+        "json",
+        "image",
+        "error"
+      ],
+      "title": "ContentType",
+      "type": "string"
+    },
+    "CostInfo": {
+      "properties": {
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_tokens": {
+          "default": 0,
+          "title": "Prompt Tokens",
+          "type": "integer"
+        },
+        "completion_tokens": {
+          "default": 0,
+          "title": "Completion Tokens",
+          "type": "integer"
+        },
+        "total_tokens": {
+          "default": 0,
+          "title": "Total Tokens",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,4}|(?=[\\d.]{1,11}0*$)\\d{0,4}\\.\\d{0,6}0*$)",
+              "type": "string"
+            }
+          ],
+          "default": "0",
+          "title": "Cost Usd"
+        },
+        "latency_ms": {
+          "default": 0,
+          "title": "Latency Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "CostInfo",
+      "type": "object"
+    },
+    "Suggestion": {
+      "properties": {
+        "type": {
+          "pattern": "^(alternative_code|related_doc|follow_up|optimization)$",
+          "title": "Type",
+          "type": "string"
+        },
+        "body": {
+          "title": "Body",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "body"
+      ],
+      "title": "Suggestion",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "request_id": {
+      "format": "uuid",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "api_version": {
+      "default": "1.0",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "status": {
+      "pattern": "^(success|error|partial)$",
+      "title": "Status",
+      "type": "string"
+    },
+    "content": {
+      "items": {
+        "$ref": "#/$defs/ContentItem"
+      },
+      "minItems": 1,
+      "title": "Content",
+      "type": "array"
+    },
+    "suggestions": {
+      "items": {
+        "$ref": "#/$defs/Suggestion"
+      },
+      "title": "Suggestions",
+      "type": "array"
+    },
+    "cost_info": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CostInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "quality_score": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quality Score"
+    },
+    "feedback_token": {
+      "title": "Feedback Token",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    }
+  },
+  "required": [
+    "request_id",
+    "status",
+    "content",
+    "feedback_token"
+  ],
+  "title": "RSIResponse",
+  "type": "object"
+}

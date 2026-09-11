@@ -1,0 +1,8 @@
+{% extends "base.jinja2" %}
+{% block instructions %}# 任务：代码审查
+请审查以下{% if language %} {{ language }}{% endif %}代码，按严重程度分级输出问题（阻塞/建议/可选），并给出修改示例。
+
+```
+{{ code_content }}
+```
+{% endblock %}

@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "version": 1,
+    "updated": "2026-09-10",
+    "note": "基线数值版本化（§12.6）：提升基线需 PR 说明依据，禁止悄降。回归门槛 = 低于基线 2pp 即否决。",
+    "sources": {
+      "intent_rule": "验收指标：规则版 Top-1 ≥ 85%（§12.1）",
+      "intent_llm": "验收指标：LLM 版 Top-1 ≥ 92% 且宏 F1 ≥ 0.85（§12.1，需真实 API，nightly）",
+      "retrieval": "验收指标：Recall@5 ≥ 80%（最差项目类型 ≥ 70%）；MRR ≥ 0.65（§12.2）",
+      "thompson": "验收指标：1000 轮最优臂选择概率 ≥ 90%；regret 较随机基线低 ≥ 40%（§12.3）"
+    }
+  },
+  "intent_rule": {
+    "top1": 0.85
+  },
+  "intent_llm": {
+    "top1": 0.92,
+    "macro_f1": 0.85
+  },
+  "retrieval": {
+    "recall@5": 0.80,
+    "mrr": 0.65
+  },
+  "thompson": {
+    "best_arm_selection": 0.90,
+    "regret_reduction": 0.40
+  }
+}

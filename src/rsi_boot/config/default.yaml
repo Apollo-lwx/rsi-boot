@@ -1,0 +1,51 @@
+# RSI Boot 默认配置（包内基线，§2.5 配置链第 1 层）
+# v3.0：主链路零 API Key——生成全部透传宿主模型，本工具只做存储/检索/学习/注入。
+# 合并优先级：default < ~/.rsi/config.yaml < 项目 rsi-boot.yaml < 请求参数
+
+retrieval:
+  top_n: 5                      # 召回条数上限（召回臂可按 §4.7 覆盖）
+  token_budget: 2000            # 召回内容 token 上限，超出按分数从低到高裁剪
+  bm25_threshold: 0.6           # BM25 批内归一化分数门槛（§3.2）
+  cosine_threshold: 0.6         # 向量 cosine 相似度门槛（仅 enhance.embedding 开启时生效）
+  channel_top_k: 20             # BM25 与向量各取 TopK 进入 RRF 融合（§3.2）
+  rrf_k: 60                     # RRF 融合常数（§3.2）
+
+vector:
+  backend: auto                 # auto | sqlite-vec | brute（仅 enhance.embedding 开启时装配）
+
+embedding:
+  model: text-embedding-3-small # 1536 维；知识写入与查询共用同一模型，禁止混用（§3.2）
+  provider: auto                # auto | openai | mock | none（auto：有 api_key 用 openai，否则禁用向量通道）
+
+harness:
+  auto_apply: false             # true = 静态门禁通过即晋升，跳过人工确认（不推荐初期开启，§4.6）
+
+bootstrap:
+  review_queue_cap: 50          # 单次 bootstrap 入队 pending_review 上限；超出按优先级置
+                                # archived（convention > architecture > faq > documentation），
+                                # 可经 rsi_knowledge_review 批量审批恢复
+
+feedback:
+  # feedback_token HMAC 密钥；为空时启动生成随机密钥（进程级，重启后旧 token 失效——
+  # 个人工具可接受；持久密钥可在 ~/.rsi/config.yaml 配 feedback.secret_key）
+  secret_key: ""
+
+logging:
+  level: INFO
+  file: ""                      # 空 = 仅 stderr；建议 ~/.rsi/rsi.log
+
+# 可选增强层（Spec v3.0 附录 C）：全部默认关闭，配 LLM API Key 后按需开启。
+# 开启任一 LLM 类增强前，需在 ~/.rsi/config.yaml 的 enhance.model 下配 api_key（或 env: 引用）。
+enhance:
+  extract_llm: false            # LLM 知识提取（false = §4.4 规则式提取）
+  proposal_llm: false           # LLM 提案生成（false = §4.5 模板化提案）
+  embedding: false              # embedding 混合检索（false = 纯 FTS5 + CJK bigram）
+  gate_replay: false            # 回放回归门禁（false = §4.6 静态校验 + 人工确认）
+  quality_judge: false          # LLM-as-judge 质量评估（false = 反馈信号推导）
+  conflict_llm: false           # 语义级规则冲突判定（false = §4.9 启发式）
+  model:
+    default: gpt-4o-mini        # 增强层 LLM 调用的默认模型
+    timeout_s: 60
+    max_retries: 3              # 指数退避 full jitter（base=1s, cap=30s，§5.3）
+    # api_key: env:OPENAI_API_KEY   # 仅用户级配置；项目配置禁止明文 Key（§8.2）
+    # base_url: https://...

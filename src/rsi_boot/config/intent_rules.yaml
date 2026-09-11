@@ -1,0 +1,21 @@
+# M1 规则版意图识别（§3.1）：角色无关的通用意图，按序匹配，命中即返回
+# M2 起由 §3.6 插件化意图注册接管，通用意图作为所有角色的兜底
+# P2.7：规则集经 tests/eval 评测集校准（基线 Top-1 ≥ 85%，见 baselines.json）
+
+rules:
+  - pattern: "review|code review|审阅|审查|评审|把关|检查.*(代码|质量|逻辑)|潜在缺陷|写得对不对|是否合理|有没有问题"
+    intent: code_review
+    confidence: 0.85
+  - pattern: "implement|generate|write|create|实现|生成|创建|帮我写(?!一封)|写个|写一个|造一个|脚手架|开发一个"
+    intent: code_gen
+    confidence: 0.80
+  - pattern: "debug|fix|bug|error|wrong|traceback|exception|调试|修复|错误|报错|异常|崩溃|定位|排查|panic|出错|失败|broken|fail|什么原因|根因|结果不对"
+    intent: debug
+    confidence: 0.85
+  - pattern: "explain|what is|how does|解释|说明|什么是|原理|机制|讲讲|讲一下|为什么.*设计|区别|difference|底层|介绍一下"
+    intent: explain
+    confidence: 0.80
+
+fallback:
+  intent: general_assist
+  confidence: 0.5

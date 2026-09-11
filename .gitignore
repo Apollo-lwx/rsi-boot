@@ -1,0 +1,22 @@
+# RSI Boot 本地数据
+.rsi/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# 本地临时产物
+.tmp-*/
+.tmp-*
+*.log
+
+# 评测跑批产物（源码与 datasets/ 保留，报告不入库）
+tests/eval/reports/

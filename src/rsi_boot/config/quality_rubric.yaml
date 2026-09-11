@@ -1,0 +1,18 @@
+# §3.5 角色质量权重：quality_score = Σ(weight_i × score_i)
+# accuracy 未采样时按其余两维度权重归一化折算；自定义角色在此新增条目即可
+developer:
+  relevance: 0.3
+  accuracy: 0.3
+  actionability: 0.4   # 开发者更看重可操作性（代码可执行性优先）
+test:
+  relevance: 0.3
+  accuracy: 0.4        # 测试场景准确性最关键
+  actionability: 0.3
+pm:
+  relevance: 0.5       # 产品经理更看重相关性
+  accuracy: 0.3
+  actionability: 0.2
+default:
+  relevance: 0.4
+  accuracy: 0.35
+  actionability: 0.25

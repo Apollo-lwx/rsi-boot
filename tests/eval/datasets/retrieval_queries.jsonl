@@ -1,0 +1,90 @@
+{"query": "docker compose 怎么做", "relevant": ["wb_deploy"], "project_type": "web_backend"}
+{"query": "how to configure compose deploy", "relevant": ["wb_deploy"], "project_type": "web_backend"}
+{"query": "deploy and container best practice", "relevant": ["wb_deploy"], "project_type": "web_backend"}
+{"query": "jwt token 怎么做", "relevant": ["wb_auth"], "project_type": "web_backend"}
+{"query": "how to configure token oauth", "relevant": ["wb_auth"], "project_type": "web_backend"}
+{"query": "oauth and session best practice", "relevant": ["wb_auth"], "project_type": "web_backend"}
+{"query": "migration index 怎么做", "relevant": ["wb_db"], "project_type": "web_backend"}
+{"query": "how to configure index transaction", "relevant": ["wb_db"], "project_type": "web_backend"}
+{"query": "transaction and postgres best practice", "relevant": ["wb_db"], "project_type": "web_backend"}
+{"query": "redis cache 怎么做", "relevant": ["wb_cache"], "project_type": "web_backend"}
+{"query": "how to configure cache ttl", "relevant": ["wb_cache"], "project_type": "web_backend"}
+{"query": "ttl and invalidation best practice", "relevant": ["wb_cache"], "project_type": "web_backend"}
+{"query": "rest endpoint 怎么做", "relevant": ["wb_api"], "project_type": "web_backend"}
+{"query": "how to configure endpoint pagination", "relevant": ["wb_api"], "project_type": "web_backend"}
+{"query": "pagination and versioning best practice", "relevant": ["wb_api"], "project_type": "web_backend"}
+{"query": "logging level 怎么做", "relevant": ["wb_log"], "project_type": "web_backend"}
+{"query": "how to configure level rotation", "relevant": ["wb_log"], "project_type": "web_backend"}
+{"query": "rotation and structured best practice", "relevant": ["wb_log"], "project_type": "web_backend"}
+{"query": "kafka producer 怎么做", "relevant": ["wb_queue"], "project_type": "web_backend"}
+{"query": "how to configure producer consumer", "relevant": ["wb_queue"], "project_type": "web_backend"}
+{"query": "consumer and partition best practice", "relevant": ["wb_queue"], "project_type": "web_backend"}
+{"query": "pytest fixture 怎么做", "relevant": ["wb_test"], "project_type": "web_backend"}
+{"query": "how to configure fixture mock", "relevant": ["wb_test"], "project_type": "web_backend"}
+{"query": "mock and integration best practice", "relevant": ["wb_test"], "project_type": "web_backend"}
+{"query": "xss csrf 怎么做", "relevant": ["wb_sec"], "project_type": "web_backend"}
+{"query": "how to configure csrf injection", "relevant": ["wb_sec"], "project_type": "web_backend"}
+{"query": "injection and encryption best practice", "relevant": ["wb_sec"], "project_type": "web_backend"}
+{"query": "latency throughput 怎么做", "relevant": ["wb_perf"], "project_type": "web_backend"}
+{"query": "how to configure throughput profiling", "relevant": ["wb_perf"], "project_type": "web_backend"}
+{"query": "profiling and bottleneck best practice", "relevant": ["wb_perf"], "project_type": "web_backend"}
+{"query": "vite webpack 怎么做", "relevant": ["fe_build"], "project_type": "frontend"}
+{"query": "how to configure webpack bundle", "relevant": ["fe_build"], "project_type": "frontend"}
+{"query": "bundle and rollup best practice", "relevant": ["fe_build"], "project_type": "frontend"}
+{"query": "redux zustand 怎么做", "relevant": ["fe_state"], "project_type": "frontend"}
+{"query": "how to configure zustand store", "relevant": ["fe_state"], "project_type": "frontend"}
+{"query": "store and action best practice", "relevant": ["fe_state"], "project_type": "frontend"}
+{"query": "tailwind css 怎么做", "relevant": ["fe_css"], "project_type": "frontend"}
+{"query": "how to configure css flexbox", "relevant": ["fe_css"], "project_type": "frontend"}
+{"query": "flexbox and grid best practice", "relevant": ["fe_css"], "project_type": "frontend"}
+{"query": "component props 怎么做", "relevant": ["fe_comp"], "project_type": "frontend"}
+{"query": "how to configure props hooks", "relevant": ["fe_comp"], "project_type": "frontend"}
+{"query": "hooks and render best practice", "relevant": ["fe_comp"], "project_type": "frontend"}
+{"query": "router route 怎么做", "relevant": ["fe_route"], "project_type": "frontend"}
+{"query": "how to configure route navigation", "relevant": ["fe_route"], "project_type": "frontend"}
+{"query": "navigation and redirect best practice", "relevant": ["fe_route"], "project_type": "frontend"}
+{"query": "vitest testing-library 怎么做", "relevant": ["fe_test"], "project_type": "frontend"}
+{"query": "how to configure testing-library snapshot", "relevant": ["fe_test"], "project_type": "frontend"}
+{"query": "snapshot and e2e best practice", "relevant": ["fe_test"], "project_type": "frontend"}
+{"query": "aria keyboard 怎么做", "relevant": ["fe_a11y"], "project_type": "frontend"}
+{"query": "how to configure keyboard contrast", "relevant": ["fe_a11y"], "project_type": "frontend"}
+{"query": "contrast and screen-reader best practice", "relevant": ["fe_a11y"], "project_type": "frontend"}
+{"query": "fetch axios 怎么做", "relevant": ["fe_http"], "project_type": "frontend"}
+{"query": "how to configure axios interceptor", "relevant": ["fe_http"], "project_type": "frontend"}
+{"query": "interceptor and retry best practice", "relevant": ["fe_http"], "project_type": "frontend"}
+{"query": "i18n locale 怎么做", "relevant": ["fe_i18n"], "project_type": "frontend"}
+{"query": "how to configure locale translation", "relevant": ["fe_i18n"], "project_type": "frontend"}
+{"query": "translation and plural best practice", "relevant": ["fe_i18n"], "project_type": "frontend"}
+{"query": "lazy-loading chunk 怎么做", "relevant": ["fe_perf"], "project_type": "frontend"}
+{"query": "how to configure chunk preload", "relevant": ["fe_perf"], "project_type": "frontend"}
+{"query": "preload and lighthouse best practice", "relevant": ["fe_perf"], "project_type": "frontend"}
+{"query": "argparse flag 怎么做", "relevant": ["cl_arg"], "project_type": "cli_tool"}
+{"query": "how to configure flag subcommand", "relevant": ["cl_arg"], "project_type": "cli_tool"}
+{"query": "subcommand and option best practice", "relevant": ["cl_arg"], "project_type": "cli_tool"}
+{"query": "pyinstaller wheel 怎么做", "relevant": ["cl_pkg"], "project_type": "cli_tool"}
+{"query": "how to configure wheel pypi", "relevant": ["cl_pkg"], "project_type": "cli_tool"}
+{"query": "pypi and entrypoint best practice", "relevant": ["cl_pkg"], "project_type": "cli_tool"}
+{"query": "color progress 怎么做", "relevant": ["cl_log"], "project_type": "cli_tool"}
+{"query": "how to configure progress spinner", "relevant": ["cl_log"], "project_type": "cli_tool"}
+{"query": "spinner and verbose best practice", "relevant": ["cl_log"], "project_type": "cli_tool"}
+{"query": "ini dotenv 怎么做", "relevant": ["cl_cfg"], "project_type": "cli_tool"}
+{"query": "how to configure dotenv xdg", "relevant": ["cl_cfg"], "project_type": "cli_tool"}
+{"query": "xdg and profile best practice", "relevant": ["cl_cfg"], "project_type": "cli_tool"}
+{"query": "stdin stdout 怎么做", "relevant": ["cl_pipe"], "project_type": "cli_tool"}
+{"query": "how to configure stdout pipe", "relevant": ["cl_pipe"], "project_type": "cli_tool"}
+{"query": "pipe and redirect best practice", "relevant": ["cl_pipe"], "project_type": "cli_tool"}
+{"query": "click-testing capsys 怎么做", "relevant": ["cl_test"], "project_type": "cli_tool"}
+{"query": "how to configure capsys exit-code", "relevant": ["cl_test"], "project_type": "cli_tool"}
+{"query": "exit-code and invoke best practice", "relevant": ["cl_test"], "project_type": "cli_tool"}
+{"query": "version upgrade 怎么做", "relevant": ["cl_up"], "project_type": "cli_tool"}
+{"query": "how to configure upgrade checksum", "relevant": ["cl_up"], "project_type": "cli_tool"}
+{"query": "checksum and release best practice", "relevant": ["cl_up"], "project_type": "cli_tool"}
+{"query": "bash zsh 怎么做", "relevant": ["cl_shell"], "project_type": "cli_tool"}
+{"query": "how to configure zsh completion", "relevant": ["cl_shell"], "project_type": "cli_tool"}
+{"query": "completion and fish best practice", "relevant": ["cl_shell"], "project_type": "cli_tool"}
+{"query": "exit-code stderr 怎么做", "relevant": ["cl_err"], "project_type": "cli_tool"}
+{"query": "how to configure stderr traceback", "relevant": ["cl_err"], "project_type": "cli_tool"}
+{"query": "traceback and friendly best practice", "relevant": ["cl_err"], "project_type": "cli_tool"}
+{"query": "startup lazy-import 怎么做", "relevant": ["cl_perf"], "project_type": "cli_tool"}
+{"query": "how to configure lazy-import cold-start", "relevant": ["cl_perf"], "project_type": "cli_tool"}
+{"query": "cold-start and cache best practice", "relevant": ["cl_perf"], "project_type": "cli_tool"}

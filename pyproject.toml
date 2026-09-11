@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rsi-boot"
+version = "0.1.0"
+description = "Personal local MCP tool with recursive self-improvement (Harness-RSI) — the more you use it, the better it knows you."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "pydantic>=2.6",
+    "PyYAML>=6.0",
+    "Jinja2>=3.1",
+    "aiosqlite>=0.19",
+    "openai>=1.30",
+    "mcp>=1.2",
+    "cachetools>=5.3",
+    "watchfiles>=0.21",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+# 向量加速后端（§2.3）：缺失时自动回退 brute（numpy 暴力余弦），不阻塞使用
+vec = [
+    "sqlite-vec>=0.1",
+]
+# Anthropic Provider（§1.1，P4.1）：仅使用 claude-* 模型时需要
+anthropic = [
+    "anthropic>=0.40",
+]
+
+[project.scripts]
+rsi = "rsi_boot.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rsi_boot"]
+
+# 包内数据：src/rsi_boot/config/（default.yaml、intent_rules.yaml、templates/、skills/）
+# 与 src/rsi_boot/migrations/（001_init.sql 等）随包分发，对应 Spec §11 的顶层 config/ 与 migrations/
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "eval_nightly: 全量算法评测（nightly，§12.6）；默认 PR 门槛不含此项",
+]
+testpaths = ["tests"]

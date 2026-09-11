@@ -1,0 +1,83 @@
+# LLM 意图分类 few-shot 示例（§3.1 Phase 2）
+# 每个意图 2 条示例；请求携带 role 时意图清单与示例切换为该角色注册集（§3.6）
+
+general:
+  code_review:
+    definition: 审查代码质量、风格、潜在缺陷与改进建议
+    examples:
+      - 帮我 review 一下这段 Python 函数有没有问题
+      - check this diff for potential race conditions
+  code_gen:
+    definition: 实现、生成、创建新代码或功能
+    examples:
+      - 帮我实现一个带重试的 HTTP 客户端
+      - generate a pydantic model for this JSON
+  debug:
+    definition: 排查、修复 bug、报错与异常行为
+    examples:
+      - 这个接口一直报 500，帮我看看什么原因
+      - why does this test fail with KeyError
+  explain:
+    definition: 解释概念、原理、代码逻辑
+    examples:
+      - 解释一下 Python 的 GIL 是什么
+      - how does SQLite WAL mode work
+  general_assist:
+    definition: 不属于以上类别的通用协助
+    examples:
+      - 帮我把这段话翻译成英文
+      - 今天站会要汇报什么
+
+roles:
+  test:
+    test_gen:
+      definition: 生成测试用例、单元测试、场景覆盖
+      examples:
+        - 为这个登录接口生成边界测试用例
+        - 帮我写这个函数的 pytest 单测
+    test_review:
+      definition: 评审已有测试用例的充分性与质量
+      examples:
+        - 评审一下这组用例有没有遗漏的场景
+        - review my test plan for the payment flow
+    bug_analyze:
+      definition: 缺陷分析、根因定位、复现步骤整理
+      examples:
+        - 分析这个崩溃堆栈的根因
+        - 这个 bug 偶发，帮我整理复现条件
+    test_data:
+      definition: 构造测试数据、Mock 数据、数据准备
+      examples:
+        - 帮我造 100 条用户注册测试数据
+        - 生成符合身份证校验规则的测试号码
+    coverage_check:
+      definition: 覆盖率分析、漏测点识别
+      examples:
+        - 看看这个模块的覆盖率还有哪些分支没覆盖
+        - 分析这次变更影响哪些用例
+  pm:
+    req_analyze:
+      definition: 需求分析、用户故事拆解、价值评估
+      examples:
+        - 帮我分析这个需求的用户场景
+        - 把这个大需求拆成可迭代的用户故事
+    prd_gen:
+      definition: 生成 PRD、需求文档、功能说明
+      examples:
+        - 帮我写一份收藏功能的 PRD
+        - draft a PRD for the export feature
+    doc_review:
+      definition: 评审需求文档、PRD 的完整性与一致性
+      examples:
+        - 评审这份 PRD 有没有逻辑漏洞
+        - check this spec for missing edge cases
+    data_analysis:
+      definition: 业务数据分析、指标解读、报表需求
+      examples:
+        - 分析一下这周留存下降的原因
+        - 帮我设计这个功能的数据看板指标
+    stakeholder_comm:
+      definition: 干系人沟通、汇报材料、会议对齐
+      examples:
+        - 帮我写一封项目延期的说明邮件
+        - 准备给老板的季度汇报大纲

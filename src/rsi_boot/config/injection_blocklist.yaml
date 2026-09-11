@@ -1,0 +1,11 @@
+# 注入黑名单（Spec v3.0 §4.2 第三道闸）：规则文件内容 = 宿主上下文的一部分，
+# 属提示词注入面。命中以下模式（正则，忽略大小写）的记忆条目拒绝注入并记 warning。
+patterns:
+  - "忽略.{0,12}(先前|之前|以上|上述).{0,8}(指令|指示|规则|提示)"
+  - "ignore\\s+(all\\s+)?(previous|prior|above)\\s+(instructions?|prompts?|rules?)"
+  - "disregard\\s+(all\\s+)?(previous|prior|above)"
+  - "override\\s+(system|safety)\\s+prompt"
+  - "你现在是|扮演.{0,6}(无限制|不受限)"   # 角色劫持类
+  - "jailbreak|DAN\\s+mode"
+  - "rm\\s+-rf\\s+/|del\\s+/[fsq]"           # 破坏性命令注入
+  - "curl\\s+[^|]*\\|\\s*(ba)?sh"            # 远程脚本管道执行
