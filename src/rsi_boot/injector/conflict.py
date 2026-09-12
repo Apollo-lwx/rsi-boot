@@ -14,7 +14,10 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from ..scanner.conflict_gate import ConflictDraft
 
 from ..core.masking import mask_text
 from ..data.sqlite import SQLiteClient
@@ -319,11 +322,159 @@ class ConflictDetector:
         async with conn.execute(sql + " ORDER BY c.detected_at DESC LIMIT 50", args) as cur:
             return [dict(r) for r in await cur.fetchall()]
 
+    async def persist_knowledge_conflicts(
+        self, project_id: str, drafts: list[ConflictDraft],
+        source_to_item_id: dict[str, str],
+    ) -> int:
+        """INSERT OR IGNORE；item_id = left_source 对应条目；user_rule_path = right_source。"""
+        mapped = {self._norm_src(k): v for k, v in source_to_item_id.items()}
+        conn = await self._db.connect()
+        now = _utc_iso()
+        inserted = 0
+        for draft in drafts:
+            left = self._norm_src(draft.left_source)
+            right = self._norm_src(draft.right_source)
+            item_id = mapped.get(left)
+            if not item_id or not right:
+                continue
+            a, b = sorted((left, right))
+            family_hash = hashlib.sha256(
+                f"{draft.conflict_type}:{a}:{b}".encode("utf-8")
+            ).hexdigest()
+            excerpt = mask_text(
+                f"[{draft.conflict_type}] {draft.reason}\n"
+                f"倾向: {draft.recommended}（{draft.recommended_reason}）\n"
+                f"另一侧: {right}"
+            )[:_EXCERPT_MAX]
+            cur = await conn.execute(
+                "INSERT OR IGNORE INTO rule_conflicts"
+                " (id, project_id, item_id, user_rule_path, user_rule_excerpt,"
+                "  user_rule_hash, conflict_type, status, resolution_note, detected_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)",
+                (uuid.uuid4().hex, project_id, item_id, right, excerpt, family_hash,
+                 draft.conflict_type, f"recommended:{draft.recommended}", now),
+            )
+            inserted += cur.rowcount
+        await conn.commit()
+        return inserted
+
+    async def explain(self, conflict_id: str) -> Optional[Dict[str, Any]]:
+        """只读。返回 sides、impact、options，不 UPDATE。"""
+        conn = await self._db.connect()
+        async with conn.execute(
+            "SELECT * FROM rule_conflicts WHERE id = ?", (conflict_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        if row is None:
+            return None
+        item = await self._load_item(conn, row["item_id"])
+        peer_src = self._norm_src(row["user_rule_path"])
+        peers = await self._items_by_source(conn, row["project_id"], peer_src)
+        item_excerpt = mask_text((item or {}).get("content") or "")[:_EXCERPT_MAX]
+        peer_excerpt = row["user_rule_excerpt"] or ""
+        if peers:
+            peer_excerpt = mask_text(peers[0].get("content") or peer_excerpt)[:_EXCERPT_MAX]
+        sides = [
+            {
+                "role": "item",
+                "item_id": row["item_id"],
+                "title": (item or {}).get("title") or "",
+                "excerpt": item_excerpt,
+                "source": self._norm_src((item or {}).get("source_url") or ""),
+                "status": (item or {}).get("status") or "",
+            },
+            {
+                "role": "peer",
+                "item_id": peers[0]["id"] if peers else None,
+                "title": peers[0]["title"] if peers else "",
+                "excerpt": peer_excerpt,
+                "source": peer_src,
+                "status": peers[0]["status"] if peers else "",
+            },
+        ]
+        recommended = self._recommended_of(row)
+        options = self._explain_options(row["conflict_type"], sides)
+        return {
+            "id": conflict_id,
+            "conflict_type": row["conflict_type"],
+            "status": row["status"],
+            "sides": sides,
+            "impact": {
+                "recall": "之后相关任务会按你选的那条注入；归档侧不再进入召回",
+                "inject": "规则文件 rsi-*.mdc / AGENTS.md 会按保留侧重写",
+                "code_hint": peer_src if row["conflict_type"] == "doc_code" else "",
+            },
+            "options": options,
+            "recommended": recommended,
+            "recommended_reason": row["user_rule_excerpt"] or "",
+        }
+
+    @staticmethod
+    def _recommended_of(row: Any) -> str:
+        note = row["resolution_note"] or ""
+        if note.startswith("recommended:"):
+            return note.split(":", 1)[1].strip().split()[0]
+        return ""
+
+    @staticmethod
+    def _explain_options(ctype: str, sides: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        item_src = sides[0]["source"] or "item 侧"
+        peer_src = sides[1]["source"] or "对侧"
+        if ctype in ("version", "doc_code", "incoherent"):
+            return [
+                {
+                    "id": "keep_item", "resolution": "keep_item",
+                    "label": f"保留 {item_src}，归档 {peer_src}",
+                    "effect": f"归档 {peer_src} 的 pending_review/active；{item_src} 若待审则改为 active",
+                },
+                {
+                    "id": "keep_peer", "resolution": "keep_peer",
+                    "label": f"保留 {peer_src}，归档 {item_src}",
+                    "effect": f"归档 {item_src} 的 pending_review/active；{peer_src} 若待审则改为 active",
+                },
+                {
+                    "id": "coexist", "resolution": "coexist",
+                    "label": "两版都留，以后按场景再看",
+                    "effect": "两侧 pending→active，不归档，该组合不再提醒",
+                },
+            ]
+        return [
+            {"id": "user_wins", "resolution": "user_wins",
+             "label": "以你的规则为准", "effect": "学习记忆置 suppressed，不再注入"},
+            {"id": "memory_wins", "resolution": "memory_wins",
+             "label": "以学习记忆为准", "effect": "请手动改规则文件，下次扫描关闭冲突"},
+            {"id": "coexist", "resolution": "coexist",
+             "label": "两者共存", "effect": "该组合不再提醒"},
+        ]
+
+    async def _load_item(self, conn: Any, item_id: Optional[str]) -> Optional[Dict[str, Any]]:
+        if not item_id:
+            return None
+        async with conn.execute(
+            "SELECT id, title, content, source_url, status FROM knowledge_items WHERE id = ?",
+            (item_id,),
+        ) as cur:
+            row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def _items_by_source(
+        self, conn: Any, project_id: str, source: str,
+    ) -> List[Dict[str, Any]]:
+        if not source:
+            return []
+        async with conn.execute(
+            "SELECT id, title, content, source_url, status FROM knowledge_items "
+            "WHERE project_id = ?",
+            (project_id,),
+        ) as cur:
+            rows = await cur.fetchall()
+        return [dict(r) for r in rows if self._norm_src(r["source_url"]) == source]
+
     async def resolve(
         self, conflict_id: str, resolution: str, note: str = ""
     ) -> Optional[Dict[str, Any]]:
         """裁决。规则冲突：user_wins/memory_wins/coexist；
-        版本冲突：keep_peer/keep_item/coexist。不存在或已关闭返回 None"""
+        version/doc_code/incoherent：keep_peer/keep_item/coexist。不存在或已关闭返回 None"""
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT * FROM rule_conflicts WHERE id = ?", (conflict_id,)
@@ -334,7 +485,8 @@ class ConflictDetector:
 
         ctype = row["conflict_type"]
         allowed = (
-            ("keep_peer", "keep_item", "coexist") if ctype == "version"
+            ("keep_peer", "keep_item", "coexist")
+            if ctype in ("version", "doc_code", "incoherent")
             else ("user_wins", "memory_wins", "coexist")
         )
         if resolution not in allowed:
@@ -344,6 +496,8 @@ class ConflictDetector:
         guidance = ""
         if ctype == "version":
             guidance = await self._resolve_version(row, resolution, now)
+        elif ctype in ("doc_code", "incoherent"):
+            guidance = await self._resolve_knowledge_pair(row, resolution, now)
         elif resolution == "user_wins":
             # 学习记忆置 suppressed：保留在库、不再注入；后续同主题草稿审批时可见此前裁决
             await conn.execute(
@@ -398,3 +552,57 @@ class ConflictDetector:
                 [now, *chunk],
             )
         return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
+
+    async def _resolve_knowledge_pair(self, row: Any, resolution: str, now: str) -> str:
+        """doc_code/incoherent：按 source_url 归档对侧；保留侧 pending→active；coexist 两侧激活。"""
+        conn = await self._db.connect()
+        async with conn.execute(
+            "SELECT id, source_url, status FROM knowledge_items WHERE id = ?",
+            (row["item_id"],),
+        ) as cur:
+            item_row = await cur.fetchone()
+        item_src = self._norm_src(item_row["source_url"] if item_row else "")
+        peer_src = self._norm_src(row["user_rule_path"])
+        async with conn.execute(
+            "SELECT id, source_url, status FROM knowledge_items "
+            "WHERE project_id = ? AND status IN ('active', 'pending_review')",
+            (row["project_id"],),
+        ) as cur:
+            candidates = await cur.fetchall()
+
+        def side(src: str) -> List[Any]:
+            return [r for r in candidates if src and self._norm_src(r["source_url"]) == src]
+
+        item_side = side(item_src)
+        if item_row is not None and all(r["id"] != item_row["id"] for r in item_side):
+            item_side = [*item_side, item_row]
+        peer_side = side(peer_src)
+
+        if resolution == "coexist":
+            activate = [
+                r["id"] for r in (*item_side, *peer_side) if r["status"] == "pending_review"
+            ]
+            await self._set_item_status(conn, activate, "active", now)
+            return "已标记两者共存并转为可用，该组合不再提醒"
+
+        if resolution == "keep_item":
+            archive = [r["id"] for r in peer_side if r["id"] != row["item_id"]]
+            activate = [r["id"] for r in item_side if r["status"] == "pending_review"]
+            keep_src, archive_src = item_src, peer_src
+        else:
+            archive = [r["id"] for r in item_side if self._norm_src(r["source_url"]) != peer_src]
+            activate = [r["id"] for r in peer_side if r["status"] == "pending_review"]
+            keep_src, archive_src = peer_src, item_src
+        await self._set_item_status(conn, archive, "archived", now)
+        await self._set_item_status(conn, activate, "active", now)
+        return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
+
+    @staticmethod
+    async def _set_item_status(conn: Any, ids: List[str], status: str, now: str) -> None:
+        for i in range(0, len(ids), 500):
+            chunk = ids[i:i + 500]
+            await conn.execute(
+                f"UPDATE knowledge_items SET status = ?, updated_at = ? "
+                f"WHERE id IN ({','.join('?' for _ in chunk)})",
+                [status, now, *chunk],
+            )
