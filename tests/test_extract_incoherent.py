@@ -145,6 +145,79 @@ async def test_daily_new_prohibition_vs_active_permission_opens_incoherent(db):
     assert old_id in row["user_rule_excerpt"]
 
 
+async def test_empty_source_url_peer_still_persists_incoherent(db):
+    extractor, knowledge = _extractor(db)
+    old_id = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="API 用 pydantic",
+        content=_PERMIT_BODY,
+        content_type="convention",
+        source_url=None,
+        status="active",
+    ))
+    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+
+    stats = await extractor.run_daily()
+    assert stats["extracted"] == 1
+
+    items = await knowledge.list("p1")
+    new_items = [i for i in items if i["id"] != old_id]
+    assert len(new_items) == 1
+    new_id = new_items[0]["id"]
+
+    conn = await db.connect()
+    async with conn.execute(
+        "SELECT item_id, user_rule_path, user_rule_excerpt, conflict_type, status"
+        " FROM rule_conflicts WHERE project_id = ?",
+        ("p1",),
+    ) as cur:
+        conflicts = await cur.fetchall()
+    assert len(conflicts) == 1
+    row = conflicts[0]
+    assert row["conflict_type"] == "incoherent"
+    assert row["status"] == "open"
+    assert row["item_id"] == new_id
+    assert row["user_rule_path"] == f"item:{old_id}"
+    assert old_id in row["user_rule_excerpt"]
+
+
+async def test_duplicate_peer_source_url_unique_historical_ids(db):
+    extractor, knowledge = _extractor(db)
+    old_a = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="API 用 pydantic A",
+        content=_PERMIT_BODY,
+        content_type="convention",
+        source_url="docs/shared.md",
+        status="active",
+    ))
+    old_b = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="API 用 pydantic B",
+        content=_PERMIT_BODY.replace("校验", "解析"),
+        content_type="convention",
+        source_url="docs/shared.md",
+        status="active",
+    ))
+    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+
+    stats = await extractor.run_daily()
+    assert stats["extracted"] == 1
+
+    conn = await db.connect()
+    async with conn.execute(
+        "SELECT user_rule_path, user_rule_excerpt FROM rule_conflicts WHERE project_id = ?",
+        ("p1",),
+    ) as cur:
+        conflicts = await cur.fetchall()
+    assert len(conflicts) == 2
+    paths = {r["user_rule_path"] for r in conflicts}
+    assert paths == {f"docs/shared.md#{old_a}", f"docs/shared.md#{old_b}"}
+    excerpts = [r["user_rule_excerpt"] for r in conflicts]
+    assert sum(old_a in e for e in excerpts) == 1
+    assert sum(old_b in e for e in excerpts) == 1
+
+
 async def test_identical_title_merges_without_conflict(db):
     extractor, knowledge = _extractor(db)
     await knowledge.add(KnowledgeItem(

@@ -267,6 +267,15 @@ class KnowledgeExtractor:
             logger.info("知识提取每日任务完成：%s", stats)
         return stats
 
+    @staticmethod
+    def _peer_source_url(peer_id: str, raw_url: Optional[str], url_counts: Dict[str, int]) -> str:
+        norm = (raw_url or "").replace("\\", "/")
+        if not norm:
+            return f"item:{peer_id}"
+        if url_counts.get(norm, 0) > 1:
+            return f"{norm}#{peer_id}"
+        return norm
+
     async def _load_active_peers(self, project_id: str) -> List[Tuple[str, DraftItem]]:
         conn = await self._db.connect()
         async with conn.execute(
@@ -276,6 +285,10 @@ class KnowledgeExtractor:
             (project_id,),
         ) as cur:
             rows = await cur.fetchall()
+        url_counts: Dict[str, int] = {}
+        for row in rows:
+            norm = (row["source_url"] or "").replace("\\", "/")
+            url_counts[norm] = url_counts.get(norm, 0) + 1
         peers: List[Tuple[str, DraftItem]] = []
         for row in rows:
             tags: List[str] = []
@@ -286,13 +299,14 @@ class KnowledgeExtractor:
                         tags = [str(t) for t in loaded]
                 except json.JSONDecodeError:
                     pass
+            peer_id = row["id"]
             peers.append((
-                row["id"],
+                peer_id,
                 DraftItem(
                     title=row["title"] or "",
                     content=row["content"] or "",
                     content_type=row["content_type"] or "convention",
-                    source_url=row["source_url"] or "",
+                    source_url=self._peer_source_url(peer_id, row["source_url"], url_counts),
                     tags=tags,
                     signal="",
                 ),
@@ -316,14 +330,16 @@ class KnowledgeExtractor:
         peers = [item for _, item in peer_rows]
         result = gate_drafts([new_draft], [], Path("."), peers=peers)
         detector = ConflictDetector(self._db)
-        id_by_source = {
-            (item.source_url.replace("\\", "/") if item.source_url else ""): pid
-            for pid, item in peer_rows
-        }
         for conflict in result.conflicts:
             if conflict.conflict_type != "incoherent":
                 continue
-            hist_id = id_by_source.get(conflict.right_source)
+            hist_id = next(
+                (
+                    pid for pid, item in peer_rows
+                    if item.source_url.replace("\\", "/") == conflict.right_source
+                ),
+                None,
+            )
             if hist_id:
                 conflict.reason = f"{conflict.reason} historical_id={hist_id}"
             conflict.left_source = "auto-extract"
