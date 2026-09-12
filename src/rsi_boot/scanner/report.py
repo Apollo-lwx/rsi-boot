@@ -52,6 +52,7 @@ class BootstrapReport:
     slice_stats: Dict[str, int] = field(default_factory=dict)
     extracts: List[Dict[str, str]] = field(default_factory=list)
     conflicts: List[Dict[str, str]] = field(default_factory=list)
+    conflict_counts: Dict[str, int] = field(default_factory=dict)
     dry_run: bool = False
     will_apply: List[str] = field(default_factory=list)
     will_confirm: List[str] = field(default_factory=list)
@@ -77,7 +78,13 @@ class BootstrapReport:
                 lines.append(
                     f"变更收敛: {self.superseded} 条旧版本归档；复活: {self.revived} 条（§10.9.10）"
                 )
-            if self.version_conflicts:
+            if self.conflict_counts:
+                total = sum(self.conflict_counts.values())
+                detail = " · ".join(
+                    f"{name} {n}" for name, n in sorted(self.conflict_counts.items()) if n
+                )
+                lines.append(f"冲突: {detail}（共 {total} 组，报告只留样例）")
+            elif self.version_conflicts:
                 lines.append(
                     f"版本冲突: {self.version_conflicts} 组（rsi_conflicts 裁决，不自动归档）"
                 )
@@ -109,7 +116,9 @@ class BootstrapReport:
 
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(asdict(self), ensure_ascii=False, indent=2), encoding="utf-8")
+        payload = asdict(self)
+        payload["conflicts"] = list(payload.get("conflicts") or [])[:30]
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def write_markdown(self, path: Path) -> None:
         lines: List[str] = [
@@ -156,13 +165,24 @@ class BootstrapReport:
             lines.append("（本轮无对话/规则抽取）")
 
         lines.extend(["", "## 冲突组"])
+        if self.conflict_counts:
+            lines.append(
+                "计数: "
+                + " · ".join(
+                    f"{name} {n}" for name, n in sorted(self.conflict_counts.items())
+                )
+            )
         if self.conflicts:
-            for item in self.conflicts:
+            sample = self.conflicts[:30]
+            for item in sample:
                 lines.append(
                     f"- **{item.get('type', '')}**: "
                     f"{item.get('left', '')} ↔ {item.get('right', '')} — "
                     f"{item.get('reason', '')}"
                 )
+            extra = max(0, sum(self.conflict_counts.values()) - len(sample)) if self.conflict_counts else max(0, len(self.conflicts) - 30)
+            if extra:
+                lines.append(f"（仅列出前 {len(sample)} 条样例，其余 {extra} 组见库内 rsi_conflicts）")
         else:
             lines.append("（未检测到冲突组）")
 

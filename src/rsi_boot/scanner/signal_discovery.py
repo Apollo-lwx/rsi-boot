@@ -9,14 +9,93 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional
+from typing import Callable, Dict, Iterable, Iterator, List, Optional, Sequence
 
 # 不扫描的目录（§10.9.6 设计原则：二进制/编译产物/依赖/缓存目录除外）
+# artifacts 按目录名剪枝：根下 artifacts/ 与任意 .../artifacts/ 都会跳过。
 EXCLUDED_DIRS = frozenset({
     ".git", ".rsi", "node_modules", "vendor", "__pycache__", ".venv", "venv",
     "dist", "build", ".idea", ".mypy_cache", ".pytest_cache", "target",
     ".vite-cache", ".cache", ".turbo", ".next", ".nuxt", "coverage", ".parcel-cache",
+    ".worktrees", ".auto-learn", ".superpowers", "artifacts",
 })
+_EXCLUDED_CF = frozenset(name.casefold() for name in EXCLUDED_DIRS)
+
+
+def _norm_rel(path: str) -> str:
+    rel = path.replace("\\", "/").strip()
+    while rel.startswith("./"):
+        rel = rel[2:]
+    return rel.strip("/")
+
+
+def parse_include_dirs(raw: Optional[Sequence[str]]) -> List[str]:
+    """解析 --include：可重复，也可逗号分隔；去掉 ./ 前缀，大小写去重。"""
+    out: List[str] = []
+    seen: set[str] = set()
+    for item in raw or []:
+        for piece in str(item).split(","):
+            token = _norm_rel(piece)
+            key = token.casefold()
+            if not token or key in seen:
+                continue
+            seen.add(key)
+            out.append(token)
+    return out
+
+
+def _first_excluded_prefix(rel: str, name: str) -> Optional[str]:
+    parts = [p for p in rel.split("/") if p] if rel else []
+    if not parts:
+        parts = [name] if name else []
+    acc: List[str] = []
+    for part in parts:
+        acc.append(part)
+        if part.casefold() in _EXCLUDED_CF:
+            return "/".join(acc)
+    return None
+
+
+def _covered_by_include(rel: str, blocked: str, include: Iterable[str]) -> bool:
+    rel_cf = rel.casefold()
+    blocked_cf = blocked.casefold()
+    for inc in include:
+        inc_n = _norm_rel(inc).casefold()
+        if not inc_n:
+            continue
+        if "/" not in inc_n and blocked_cf.split("/")[-1] == inc_n:
+            return True
+        if blocked_cf == inc_n or blocked_cf.startswith(inc_n + "/"):
+            return True
+        if inc_n.startswith(blocked_cf + "/"):
+            if inc_n.startswith(rel_cf + "/") or rel_cf == inc_n or rel_cf.startswith(inc_n + "/"):
+                return True
+    return False
+
+
+def should_skip_dir(name: str, rel_posix: str, include: Iterable[str]) -> bool:
+    """默认排除噪声目录；--include 只打开被点名的那棵子树，不带上同级兄弟。"""
+    rel = _norm_rel(rel_posix) or name
+    blocked = _first_excluded_prefix(rel, name)
+    if blocked is None:
+        return False
+    return not _covered_by_include(rel, blocked, include)
+
+
+def source_path_excluded(source_url: str, include: Iterable[str]) -> bool:
+    """库里残留路径是否仍落在默认排除树（未 --include）里。"""
+    rel = _norm_rel(source_url)
+    if not rel or rel == "auto-extract" or rel.startswith("item:"):
+        return False
+    parts = [p for p in rel.split("/") if p]
+    if len(parts) < 2:
+        return False
+    acc: List[str] = []
+    for part in parts[:-1]:
+        acc.append(part)
+        if should_skip_dir(part, "/".join(acc), include):
+            return True
+    return False
 
 _DOC_NAMES = {"readme", "contributing", "changelog", "history", "authors"}
 _DOC_EXTS = {".md", ".rst", ".txt", ".adoc"}
@@ -35,15 +114,28 @@ class SignalInfo:
     present: bool
     files: List[Path] = field(default_factory=list)
     note: str = ""
+    item_count: int = 0
 
     @property
     def file_count(self) -> int:
-        return len(self.files)
+        return self.item_count if self.item_count else len(self.files)
 
 
-def _walk_files(root: Path, max_file_size: int) -> Iterator[Path]:
+def _walk_files(
+    root: Path,
+    max_file_size: int,
+    include: Optional[Sequence[str]] = None,
+) -> Iterator[Path]:
+    allowed = tuple(parse_include_dirs(include))
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in EXCLUDED_DIRS]
+        rel_parent = Path(dirpath).relative_to(root)
+        keep: List[str] = []
+        for name in dirnames:
+            child = name if str(rel_parent) == "." else (rel_parent / name).as_posix()
+            if should_skip_dir(name, child, allowed):
+                continue
+            keep.append(name)
+        dirnames[:] = keep
         for name in filenames:
             path = Path(dirpath) / name
             try:
@@ -58,6 +150,7 @@ def discover_signals(
     project_root: Path,
     max_file_size: int = 1_000_000,
     on_progress: Optional[Callable[[int], None]] = None,
+    include: Optional[Sequence[str]] = None,
 ) -> Dict[str, SignalInfo]:
     """扫描项目目录树，返回 9 类信号的发现结果"""
     root = Path(project_root)
@@ -66,7 +159,7 @@ def discover_signals(
     )}
 
     walked = 0
-    for path in _walk_files(root, max_file_size):
+    for path in _walk_files(root, max_file_size, include=include):
         walked += 1
         if on_progress is not None:
             on_progress(walked)
@@ -98,7 +191,11 @@ def discover_signals(
     git_dir = root / ".git"
     signals["git"].present = git_dir.is_dir()
     if signals["git"].present:
-        signals["git"].note = ".git 存在（深度分析在 P2.6）"
+        from .git_analyzer import count_commits
+
+        n = count_commits(root)
+        signals["git"].item_count = n or 0
+        signals["git"].note = f"{n} 次提交" if n else ".git 存在（无提交）"
 
     for info in signals.values():
         info.present = info.present or bool(info.files)

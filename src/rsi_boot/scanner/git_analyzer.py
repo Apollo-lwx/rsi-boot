@@ -92,6 +92,19 @@ def _run_git(project_root: Path, args: List[str], retries: int = 3) -> Optional[
     return None
 
 
+def count_commits(project_root: Path) -> Optional[int]:
+    """仓库提交总数；非仓库/git 失败返回 None。"""
+    if not (Path(project_root) / ".git").is_dir():
+        return None
+    out = _run_git(Path(project_root), ["rev-list", "--all", "--count"])
+    if out is None:
+        return None
+    try:
+        return int(out.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return None
+
+
 def analyze_git(project_root: Path, max_commits: int = 500) -> Optional[GitInsights]:
     """分析 Git 历史；非仓库/git 不可用返回 None"""
     if not (project_root / ".git").is_dir():

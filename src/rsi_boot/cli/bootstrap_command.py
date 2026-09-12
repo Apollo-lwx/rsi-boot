@@ -12,9 +12,10 @@ import json
 import logging
 import sys
 import uuid
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Sequence, Set
 
 from ..bootstrap import build_runtime, detect_user_id
 from ..project import load_or_create_identity
@@ -42,7 +43,12 @@ from ..scanner.profile_generator import (
 from ..injector.targets import discover_user_rule_files
 from ..scanner.report import BootstrapReport
 from ..scanner.rule_seed_scanner import scan_rule_seeds
-from ..scanner.signal_discovery import discover_signals, plan_scopes
+from ..scanner.signal_discovery import (
+    discover_signals,
+    parse_include_dirs,
+    plan_scopes,
+    source_path_excluded,
+)
 from ..scanner.validator import DedupSet, ErrorCollector, content_hash, read_text_tolerant, validate_chunk
 from .progress import Progress
 
@@ -157,7 +163,12 @@ def _signal_summary(signals: Dict[str, Any]) -> str:
     for name, info in signals.items():
         if not info.present:
             continue
-        parts.append(f"{name} {info.file_count}" if info.file_count else name)
+        if name == "git" and info.present:
+            parts.append(f"{name} {info.file_count}")
+        elif info.file_count:
+            parts.append(f"{name} {info.file_count}")
+        else:
+            parts.append(name)
     return " · ".join(parts) or "无"
 
 
@@ -270,6 +281,7 @@ def _peer_title(title: str, source_url: str) -> str:
 
 async def _load_existing_drafts(
     runtime: Any, project_id: str, already: Set[str],
+    include: Sequence[str] | None = None,
 ) -> List[DraftItem]:
     """把库中 active/pending 行当成本轮 DraftItem 同伴，供 gate 看到指纹跳过的版本对。"""
     conn = await runtime.db.connect()
@@ -280,12 +292,15 @@ async def _load_existing_drafts(
         (project_id,),
     ) as cur:
         rows = await cur.fetchall()
+    allowed = parse_include_dirs(include)
     peers: List[DraftItem] = []
     for row in rows:
         src = _norm_src(row["source_url"] or "")
         if not src or src in already:
             continue
         if src == "auto-extract" or src.startswith("item:"):
+            continue
+        if source_path_excluded(src, allowed):
             continue
         try:
             tags = json.loads(row["tags"]) if row["tags"] else []
@@ -372,10 +387,15 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
 
     # ---- 阶段一：信号发现 + 扫描计划 ----
     progress.phase("扫描文件树")
-    signals = discover_signals(project_root, max_file_size, on_progress=progress.tick)
+    include = parse_include_dirs(getattr(args, "include", None))
+    signals = discover_signals(
+        project_root, max_file_size, on_progress=progress.tick, include=include,
+    )
     plan = plan_scopes(signals, args.scope or "", consent=args.consent)
     progress.total_phases = len(_phase_names(plan, args.dry_run))
     progress.writeln(f"发现信号：{_signal_summary(signals)}")
+    if include:
+        progress.writeln("加回目录：" + ", ".join(include))
     active = [name for name, on in plan.items() if on]
     progress.writeln(f"将采集：{', '.join(active) or '（无）'}")
     report = BootstrapReport(
@@ -499,8 +519,14 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         git_insights = None
         git_summary = None
         if plan.get("git"):
-            progress.phase(f"Git（最多 {args.max_commits} 次提交）")
+            progress.phase("Git")
             git_insights = analyze_git(project_root, max_commits=args.max_commits)
+            n = git_insights.total_commits if git_insights else 0
+            if n:
+                progress.retarget(f"Git（{n} 次提交）", total=n)
+                progress.tick(n)
+            else:
+                progress.retarget("Git（无提交）")
             if git_insights and git_insights.total_commits:
                 report.git_summary = (
                     f"{git_insights.total_commits} commits, "
@@ -561,17 +587,25 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             ))
 
         already = {_norm_src(d.source_url) for d in drafts if d.source_url}
-        drafts.extend(await _load_existing_drafts(runtime, project_id, already))
+        drafts.extend(await _load_existing_drafts(
+            runtime, project_id, already, include=include,
+        ))
         progress.phase("冲突检测", total=max(len(drafts) * 2, 1))
         gate = gate_drafts(
             drafts, skeletons, project_root, on_progress=progress.tick,
-            on_match_start=lambda: progress.retarget("冲突检测（极性配对）"),
+            on_match_start=lambda n: progress.retarget(
+                "冲突检测（极性配对）", total=n or None,
+            ),
+            include=include,
         )
         hold = {_norm_src(s) for s in gate.hold_sources}
         report.extracts = [
             {"title": item.title, "source": item.source_url}
             for item in convo_drafts + rule_drafts
         ]
+        counts = Counter(c.conflict_type for c in gate.conflicts)
+        report.conflict_counts = dict(counts)
+        report.version_conflicts = counts.get("version", 0)
         report.conflicts = [
             {
                 "type": c.conflict_type,
@@ -579,7 +613,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 "right": c.right_source,
                 "reason": c.reason,
             }
-            for c in gate.conflicts
+            for c in gate.conflicts[:30]
         ]
 
         # ---- 过闸后再写库 ----
@@ -743,10 +777,9 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         progress.phase("收尾", total=5)
         if gate.conflicts:
             mapping = await _source_to_item_id(runtime, project_id)
-            persist_n = await runtime.conflict_detector.persist_knowledge_conflicts(
+            await runtime.conflict_detector.persist_knowledge_conflicts(
                 project_id, gate.conflicts, mapping,
             )
-            report.version_conflicts += persist_n
         progress.tick(1)
 
         await _demote_held_active(runtime, project_id, hold)

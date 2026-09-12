@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Iterable, List, Mapping, Optional, Sequence
 from urllib.parse import unquote, urlparse
 
-from .signal_discovery import EXCLUDED_DIRS
+from .signal_discovery import parse_include_dirs, should_skip_dir
 from .validator import read_text_tolerant
 
 _SELF_DEPRECATED_RE = re.compile(r"^(DEPRECATED|已废弃)", re.IGNORECASE)
@@ -69,15 +69,26 @@ def _posix_rel(path: Path, root: Path) -> str:
     return path.relative_to(root).as_posix()
 
 
-def _iter_md(root: Path) -> Iterable[Path]:
+def _iter_md(root: Path, include: Optional[Sequence[str]] = None) -> Iterable[Path]:
+    allowed = parse_include_dirs(include)
     for dirpath, dirnames, filenames in __import__("os").walk(root):
-        dirnames[:] = [d for d in dirnames if d not in EXCLUDED_DIRS]
+        rel_parent = Path(dirpath).relative_to(root)
+        keep: List[str] = []
+        for name in dirnames:
+            child = name if str(rel_parent) == "." else (rel_parent / name).as_posix()
+            if should_skip_dir(name, child, allowed):
+                continue
+            keep.append(name)
+        dirnames[:] = keep
         for name in filenames:
             if name.lower().endswith((".md", ".mdc", ".txt", ".rst", ".adoc")):
                 yield Path(dirpath) / name
 
 
-def detect_version_families(project_root: Path) -> List[VersionFamily]:
+def detect_version_families(
+    project_root: Path,
+    include: Optional[Sequence[str]] = None,
+) -> List[VersionFamily]:
     """扫描项目树，返回版本家族（去重后）。两侧文件都必须存在。"""
     root = Path(project_root)
     families: List[VersionFamily] = []
@@ -92,7 +103,7 @@ def detect_version_families(project_root: Path) -> List[VersionFamily]:
         seen.add(key)
         families.append(VersionFamily(kind=kind, legacy_rel=legacy, current_rel=current, reason=reason))
 
-    for path in _iter_md(root):
+    for path in _iter_md(root, include=include):
         text = read_text_tolerant(path)
         if not text or not is_self_deprecated(text):
             continue
@@ -109,7 +120,7 @@ def detect_version_families(project_root: Path) -> List[VersionFamily]:
         _add("deprecated", _posix_rel(path, root), rel_peer, "文首自标废弃并链接到现行文档")
 
     by_dir_base: dict[tuple[str, str], list[tuple[tuple[int, int], Path]]] = {}
-    for path in _iter_md(root):
+    for path in _iter_md(root, include=include):
         match = _VERSIONED_NAME_RE.match(path.name)
         if not match:
             continue

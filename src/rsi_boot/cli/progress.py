@@ -206,13 +206,16 @@ class Progress:
             remain = estimate_remaining(self.phase_done, self.phase_total, elapsed)
             if remain is not None:
                 remain_s = f"约剩 {format_remaining(remain)}"
+        bar10 = format_bar(shown, self.phase_total, width=10) if self.phase_total else ""
         full = [prefix, bar, count, elapsed_s, remain_s]
         if not fit:
             return "  ".join(part for part in full if part)
         limit = max(terminal_columns(self.stream) - 1, 16)
         for candidate in (
             full,
-            [prefix, count, elapsed_s, remain_s],
+            [prefix, bar, count, elapsed_s],
+            [prefix, bar10, count, elapsed_s],
+            [prefix, bar10, count],
             [prefix, count, elapsed_s],
             [prefix, count],
             [prefix],

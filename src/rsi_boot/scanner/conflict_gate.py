@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from collections import defaultdict
-from typing import Any, Callable, List, Set
+from typing import Any, Callable, List, Optional, Sequence, Set
 
-from ..injector.conflict import _PERMISSIVE, _PROHIBITIVE
+from ..injector.conflict import _PROHIBITIVE
 from .correlation_engine import _jaccard, _words
 from .version_conflict import detect_version_families
 
@@ -16,6 +17,17 @@ _BODY_JACCARD_THRESHOLD = 0.85
 _DOC_JACCARD_THRESHOLD = 0.5
 _EXCERPT_WINDOW = 50
 _MIN_KEY_PHRASE_LEN = 4
+# 门专用：叙述里的「使用/可以/建议」不能当允许，否则与「禁止使用 X」笛卡尔爆炸
+_GATE_PERMISSIVE = ("允许", "推荐", "优先", "always", "prefer", "feel free")
+_MAX_BUCKET_PAIRS = 80
+logger = logging.getLogger(__name__)
+_GENERIC_IDENTIFIERS = frozenset({
+    "MySQL", "InnoDB", "PostgreSQL", "PowerShell", "False", "True", "None",
+    "API", "HTTP", "JSON", "HTML", "TODO", "FIXME", "Windows", "Linux",
+    "Java", "Python", "TypeError", "ValueError", "ImportError", "ModuleNotFoundError",
+    "RuntimeError", "AttributeError", "AssertionError", "Exception",
+    "BaseModel", "FullName", "WriteAllText", "StrReplace", "MiniLM",
+})
 
 _CLASS_RE = re.compile(r"\bclass\s+([A-Z]\w+)\b")
 _BACKTICK_RE = re.compile(r"`([A-Z]\w+)`")
@@ -82,7 +94,7 @@ def _polarity(window: str) -> str:
     low = window.lower()
     if any(w in low for w in _PROHIBITIVE):
         return "prohibitive"
-    if any(w in low for w in _PERMISSIVE):
+    if any(w in low for w in _GATE_PERMISSIVE):
         return "permissive"
     return "neutral"
 
@@ -102,7 +114,7 @@ def _extract_identifiers(content: str) -> Set[str]:
     ids: Set[str] = set()
     for pattern in (_CLASS_RE, _BACKTICK_RE, _CAMEL_RE):
         ids.update(pattern.findall(content))
-    return ids
+    return {ident for ident in ids if ident not in _GENERIC_IDENTIFIERS}
 
 
 def _skeleton_haystack(skeleton: Any) -> str:
@@ -140,9 +152,10 @@ def _detect_version_conflicts(
     project_root: Path,
     hold_sources: Set[str],
     conflicts: list[ConflictDraft],
+    include: Optional[Sequence[str]] = None,
 ) -> None:
     by_source = {_norm_src(d.source_url): d for d in drafts}
-    for family in detect_version_families(project_root):
+    for family in detect_version_families(project_root, include=include):
         left = by_source.get(_norm_src(family.legacy_rel))
         right = by_source.get(_norm_src(family.current_rel))
         if left is None or right is None:
@@ -282,6 +295,15 @@ def _iter_incoherent_pairs(
 ):
     seen: set[tuple[int, int]] = set()
     for sides in buckets.values():
+        raw = len(sides["prohibitive"]) * len(sides["permissive"])
+        truncated = raw > _MAX_BUCKET_PAIRS
+        if truncated:
+            logger.warning(
+                "极性短语配对过多（%d 对），截取前 %d 对写入冲突样本",
+                raw, _MAX_BUCKET_PAIRS,
+            )
+        emitted = 0
+        stop = False
         for left in sides["prohibitive"]:
             for right in sides["permissive"]:
                 if left is right:
@@ -291,6 +313,12 @@ def _iter_incoherent_pairs(
                     continue
                 seen.add(key)
                 yield left, right
+                emitted += 1
+                if truncated and emitted >= _MAX_BUCKET_PAIRS:
+                    stop = True
+                    break
+            if stop:
+                break
 
 
 def _detect_incoherent_conflicts(
@@ -300,7 +328,7 @@ def _detect_incoherent_conflicts(
     peers: list[DraftItem] | None = None,
     on_progress: Callable[[int], None] | None = None,
     progress_offset: int = 0,
-    on_match_start: Callable[[], None] | None = None,
+    on_match_start: Callable[[int], None] | None = None,
 ) -> None:
     buckets: dict[str, dict[str, list[DraftItem]]] = defaultdict(
         lambda: {"prohibitive": [], "permissive": []}
@@ -311,7 +339,9 @@ def _detect_incoherent_conflicts(
         if on_progress is not None:
             on_progress(progress_offset + i + 1)
     if on_match_start is not None:
-        on_match_start()
+        pair_n = sum(1 for _ in _iter_incoherent_pairs(buckets))
+        peer_n = len(drafts) * len(peers or [])
+        on_match_start(pair_n + peer_n)
     done = 0
     for left, right in _iter_incoherent_pairs(buckets):
         _emit_incoherent(left, right, hold_sources, conflicts, hold_right=True)
@@ -332,11 +362,12 @@ def gate_drafts(
     project_root: Path,
     peers: list[DraftItem] | None = None,
     on_progress: Callable[[int], None] | None = None,
-    on_match_start: Callable[[], None] | None = None,
+    on_match_start: Callable[[int], None] | None = None,
+    include: Optional[Sequence[str]] = None,
 ) -> GateResult:
     hold_sources: set[str] = set()
     conflicts: list[ConflictDraft] = []
-    _detect_version_conflicts(drafts, project_root, hold_sources, conflicts)
+    _detect_version_conflicts(drafts, project_root, hold_sources, conflicts, include=include)
     _detect_doc_code_conflicts(drafts, skeletons, hold_sources, conflicts, on_progress)
     _detect_incoherent_conflicts(
         drafts, hold_sources, conflicts, peers,

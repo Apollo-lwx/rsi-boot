@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from .document_scanner import chunk_kwargs_from_config, slice_document
-from .signal_discovery import EXCLUDED_DIRS
+from .signal_discovery import should_skip_dir
 from .validator import MIN_TOKENS, DedupSet, content_hash, read_text_tolerant, validate_chunk
 
 logger = logging.getLogger(__name__)
@@ -220,7 +220,18 @@ class IncrementalLearner:
                 path = Path(path_str)
                 if path.suffix.lower() not in _WATCH_EXTS:
                     continue
-                if any(part in EXCLUDED_DIRS for part in path.parts):
+                try:
+                    rel = path.relative_to(self._root)
+                except ValueError:
+                    continue
+                skip = False
+                acc: list[str] = []
+                for part in rel.parts[:-1]:
+                    acc.append(part)
+                    if should_skip_dir(part, "/".join(acc), ()):
+                        skip = True
+                        break
+                if skip:
                     continue
                 try:
                     await self._relearn(path)

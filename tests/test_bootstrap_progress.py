@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import argparse
 import io
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.cli.progress import (
@@ -62,6 +66,7 @@ def test_progress_tty_narrow_terminal_does_not_wrap(monkeypatch):
     assert "约剩 0秒" not in buf.getvalue()
     assert "约剩[9/11]" not in buf.getvalue()
     assert "89903/89988" in last
+    assert "[" in last and "]" in last and "%" in last
 
 
 def test_format_bar():
@@ -138,3 +143,29 @@ async def test_bootstrap_prints_phase_progress(tmp_path, monkeypatch, capsys):
     assert "已用" in out
     assert "冲突检测" in out
     assert "写入知识" in out
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+
+async def test_bootstrap_git_phase_shows_commit_count(tmp_path, monkeypatch, capsys):
+    if shutil.which("git") is None:
+        pytest.skip("git 不可用")
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    _git(root, "init")
+    _git(root, "config", "user.email", "dev@example.com")
+    _git(root, "config", "user.name", "Dev")
+    (root / "README.md").write_text("# Demo\n\n" + "内容足够长用于切片。" * 20, encoding="utf-8")
+    _git(root, "add", ".")
+    _git(root, "commit", "-m", "docs: seed")
+    (root / "note.md").write_text("# Note\n\n" + "第二份提交内容。" * 20, encoding="utf-8")
+    _git(root, "add", ".")
+    _git(root, "commit", "-m", "docs: note")
+
+    assert await run_bootstrap(_args(root, scope="git")) == 0
+    out = capsys.readouterr().out
+    assert "git 2" in out
+    assert "Git（2 次提交）" in out

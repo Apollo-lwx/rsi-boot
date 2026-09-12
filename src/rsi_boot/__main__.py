@@ -201,6 +201,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_boot.add_argument("--allow-sensitive", action="store_true", help="敏感内容脱敏后写入（默认跳过）")
     p_boot.add_argument("--max-file-size", default="1MB", help="单文件大小上限，如 1MB")
     p_boot.add_argument("--max-commits", type=int, default=500, help="Git 历史上限（P2.6 生效）")
+    p_boot.add_argument(
+        "--include", action="append", default=[],
+        help="把默认排除的目录加回学习，可重复或逗号分隔；"
+             "按目录名匹配（artifacts 会加回任意名为 artifacts 的文件夹）",
+    )
     _add_verbose(p_boot)
 
     p_recall = sub.add_parser("recall", help="调试：执行一次记忆召回（禁止项置顶 + 相关经验）")

@@ -29,6 +29,7 @@ rsi recall "本项目的命名约定是什么"
 rsi bootstrap --dry-run          # 预览：信号发现 + 将直通 / 将进确认
 rsi bootstrap                    # 正式学习（幂等，未改文件会跳过）
 rsi bootstrap --force            # 忽略 manifest 指纹，按当前文件全量再扫
+rsi bootstrap --include .auto-learn   # 默认不扫 .worktrees/.auto-learn/.superpowers/任意 artifacts/，按需加回
 
 # 5. 启动 MCP stdio server（接入 Cursor 等客户端）
 rsi serve

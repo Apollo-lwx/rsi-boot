@@ -36,6 +36,22 @@ def test_write_markdown_has_six_sections_and_dialog_hint(tmp_path):
     assert _DIALOG_HINT in text
 
 
+def test_write_markdown_caps_conflict_samples_and_counts(tmp_path):
+    report = BootstrapReport(
+        project_root=str(tmp_path),
+        conflict_counts={"incoherent": 86464, "doc_code": 43, "version": 0},
+        conflicts=[
+            {"type": "incoherent", "left": f"a{i}.md", "right": f"b{i}.md", "reason": "x"}
+            for i in range(80)
+        ],
+    )
+    out = tmp_path / "bootstrap_report.md"
+    report.write_markdown(out)
+    text = out.read_text(encoding="utf-8")
+    assert "incoherent 86464" in text
+    assert text.count("**incoherent**") <= 30
+
+
 def _args(root: Path, **overrides) -> argparse.Namespace:
     defaults = dict(
         project_root=str(root), scope="config", dry_run=False, consent=False,

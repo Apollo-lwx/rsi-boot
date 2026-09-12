@@ -57,6 +57,14 @@ def test_signal_discovery(tmp_path):
     assert not signals["git"].present
 
 
+def test_signal_summary_shows_git_commit_count():
+    from rsi_boot.cli.bootstrap_command import _signal_summary
+    from rsi_boot.scanner.signal_discovery import SignalInfo
+
+    git = SignalInfo("git", True, item_count=134)
+    assert _signal_summary({"git": git}) == "git 134"
+
+
 def test_plan_scopes_consent_gate(tmp_path):
     signals = discover_signals(_make_project(tmp_path))
     plan = plan_scopes(signals, "", consent=False)
