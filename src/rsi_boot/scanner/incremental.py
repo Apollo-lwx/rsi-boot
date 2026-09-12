@@ -16,9 +16,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from .document_scanner import slice_document
+from .document_scanner import chunk_kwargs_from_config, slice_document
 from .signal_discovery import EXCLUDED_DIRS
-from .validator import DedupSet, content_hash, read_text_tolerant, validate_chunk
+from .validator import MIN_TOKENS, DedupSet, content_hash, read_text_tolerant, validate_chunk
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,7 @@ async def ingest_document(
     tags: Optional[List[str]] = None,
     allow_sensitive: bool = False,
     text: Optional[str] = None,
+    require_run_tag_to_revive: bool = False,
 ) -> Dict[str, Any]:
     """单文档采集（bootstrap 全量 / watch 增量共用）：切片 → 校验 → 同 source 三分支
     （命中 active/pending 保留不动；命中 archived 复活；未命中去重后写入）→
@@ -125,7 +126,7 @@ async def ingest_document(
     rel = str(path.relative_to(root))
     conn = await runtime.db.connect()
     async with conn.execute(
-        "SELECT id, content, status FROM knowledge_items "
+        "SELECT id, content, status, tags FROM knowledge_items "
         "WHERE project_id = ? AND source_url = ?",
         (project_id, rel),
     ) as cur:
@@ -136,10 +137,14 @@ async def ingest_document(
 
     kept_hashes: Set[str] = set()
     now = datetime.now(timezone.utc).isoformat()
-    for chunk in slice_document(path):
+    for chunk in slice_document(path, **chunk_kwargs_from_config(getattr(runtime, "config", None))):
         if stats["title"] is None:
             stats["title"] = chunk.title
-        result = validate_chunk(chunk.content, allow_sensitive=allow_sensitive)
+        result = validate_chunk(
+            chunk.content,
+            allow_sensitive=allow_sensitive,
+            min_tokens=0 if chunk.kind == "index" else MIN_TOKENS,
+        )
         if not result.ok:
             stats["skipped"] += 1
             continue
@@ -149,6 +154,8 @@ async def ingest_document(
             if existing["status"] in ("active", "pending_review"):
                 continue  # 未变章节：保留原条目（id/状态/排序不动）
             if existing["status"] == "archived":
+                if require_run_tag_to_revive and "bootstrap_run_id:" not in (existing["tags"] or ""):
+                    continue
                 await conn.execute(
                     "UPDATE knowledge_items SET status = ?, updated_at = ? WHERE id = ?",
                     (status, now, existing["id"]),
@@ -161,6 +168,8 @@ async def ingest_document(
             stats["duplicates"] += 1
             continue
         item_tags = list(tags or []) + (["risk"] if result.risk else [])
+        if chunk.kind == "index" and "signal:doc-index" not in item_tags:
+            item_tags.append("signal:doc-index")
         await runtime.knowledge.add(KnowledgeItem(
             project_id=project_id, title=f"{path.name}# {chunk.title}",
             content=result.content, status=status, content_type="documentation",

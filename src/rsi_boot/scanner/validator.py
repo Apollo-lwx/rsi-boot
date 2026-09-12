@@ -54,10 +54,15 @@ def content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def validate_chunk(content: str, allow_sensitive: bool = False) -> ValidationResult:
+def validate_chunk(
+    content: str,
+    allow_sensitive: bool = False,
+    *,
+    min_tokens: int = MIN_TOKENS,
+) -> ValidationResult:
     """单条切片校验：信息量下限 → 敏感信息扫描（上限拆分在切片器完成）"""
-    if estimate_tokens(content) < MIN_TOKENS:
-        return ValidationResult(ok=False, reason=f"切片不足 {MIN_TOKENS} token（噪声跳过）")
+    if estimate_tokens(content) < min_tokens:
+        return ValidationResult(ok=False, reason=f"切片不足 {min_tokens} token（噪声跳过）")
 
     hit = any(rule.pattern.search(content) for rule in MASKING_RULES)
     if hit:

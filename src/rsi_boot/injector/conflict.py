@@ -57,10 +57,12 @@ class ConflictDetector:
         db: SQLiteClient,
         project_root: Optional[Path] = None,
         on_change: Optional[Any] = None,
+        knowledge: Optional[Any] = None,
     ):
         self._db = db
         self._root = Path(project_root) if project_root else None
         self._on_change = on_change  # user_wins 置 suppressed 后触发注入重写
+        self._knowledge = knowledge
 
     # ---------- 扫描 ----------
 
@@ -511,10 +513,11 @@ class ConflictDetector:
 
         now = _utc_iso()
         guidance = ""
+        activate_ids: List[str] = []
         if ctype == "version":
-            guidance = await self._resolve_version(row, resolution, now)
+            guidance, activate_ids = await self._resolve_version(row, resolution, now)
         elif ctype in ("doc_code", "incoherent"):
-            guidance = await self._resolve_knowledge_pair(row, resolution, now)
+            guidance, activate_ids = await self._resolve_knowledge_pair(row, resolution, now)
         elif resolution == "user_wins":
             # 学习记忆置 suppressed：保留在库、不再注入；后续同主题草稿审批时可见此前裁决
             await conn.execute(
@@ -532,14 +535,20 @@ class ConflictDetector:
             (resolution, note or None, now, conflict_id),
         )
         await conn.commit()
-        if resolution in ("user_wins", "keep_peer", "keep_item") and self._on_change is not None:
+        notify = resolution in ("user_wins", "keep_peer", "keep_item", "coexist")
+        if notify and self._knowledge is not None:
+            try:
+                await self._knowledge.finalize_active(row["project_id"], activate_ids)
+            except Exception:
+                logger.exception("裁决后补 embedding/注入失败（下轮变更重试）")
+        elif notify and self._on_change is not None:
             try:
                 await self._on_change(row["project_id"])
             except Exception:
                 logger.exception("裁决后注入重写失败（下轮变更重试）")
         return {"conflict_id": conflict_id, "resolution": resolution, "guidance": guidance}
 
-    async def _resolve_version(self, row: Any, resolution: str, now: str) -> str:
+    async def _resolve_version(self, row: Any, resolution: str, now: str) -> tuple[str, List[str]]:
         """版本冲突裁决：归档落败来源全部条目，保留侧 pending→active；coexist 两侧激活。"""
         conn = await self._db.connect()
         async with conn.execute(
@@ -567,7 +576,7 @@ class ConflictDetector:
                 r["id"] for r in (*item_side, *peer_side) if r["status"] == "pending_review"
             ]
             await self._set_item_status(conn, activate, "active", now)
-            return "已标记两版共存并转为可用，该组合不再提醒"
+            return "已标记两版共存并转为可用，该组合不再提醒", activate
 
         if resolution == "keep_item":
             archive = [r["id"] for r in peer_side]
@@ -578,12 +587,17 @@ class ConflictDetector:
             activate = [r["id"] for r in peer_side if r["status"] == "pending_review"]
             archive_src, keep_src = item_src, peer_src
         if not archive_src and resolution != "coexist":
-            return "无法定位待归档来源，已记录裁决但未改知识状态"
+            return "无法定位待归档来源，已记录裁决但未改知识状态", []
         await self._set_item_status(conn, archive, "archived", now)
         await self._set_item_status(conn, activate, "active", now)
-        return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
+        return (
+            f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）",
+            activate,
+        )
 
-    async def _resolve_knowledge_pair(self, row: Any, resolution: str, now: str) -> str:
+    async def _resolve_knowledge_pair(
+        self, row: Any, resolution: str, now: str,
+    ) -> tuple[str, List[str]]:
         """doc_code/incoherent：按合成对侧键定位单条；保留侧 pending→active；coexist 两侧激活。"""
         conn = await self._db.connect()
         item = await self._load_item(conn, row["item_id"])
@@ -601,7 +615,7 @@ class ConflictDetector:
                 if r is not None and r.get("status") == "pending_review"
             ]
             await self._set_item_status(conn, activate, "active", now)
-            return "已标记两者共存并转为可用，该组合不再提醒"
+            return "已标记两者共存并转为可用，该组合不再提醒", activate
 
         if resolution == "keep_item":
             archive = [peer["id"]] if peer is not None and peer["id"] != row["item_id"] else []
@@ -617,7 +631,10 @@ class ConflictDetector:
             keep_src, archive_src = peer_src, item_src
         await self._set_item_status(conn, archive, "archived", now)
         await self._set_item_status(conn, activate, "active", now)
-        return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
+        return (
+            f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）",
+            activate,
+        )
 
     @staticmethod
     async def _set_item_status(conn: Any, ids: List[str], status: str, now: str) -> None:

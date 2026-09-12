@@ -152,6 +152,7 @@ class Runtime:
         )
         self.conflict_detector = ConflictDetector(
             self.db, self._project_root, on_change=self.injector.rewrite,
+            knowledge=self.knowledge,
         )
         # 技能槽（§3.9）：包内内置 → ~/.rsi/skills → 项目 .rsi/skills，后者覆盖同名
         skill_dirs = [Path(str(resources.files("rsi_boot") / "config" / "skills")), rsi_home() / "skills"]

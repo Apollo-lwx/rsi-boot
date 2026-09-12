@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from .validator import estimate_tokens, read_text_tolerant
 
@@ -137,6 +138,21 @@ def _truncate_to_tokens(text: str, max_tokens: int) -> str:
     return text[:max_chars]
 
 
+def chunk_kwargs_from_config(config: Any) -> dict[str, int]:
+    """从 bootstrap.chunk.* 抽出 slice_document 可用的整数参数。"""
+    if config is None or not hasattr(config, "get"):
+        return {}
+    chunk = (config.get("bootstrap") or {}).get("chunk") or {}
+    if not isinstance(chunk, dict):
+        return {}
+    out: dict[str, int] = {}
+    for key in ("target_tokens", "min_tokens", "max_tokens"):
+        val = chunk.get(key)
+        if val is not None:
+            out[key] = int(val)
+    return out
+
+
 def slice_document(
     path: Path,
     *,
@@ -198,4 +214,17 @@ def slice_document(
 
     result.chunks, skipped = _filter_tiny_chunks(pending, min_tokens)
     result.skipped_tiny += skipped
+    if result.index_written == 0:
+        section_titles = [c.title for c in result.chunks if c.kind == "section"]
+        if len(section_titles) >= 3:
+            index_lines = "\n".join(f"- {t}" for t in section_titles)
+            result.chunks.append(
+                DocChunk(
+                    source=path,
+                    title=f"{path.stem} 目录",
+                    content=f"# {path.stem} 知识目录\n\n{index_lines}",
+                    kind="index",
+                )
+            )
+            result.index_written += 1
     return result

@@ -78,6 +78,45 @@ async def test_review_batch_source_url_filter(db, base_config):
     assert await _status_of(db, miss) == "pending_review"
 
 
+async def test_include_archived_skips_untagged_overflow(db, base_config):
+    knowledge = _service(db, base_config)
+    overflow = await _add(knowledge, title="旧溢出", status="archived", tags=[])
+    tagged = await _add(
+        knowledge, title="本轮溢出", status="archived",
+        tags=["signal:docs", "bootstrap_run_id:run-a"],
+    )
+    result = await knowledge.review_batch(
+        "p1", approve=True, include_archived=True, exclude_bootstrap=True,
+    )
+    assert await _status_of(db, overflow) == "archived"
+    assert result["processed"] == 0
+    result = await knowledge.review_batch(
+        "p1", approve=True, include_archived=True, bootstrap_run_id="run-a",
+    )
+    assert result["processed"] == 1
+    assert await _status_of(db, tagged) == "active"
+    assert await _status_of(db, overflow) == "archived"
+
+
+async def test_review_batch_run_id_skips_auto_extract(db, base_config):
+    """带 bootstrap_run_id 的批量审批不得放行 source_url=auto-extract。"""
+    knowledge = _service(db, base_config)
+    leaked = await _add(
+        knowledge, title="误标日常",
+        source_url="auto-extract",
+        tags=["signal:conversation", "bootstrap_run_id:run-a"],
+    )
+    extract = await _add(
+        knowledge, title="本轮抽取",
+        source_url="cursor/chat.md",
+        tags=["signal:conversation", "bootstrap_run_id:run-a"],
+    )
+    result = await knowledge.review_batch("p1", approve=True, bootstrap_run_id="run-a")
+    assert result["processed"] == 1
+    assert await _status_of(db, extract) == "active"
+    assert await _status_of(db, leaked) == "pending_review"
+
+
 async def test_all_pending_does_not_approve_bootstrap_run_items(db, base_config):
     knowledge = _service(db, base_config)
     daily = await _add(knowledge, title="日常草稿", source_url="auto-extract")

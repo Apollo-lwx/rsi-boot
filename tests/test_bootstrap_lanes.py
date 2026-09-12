@@ -324,6 +324,79 @@ async def test_bootstrap_multichunk_version_one_open_row(tmp_path, monkeypatch):
     assert len(conflicts) == 1
 
 
+async def test_force_does_not_revive_untagged_overflow_archive(tmp_path, monkeypatch):
+    """旧 cap 溢出 archived（无 bootstrap_run_id）在 --force 同哈希时不得复活为 active。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    assert await run_bootstrap(_args(root)) == 0
+    docs = await _rows(
+        root,
+        "SELECT id, tags FROM knowledge_items "
+        "WHERE project_id = ? AND tags LIKE '%signal:docs%'",
+    )
+    assert docs
+    db_path, pid = project_scope(root)
+    db = SQLiteClient(db_path)
+    try:
+        conn = await db.connect()
+        for row in docs:
+            await conn.execute(
+                "UPDATE knowledge_items SET status = 'archived', tags = '[]' WHERE id = ?",
+                (row["id"],),
+            )
+        await conn.commit()
+    finally:
+        await db.close()
+
+    assert await run_bootstrap(_args(root, force=True)) == 0
+    leftover = await _rows(
+        root,
+        "SELECT id, status FROM knowledge_items WHERE project_id = ? AND id IN ("
+        + ",".join("?" * len(docs)) + ")",
+        tuple(r["id"] for r in docs),
+    )
+    assert leftover
+    assert all(r["status"] == "archived" for r in leftover)
+
+
+async def test_bootstrap_does_not_demote_active_auto_extract(tmp_path, monkeypatch):
+    """已生效日常稿极性相反时，再次 bootstrap 不得整批降级 auto-extract。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    rt = await build_runtime(project_root=root)
+    try:
+        await rt.knowledge.add(KnowledgeItem(
+            project_id=rt.project_id,
+            title="API 用 pydantic",
+            content="允许使用 pydantic 校验请求体。" * 4,
+            status="active",
+            content_type="convention",
+            tags=[],
+            source_url="auto-extract",
+        ))
+        await rt.knowledge.add(KnowledgeItem(
+            project_id=rt.project_id,
+            title="禁止：pydantic",
+            content="禁止使用 pydantic 作为入参。" * 4,
+            status="active",
+            content_type="prohibition",
+            tags=[],
+            source_url="auto-extract",
+        ))
+    finally:
+        await rt.close()
+
+    assert await run_bootstrap(_args(root)) == 0
+
+    autos = await _rows(
+        root,
+        "SELECT title, status FROM knowledge_items "
+        "WHERE project_id = ? AND source_url = 'auto-extract'",
+    )
+    assert len(autos) == 2
+    assert all(r["status"] == "active" for r in autos)
+
+
 async def test_dry_run_skips_write_and_gate(tmp_path, monkeypatch):
     """dry-run：不写库、不跑 gate、不落 run id。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
@@ -350,3 +423,28 @@ async def test_dry_run_skips_write_and_gate(tmp_path, monkeypatch):
     assert not (root / ".rsi" / "bootstrap_run.json").exists()
     assert not (root / ".rsi" / "manifest.json").exists()
     assert not (root / ".rsi" / "rsi.db").exists()
+
+
+async def test_dry_run_reports_apply_and_confirm_lanes(tmp_path, monkeypatch, capsys):
+    """dry-run：文件级将直通/将进确认，不切片、不 gate。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    (root / "CLAUDE.md").write_text("禁止使用 foo 作为默认依赖。\n", encoding="utf-8")
+
+    import rsi_boot.cli.bootstrap_command as cmd
+
+    sliced = {"n": 0}
+
+    def _no_slice(*_a, **_k):
+        sliced["n"] += 1
+        raise AssertionError("dry-run 不得调用 slice_document")
+
+    monkeypatch.setattr(cmd, "slice_document", _no_slice)
+
+    assert await run_bootstrap(_args(root, dry_run=True)) == 0
+    assert sliced["n"] == 0
+    out = capsys.readouterr().out
+    assert "将直通" in out
+    assert "README.md" in out
+    assert "将进确认" in out
+    assert "CLAUDE.md" in out

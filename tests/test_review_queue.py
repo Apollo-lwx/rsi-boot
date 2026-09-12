@@ -109,10 +109,10 @@ def _service(db, base_config) -> KnowledgeService:
 
 
 async def _add(knowledge: KnowledgeService, status: str, content_type: str = "documentation",
-               title: str = "条目") -> str:
+               title: str = "条目", tags: list | None = None) -> str:
     return await knowledge.add(KnowledgeItem(
         project_id="p1", title=title, content=f"{title} 的足够长内容 " * 5,
-        status=status, content_type=content_type, domain="bootstrap", tags=[],
+        status=status, content_type=content_type, domain="bootstrap", tags=tags or [],
     ))
 
 
@@ -169,7 +169,10 @@ async def test_review_batch_reject(db, base_config):
 
 async def test_review_batch_include_archived(db, base_config):
     knowledge = _service(db, base_config)
-    archived_id = await _add(knowledge, "archived", title="溢出")
+    archived_id = await _add(
+        knowledge, "archived", title="溢出",
+        tags=["bootstrap_run_id:run-overflow"],
+    )
     result = await knowledge.review_batch("p1", approve=True)
     assert result["processed"] == 0  # 默认不含 archived
     result = await knowledge.review_batch("p1", approve=True, include_archived=True)
@@ -225,3 +228,10 @@ def test_knowledge_review_schema_exposes_skip_and_bootstrap_run_id():
     props = knowledge_review_tool.INPUT_SCHEMA["properties"]
     assert "skip" in props["action"]["enum"]
     assert "bootstrap_run_id" in props
+
+
+def test_all_pending_schema_does_not_claim_all_pending_review():
+    desc = knowledge_review_tool.INPUT_SCHEMA["properties"]["all_pending"]["description"]
+    assert "全部 pending_review" not in desc
+    assert "auto-extract" in desc
+    assert "bootstrap_run_id" in desc

@@ -288,3 +288,50 @@ async def test_conflicts_tool_explain_requires_conflict_id(tmp_path, monkeypatch
             assert (await cur.fetchone())["status"] == "open"
     finally:
         await rt.close()
+
+
+@pytest.mark.asyncio
+async def test_resolve_coexist_triggers_on_change(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    rt = await build_runtime(project_root=root)
+    hits: list[str] = []
+    try:
+        _, _, conflict = await _seed_incoherent_pair(rt)
+        inner = rt.knowledge.on_change
+
+        async def _spy(project_id: str) -> None:
+            hits.append(project_id)
+            if inner is not None:
+                await inner(project_id)
+
+        rt.knowledge.on_change = _spy
+        result = await rt.conflict_detector.resolve(conflict["id"], "coexist")
+        assert result is not None
+        assert hits == [rt.project_id]
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
+async def test_resolve_keep_item_invalidates_retriever_cache(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    rt = await build_runtime(project_root=root)
+    hits = {"n": 0}
+    try:
+        _, _, conflict = await _seed_incoherent_pair(rt)
+        orig = rt.retriever.invalidate_cache
+
+        def _spy() -> None:
+            hits["n"] += 1
+            orig()
+
+        rt.retriever.invalidate_cache = _spy
+        result = await rt.conflict_detector.resolve(conflict["id"], "keep_item")
+        assert result is not None
+        assert hits["n"] >= 1
+    finally:
+        await rt.close()

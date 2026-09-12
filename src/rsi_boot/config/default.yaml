@@ -23,6 +23,10 @@ harness:
 bootstrap:
   review_queue_cap: 50          # 仅统计 tags 含 bootstrap_run_id 的 pending；
                                 # 超过 500 只打 warning，不再把溢出条目 archived
+  chunk:
+    target_tokens: 400          # 一条知识点的目标体量
+    min_tokens: 80              # 再小则与同父级邻居合并
+    max_tokens: 1500            # 硬顶，超出必须再切
 
 feedback:
   # feedback_token HMAC 密钥；为空时启动生成随机密钥（进程级，重启后旧 token 失效——

@@ -30,7 +30,7 @@ from ..scanner.correlation_engine import (
     correlate_test_code,
     summarize_correlations,
 )
-from ..scanner.document_scanner import slice_document
+from ..scanner.document_scanner import chunk_kwargs_from_config, slice_document
 from ..scanner.git_analyzer import analyze_git
 from ..scanner.incremental import archive_missing_signals, ingest_document, reconcile_scope
 from ..scanner.profile_generator import (
@@ -39,6 +39,7 @@ from ..scanner.profile_generator import (
     build_profile,
     upsert_profile,
 )
+from ..injector.targets import discover_user_rule_files
 from ..scanner.report import BootstrapReport
 from ..scanner.rule_seed_scanner import scan_rule_seeds
 from ..scanner.signal_discovery import discover_signals, plan_scopes
@@ -112,6 +113,43 @@ def _phase_names(plan: Dict[str, bool], dry_run: bool) -> List[str]:
         names.append("规则种子")
     names.extend(["关联与画像", "收尾"])
     return names
+
+
+def _rel_src(path: Path, project_root: Path) -> str:
+    return _norm_src(str(path.relative_to(project_root)))
+
+
+def _estimate_dry_run_lanes(
+    signals: Dict[str, Any], plan: Dict[str, bool], project_root: Path,
+) -> tuple[List[str], List[str]]:
+    """文件级预估：不切片、不跑冲突启发式。规则文件归将进确认。"""
+    rule_paths = {p.resolve() for p in discover_user_rule_files(project_root)}
+    will_apply: List[str] = []
+    will_confirm: List[str] = []
+    if plan.get("docs"):
+        for path in signals["docs"].files:
+            if path.resolve() in rule_paths:
+                continue
+            will_apply.append(_rel_src(path, project_root))
+    if plan.get("config"):
+        for kind in ("config", "conventions", "ci"):
+            info = signals.get(kind)
+            if info is None:
+                continue
+            will_apply.extend(_rel_src(p, project_root) for p in info.files)
+    if plan.get("code"):
+        n = signals["code"].file_count
+        if n:
+            will_apply.append(f"代码骨架 ({n} 个文件)")
+    if plan.get("git") and signals.get("git") and signals["git"].present:
+        will_apply.append("Git 摘要")
+    if plan.get("conversation"):
+        will_confirm.extend(
+            _rel_src(p, project_root) for p in signals["conversation"].files
+        )
+    if plan.get("config"):
+        will_confirm.extend(_rel_src(p, project_root) for p in discover_user_rule_files(project_root))
+    return will_apply, will_confirm
 
 
 def _signal_summary(signals: Dict[str, Any]) -> str:
@@ -247,6 +285,8 @@ async def _load_existing_drafts(
         src = _norm_src(row["source_url"] or "")
         if not src or src in already:
             continue
+        if src == "auto-extract" or src.startswith("item:"):
+            continue
         try:
             tags = json.loads(row["tags"]) if row["tags"] else []
         except (TypeError, ValueError):
@@ -280,7 +320,12 @@ async def _demote_held_active(
         (project_id,),
     ) as cur:
         rows = await cur.fetchall()
-    ids = [r["id"] for r in rows if _norm_src(r["source_url"]) in hold]
+    ids = [
+        r["id"] for r in rows
+        if _norm_src(r["source_url"]) in hold
+        and _norm_src(r["source_url"]) != "auto-extract"
+        and not _norm_src(r["source_url"]).startswith("item:")
+    ]
     if not ids:
         return 0
     now = datetime.now(timezone.utc).isoformat()
@@ -341,6 +386,9 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
     )
 
     if args.dry_run:
+        report.will_apply, report.will_confirm = _estimate_dry_run_lanes(
+            signals, plan, project_root,
+        )
         progress.finish("（仅预览，未写入知识）")
         print(report.render_terminal())
         return 0
@@ -372,7 +420,9 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     fingerprint = content_hash(text)
                     if manifest.get(rel) == fingerprint:
                         continue
-                    slice_result = slice_document(path)
+                    slice_result = slice_document(
+                        path, **chunk_kwargs_from_config(runtime.config),
+                    )
                     stats = report.slice_stats
                     stats["source_files"] = stats.get("source_files", 0) + 1
                     stats["chunks"] = stats.get("chunks", 0) + len(slice_result.chunks)
@@ -384,10 +434,13 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     for chunk in slice_result:
                         if title is None:
                             title = chunk.title
+                        chunk_tags = ["signal:docs"]
+                        if chunk.kind == "index":
+                            chunk_tags.append("signal:doc-index")
                         drafts.append(DraftItem(
                             title=chunk.title, content=chunk.content,
                             content_type="documentation", source_url=rel_n,
-                            tags=["signal:docs"], signal="docs",
+                            tags=chunk_tags, signal="docs",
                         ))
                     if title:
                         doc_titles[rel] = title
@@ -534,6 +587,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     runtime, project_root, project_id, job["path"], dedup,
                     status=status, tags=_run_tags("docs", run_id),
                     allow_sensitive=args.allow_sensitive, text=job["text"],
+                    require_run_tag_to_revive=True,
                 )
                 if active and stats["written"]:
                     sample = f"{Path(job['rel']).name}# {doc_titles.get(job['rel'], stats.get('title') or job['rel'])}"

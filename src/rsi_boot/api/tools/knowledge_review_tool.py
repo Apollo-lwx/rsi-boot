@@ -1,8 +1,8 @@
 """rsi_knowledge_review 工具（§4.3 人工确认）：审批知识提取草稿。
 
 approve → active 并生成 embedding 进入检索；reject → rejected 留存 30 天后清理。
-支持三种目标形态：单个 id、ids 数组批量、all_pending 全量（可按 content_type 过滤，
-include_archived 含 bootstrap 限量溢出条目）。
+支持三种目标形态：单个 id、ids 数组批量、all_pending（默认不含 bootstrap 抽取，
+可按 content_type 过滤，include_archived 含带 bootstrap_run_id 的溢出归档）。
 """
 
 from __future__ import annotations
@@ -29,7 +29,13 @@ INPUT_SCHEMA: dict[str, Any] = {
             "description": "待审知识条目 ID；action=skip 时为决策卡 id（extract:<run_id> 或冲突 id）",
         },
         "ids": {"type": "array", "items": {"type": "string"}, "description": "批量审批的条目 ID 列表"},
-        "all_pending": {"type": "boolean", "description": "true = 审批全部 pending_review 条目"},
+        "all_pending": {
+            "type": "boolean",
+            "description": (
+                "true = 审批 tags 不含 bootstrap_run_id 的 pending（日常 auto-extract 等）；"
+                "不含本轮 bootstrap 抽取，除非同时传 bootstrap_run_id"
+            ),
+        },
         "bootstrap_run_id": {
             "type": "string",
             "description": "只审批该 bootstrap 轮次的抽取（与 all_pending 联用，或单独表示本轮全部）",

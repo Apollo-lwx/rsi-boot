@@ -53,6 +53,8 @@ class BootstrapReport:
     extracts: List[Dict[str, str]] = field(default_factory=list)
     conflicts: List[Dict[str, str]] = field(default_factory=list)
     dry_run: bool = False
+    will_apply: List[str] = field(default_factory=list)
+    will_confirm: List[str] = field(default_factory=list)
 
     def render_terminal(self) -> str:
         lines = ["", "=== RSI Boot 学习报告 ===", f"项目: {self.project_root}"]
@@ -61,6 +63,8 @@ class BootstrapReport:
         if skipped:
             lines.append(f"跳过维度: {', '.join(skipped)}")
         if self.dry_run:
+            lines.append("将直通: " + (", ".join(self.will_apply) if self.will_apply else "（无）"))
+            lines.append("将进确认: " + (", ".join(self.will_confirm) if self.will_confirm else "（无）"))
             lines.append("（dry-run：未写入任何数据）")
         else:
             lines.append(

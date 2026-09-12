@@ -185,6 +185,38 @@ class KnowledgeService:
         await self._notify_change(project_id)  # 草稿转 active → 规则文件重写
         return "active"
 
+    async def finalize_active(self, project_id: str, item_ids: List[str]) -> None:
+        """冲突裁决后：给刚转 active 的条目补 embedding，失效检索缓存并重写注入。"""
+        project_id = self._scope(project_id)
+        conn = await self._db.connect()
+        now = _utc_iso()
+        for item_id in item_ids:
+            async with conn.execute(
+                "SELECT rowid, title, content, embedding FROM knowledge_items "
+                "WHERE id = ? AND project_id = ? AND status = 'active'",
+                (item_id, project_id),
+            ) as cur:
+                row = await cur.fetchone()
+            if row is None or row["embedding"] is not None:
+                continue
+            if self._embedding is None:
+                continue
+            vector = await self._embedding.embed_one(f"{row['title']}\n{row['content']}")
+            if vector is None:
+                continue
+            await conn.execute(
+                "UPDATE knowledge_items SET embedding = ?, updated_at = ? WHERE id = ?",
+                (serialize_embedding(vector), now, item_id),
+            )
+            if self._vec is not None:
+                try:
+                    await self._vec.upsert(int(row["rowid"]), vector)
+                except Exception as exc:
+                    logger.warning("向量索引更新失败（条目仍仅 FTS 可检索）: %s", exc)
+        await conn.commit()
+        self._retriever.invalidate_cache()
+        await self._notify_change(project_id)
+
     async def review_batch(
         self,
         project_id: str,
@@ -206,6 +238,9 @@ class KnowledgeService:
         allowed = ("pending_review", "archived") if include_archived else ("pending_review",)
         clauses = [f"status IN ({','.join('?' for _ in allowed)})", "project_id = ?"]
         params: list[Any] = [*allowed, project_id]
+        if include_archived:
+            clauses.append("(status != 'archived' OR tags LIKE ?)")
+            params.append("%bootstrap_run_id%")
         if ids:
             clauses.append(f"id IN ({','.join('?' for _ in ids)})")
             params.extend(ids)
@@ -215,6 +250,7 @@ class KnowledgeService:
         if bootstrap_run_id:
             clauses.append("tags LIKE ?")
             params.append(f"%bootstrap_run_id:{bootstrap_run_id}%")
+            clauses.append("IFNULL(source_url, '') != 'auto-extract'")
         if exclude_bootstrap:
             clauses.append("tags NOT LIKE ?")
             params.append("%bootstrap_run_id%")
