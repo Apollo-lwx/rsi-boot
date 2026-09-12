@@ -33,7 +33,7 @@ rsi bootstrap                    # 正式学习（幂等，可重复执行）
 rsi serve
 ```
 
-无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。若项目曾用旧版 bootstrap 逻辑学过，需先删除 `.rsi/rsi.db*` 再重新执行 `rsi bootstrap`。
+无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。若项目曾用旧版 bootstrap 逻辑学过，需先删除 `.rsi/rsi.db*` 与 `.rsi/manifest.json` 再重新执行 `rsi bootstrap`。只删库、留指纹会导致下次学习整仓跳过。
 
 ## MCP 客户端配置（Cursor 示例）
 

@@ -359,6 +359,47 @@ async def test_force_does_not_revive_untagged_overflow_archive(tmp_path, monkeyp
     assert all(r["status"] == "archived" for r in leftover)
 
 
+async def test_force_does_not_stamp_manifest_for_untagged_archive(tmp_path, monkeypatch, capsys):
+    """--force 跳过未打标归档后不得回写指纹，并提示连同 manifest.json 清库。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    assert await run_bootstrap(_args(root)) == 0
+    docs = await _rows(
+        root,
+        "SELECT id, source_url FROM knowledge_items "
+        "WHERE project_id = ? AND tags LIKE '%signal:docs%'",
+    )
+    assert docs
+    db_path, _pid = project_scope(root)
+    db = SQLiteClient(db_path)
+    try:
+        conn = await db.connect()
+        for row in docs:
+            await conn.execute(
+                "UPDATE knowledge_items SET status = 'archived', tags = '[]' WHERE id = ?",
+                (row["id"],),
+            )
+        await conn.commit()
+    finally:
+        await db.close()
+
+    capsys.readouterr()
+    assert await run_bootstrap(_args(root, force=True)) == 0
+    out = capsys.readouterr().out
+    manifest = json.loads((root / ".rsi" / "manifest.json").read_text(encoding="utf-8"))
+    stamped = {r["source_url"] for r in docs if r["source_url"] in manifest}
+    assert not stamped
+    assert "manifest.json" in out
+    assert "rsi.db" in out
+
+
+def test_readme_wipe_mentions_manifest():
+    readme = Path(__file__).resolve().parents[1] / "README.md"
+    text = readme.read_text(encoding="utf-8")
+    assert "manifest.json" in text
+    assert "rsi.db" in text
+
+
 async def test_bootstrap_does_not_demote_active_auto_extract(tmp_path, monkeypatch):
     """已生效日常稿极性相反时，再次 bootstrap 不得整批降级 auto-extract。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))

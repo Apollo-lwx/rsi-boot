@@ -600,6 +600,10 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 report.duplicates_skipped += stats["duplicates"]
                 report.superseded += stats["superseded"]
                 report.revived += stats["revived"]
+                blocked = int(stats.get("blocked_untagged_archive") or 0)
+                report.blocked_untagged_archive += blocked
+                if blocked and not stats["written"] and not stats["revived"]:
+                    continue
                 new_manifest[job["rel"]] = job["fp"]
             except Exception as exc:
                 collector.report(f"文档 {job['rel']}", exc)
@@ -749,6 +753,12 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
 
         if report.superseded or report.archived or report.revived:
             await runtime.knowledge.notify_changed(project_id)
+
+        if args.force and report.blocked_untagged_archive:
+            report.wipe_hint = (
+                "未复活无 bootstrap_run_id 的归档。"
+                "清库重学请删除 .rsi/rsi.db* 与 manifest.json 后再跑 rsi bootstrap。"
+            )
 
         _save_manifest(rsi_dir, new_manifest)
         _ensure_gitignore(project_root)

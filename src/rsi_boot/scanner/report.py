@@ -55,6 +55,8 @@ class BootstrapReport:
     dry_run: bool = False
     will_apply: List[str] = field(default_factory=list)
     will_confirm: List[str] = field(default_factory=list)
+    blocked_untagged_archive: int = 0
+    wipe_hint: str = ""
 
     def render_terminal(self) -> str:
         lines = ["", "=== RSI Boot 学习报告 ===", f"项目: {self.project_root}"]
@@ -83,6 +85,8 @@ class BootstrapReport:
                 lines.append(f"禁止项种子: {self.prohibition_seeds} 条（来自用户规则文件，待审批）")
             if self.review_queue_warning:
                 lines.append(f"审批队列: {self.review_queue_warning}")
+            if self.wipe_hint:
+                lines.append(self.wipe_hint)
             if self.review_queue_archived:
                 lines.append(
                     f"审批队列限量: {self.review_queue_archived} 条溢出置 archived"
@@ -162,6 +166,8 @@ class BootstrapReport:
         else:
             lines.append("（未检测到冲突组）")
 
+        if self.wipe_hint:
+            lines.extend(["", "## 清库重学", self.wipe_hint])
         lines.extend([
             "",
             "## 下一步",

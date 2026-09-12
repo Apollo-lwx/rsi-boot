@@ -113,7 +113,8 @@ async def ingest_document(
     """
     stats: Dict[str, Any] = {
         "written": 0, "skipped": 0, "duplicates": 0,
-        "superseded": 0, "revived": 0, "title": None,
+        "superseded": 0, "revived": 0, "blocked_untagged_archive": 0,
+        "title": None,
     }
     if text is None:
         text = read_text_tolerant(path)
@@ -155,6 +156,7 @@ async def ingest_document(
                 continue  # 未变章节：保留原条目（id/状态/排序不动）
             if existing["status"] == "archived":
                 if require_run_tag_to_revive and "bootstrap_run_id:" not in (existing["tags"] or ""):
+                    stats["blocked_untagged_archive"] += 1
                     continue
                 await conn.execute(
                     "UPDATE knowledge_items SET status = ?, updated_at = ? WHERE id = ?",
