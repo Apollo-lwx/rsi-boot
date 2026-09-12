@@ -18,6 +18,15 @@ logger = logging.getLogger(__name__)
 
 MAX_FILE_CHARS = 4000
 MAX_TOTAL_CHARS = 32 * 1024
+MAX_DECISIONS_CHARS = 800
+
+#: 常驻抉择纪律（不注入冲突条目正文）
+_DECISIONS_BODY = (
+    "有 decisions 时由你调用 rsi_conflicts / rsi_knowledge_review 落库。"
+    "用户要自动执行（你看着办/按推荐）时立刻用 recommended 调工具。"
+    "用户要展开或问影响面时用 explain 或卡上的 sides/impact，不要关闭这张卡。"
+    "不要让用户自己去终端跑 rsi。"
+)
 
 #: domain → globs 映射（宿主按 globs 挂载；未映射领域为空 = 通用经验，靠 description 触发）
 _DOMAIN_GLOBS: Dict[str, str] = {
@@ -88,6 +97,11 @@ class CursorRuleTarget:
         self._rules_dir.mkdir(parents=True, exist_ok=True)
         produced: Dict[str, tuple[str, Optional[str]]] = {}  # filename → (content, source_item_id)
         total = 0
+
+        decisions_body = _DECISIONS_BODY[:MAX_DECISIONS_CHARS]
+        decisions_content = _mdc("RSI 对话内抉择纪律", "", True, decisions_body)
+        produced["rsi-decisions.mdc"] = (decisions_content, None)
+        total += len(decisions_content)
 
         for row in bundle.prohibitions:
             body = row.content[:MAX_FILE_CHARS]

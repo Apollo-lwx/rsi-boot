@@ -139,6 +139,9 @@ async def accept_bootstrap_extracts(
             )
             processed = int(result["processed"])
             new_status = str(result["new_status"])
+            decisions = getattr(runtime, "decisions", None)
+            if decisions is not None and processed:
+                decisions.close(f"extract:{rid}")
     conflicts_resolved = 0
     if rid and conflicts in ("tend", "coexist"):
         for conflict in await _conflicts_for_run(runtime, rid):

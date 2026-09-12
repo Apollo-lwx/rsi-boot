@@ -11,6 +11,10 @@ TOOL_DESCRIPTION = (
     "在开始任何编码、适配、调试、设计任务前调用，获取本项目历史沉淀的经验、约定与禁止项"
     "（prohibitions 为必须遵守的禁止项，items 为相关经验）。返回 feedback_token 用于后续"
     "通过 rsi_feedback 上报采纳情况。"
+    "有 decisions 时由你调用 rsi_conflicts / rsi_knowledge_review 落库；"
+    "用户要自动执行时立刻用 recommended 对应选项；"
+    "用户要展开则调用 rsi_conflicts action=explain，不要关闭这张卡；"
+    "不要让用户自己去终端跑 rsi。"
 )
 
 INPUT_SCHEMA: dict[str, Any] = {

@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ...services.decision_queue import close_extract_runs
 from ...services.knowledge_service import KnowledgeService
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,20 @@ INPUT_SCHEMA: dict[str, Any] = {
 }
 
 
-async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict[str, Any]:
+async def _tags_of(knowledge: KnowledgeService, item_ids: list[str]) -> list[Any]:
+    if not item_ids:
+        return []
+    conn = await knowledge._db.connect()
+    placeholders = ",".join("?" for _ in item_ids)
+    async with conn.execute(
+        f"SELECT tags FROM knowledge_items WHERE id IN ({placeholders})", item_ids,
+    ) as cur:
+        return [row["tags"] for row in await cur.fetchall()]
+
+
+async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+    knowledge = getattr(runtime_or_knowledge, "knowledge", runtime_or_knowledge)
+    decisions = getattr(runtime_or_knowledge, "decisions", None)
     project_id = str(arguments.get("project_id") or "")
     action = str(arguments.get("action", ""))
     if action not in ("approve", "reject"):
@@ -42,7 +56,10 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
     if ids:
         if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
             return {"status": "error", "message": "ids 必须是字符串数组"}
+        tags = await _tags_of(knowledge, ids)
         result = await knowledge.review_batch(project_id, approve, ids=ids)
+        if result.get("processed"):
+            close_extract_runs(decisions, tags)
         return {"status": "ok", **result}
 
     if arguments.get("all_pending"):
@@ -57,7 +74,9 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
     item_id = str(arguments.get("id", ""))
     if not item_id:
         return {"status": "error", "message": "缺少审批目标：id / ids / all_pending 三选一"}
+    tags = await _tags_of(knowledge, [item_id])
     new_status = await knowledge.review(item_id, project_id, approve=approve)
     if new_status is None:
         return {"status": "error", "message": f"条目不存在或不处于待审状态: {item_id}"}
+    close_extract_runs(decisions, tags)
     return {"status": "ok", "id": item_id, "new_status": new_status}

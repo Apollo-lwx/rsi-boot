@@ -38,6 +38,7 @@ from .project import (
     resolve_project_root,
     rsi_home,
 )
+from .services.decision_queue import DecisionQueue
 from .services.knowledge_service import KnowledgeService
 from .services.log_service import LogService
 from .services.profile_service import ProfileService
@@ -86,6 +87,8 @@ class Runtime:
         self._project_root = project_root
         # 向量后端仅增强层使用（enhance.embedding）；启动时创建一次，热加载不重建
         self.vec = vec
+        # 抉择队列进程内单例：必须在 _apply_config 之前创建，热加载不得重建 sticky
+        self.decisions = DecisionQueue()
         self._apply_config(watcher.config)
         watcher.subscribe(self._apply_config)
 
@@ -131,6 +134,8 @@ class Runtime:
         self.recall = RecallService(
             self.db, self.retriever, self.recall_arms, self.feedback_secret, profiles=self.profiles,
             bound_project_id=self.project_id,
+            decisions=self.decisions,
+            project_root=self._project_root,
         )
         self.extractor = KnowledgeExtractor(self.db, embedding=embedding, adapter=adapter, config=config)
         gate: Any = StaticGate()

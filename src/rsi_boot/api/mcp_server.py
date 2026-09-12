@@ -90,7 +90,7 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
             elif name == knowledge_tool.TOOL_NAME:
                 payload = await knowledge_tool.handle(runtime.knowledge, arguments)
             elif name == knowledge_review_tool.TOOL_NAME:
-                payload = await knowledge_review_tool.handle(runtime.knowledge, arguments)
+                payload = await knowledge_review_tool.handle(runtime, arguments)
             elif name == review_tool.TOOL_NAME:
                 payload = await review_tool.handle(runtime, arguments)
             elif name == conflicts_tool.TOOL_NAME:

@@ -11,12 +11,14 @@ import asyncio
 import logging
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..core.models import KnowledgeItem, RSIRequest, generate_feedback_token
 from ..data.sqlite import SQLiteClient
 from ..knowledge.retriever import KnowledgeRetriever
 from ..strategy.recall import RecallArmSelector
+from .decision_queue import DecisionQueue, collect_decision_cards
 from .log_service import LogService
 from .profile_service import ProfileService
 
@@ -34,6 +36,8 @@ class RecallService:
         feedback_secret: str,
         profiles: Optional[ProfileService] = None,
         bound_project_id: Optional[str] = None,
+        decisions: Optional[DecisionQueue] = None,
+        project_root: Optional[Path] = None,
     ):
         self._db = db
         self._retriever = retriever
@@ -41,6 +45,8 @@ class RecallService:
         self._secret = feedback_secret
         self._profiles = profiles
         self.bound_project_id = bound_project_id
+        self._decisions = decisions if decisions is not None else DecisionQueue()
+        self._project_root = project_root
         self._logs = LogService(db)
         self._bg_tasks: set[asyncio.Task] = set()  # 画像增量后台任务，close 前 drain
 
@@ -73,6 +79,16 @@ class RecallService:
         )
         self._spawn_profile_hits(user_id, project_id, prohibitions + items)
 
+        cards = await collect_decision_cards(
+            self._db, project_id, project_root=self._project_root,
+        )
+        picked = self._decisions.pick(cards)
+        decisions: list[dict[str, Any]] = []
+        if picked is not None:
+            picked.more_waiting = self._decisions.remaining_after(cards, picked)
+            self._decisions.mark_presented(picked.id)
+            decisions = [picked.asdict()]
+
         return {
             "prohibitions": [
                 {"title": p.title, "content": p.content, "domain": p.domain} for p in prohibitions
@@ -83,6 +99,7 @@ class RecallService:
             ],
             "recall_arm": arm.name,
             "feedback_token": token,
+            "decisions": decisions,
         }
 
     async def _match_prohibitions(

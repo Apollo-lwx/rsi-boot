@@ -69,5 +69,8 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
                     "message": "冲突不存在/已关闭，或 resolution 非法"
                                "（规则冲突 user_wins/memory_wins/coexist；"
                                "version/doc_code/incoherent 用 keep_item/keep_peer/coexist）"}
+        decisions = getattr(runtime, "decisions", None)
+        if decisions is not None:
+            decisions.close(conflict_id)
         return {"status": "success", "data": result}
     return {"status": "error", "message": f"未知 action: {action}"}
