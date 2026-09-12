@@ -44,10 +44,12 @@ rm -f .rsi/rsi.db .rsi/rsi.db-wal .rsi/rsi.db-shm .rsi/manifest.json
 rsi bootstrap
 ```
 
-PowerShell：
+PowerShell（必须在**该项目根目录**执行；先停掉 Cursor 里的 `rsi serve` / MCP，否则 SQLite 占着 `.db-wal` 会删失败且默认不报错）：
 
 ```powershell
-Remove-Item .rsi\rsi.db, .rsi\rsi.db-wal, .rsi\rsi.db-shm, .rsi\manifest.json -ErrorAction SilentlyContinue
+# 确认当前目录下有 .rsi\rsi.db
+Get-ChildItem .rsi\rsi.db*
+Remove-Item -Force .rsi\rsi.db, .rsi\rsi.db-wal, .rsi\rsi.db-shm, .rsi\manifest.json
 rsi bootstrap
 ```
 
