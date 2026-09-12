@@ -277,22 +277,9 @@ def _polar_phrase_map(draft: DraftItem) -> dict[str, str]:
     return out
 
 
-def _detect_incoherent_conflicts(
-    drafts: list[DraftItem],
-    hold_sources: Set[str],
-    conflicts: list[ConflictDraft],
-    peers: list[DraftItem] | None = None,
-    on_progress: Callable[[int], None] | None = None,
-    progress_offset: int = 0,
-) -> None:
-    buckets: dict[str, dict[str, list[DraftItem]]] = defaultdict(
-        lambda: {"prohibitive": [], "permissive": []}
-    )
-    for i, draft in enumerate(drafts):
-        for phrase, pol in _polar_phrase_map(draft).items():
-            buckets[phrase][pol].append(draft)
-        if on_progress is not None:
-            on_progress(progress_offset + i + 1)
+def _iter_incoherent_pairs(
+    buckets: dict[str, dict[str, list[DraftItem]]],
+):
     seen: set[tuple[int, int]] = set()
     for sides in buckets.values():
         for left in sides["prohibitive"]:
@@ -303,10 +290,40 @@ def _detect_incoherent_conflicts(
                 if key in seen:
                     continue
                 seen.add(key)
-                _emit_incoherent(left, right, hold_sources, conflicts, hold_right=True)
+                yield left, right
+
+
+def _detect_incoherent_conflicts(
+    drafts: list[DraftItem],
+    hold_sources: Set[str],
+    conflicts: list[ConflictDraft],
+    peers: list[DraftItem] | None = None,
+    on_progress: Callable[[int], None] | None = None,
+    progress_offset: int = 0,
+    on_match_start: Callable[[], None] | None = None,
+) -> None:
+    buckets: dict[str, dict[str, list[DraftItem]]] = defaultdict(
+        lambda: {"prohibitive": [], "permissive": []}
+    )
+    for i, draft in enumerate(drafts):
+        for phrase, pol in _polar_phrase_map(draft).items():
+            buckets[phrase][pol].append(draft)
+        if on_progress is not None:
+            on_progress(progress_offset + i + 1)
+    if on_match_start is not None:
+        on_match_start()
+    done = 0
+    for left, right in _iter_incoherent_pairs(buckets):
+        _emit_incoherent(left, right, hold_sources, conflicts, hold_right=True)
+        done += 1
+        if on_progress is not None:
+            on_progress(done)
     for draft in drafts:
         for peer in peers or []:
             _emit_incoherent(draft, peer, hold_sources, conflicts, hold_right=False)
+            done += 1
+            if on_progress is not None:
+                on_progress(done)
 
 
 def gate_drafts(
@@ -315,6 +332,7 @@ def gate_drafts(
     project_root: Path,
     peers: list[DraftItem] | None = None,
     on_progress: Callable[[int], None] | None = None,
+    on_match_start: Callable[[], None] | None = None,
 ) -> GateResult:
     hold_sources: set[str] = set()
     conflicts: list[ConflictDraft] = []
@@ -323,5 +341,6 @@ def gate_drafts(
     _detect_incoherent_conflicts(
         drafts, hold_sources, conflicts, peers,
         on_progress=on_progress, progress_offset=len(drafts),
+        on_match_start=on_match_start,
     )
     return GateResult(hold_sources=hold_sources, conflicts=conflicts)

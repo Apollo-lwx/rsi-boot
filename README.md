@@ -36,20 +36,11 @@ rsi serve
 
 无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。
 
-**重新学习：** `--force` 只忽略指纹，**不会**把旧版溢出归档（无 `bootstrap_run_id`）救回 `active`。曾用旧逻辑学过、库里几乎全是 `archived` 时，先清库再学：
+**重新学习：** `--force` 只忽略指纹，**不会**把旧版溢出归档（无 `bootstrap_run_id`）救回 `active`。曾用旧逻辑学过、库里几乎全是 `archived` 时，先清库再学（必须同时清 `rsi.db*` 与 `manifest.json`，`identity.json` 会保留）：
 
 ```bash
-# 必须同时删库和指纹；只删 rsi.db* 会因 manifest 命中而整仓跳过
-rm -f .rsi/rsi.db .rsi/rsi.db-wal .rsi/rsi.db-shm .rsi/manifest.json
-rsi bootstrap
-```
-
-PowerShell（必须在**该项目根目录**执行；先停掉 Cursor 里的 `rsi serve` / MCP，否则 SQLite 占着 `.db-wal` 会删失败且默认不报错）：
-
-```powershell
-# 确认当前目录下有 .rsi\rsi.db
-Get-ChildItem .rsi\rsi.db*
-Remove-Item -Force .rsi\rsi.db, .rsi\rsi.db-wal, .rsi\rsi.db-shm, .rsi\manifest.json
+# 在该项目根目录。若 Cursor 会立刻把 MCP 拉回来，先在 Settings → MCP 关掉 rsi-boot
+rsi wipe --yes
 rsi bootstrap
 ```
 

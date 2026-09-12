@@ -565,6 +565,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         progress.phase("冲突检测", total=max(len(drafts) * 2, 1))
         gate = gate_drafts(
             drafts, skeletons, project_root, on_progress=progress.tick,
+            on_match_start=lambda: progress.retarget("冲突检测（极性配对）"),
         )
         hold = {_norm_src(s) for s in gate.hold_sources}
         report.extracts = [
@@ -739,15 +740,18 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             write_done += 1
             progress.tick(write_done)
 
+        progress.phase("收尾", total=5)
         if gate.conflicts:
             mapping = await _source_to_item_id(runtime, project_id)
             persist_n = await runtime.conflict_detector.persist_knowledge_conflicts(
                 project_id, gate.conflicts, mapping,
             )
             report.version_conflicts += persist_n
+        progress.tick(1)
 
         await _demote_held_active(runtime, project_id, hold)
         await runtime.conflict_detector.scan(project_id)
+        progress.tick(2)
 
         _save_bootstrap_run(rsi_dir, run_id)
 
@@ -764,8 +768,8 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             "test_culture": test_culture,
             "expertise": ",".join(profile.expertise[:5]),
         }
+        progress.tick(3)
 
-        progress.phase("收尾")
         current_files = {
             str(p.relative_to(project_root))
             for info in signals.values() for p in info.files
@@ -777,11 +781,12 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
 
         if report.superseded or report.archived or report.revived:
             await runtime.knowledge.notify_changed(project_id)
+        progress.tick(4)
 
         if args.force and report.blocked_untagged_archive:
             report.wipe_hint = (
                 "未复活无 bootstrap_run_id 的归档。"
-                "清库重学请删除 .rsi/rsi.db* 与 manifest.json 后再跑 rsi bootstrap。"
+                "清库重学请执行 rsi wipe --yes（删除 .rsi/rsi.db* 与 manifest.json），再跑 rsi bootstrap。"
             )
 
         _save_manifest(rsi_dir, new_manifest)
@@ -790,6 +795,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         md_path = rsi_dir / "bootstrap_report.md"
         report.write_json(rsi_dir / "bootstrap_report.json")
         report.write_markdown(md_path)
+        progress.tick(5)
         progress.finish()
         print(report.render_terminal())
         print(f"Markdown 报告: {md_path}")

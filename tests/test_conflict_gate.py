@@ -74,3 +74,36 @@ def test_gate_drafts_reports_progress():
     gate_drafts(drafts, [], Path("."), on_progress=hits.append)
     assert hits
     assert max(hits) >= 4
+
+
+def test_incoherent_pair_loop_reports_progress():
+    drafts = [
+        DraftItem(
+            "禁止：pydantic",
+            "禁止使用 pydantic 作为入参。 " * 4,
+            "prohibition",
+            "auto-a",
+            ["signal:rules"],
+            "rules",
+        ),
+        DraftItem(
+            "API 用 pydantic",
+            "允许使用 pydantic 校验请求体。 " * 4,
+            "convention",
+            "docs/api.md",
+            ["signal:docs"],
+            "docs",
+        ),
+    ]
+    hits: list[int] = []
+    indexed_at: list[int] = []
+
+    def on_match_start() -> None:
+        indexed_at.append(len(hits))
+
+    gate_drafts(
+        drafts, [], Path("."),
+        on_progress=hits.append, on_match_start=on_match_start,
+    )
+    assert indexed_at
+    assert len(hits) > indexed_at[0], "极性配对必须继续打进度，不能停在索引 100%"

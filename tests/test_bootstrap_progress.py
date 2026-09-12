@@ -7,7 +7,14 @@ import io
 from pathlib import Path
 
 from rsi_boot.cli.bootstrap_command import run_bootstrap
-from rsi_boot.cli.progress import Progress, estimate_remaining, format_bar, format_duration
+from rsi_boot.cli.progress import (
+    Progress,
+    display_width,
+    estimate_remaining,
+    format_bar,
+    format_duration,
+    format_remaining,
+)
 
 
 def test_format_duration():
@@ -22,6 +29,39 @@ def test_estimate_remaining():
     assert estimate_remaining(done=0, total=100, elapsed=10) is None
     assert estimate_remaining(done=25, total=100, elapsed=10) == 30
     assert estimate_remaining(done=100, total=100, elapsed=10) is None
+
+
+def test_format_remaining_never_says_zero_while_work_left():
+    assert format_remaining(0.3) == "不到1秒"
+    assert format_remaining(0.8) == "不到1秒"
+    assert format_remaining(1.2) == "2秒"
+    assert "0秒" not in format_remaining(0.79)
+
+
+def test_display_width_counts_cjk_double():
+    assert display_width("ab") == 2
+    assert display_width("冲突") == 4
+    assert display_width("[9/11] 冲突") == 11
+
+
+class _TtyBuf(io.StringIO):
+    def isatty(self) -> bool:
+        return True
+
+
+def test_progress_tty_narrow_terminal_does_not_wrap(monkeypatch):
+    buf = _TtyBuf()
+    monkeypatch.setattr("rsi_boot.cli.progress.terminal_columns", lambda _stream=None: 72)
+    p = Progress(stream=buf, min_interval=0)
+    p.start(total_phases=11)
+    p.phase("冲突检测", total=89988)
+    p._elapsed_override = 835.0
+    p.tick(89903)
+    last = buf.getvalue().split("\r")[-1].rstrip(" ")
+    assert display_width(last) <= 71
+    assert "约剩 0秒" not in buf.getvalue()
+    assert "约剩[9/11]" not in buf.getvalue()
+    assert "89903/89988" in last
 
 
 def test_format_bar():
@@ -45,6 +85,21 @@ def test_progress_phase_line_includes_eta():
     assert "25/100" in text
     assert "约剩" in text
     assert "[=====               ] 25%" in text
+
+
+def test_progress_retarget_keeps_phase_index():
+    buf = io.StringIO()
+    p = Progress(stream=buf, min_interval=0)
+    p.start(total_phases=11)
+    p.phase("冲突检测", total=10)
+    p.tick(10)
+    p.retarget("冲突检测（极性配对）")
+    p.tick(3)
+    text = buf.getvalue()
+    assert "[1/11]" in text
+    assert "[2/11]" not in text
+    assert "极性配对" in text
+    assert "3" in text
 
 
 def test_progress_unknown_total_shows_count_only():

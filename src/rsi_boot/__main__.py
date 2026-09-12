@@ -239,6 +239,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_acc.add_argument("--run", default=None, help="bootstrap run id；缺省读 .rsi/bootstrap_run.json")
     _add_verbose(p_acc)
 
+    p_wipe = sub.add_parser("wipe", help="一键清除本项目记忆库（rsi.db* + manifest.json，保留 identity）")
+    p_wipe.add_argument(
+        "--yes", action="store_true",
+        help="确认删除本项目 .rsi/rsi.db* 与 manifest.json（保留 identity.json）",
+    )
+    p_wipe.add_argument(
+        "--project-root", default=None,
+        help="项目根，默认当前工作区",
+    )
+    _add_verbose(p_wipe)
+
     p_mig = sub.add_parser("migrate", help="从旧版 ~/.rsi/rsi.db 认领命名空间到当前项目")
     _add_verbose(p_mig)
     mig_sub = p_mig.add_subparsers(dest="migrate_action", required=True)
@@ -259,6 +270,15 @@ def main() -> None:
         "knowledge": cmd_knowledge,
         "migrate": cmd_migrate,
     }
+    if args.command == "wipe":
+        from .cli.wipe_command import run_wipe
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_wipe(args))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
     if args.command == "bootstrap":
         from .cli.bootstrap_command import run_bootstrap
 
