@@ -7,7 +7,7 @@ import io
 from pathlib import Path
 
 from rsi_boot.cli.bootstrap_command import run_bootstrap
-from rsi_boot.cli.progress import Progress, estimate_remaining, format_duration
+from rsi_boot.cli.progress import Progress, estimate_remaining, format_bar, format_duration
 
 
 def test_format_duration():
@@ -24,6 +24,14 @@ def test_estimate_remaining():
     assert estimate_remaining(done=100, total=100, elapsed=10) is None
 
 
+def test_format_bar():
+    assert format_bar(0, 100) == "[                    ] 0%"
+    assert format_bar(5, 100) == "[=                   ] 5%"
+    assert format_bar(25, 100) == "[=====               ] 25%"
+    assert format_bar(100, 100) == "[====================] 100%"
+    assert format_bar(3, 0) == "[                    ] 0%"
+
+
 def test_progress_phase_line_includes_eta():
     buf = io.StringIO()
     p = Progress(stream=buf, min_interval=0)
@@ -36,6 +44,7 @@ def test_progress_phase_line_includes_eta():
     assert "文档" in text
     assert "25/100" in text
     assert "约剩" in text
+    assert "[=====               ] 25%" in text
 
 
 def test_progress_unknown_total_shows_count_only():
@@ -72,3 +81,5 @@ async def test_bootstrap_prints_phase_progress(tmp_path, monkeypatch, capsys):
     assert "扫描文件树" in out
     assert "配置" in out
     assert "已用" in out
+    assert "冲突检测" in out
+    assert "写入知识" in out

@@ -111,7 +111,7 @@ def _phase_names(plan: Dict[str, bool], dry_run: bool) -> List[str]:
         names.append("对话")
     if plan.get("config"):
         names.append("规则种子")
-    names.extend(["关联与画像", "收尾"])
+    names.extend(["关联", "冲突检测", "写入知识", "收尾"])
     return names
 
 
@@ -545,7 +545,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 drafts.append(item)
                 rule_drafts.append(item)
 
-        progress.phase("关联与画像")
+        progress.phase("关联")
         correlations = correlate_test_code(signals["tests"].files, signals["code"].files, project_root)
         correlations += correlate_doc_code(doc_titles, skeletons)
         correlations += correlate_commit_files(git_insights)
@@ -562,7 +562,10 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
 
         already = {_norm_src(d.source_url) for d in drafts if d.source_url}
         drafts.extend(await _load_existing_drafts(runtime, project_id, already))
-        gate = gate_drafts(drafts, skeletons, project_root)
+        progress.phase("冲突检测", total=max(len(drafts) * 2, 1))
+        gate = gate_drafts(
+            drafts, skeletons, project_root, on_progress=progress.tick,
+        )
         hold = {_norm_src(s) for s in gate.hold_sources}
         report.extracts = [
             {"title": item.title, "source": item.source_url}
@@ -579,6 +582,14 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         ]
 
         # ---- 过闸后再写库 ----
+        write_total = (
+            len(doc_jobs) + (1 if config_summary is not None else 0)
+            + len(code_batches) + (1 if git_summary is not None else 0)
+            + len(convo_drafts) + len(rule_drafts)
+            + (1 if corr_summary is not None else 0)
+        )
+        progress.phase("写入知识", total=max(write_total, 1))
+        write_done = 0
         for job in doc_jobs:
             status = _write_status("docs", job["rel"], hold)
             active = status == "active"
@@ -607,6 +618,8 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 new_manifest[job["rel"]] = job["fp"]
             except Exception as exc:
                 collector.report(f"文档 {job['rel']}", exc)
+            write_done += 1
+            progress.tick(write_done)
 
         if config_summary is not None:
             config_hashes = {content_hash(config_summary)}
@@ -625,6 +638,8 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:config"%'], config_hashes
             )
+            write_done += 1
+            progress.tick(write_done)
 
         if code_batches:
             code_src = _SIGNAL_SOURCE["code"]
@@ -639,6 +654,8 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     status=code_status, tags=code_tags, source_url=code_src,
                 )
                 wrote_code += report.knowledge_written - before
+                write_done += 1
+                progress.tick(write_done)
             if wrote_code and code_status == "active":
                 report.applied["code"] = report.applied.get("code", 0) + wrote_code
                 samples = report.applied_samples.setdefault("code", [])
@@ -665,33 +682,38 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:git"%'], git_hashes
             )
+            write_done += 1
+            progress.tick(write_done)
 
         for item in convo_drafts:
-            if dedup.is_duplicate(item.content):
-                continue
-            await runtime.knowledge.add(KnowledgeItem(
-                project_id=project_id, title=item.title, content=item.content,
-                status=_write_status("conversation", item.source_url, hold),
-                content_type=item.content_type, domain="bootstrap",
-                tags=_run_tags("conversation", run_id, [t for t in item.tags if t.startswith("kind:")]),
-                source_url=item.source_url,
-            ))
-            report.knowledge_written += 1
+            if not dedup.is_duplicate(item.content):
+                await runtime.knowledge.add(KnowledgeItem(
+                    project_id=project_id, title=item.title, content=item.content,
+                    status=_write_status("conversation", item.source_url, hold),
+                    content_type=item.content_type, domain="bootstrap",
+                    tags=_run_tags("conversation", run_id, [t for t in item.tags if t.startswith("kind:")]),
+                    source_url=item.source_url,
+                ))
+                report.knowledge_written += 1
+            write_done += 1
+            progress.tick(write_done)
 
         seed_hashes: Set[str] = set()
         for item in rule_drafts:
             seed_hashes.add(content_hash(item.content))
             if dedup.is_duplicate(item.content):
                 report.duplicates_skipped += 1
-                continue
-            await runtime.knowledge.add(KnowledgeItem(
-                project_id=project_id, title=item.title, content=item.content,
-                status=_write_status("rules", item.source_url, hold),
-                content_type="prohibition", domain="bootstrap",
-                tags=_run_tags("rules", run_id), source_url=item.source_url,
-            ))
-            report.knowledge_written += 1
-            report.prohibition_seeds += 1
+            else:
+                await runtime.knowledge.add(KnowledgeItem(
+                    project_id=project_id, title=item.title, content=item.content,
+                    status=_write_status("rules", item.source_url, hold),
+                    content_type="prohibition", domain="bootstrap",
+                    tags=_run_tags("rules", run_id), source_url=item.source_url,
+                ))
+                report.knowledge_written += 1
+                report.prohibition_seeds += 1
+            write_done += 1
+            progress.tick(write_done)
         if rule_drafts or plan.get("config"):
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:rules"%'], seed_hashes
@@ -714,6 +736,8 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:correlation"%'], corr_hashes
             )
+            write_done += 1
+            progress.tick(write_done)
 
         if gate.conflicts:
             mapping = await _source_to_item_id(runtime, project_id)

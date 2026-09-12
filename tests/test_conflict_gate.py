@@ -56,3 +56,21 @@ def test_polarity_holds_both():
     ]
     result = gate_drafts(drafts, [], Path("."))
     assert result.hold_sources >= {"auto-a", "docs/api.md"}
+
+
+def test_gate_drafts_reports_progress():
+    hits: list[int] = []
+    drafts = [
+        DraftItem(
+            f"约定{i}",
+            f"允许使用 uniquephrase{i} 作为约定。" * 4,
+            "convention",
+            f"a{i}.md",
+            ["signal:docs"],
+            "docs",
+        )
+        for i in range(4)
+    ]
+    gate_drafts(drafts, [], Path("."), on_progress=hits.append)
+    assert hits
+    assert max(hits) >= 4

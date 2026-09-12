@@ -26,14 +26,30 @@ rsi knowledge add --title "项目约定" --content "本项目统一使用 snake_
 rsi recall "本项目的命名约定是什么"
 
 # 4. 项目自学习：扫描文档/配置/规范，无冲突原文直通生效；抽取与冲突留待确认
-rsi bootstrap --dry-run          # 预览扫描计划
-rsi bootstrap                    # 正式学习（幂等，可重复执行）
+rsi bootstrap --dry-run          # 预览：信号发现 + 将直通 / 将进确认
+rsi bootstrap                    # 正式学习（幂等，未改文件会跳过）
+rsi bootstrap --force            # 忽略 manifest 指纹，按当前文件全量再扫
 
 # 5. 启动 MCP stdio server（接入 Cursor 等客户端）
 rsi serve
 ```
 
-无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。若项目曾用旧版 bootstrap 逻辑学过，需先删除 `.rsi/rsi.db*` 与 `.rsi/manifest.json` 再重新执行 `rsi bootstrap`。只删库、留指纹会导致下次学习整仓跳过。
+无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。
+
+**重新学习：** `--force` 只忽略指纹，**不会**把旧版溢出归档（无 `bootstrap_run_id`）救回 `active`。曾用旧逻辑学过、库里几乎全是 `archived` 时，先清库再学：
+
+```bash
+# 必须同时删库和指纹；只删 rsi.db* 会因 manifest 命中而整仓跳过
+rm -f .rsi/rsi.db .rsi/rsi.db-wal .rsi/rsi.db-shm .rsi/manifest.json
+rsi bootstrap
+```
+
+PowerShell：
+
+```powershell
+Remove-Item .rsi\rsi.db, .rsi\rsi.db-wal, .rsi\rsi.db-shm, .rsi\manifest.json -ErrorAction SilentlyContinue
+rsi bootstrap
+```
 
 ## MCP 客户端配置（Cursor 示例）
 

@@ -18,6 +18,16 @@ def format_duration(seconds: float) -> str:
     return f"{hours}小时{minutes}分"
 
 
+def format_bar(done: int, total: int, width: int = 20) -> str:
+    """`[=====               ] 25%` — ASCII，PowerShell 也能显示。"""
+    if total <= 0:
+        pct = 0
+    else:
+        pct = min(100, max(0, int(done * 100 / total)))
+    filled = width * pct // 100
+    return f"[{'=' * filled}{' ' * (width - filled)}] {pct}%"
+
+
 def estimate_remaining(done: int, total: int, elapsed: float) -> Optional[float]:
     if done <= 0 or total <= done or elapsed <= 0:
         return None
@@ -125,9 +135,9 @@ class Progress:
         prefix = f"[{self.phase_index}/{self.total_phases}] {self.phase_name}"
         parts = [prefix]
         if self.phase_total:
-            pct = 100 if done else int(self.phase_done * 100 / self.phase_total)
-            parts.append(f"{self.phase_done}/{self.phase_total}")
-            parts.append(f"{pct}%")
+            shown = self.phase_total if done else self.phase_done
+            parts.append(format_bar(shown, self.phase_total))
+            parts.append(f"{shown}/{self.phase_total}")
         elif self.phase_done:
             parts.append(str(self.phase_done))
         elapsed = self._phase_elapsed()

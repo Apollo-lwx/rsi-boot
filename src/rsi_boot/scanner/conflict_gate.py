@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Set
+from collections import defaultdict
+from typing import Any, Callable, List, Set
 
 from ..injector.conflict import _PERMISSIVE, _PROHIBITIVE
 from .correlation_engine import _jaccard, _words
@@ -172,10 +173,15 @@ def _detect_doc_code_conflicts(
     skeletons: list[Any],
     hold_sources: Set[str],
     conflicts: list[ConflictDraft],
+    on_progress: Callable[[int], None] | None = None,
 ) -> None:
     if not skeletons:
+        if on_progress is not None and drafts:
+            on_progress(len(drafts))
         return
-    for draft in drafts:
+    for i, draft in enumerate(drafts):
+        if on_progress is not None:
+            on_progress(i + 1)
         if draft.signal != "docs":
             continue
         skeleton = _associate_skeleton(draft, skeletons)
@@ -256,15 +262,48 @@ def _emit_incoherent(
     return True
 
 
+def _polar_phrase_map(draft: DraftItem) -> dict[str, str]:
+    """短语 → 窗口极性；仅保留禁止/允许，供倒排配对，避免草稿两两全扫。"""
+    text = f"{draft.title}\n{draft.content}"
+    out: dict[str, str] = {}
+    for phrase in _candidate_phrases(draft):
+        idx = _find_phrase(text, phrase)
+        if idx < 0:
+            continue
+        win = text[max(0, idx - _EXCERPT_WINDOW): idx + len(phrase) + _EXCERPT_WINDOW]
+        pol = _polarity(win)
+        if pol != "neutral":
+            out[phrase] = pol
+    return out
+
+
 def _detect_incoherent_conflicts(
     drafts: list[DraftItem],
     hold_sources: Set[str],
     conflicts: list[ConflictDraft],
     peers: list[DraftItem] | None = None,
+    on_progress: Callable[[int], None] | None = None,
+    progress_offset: int = 0,
 ) -> None:
-    for i in range(len(drafts)):
-        for j in range(i + 1, len(drafts)):
-            _emit_incoherent(drafts[i], drafts[j], hold_sources, conflicts, hold_right=True)
+    buckets: dict[str, dict[str, list[DraftItem]]] = defaultdict(
+        lambda: {"prohibitive": [], "permissive": []}
+    )
+    for i, draft in enumerate(drafts):
+        for phrase, pol in _polar_phrase_map(draft).items():
+            buckets[phrase][pol].append(draft)
+        if on_progress is not None:
+            on_progress(progress_offset + i + 1)
+    seen: set[tuple[int, int]] = set()
+    for sides in buckets.values():
+        for left in sides["prohibitive"]:
+            for right in sides["permissive"]:
+                if left is right:
+                    continue
+                key = (id(left), id(right)) if id(left) < id(right) else (id(right), id(left))
+                if key in seen:
+                    continue
+                seen.add(key)
+                _emit_incoherent(left, right, hold_sources, conflicts, hold_right=True)
     for draft in drafts:
         for peer in peers or []:
             _emit_incoherent(draft, peer, hold_sources, conflicts, hold_right=False)
@@ -275,10 +314,14 @@ def gate_drafts(
     skeletons: list[Any],
     project_root: Path,
     peers: list[DraftItem] | None = None,
+    on_progress: Callable[[int], None] | None = None,
 ) -> GateResult:
     hold_sources: set[str] = set()
     conflicts: list[ConflictDraft] = []
     _detect_version_conflicts(drafts, project_root, hold_sources, conflicts)
-    _detect_doc_code_conflicts(drafts, skeletons, hold_sources, conflicts)
-    _detect_incoherent_conflicts(drafts, hold_sources, conflicts, peers)
+    _detect_doc_code_conflicts(drafts, skeletons, hold_sources, conflicts, on_progress)
+    _detect_incoherent_conflicts(
+        drafts, hold_sources, conflicts, peers,
+        on_progress=on_progress, progress_offset=len(drafts),
+    )
     return GateResult(hold_sources=hold_sources, conflicts=conflicts)
