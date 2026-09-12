@@ -25,13 +25,15 @@ rsi recall "帮我审查这段 Python 代码"
 rsi knowledge add --title "项目约定" --content "本项目统一使用 snake_case 命名"
 rsi recall "本项目的命名约定是什么"
 
-# 4. 项目自学习：扫描文档/配置/规范，产出记忆草稿（入审批队列，确认后生效并注入）
+# 4. 项目自学习：扫描文档/配置/规范，无冲突原文直通生效；抽取与冲突留待确认
 rsi bootstrap --dry-run          # 预览扫描计划
 rsi bootstrap                    # 正式学习（幂等，可重复执行）
 
 # 5. 启动 MCP stdio server（接入 Cursor 等客户端）
 rsi serve
 ```
+
+无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。若项目曾用旧版 bootstrap 逻辑学过，需先删除 `.rsi/rsi.db*` 再重新执行 `rsi bootstrap`。
 
 ## MCP 客户端配置（Cursor 示例）
 
