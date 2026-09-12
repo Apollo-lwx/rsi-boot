@@ -208,6 +208,122 @@ async def test_incremental_version_sibling_holds_existing_active(tmp_path, monke
     assert all(c["item_id"] for c in conflicts)
 
 
+def _src(row: dict) -> str:
+    return (row.get("source_url") or "").replace("\\", "/")
+
+
+def _multichunk_doc(title: str, note: str) -> str:
+    parts = [f"# {title}\n"]
+    for i, name in enumerate(("接口", "字段", "错误码"), 1):
+        body = (f"{note} 第{i}节{name}说明，旧新口径不同且正文足够长。" * 50)
+        parts.append(f"## {name}\n\n{body}\n")
+    return "\n".join(parts)
+
+
+async def test_bootstrap_version_keep_peer_activates_kept(tmp_path, monkeypatch):
+    """foo-v1.0 / foo-v1.1：keep_peer 后倾向侧 active，另一侧 archived。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    (root / "foo-v1.0.md").write_text(
+        "# Foo\n\n" + _long("旧版接口返回 xml 且字段名为 user_id"),
+        encoding="utf-8",
+    )
+    (root / "foo-v1.1.md").write_text(
+        "# Foo\n\n" + _long("新版接口返回 json 且字段名为 accountId"),
+        encoding="utf-8",
+    )
+    assert await run_bootstrap(_args(root)) == 0
+
+    rt = await build_runtime(project_root=root)
+    try:
+        conn = await rt.db.connect()
+        async with conn.execute(
+            "SELECT id FROM rule_conflicts "
+            "WHERE project_id = ? AND conflict_type = 'version' AND status = 'open'",
+            (rt.project_id,),
+        ) as cur:
+            rows = await cur.fetchall()
+        assert len(rows) == 1
+        result = await rt.conflict_detector.resolve(rows[0]["id"], "keep_peer")
+        assert result is not None
+    finally:
+        await rt.close()
+
+    held = await _rows(
+        root,
+        "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
+    )
+    v10 = [r for r in held if _src(r) == "foo-v1.0.md"]
+    v11 = [r for r in held if _src(r) == "foo-v1.1.md"]
+    assert v10 and all(r["status"] == "archived" for r in v10)
+    assert v11 and all(r["status"] == "active" for r in v11)
+
+
+async def test_bootstrap_version_coexist_activates_both(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    (root / "foo-v1.0.md").write_text(
+        "# Foo\n\n" + _long("旧版接口返回 xml 且字段名为 user_id"),
+        encoding="utf-8",
+    )
+    (root / "foo-v1.1.md").write_text(
+        "# Foo\n\n" + _long("新版接口返回 json 且字段名为 accountId"),
+        encoding="utf-8",
+    )
+    assert await run_bootstrap(_args(root)) == 0
+
+    rt = await build_runtime(project_root=root)
+    try:
+        conn = await rt.db.connect()
+        async with conn.execute(
+            "SELECT id FROM rule_conflicts "
+            "WHERE project_id = ? AND conflict_type = 'version' AND status = 'open'",
+            (rt.project_id,),
+        ) as cur:
+            rows = await cur.fetchall()
+        assert len(rows) == 1
+        result = await rt.conflict_detector.resolve(rows[0]["id"], "coexist")
+        assert result is not None
+    finally:
+        await rt.close()
+
+    held = await _rows(
+        root,
+        "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
+    )
+    versions = [r for r in held if _src(r) in ("foo-v1.0.md", "foo-v1.1.md")]
+    assert versions
+    assert all(r["status"] == "active" for r in versions)
+
+
+async def test_bootstrap_multichunk_version_one_open_row(tmp_path, monkeypatch):
+    """多切片版本对在 persist + trailing scan 后只留一条 open version。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    (root / "foo-v1.0.md").write_text(
+        _multichunk_doc("Foo", "旧版 xml user_id"), encoding="utf-8",
+    )
+    (root / "foo-v1.1.md").write_text(
+        _multichunk_doc("Foo", "新版 json accountId"), encoding="utf-8",
+    )
+    assert await run_bootstrap(_args(root)) == 0
+
+    items = await _rows(
+        root,
+        "SELECT source_url FROM knowledge_items WHERE project_id = ?",
+    )
+    v10 = [r for r in items if _src(r) == "foo-v1.0.md"]
+    v11 = [r for r in items if _src(r) == "foo-v1.1.md"]
+    assert len(v10) > 1 and len(v11) > 1
+
+    conflicts = await _rows(
+        root,
+        "SELECT id FROM rule_conflicts "
+        "WHERE project_id = ? AND conflict_type = 'version' AND status = 'open'",
+    )
+    assert len(conflicts) == 1
+
+
 async def test_dry_run_skips_write_and_gate(tmp_path, monkeypatch):
     """dry-run：不写库、不跑 gate、不落 run id。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))

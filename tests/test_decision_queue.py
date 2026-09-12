@@ -90,6 +90,7 @@ async def _insert_item(db, *, project_id, title, source_url, tags, status="pendi
 
 async def _insert_conflict(
     db, *, project_id, item_id, peer_source, conflict_type="incoherent", excerpt="excerpt",
+    resolution_note="recommended:keep_item",
 ):
     conn = await db.connect()
     now = datetime.now(timezone.utc).isoformat()
@@ -97,8 +98,9 @@ async def _insert_conflict(
     await conn.execute(
         "INSERT INTO rule_conflicts (id, project_id, item_id, user_rule_path, user_rule_excerpt,"
         " user_rule_hash, conflict_type, status, resolution_note, detected_at)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, 'open', 'recommended:keep_item', ?)",
-        (cid, project_id, item_id, peer_source, excerpt, uuid.uuid4().hex, conflict_type, now),
+        " VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)",
+        (cid, project_id, item_id, peer_source, excerpt, uuid.uuid4().hex, conflict_type,
+         resolution_note, now),
     )
     await conn.commit()
     return cid
@@ -212,3 +214,23 @@ async def test_collect_historical_id_excerpt_fallback(db):
     daily = next(c for c in cards if c.kind == "daily_conflict")
     old_side = next(s for s in daily.sides if s["role"] == "old")
     assert old_side["title"] == "历史约定"
+
+
+async def test_version_card_defaults_recommended_keep_peer_without_prefix(db):
+    pid = "p1"
+    item_id = await _insert_item(
+        db, project_id=pid, title="Foo v1.0",
+        source_url="foo-v1.0.md", tags=["signal:docs", "bootstrap_run_id:run-v"],
+    )
+    await _insert_item(
+        db, project_id=pid, title="Foo v1.1",
+        source_url="foo-v1.1.md", tags=["signal:docs", "bootstrap_run_id:run-v"],
+        status="pending_review",
+    )
+    await _insert_conflict(
+        db, project_id=pid, item_id=item_id, peer_source="foo-v1.1.md",
+        conflict_type="version", resolution_note=None,
+    )
+    cards = await collect_decision_cards(db, pid, project_root=None)
+    version = next(c for c in cards if c.kind == "bootstrap_conflict")
+    assert version.recommended == "keep_peer"

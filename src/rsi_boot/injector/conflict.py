@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 from ..core.masking import mask_text
 from ..data.sqlite import SQLiteClient
 from ..scanner.version_conflict import apply_conversation_hint, detect_version_families
+from ..services.decision_queue import _peer_row
 from .targets import AgentsMdTarget, discover_user_rule_files
 
 logger = logging.getLogger(__name__)
@@ -243,6 +244,19 @@ class ConflictDetector:
         for row in rows:
             by_src.setdefault(self._norm_src(row["source_url"]), []).append(row["id"])
 
+        async with conn.execute(
+            "SELECT c.user_rule_path, c.user_rule_hash, k.source_url AS item_source "
+            "FROM rule_conflicts c LEFT JOIN knowledge_items k ON k.id = c.item_id "
+            "WHERE c.project_id = ? AND c.conflict_type = 'version'",
+            (project_id,),
+        ) as cur:
+            existing = await cur.fetchall()
+        seen_hashes = {r["user_rule_hash"] for r in existing}
+        seen_pairs = {
+            frozenset((self._norm_src(r["item_source"]), self._norm_src(r["user_rule_path"])))
+            for r in existing
+        }
+
         detected = 0
         for raw in families:
             family = apply_conversation_hint(raw, logs)
@@ -258,14 +272,10 @@ class ConflictDetector:
                 f"keep_item=推翻倾向（归档倾向版） coexist=两版都留"
             )[:_EXCERPT_MAX]
             a, b = sorted((family.legacy_rel, family.current_rel))
-            family_hash = hashlib.sha256(f"{family.kind}:{a}:{b}".encode("utf-8")).hexdigest()
-            async with conn.execute(
-                "SELECT id FROM rule_conflicts WHERE project_id = ? AND conflict_type = 'version' "
-                "AND user_rule_hash = ?",
-                (project_id, family_hash),
-            ) as cur:
-                if await cur.fetchone():
-                    continue
+            family_hash = hashlib.sha256(f"version:{a}:{b}".encode("utf-8")).hexdigest()
+            pair = frozenset((family.legacy_rel, family.current_rel))
+            if family_hash in seen_hashes or pair in seen_pairs:
+                continue
             cur = await conn.execute(
                 "INSERT OR IGNORE INTO rule_conflicts"
                 " (id, project_id, item_id, user_rule_path, user_rule_excerpt,"
@@ -274,6 +284,9 @@ class ConflictDetector:
                 (uuid.uuid4().hex, project_id, item_id, family.current_rel,
                  excerpt, family_hash, now),
             )
+            if cur.rowcount:
+                seen_hashes.add(family_hash)
+                seen_pairs.add(pair)
             detected += cur.rowcount
         return detected
 
@@ -523,38 +536,7 @@ class ConflictDetector:
         return {"conflict_id": conflict_id, "resolution": resolution, "guidance": guidance}
 
     async def _resolve_version(self, row: Any, resolution: str, now: str) -> str:
-        """版本冲突裁决：按 source_url 归档一侧全部条目，另一侧不动。"""
-        if resolution == "coexist":
-            return "已标记两版共存，该组合不再提醒（两侧知识状态未改）"
-        conn = await self._db.connect()
-        async with conn.execute(
-            "SELECT source_url FROM knowledge_items WHERE id = ?", (row["item_id"],)
-        ) as cur:
-            item_row = await cur.fetchone()
-        item_src = self._norm_src(item_row["source_url"] if item_row else "")
-        peer_src = self._norm_src(row["user_rule_path"])
-        archive_src = item_src if resolution == "keep_peer" else peer_src
-        keep_src = peer_src if resolution == "keep_peer" else item_src
-        if not archive_src:
-            return "无法定位待归档来源，已记录裁决但未改知识状态"
-        async with conn.execute(
-            "SELECT id, source_url FROM knowledge_items "
-            "WHERE project_id = ? AND status IN ('active', 'pending_review')",
-            (row["project_id"],),
-        ) as cur:
-            candidates = await cur.fetchall()
-        ids = [r["id"] for r in candidates if self._norm_src(r["source_url"]) == archive_src]
-        for i in range(0, len(ids), 500):
-            chunk = ids[i:i + 500]
-            await conn.execute(
-                f"UPDATE knowledge_items SET status = 'archived', updated_at = ? "
-                f"WHERE id IN ({','.join('?' for _ in chunk)})",
-                [now, *chunk],
-            )
-        return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
-
-    async def _resolve_knowledge_pair(self, row: Any, resolution: str, now: str) -> str:
-        """doc_code/incoherent：按 source_url 归档对侧；保留侧 pending→active；coexist 两侧激活。"""
+        """版本冲突裁决：归档落败来源全部条目，保留侧 pending→active；coexist 两侧激活。"""
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT id, source_url, status FROM knowledge_items WHERE id = ?",
@@ -574,8 +556,6 @@ class ConflictDetector:
             return [r for r in candidates if src and self._norm_src(r["source_url"]) == src]
 
         item_side = side(item_src)
-        if item_row is not None and all(r["id"] != item_row["id"] for r in item_side):
-            item_side = [*item_side, item_row]
         peer_side = side(peer_src)
 
         if resolution == "coexist":
@@ -583,15 +563,53 @@ class ConflictDetector:
                 r["id"] for r in (*item_side, *peer_side) if r["status"] == "pending_review"
             ]
             await self._set_item_status(conn, activate, "active", now)
+            return "已标记两版共存并转为可用，该组合不再提醒"
+
+        if resolution == "keep_item":
+            archive = [r["id"] for r in peer_side]
+            activate = [r["id"] for r in item_side if r["status"] == "pending_review"]
+            archive_src, keep_src = peer_src, item_src
+        else:
+            archive = [r["id"] for r in item_side]
+            activate = [r["id"] for r in peer_side if r["status"] == "pending_review"]
+            archive_src, keep_src = item_src, peer_src
+        if not archive_src and resolution != "coexist":
+            return "无法定位待归档来源，已记录裁决但未改知识状态"
+        await self._set_item_status(conn, archive, "archived", now)
+        await self._set_item_status(conn, activate, "active", now)
+        return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
+
+    async def _resolve_knowledge_pair(self, row: Any, resolution: str, now: str) -> str:
+        """doc_code/incoherent：按合成对侧键定位单条；保留侧 pending→active；coexist 两侧激活。"""
+        conn = await self._db.connect()
+        item = await self._load_item(conn, row["item_id"])
+        peer = await _peer_row(
+            conn, row["project_id"],
+            self._norm_src(row["user_rule_path"]),
+            row["user_rule_excerpt"] or "",
+        )
+        item_src = self._norm_src((item or {}).get("source_url") or "")
+        peer_src = self._norm_src(row["user_rule_path"])
+
+        if resolution == "coexist":
+            activate = [
+                r["id"] for r in (item, peer)
+                if r is not None and r.get("status") == "pending_review"
+            ]
+            await self._set_item_status(conn, activate, "active", now)
             return "已标记两者共存并转为可用，该组合不再提醒"
 
         if resolution == "keep_item":
-            archive = [r["id"] for r in peer_side if r["id"] != row["item_id"]]
-            activate = [r["id"] for r in item_side if r["status"] == "pending_review"]
+            archive = [peer["id"]] if peer is not None and peer["id"] != row["item_id"] else []
+            activate = (
+                [item["id"]] if item is not None and item.get("status") == "pending_review" else []
+            )
             keep_src, archive_src = item_src, peer_src
         else:
-            archive = [r["id"] for r in item_side if self._norm_src(r["source_url"]) != peer_src]
-            activate = [r["id"] for r in peer_side if r["status"] == "pending_review"]
+            archive = [item["id"]] if item is not None and (peer is None or item["id"] != peer["id"]) else []
+            activate = (
+                [peer["id"]] if peer is not None and peer.get("status") == "pending_review" else []
+            )
             keep_src, archive_src = peer_src, item_src
         await self._set_item_status(conn, archive, "archived", now)
         await self._set_item_status(conn, activate, "active", now)

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from rsi_boot.core.models import KnowledgeItem
+from rsi_boot.injector.conflict import ConflictDetector
 from rsi_boot.knowledge.embedding import EmbeddingService
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
 from rsi_boot.learning.knowledge_extractor import KnowledgeExtractor
@@ -216,6 +217,100 @@ async def test_duplicate_peer_source_url_unique_historical_ids(db):
     excerpts = [r["user_rule_excerpt"] for r in conflicts]
     assert sum(old_a in e for e in excerpts) == 1
     assert sum(old_b in e for e in excerpts) == 1
+
+
+async def test_keep_item_item_key_archives_only_that_history(db):
+    extractor, knowledge = _extractor(db)
+    old_id = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="API 用 pydantic",
+        content=_PERMIT_BODY,
+        content_type="convention",
+        source_url=None,
+        status="active",
+    ))
+    unrelated_a = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="无关日常 A",
+        content="从对话抽出的无关经验甲。" * 8,
+        content_type="experience",
+        source_url="auto-extract",
+        status="pending_review",
+    ))
+    unrelated_b = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="无关日常 B",
+        content="从对话抽出的无关经验乙。" * 8,
+        content_type="experience",
+        source_url="auto-extract",
+        status="pending_review",
+    ))
+    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+    await extractor.run_daily()
+
+    items = await knowledge.list("p1")
+    new_items = [i for i in items if i["id"] not in {old_id, unrelated_a, unrelated_b}]
+    assert len(new_items) == 1
+    new_id = new_items[0]["id"]
+
+    conn = await db.connect()
+    async with conn.execute(
+        "SELECT id, user_rule_path FROM rule_conflicts "
+        "WHERE project_id = ? AND status = 'open'",
+        ("p1",),
+    ) as cur:
+        conflicts = await cur.fetchall()
+    assert len(conflicts) == 1
+    assert conflicts[0]["user_rule_path"] == f"item:{old_id}"
+
+    result = await ConflictDetector(db).resolve(conflicts[0]["id"], "keep_item")
+    assert result is not None
+
+    async with conn.execute("SELECT id, status FROM knowledge_items") as cur:
+        rows = {r["id"]: r["status"] for r in await cur.fetchall()}
+    assert rows[old_id] == "archived"
+    assert rows[new_id] == "active"
+    assert rows[unrelated_a] == "pending_review"
+    assert rows[unrelated_b] == "pending_review"
+
+
+async def test_keep_item_hashed_url_archives_only_hashed_peer(db):
+    extractor, knowledge = _extractor(db)
+    old_a = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="API 用 pydantic A",
+        content=_PERMIT_BODY,
+        content_type="convention",
+        source_url="docs/shared.md",
+        status="active",
+    ))
+    old_b = await knowledge.add(KnowledgeItem(
+        project_id="p1",
+        title="API 用 pydantic B",
+        content=_PERMIT_BODY.replace("校验", "解析"),
+        content_type="convention",
+        source_url="docs/shared.md",
+        status="active",
+    ))
+    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+    await extractor.run_daily()
+
+    conn = await db.connect()
+    async with conn.execute(
+        "SELECT id, item_id, user_rule_path FROM rule_conflicts WHERE project_id = ?",
+        ("p1",),
+    ) as cur:
+        conflicts = await cur.fetchall()
+    target = next(c for c in conflicts if c["user_rule_path"] == f"docs/shared.md#{old_a}")
+
+    result = await ConflictDetector(db).resolve(target["id"], "keep_item")
+    assert result is not None
+
+    async with conn.execute("SELECT id, status FROM knowledge_items") as cur:
+        rows = {r["id"]: r["status"] for r in await cur.fetchall()}
+    assert rows[old_a] == "archived"
+    assert rows[old_b] == "active"
+    assert rows[target["item_id"]] == "active"
 
 
 async def test_identical_title_merges_without_conflict(db):

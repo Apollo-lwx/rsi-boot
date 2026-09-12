@@ -118,12 +118,14 @@ def _conflict_options() -> list[dict]:
     ]
 
 
-def _recommended_of(note: str | None) -> str:
+def _recommended_of(note: str | None, conflict_type: str = "") -> str:
     raw = note or ""
     if raw.startswith("recommended:"):
         token = raw.split(":", 1)[1].strip().split()[0]
         if token:
             return token
+    if conflict_type == "version":
+        return "keep_peer"
     return "keep_item"
 
 
@@ -312,7 +314,7 @@ async def collect_decision_cards(
             peer=peer,
             peer_source=peer_source,
             excerpt=row["user_rule_excerpt"] or "",
-            recommended=_recommended_of(row["resolution_note"]),
+            recommended=_recommended_of(row["resolution_note"], row["conflict_type"]),
             recommended_reason=row["user_rule_excerpt"] or "",
         ))
 

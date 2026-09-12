@@ -12,6 +12,7 @@ from types import SimpleNamespace
 
 from rsi_boot.api.tools import conflicts_tool
 from rsi_boot.injector.conflict import ConflictDetector
+from rsi_boot.scanner.conflict_gate import ConflictDraft
 from rsi_boot.scanner.version_conflict import (
     detect_version_families,
     is_self_deprecated,
@@ -210,7 +211,7 @@ async def test_resolve_keep_peer_archives_legacy_source_only(db, tmp_path):
     async with conn.execute("SELECT id, status FROM knowledge_items") as cur:
         rows = {r["id"]: r["status"] for r in await cur.fetchall()}
     assert rows[old1] == "archived" and rows[old2] == "archived"
-    assert rows[new_id] == "pending_review"  # 现行侧不动
+    assert rows[new_id] == "active"
 
 
 async def test_resolve_keep_item_archives_peer_instead(db, tmp_path):
@@ -228,11 +229,11 @@ async def test_resolve_keep_item_archives_peer_instead(db, tmp_path):
     conn = await db.connect()
     async with conn.execute("SELECT id, status FROM knowledge_items") as cur:
         rows = {r["id"]: r["status"] for r in await cur.fetchall()}
-    assert rows[old_id] == "pending_review"
+    assert rows[old_id] == "active"
     assert rows[new_id] == "archived"
 
 
-async def test_resolve_coexist_changes_nothing(db, tmp_path):
+async def test_resolve_coexist_activates_both(db, tmp_path):
     (tmp_path / "old.md").write_text(
         "# 旧\n\n> **DEPRECATED（已废弃，勿再作为联调权威）**\n> [current.md](./current.md)\n",
         encoding="utf-8",
@@ -246,9 +247,50 @@ async def test_resolve_coexist_changes_nothing(db, tmp_path):
     conn = await db.connect()
     async with conn.execute("SELECT id, status FROM knowledge_items") as cur:
         rows = {r["id"]: r["status"] for r in await cur.fetchall()}
-    assert rows[old_id] == rows[new_id] == "pending_review"
+    assert rows[old_id] == rows[new_id] == "active"
     items = await det.list_conflicts("p1", status="coexist")
     assert items and items[0]["conflict_type"] == "version"
+
+
+async def test_scan_does_not_duplicate_persist_version_family(db, tmp_path):
+    """persist 与 scan 用不同 chunk item_id 时，同一 source pair 只留一条 open version。"""
+    (tmp_path / "foo-v1.0.md").write_text("# Foo\n\nv1.0 body\n", encoding="utf-8")
+    (tmp_path / "foo-v1.1.md").write_text("# Foo\n\nv1.1 body\n", encoding="utf-8")
+    conn = await db.connect()
+    early, late = "2020-01-01T00:00:00+00:00", "2026-01-01T00:00:00+00:00"
+    for item_id, source, created in (
+        ("zzzzpersistid00000000000000000001", "foo-v1.0.md", early),
+        ("aaaascanfirstid000000000000000001", "foo-v1.0.md", late),
+        ("bbbbv11chunk000000000000000000001", "foo-v1.1.md", early),
+        ("ccccv11chunk000000000000000000002", "foo-v1.1.md", late),
+    ):
+        await conn.execute(
+            "INSERT INTO knowledge_items (id, project_id, title, content, content_type, domain, tags,"
+            " source_url, status, created_at, updated_at) VALUES (?, 'p1', ?, ?, 'documentation',"
+            " 'bootstrap', ?, ?, 'pending_review', ?, ?)",
+            (item_id, source, source + "足够长的正文内容。" * 8,
+             json.dumps(["signal:docs"], ensure_ascii=False), source, created, created),
+        )
+    await conn.commit()
+
+    det = ConflictDetector(db, tmp_path)
+    n = await det.persist_knowledge_conflicts(
+        "p1",
+        [ConflictDraft(
+            conflict_type="version",
+            left_source="foo-v1.0.md",
+            right_source="foo-v1.1.md",
+            reason="versioned siblings",
+            hold_sources=["foo-v1.0.md", "foo-v1.1.md"],
+            recommended="keep_peer",
+            recommended_reason="倾向 v1.1",
+        )],
+        {"foo-v1.0.md": "zzzzpersistid00000000000000000001",
+         "foo-v1.1.md": "bbbbv11chunk000000000000000000001"},
+    )
+    assert n == 1
+    await det.scan("p1")
+    assert len(await _open_version(db)) == 1
 
 
 async def test_conflicts_tool_version_resolve(db, tmp_path):
