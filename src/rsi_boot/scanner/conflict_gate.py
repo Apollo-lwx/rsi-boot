@@ -1,13 +1,13 @@
-"""Bootstrap 冲突门：对拟写入草稿做版本/文码/极性检测，产出 hold 集合与冲突草稿。"""
+"""Bootstrap 冲突门：对拟写入草稿做版本/文码/同桶近似检测，产出 hold 集合与冲突草稿。"""
 
 from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
-from pathlib import Path
 from collections import defaultdict
-from typing import Any, Callable, List, Optional, Sequence, Set
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Any, Callable, Optional, Sequence, Set
 
 from ..injector.conflict import _PROHIBITIVE
 from .correlation_engine import _jaccard, _words
@@ -15,11 +15,10 @@ from .version_conflict import detect_version_families
 
 _BODY_JACCARD_THRESHOLD = 0.85
 _DOC_JACCARD_THRESHOLD = 0.5
-_EXCERPT_WINDOW = 50
-_MIN_KEY_PHRASE_LEN = 4
-# 门专用：叙述里的「使用/可以/建议」不能当允许，否则与「禁止使用 X」笛卡尔爆炸
-_GATE_PERMISSIVE = ("允许", "推荐", "优先", "always", "prefer", "feel free")
-_MAX_BUCKET_PAIRS = 80
+_PEER_JACCARD_MIN = 0.35
+# peer 候选带上界复用 _BODY_JACCARD_THRESHOLD（0.85），不另起常量
+_MAX_CANDIDATES = 10000
+
 logger = logging.getLogger(__name__)
 _GENERIC_IDENTIFIERS = frozenset({
     "MySQL", "InnoDB", "PostgreSQL", "PowerShell", "False", "True", "None",
@@ -32,7 +31,14 @@ _GENERIC_IDENTIFIERS = frozenset({
 _CLASS_RE = re.compile(r"\bclass\s+([A-Z]\w+)\b")
 _BACKTICK_RE = re.compile(r"`([A-Z]\w+)`")
 _CAMEL_RE = re.compile(r"\b([A-Z][a-z]+(?:[A-Z][a-zA-Z]*)+)\b")
+# peer 分桶/对象抽取用词：CJK 连续段算一个词（correlation_engine._words 仅 ASCII，会把纯中文掏空）
 _WORD_RE = re.compile(r"[a-zA-Z0-9_\u4e00-\u9fff]+")
+
+_MODAL_WORDS = (
+    "禁止", "不要", "不得", "避免", "严禁", "一律不",
+    "允许", "推荐", "优先", "可以",
+    "never", "don't", "do not", "must not", "avoid", "always", "prefer",
+)
 
 
 @dataclass
@@ -60,54 +66,31 @@ class ConflictDraft:
 class GateResult:
     hold_sources: set[str]
     conflicts: list[ConflictDraft]
+    omitted_candidates: int = 0
 
 
 def _norm_title(title: str) -> str:
     return re.sub(r"\s+", " ", title.strip().lower())
 
 
+def _gate_words(text: str) -> Set[str]:
+    return {w.lower() for w in _WORD_RE.findall(text) if len(w) > 1}
+
+
 def _body_jaccard(left: str, right: str) -> float:
     return _jaccard(_words(left), _words(right))
 
 
+def _peer_sim(left: DraftItem, right: DraftItem) -> float:
+    """peer 候选相似度：标题 + 正文的 CJK 感知词集 Jaccard。"""
+    return _jaccard(
+        _gate_words(f"{left.title}\n{left.content}"),
+        _gate_words(f"{right.title}\n{right.content}"),
+    )
+
+
 def _norm_src(path: str) -> str:
     return path.replace("\\", "/")
-
-
-def _key_phrase(title: str) -> str:
-    return title.removeprefix("禁止：").removeprefix("禁止:").strip()
-
-
-def _find_phrase(text: str, phrase: str) -> int:
-    if phrase.isascii():
-        pattern = re.escape(phrase)
-        if phrase[0].isalnum() or phrase[0] == "_":
-            pattern = r"\b" + pattern
-        if phrase[-1].isalnum() or phrase[-1] == "_":
-            pattern += r"\b"
-        match = re.search(pattern, text, re.IGNORECASE)
-        return match.start() if match else -1
-    return text.lower().find(phrase.lower())
-
-
-def _polarity(window: str) -> str:
-    low = window.lower()
-    if any(w in low for w in _PROHIBITIVE):
-        return "prohibitive"
-    if any(w in low for w in _GATE_PERMISSIVE):
-        return "permissive"
-    return "neutral"
-
-
-def _candidate_phrases(draft: DraftItem) -> List[str]:
-    seen: set[str] = set()
-    phrases: List[str] = []
-    for raw in (_key_phrase(draft.title), draft.title, draft.content):
-        for token in _WORD_RE.findall(raw):
-            if len(token) >= _MIN_KEY_PHRASE_LEN and token not in seen:
-                seen.add(token)
-                phrases.append(token)
-    return phrases
 
 
 def _extract_identifiers(content: str) -> Set[str]:
@@ -222,103 +205,58 @@ def _detect_doc_code_conflicts(
         )
 
 
-def _incoherent_hit(left: DraftItem, right: DraftItem) -> tuple[str, str, str] | None:
-    text_l = f"{left.title}\n{left.content}"
-    text_r = f"{right.title}\n{right.content}"
-    for phrase in _candidate_phrases(left):
-        if len(phrase) < _MIN_KEY_PHRASE_LEN:
-            continue
-        if _find_phrase(text_r, phrase) < 0:
-            continue
-        idx_l = _find_phrase(text_l, phrase)
-        idx_r = _find_phrase(text_r, phrase)
-        if idx_l < 0 or idx_r < 0:
-            continue
-        win_l = text_l[max(0, idx_l - _EXCERPT_WINDOW): idx_l + len(phrase) + _EXCERPT_WINDOW]
-        win_r = text_r[max(0, idx_r - _EXCERPT_WINDOW): idx_r + len(phrase) + _EXCERPT_WINDOW]
-        pol_l, pol_r = _polarity(win_l), _polarity(win_r)
-        if {pol_l, pol_r} != {"prohibitive", "permissive"}:
-            continue
-        return phrase, pol_l, pol_r
+def _h1_text(draft: DraftItem) -> str | None:
+    for line in draft.content.splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
     return None
 
 
-def _emit_incoherent(
-    left: DraftItem,
-    right: DraftItem,
-    hold_sources: Set[str],
-    conflicts: list[ConflictDraft],
-    *,
-    hold_right: bool,
-) -> bool:
-    hit = _incoherent_hit(left, right)
-    if hit is None:
-        return False
-    phrase, pol_l, pol_r = hit
+def _peer_parent_key(draft: DraftItem) -> str | None:
+    """父目录 + 一级标题 桶键；auto-extract / item: / 无路径来源返回 None（只进标题桶）。"""
+    src = _norm_src(draft.source_url)
+    if not src:
+        return None
+    parent = PurePosixPath(src).parent
+    if str(parent) in ("", "."):
+        return None
+    return f"{parent}|{_norm_title(_h1_text(draft) or draft.title)}"
+
+
+def _strip_modals(text: str) -> str:
+    """去语气词后取剩余词块（标题 + 首句），作为约束对象近似。"""
+    first = re.split(r"[。\n.]", text, maxsplit=1)[0]
+    blob = f"{first}"
+    for word in _MODAL_WORDS:
+        blob = blob.replace(word, " ")
+    return " ".join(sorted(_gate_words(blob)))
+
+
+def _constraint_object(draft: DraftItem) -> str:
+    """约束对象近似：自述型文档取正文首个 `# ` 一级标题，否则取标题，去语气词后的排序词集。"""
+    return _strip_modals(_h1_text(draft) or draft.title)
+
+
+def _local_peer_conflict(left: DraftItem, right: DraftItem) -> ConflictDraft | None:
+    """本地裁决：对象相同且极性相反 → ConflictDraft(incoherent, hold 两侧)；否则 None。"""
+    obj_l = _constraint_object(left)
+    obj_r = _constraint_object(right)
+    if not obj_l or obj_l != obj_r:
+        return None
+    pol_l = "prohibitive" if any(w in f"{left.title}{left.content}".lower() for w in _PROHIBITIVE) else "permissive"
+    pol_r = "prohibitive" if any(w in f"{right.title}{right.content}".lower() for w in _PROHIBITIVE) else "permissive"
+    if pol_l == pol_r:
+        return None
     src_l, src_r = _norm_src(left.source_url), _norm_src(right.source_url)
-    hold_sources.add(src_l)
-    held = [src_l]
-    if hold_right:
-        hold_sources.add(src_r)
-        held.append(src_r)
-    conflicts.append(
-        ConflictDraft(
-            conflict_type="incoherent",
-            left_source=src_l,
-            right_source=src_r,
-            reason=f"共享关键短语「{phrase}」，极性相反（{pol_l} vs {pol_r}）",
-            hold_sources=held,
-            recommended="coexist",
-            recommended_reason="需用户裁决口径是否可并存",
-        )
+    return ConflictDraft(
+        conflict_type="incoherent",
+        left_source=src_l,
+        right_source=src_r,
+        reason=f"约束对象相同，极性相反（{pol_l} vs {pol_r}）",
+        hold_sources=[src_l, src_r],
+        recommended="coexist",
+        recommended_reason="同一约束对象极性相反，需裁决口径",
     )
-    return True
-
-
-def _polar_phrase_map(draft: DraftItem) -> dict[str, str]:
-    """短语 → 窗口极性；仅保留禁止/允许，供倒排配对，避免草稿两两全扫。"""
-    text = f"{draft.title}\n{draft.content}"
-    out: dict[str, str] = {}
-    for phrase in _candidate_phrases(draft):
-        idx = _find_phrase(text, phrase)
-        if idx < 0:
-            continue
-        win = text[max(0, idx - _EXCERPT_WINDOW): idx + len(phrase) + _EXCERPT_WINDOW]
-        pol = _polarity(win)
-        if pol != "neutral":
-            out[phrase] = pol
-    return out
-
-
-def _iter_incoherent_pairs(
-    buckets: dict[str, dict[str, list[DraftItem]]],
-):
-    seen: set[tuple[int, int]] = set()
-    for sides in buckets.values():
-        raw = len(sides["prohibitive"]) * len(sides["permissive"])
-        truncated = raw > _MAX_BUCKET_PAIRS
-        if truncated:
-            logger.warning(
-                "极性短语配对过多（%d 对），截取前 %d 对写入冲突样本",
-                raw, _MAX_BUCKET_PAIRS,
-            )
-        emitted = 0
-        stop = False
-        for left in sides["prohibitive"]:
-            for right in sides["permissive"]:
-                if left is right:
-                    continue
-                key = (id(left), id(right)) if id(left) < id(right) else (id(right), id(left))
-                if key in seen:
-                    continue
-                seen.add(key)
-                yield left, right
-                emitted += 1
-                if truncated and emitted >= _MAX_BUCKET_PAIRS:
-                    stop = True
-                    break
-            if stop:
-                break
 
 
 def _detect_incoherent_conflicts(
@@ -329,31 +267,79 @@ def _detect_incoherent_conflicts(
     on_progress: Callable[[int], None] | None = None,
     progress_offset: int = 0,
     on_match_start: Callable[[int], None] | None = None,
-) -> None:
-    buckets: dict[str, dict[str, list[DraftItem]]] = defaultdict(
-        lambda: {"prohibitive": [], "permissive": []}
-    )
-    for i, draft in enumerate(drafts):
-        for phrase, pol in _polar_phrase_map(draft).items():
-            buckets[phrase][pol].append(draft)
+    judge: str = "local",
+) -> int:
+    by_title: dict[str, list[tuple[DraftItem, bool]]] = defaultdict(list)
+    by_parent: dict[str, list[tuple[DraftItem, bool]]] = defaultdict(list)
+    items: list[tuple[DraftItem, bool]] = [(d, False) for d in drafts]
+    items.extend((p, True) for p in peers or [])
+    for i, (item, is_peer) in enumerate(items):
+        by_title[_norm_title(item.title)].append((item, is_peer))
+        key = _peer_parent_key(item)
+        if key is not None:
+            by_parent[key].append((item, is_peer))
         if on_progress is not None:
             on_progress(progress_offset + i + 1)
     if on_match_start is not None:
-        pair_n = sum(1 for _ in _iter_incoherent_pairs(buckets))
-        peer_n = len(drafts) * len(peers or [])
-        on_match_start(pair_n + peer_n)
+        pair_n = sum(
+            len(bucket) * (len(bucket) - 1) // 2
+            for bucket in (*by_title.values(), *by_parent.values())
+        )
+        on_match_start(pair_n)
+    candidates: list[tuple[DraftItem, DraftItem, bool, float]] = []
+    seen: set[tuple[int, int]] = set()
     done = 0
-    for left, right in _iter_incoherent_pairs(buckets):
-        _emit_incoherent(left, right, hold_sources, conflicts, hold_right=True)
-        done += 1
-        if on_progress is not None:
-            on_progress(done)
-    for draft in drafts:
-        for peer in peers or []:
-            _emit_incoherent(draft, peer, hold_sources, conflicts, hold_right=False)
-            done += 1
-            if on_progress is not None:
-                on_progress(done)
+    for bucket in (*by_title.values(), *by_parent.values()):
+        for i in range(len(bucket)):
+            for j in range(i + 1, len(bucket)):
+                left, left_peer = bucket[i]
+                right, right_peer = bucket[j]
+                if left is right or left_peer:
+                    continue
+                if _norm_src(left.source_url) == _norm_src(right.source_url):
+                    continue
+                dedupe = (id(left), id(right)) if id(left) < id(right) else (id(right), id(left))
+                if dedupe in seen:
+                    continue
+                seen.add(dedupe)
+                sim = _peer_sim(left, right)
+                done += 1
+                if on_progress is not None:
+                    on_progress(done)
+                if not (_PEER_JACCARD_MIN <= sim < _BODY_JACCARD_THRESHOLD):
+                    continue
+                candidates.append((left, right, right_peer, sim))
+    budget = max(_MAX_CANDIDATES - len(conflicts), 0)
+    omitted = 0
+    if len(candidates) > budget:
+        omitted = len(candidates) - budget
+        logger.warning(
+            "peer 候选对 %d 超出工作包硬顶 %d，按距 0.85 的相似度距离截断，略去 %d 对",
+            len(candidates), _MAX_CANDIDATES, omitted,
+        )
+        candidates = sorted(candidates, key=lambda c: 0.85 - c[3], reverse=True)[:budget]
+    for left, right, right_peer, sim in candidates:
+        if judge == "host":
+            conflicts.append(
+                ConflictDraft(
+                    conflict_type="incoherent",
+                    left_source=_norm_src(left.source_url),
+                    right_source=_norm_src(right.source_url),
+                    reason=f"同桶近似条目（Jaccard {sim:.2f}），待宿主裁决",
+                    hold_sources=[],
+                    recommended="coexist",
+                    recommended_reason="待宿主裁决是否互斥，本地不扣留",
+                )
+            )
+            continue
+        conflict = _local_peer_conflict(left, right)
+        if conflict is None:
+            continue
+        if right_peer:
+            conflict.hold_sources = [_norm_src(left.source_url)]
+        hold_sources.update(conflict.hold_sources)
+        conflicts.append(conflict)
+    return omitted
 
 
 def gate_drafts(
@@ -364,14 +350,15 @@ def gate_drafts(
     on_progress: Callable[[int], None] | None = None,
     on_match_start: Callable[[int], None] | None = None,
     include: Optional[Sequence[str]] = None,
+    judge: str = "local",
 ) -> GateResult:
     hold_sources: set[str] = set()
     conflicts: list[ConflictDraft] = []
     _detect_version_conflicts(drafts, project_root, hold_sources, conflicts, include=include)
     _detect_doc_code_conflicts(drafts, skeletons, hold_sources, conflicts, on_progress)
-    _detect_incoherent_conflicts(
+    omitted = _detect_incoherent_conflicts(
         drafts, hold_sources, conflicts, peers,
         on_progress=on_progress, progress_offset=len(drafts),
-        on_match_start=on_match_start,
+        on_match_start=on_match_start, judge=judge,
     )
-    return GateResult(hold_sources=hold_sources, conflicts=conflicts)
+    return GateResult(hold_sources=hold_sources, conflicts=conflicts, omitted_candidates=omitted)

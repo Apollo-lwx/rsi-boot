@@ -35,29 +35,6 @@ def test_doc_missing_class_holds_doc_only():
     assert any(c.conflict_type == "doc_code" for c in result.conflicts)
 
 
-def test_polarity_holds_both():
-    drafts = [
-        DraftItem(
-            "禁止：pydantic",
-            "禁止使用 pydantic 作为入参。 " * 4,
-            "prohibition",
-            "auto-a",
-            ["signal:rules"],
-            "rules",
-        ),
-        DraftItem(
-            "API 用 pydantic",
-            "允许使用 pydantic 校验请求体。 " * 4,
-            "convention",
-            "docs/api.md",
-            ["signal:docs"],
-            "docs",
-        ),
-    ]
-    result = gate_drafts(drafts, [], Path("."))
-    assert result.hold_sources >= {"auto-a", "docs/api.md"}
-
-
 def test_gate_drafts_reports_progress():
     hits: list[int] = []
     drafts = [
@@ -76,113 +53,6 @@ def test_gate_drafts_reports_progress():
     assert max(hits) >= 4
 
 
-def test_incoherent_pair_loop_reports_progress():
-    drafts = [
-        DraftItem(
-            "禁止：pydantic",
-            "禁止使用 pydantic 作为入参。 " * 4,
-            "prohibition",
-            "auto-a",
-            ["signal:rules"],
-            "rules",
-        ),
-        DraftItem(
-            "API 用 pydantic",
-            "允许使用 pydantic 校验请求体。 " * 4,
-            "convention",
-            "docs/api.md",
-            ["signal:docs"],
-            "docs",
-        ),
-    ]
-    hits: list[int] = []
-    indexed_at: list[int] = []
-    totals: list[int] = []
-
-    def on_match_start(n: int) -> None:
-        indexed_at.append(len(hits))
-        totals.append(n)
-
-    gate_drafts(
-        drafts, [], Path("."),
-        on_progress=hits.append, on_match_start=on_match_start,
-    )
-    assert indexed_at
-    assert len(hits) > indexed_at[0], "极性配对必须继续打进度，不能停在索引 100%"
-    assert totals and totals[0] >= 1
-
-
-def test_usage_heading_is_not_permissive_conflict():
-    """「使用」出现在普通叙述里不得当成允许，否则会炸出数万对。"""
-    drafts = [
-        DraftItem(
-            "如何使用 MySQL",
-            "本章说明如何使用 MySQL 连接池。" * 4,
-            "documentation",
-            "docs/mysql.md",
-            ["signal:docs"],
-            "docs",
-        ),
-        DraftItem(
-            "禁止：eval",
-            "禁止使用 eval 执行用户输入。" * 4,
-            "prohibition",
-            "rules.md",
-            ["signal:rules"],
-            "rules",
-        ),
-    ]
-    result = gate_drafts(drafts, [], Path("."))
-    assert not any(c.conflict_type == "incoherent" for c in result.conflicts)
-
-
-def test_prefer_is_still_permissive():
-    drafts = [
-        DraftItem(
-            "禁止：httpxclient",
-            "禁止 httpxclient 作为入参。" * 4,
-            "prohibition",
-            "auto-a",
-            ["signal:rules"],
-            "rules",
-        ),
-        DraftItem(
-            "HTTP 客户端",
-            "优先 httpxclient 作为默认客户端。" * 4,
-            "convention",
-            "docs/http.md",
-            ["signal:docs"],
-            "docs",
-        ),
-    ]
-    result = gate_drafts(drafts, [], Path("."))
-    assert any(c.conflict_type == "incoherent" for c in result.conflicts)
-
-
-def test_oversized_polar_bucket_is_sampled_not_dropped():
-    drafts = []
-    for i in range(10):
-        drafts.append(DraftItem(
-            f"禁止{i}",
-            "禁止 sharedtokenxyz 作为入参。" * 4,
-            "prohibition",
-            f"ban{i}.md",
-            ["signal:rules"],
-            "rules",
-        ))
-        drafts.append(DraftItem(
-            f"允许{i}",
-            "允许 sharedtokenxyz 作为约定。" * 4,
-            "convention",
-            f"ok{i}.md",
-            ["signal:docs"],
-            "docs",
-        ))
-    result = gate_drafts(drafts, [], Path("."))
-    n = sum(1 for c in result.conflicts if c.conflict_type == "incoherent")
-    assert 1 <= n <= 80
-
-
 def test_generic_identifier_mysql_is_not_doc_code():
     from rsi_boot.scanner.code_scanner import ModuleSkeleton
 
@@ -199,3 +69,82 @@ def test_generic_identifier_mysql_is_not_doc_code():
     ]
     result = gate_drafts(drafts, [sk], Path("."))
     assert not any(c.conflict_type == "doc_code" for c in result.conflicts)
+
+
+def _draft(title, body, source, signal="docs", ctype="convention"):
+    return DraftItem(title, body, ctype, source, [f"signal:{signal}"], signal)
+
+
+def test_plaintext_vs_encrypted_password_not_paired():
+    """对象不同（明文 vs 加密密码）：标题/目录桶对不上，不成对。"""
+    drafts = [
+        _draft("密码存储", "禁止写入明文密码到数据库。" * 6, "docs/security.md"),
+        _draft("密码存储", "允许写入加密密码到数据库。" * 6, "docs/crypto.md"),
+    ]
+    result = gate_drafts(drafts, [], Path("."), judge="local")
+    assert not any(c.conflict_type == "incoherent" for c in result.conflicts)
+    assert not result.hold_sources
+
+
+def test_same_object_opposite_polarity_opens_incoherent_local():
+    """同一约束对象（pydantic 入参）一禁一许 → 本地裁决开 incoherent 并 hold 两侧。"""
+    drafts = [
+        _draft("API 入参", "禁止使用 pydantic 作为入参。" * 6, "rules/a.md", signal="rules", ctype="prohibition"),
+        _draft("API 入参", "允许使用 pydantic 校验请求体。" * 6, "docs/api.md"),
+    ]
+    result = gate_drafts(drafts, [], Path("."), judge="local")
+    conflict = next(c for c in result.conflicts if c.conflict_type == "incoherent")
+    assert conflict.hold_sources == ["rules/a.md", "docs/api.md"]
+    assert result.hold_sources >= {"rules/a.md", "docs/api.md"}
+
+
+def test_same_title_bucket_pairs_near_duplicates():
+    """同一规范化标题 + 正文 Jaccard 在 [0.35, 0.85) → 成对（local 下无极性不冲突）。"""
+    drafts = [
+        _draft("部署", "使用 docker compose 启动全部服务。" * 6, "docs/deploy-a.md"),
+        _draft("部署", "使用 docker compose 启动基础服务，其余按需。" * 6, "docs/deploy-b.md"),
+    ]
+    result = gate_drafts(drafts, [], Path("."), judge="local")
+    # 无极性相反 → 不开冲突；但 host 模式下应入包
+    assert not result.conflicts
+    host = gate_drafts(drafts, [], Path("."), judge="host")
+    assert any(c.conflict_type == "incoherent" for c in host.conflicts)
+    assert not host.hold_sources  # host 不 hold peer 对
+
+
+def test_parent_dir_h1_bucket_pairs():
+    """标题不同但同父目录 + 正文首个 `# ` 一级标题相同 → 成对。"""
+    drafts = [
+        _draft("缓存策略", "# 会话缓存\n\n允许使用 redis 缓存会话。" + "允许使用 redis 缓存会话。" * 5,
+               "docs/arch/a.md"),
+        _draft("会话缓存", "# 会话缓存\n\n禁止使用 redis 缓存会话。" + "禁止使用 redis 缓存会话。" * 5,
+               "docs/arch/b.md", signal="rules", ctype="prohibition"),
+    ]
+    result = gate_drafts(drafts, [], Path("."), judge="local")
+    assert any(c.conflict_type == "incoherent" for c in result.conflicts)
+
+
+def test_jaccard_outside_band_not_paired():
+    """正文几乎相同（>=0.85，复制）或几乎无关（<0.35）都不成对。"""
+    same = "同一段说明文字。" * 30
+    drafts = [
+        _draft("相同", same, "a/x.md"),
+        _draft("相同", same, "b/y.md"),
+        _draft("无关", "完全不同的主题，讲操作系统调度。" * 8, "a/z.md"),
+    ]
+    host = gate_drafts(drafts, [], Path("."), judge="host")
+    assert not host.conflicts
+
+
+def test_candidate_cap_counts_omitted(monkeypatch):
+    """peer 候选超 10000 时按距 0.85 截断并计数（用小常量 monkeypatch 验证）。"""
+    import rsi_boot.scanner.conflict_gate as gate_mod
+    drafts = []
+    for i in range(30):
+        drafts.append(_draft("同题", f"允许使用 token{i} 作为约定。" * 4, f"ok{i}.md"))
+        drafts.append(_draft("同题", f"禁止 token{i} 作为入参。" * 4, f"ban{i}.md",
+                             signal="rules", ctype="prohibition"))
+    monkeypatch.setattr(gate_mod, "_MAX_CANDIDATES", 10)
+    result = gate_drafts(drafts, [], Path("."), judge="local")
+    assert len(result.conflicts) <= 10
+    assert result.omitted_candidates >= 1
