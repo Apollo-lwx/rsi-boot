@@ -50,6 +50,7 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
             project_id, approve,
             content_type=arguments.get("content_type") or None,
             include_archived=bool(arguments.get("include_archived")),
+            exclude_bootstrap=True,
         )
         return {"status": "ok", **result}
 

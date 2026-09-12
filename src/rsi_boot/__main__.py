@@ -156,6 +156,15 @@ async def cmd_knowledge(args: argparse.Namespace) -> int:
             ok = await runtime.knowledge.delete(args.id, project)
             print("已删除" if ok else "未找到该条目")
             return 0 if ok else 1
+        if args.knowledge_action == "accept":
+            from .cli.knowledge_accept import run_knowledge_accept
+
+            return await run_knowledge_accept(
+                runtime,
+                run_id=getattr(args, "run", None),
+                reject=bool(getattr(args, "reject", False)),
+                conflicts=getattr(args, "conflicts", None),
+            )
         print("未知 knowledge 子命令", file=sys.stderr)
         return 2
     finally:
@@ -221,6 +230,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_del.add_argument("id")
     p_del.add_argument("--project", default=None, help="已废弃：由当前目录绑定")
     _add_verbose(p_del)
+    p_acc = kn_sub.add_parser("accept", help="放行本轮 bootstrap 抽取（不碰 auto-extract）")
+    p_acc.add_argument("--reject", action="store_true", help="拒绝本轮抽取")
+    p_acc.add_argument(
+        "--conflicts", choices=["tend", "coexist"], default=None,
+        help="tend=按 recommended 裁决本轮冲突；coexist=两侧都留",
+    )
+    p_acc.add_argument("--run", default=None, help="bootstrap run id；缺省读 .rsi/bootstrap_run.json")
+    _add_verbose(p_acc)
 
     p_mig = sub.add_parser("migrate", help="从旧版 ~/.rsi/rsi.db 认领命名空间到当前项目")
     _add_verbose(p_mig)

@@ -193,9 +193,13 @@ class KnowledgeService:
         ids: Optional[List[str]] = None,
         content_type: Optional[str] = None,
         include_archived: bool = False,
+        bootstrap_run_id: Optional[str] = None,
+        exclude_bootstrap: bool = False,
+        source_url: Optional[str] = None,
     ) -> dict[str, Any]:
         """批量审批（bootstrap 队列洪水场景）：默认处理全部 pending_review；
         ids 给定时只处理这些条目；content_type 过滤；include_archived 含限量溢出条目。
+        bootstrap_run_id / exclude_bootstrap / source_url 隔离日常 auto-extract 与本轮抽取。
         单次提交 + 单次缓存失效 + 单次注入重写，返回 {processed, new_status}"""
         project_id = self._scope(project_id)
         conn = await self._db.connect()
@@ -208,6 +212,15 @@ class KnowledgeService:
         if content_type:
             clauses.append("content_type = ?")
             params.append(content_type)
+        if bootstrap_run_id:
+            clauses.append("tags LIKE ?")
+            params.append(f"%bootstrap_run_id:{bootstrap_run_id}%")
+        if exclude_bootstrap:
+            clauses.append("tags NOT LIKE ?")
+            params.append("%bootstrap_run_id%")
+        if source_url is not None:
+            clauses.append("source_url = ?")
+            params.append(source_url)
         async with conn.execute(
             f"SELECT rowid, id, title, content FROM knowledge_items WHERE {' AND '.join(clauses)}",
             params,

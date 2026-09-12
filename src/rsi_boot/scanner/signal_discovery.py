@@ -13,7 +13,7 @@ from typing import Callable, Dict, Iterator, List, Optional
 
 # 不扫描的目录（§10.9.6 设计原则：二进制/编译产物/依赖/缓存目录除外）
 EXCLUDED_DIRS = frozenset({
-    ".git", "node_modules", "vendor", "__pycache__", ".venv", "venv",
+    ".git", ".rsi", "node_modules", "vendor", "__pycache__", ".venv", "venv",
     "dist", "build", ".idea", ".mypy_cache", ".pytest_cache", "target",
     ".vite-cache", ".cache", ".turbo", ".next", ".nuxt", "coverage", ".parcel-cache",
 })
