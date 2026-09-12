@@ -219,6 +219,52 @@ async def test_resolve_coexist_activates_both_without_archive(tmp_path, monkeypa
 
 
 @pytest.mark.asyncio
+async def test_explain_item_peer_key_shows_historical_title(tmp_path, monkeypatch):
+    """user_rule_path=item:<hist_id> 时展开应显示历史条目标题，而非空或合成键。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    rt = await build_runtime(project_root=root)
+    try:
+        hist_title = "API 用 pydantic"
+        hist_id = await _insert_knowledge(
+            rt, title=hist_title, content="允许使用 pydantic 做请求校验。",
+            source_url="", status="active",
+        )
+        new_id = await _insert_knowledge(
+            rt, title="禁止：pydantic", content="禁止使用 pydantic 做请求校验。",
+            source_url="auto-extract", status="pending_review",
+            content_type="prohibition",
+        )
+        peer_key = f"item:{hist_id}"
+        n = await rt.conflict_detector.persist_knowledge_conflicts(
+            rt.project_id,
+            [ConflictDraft(
+                conflict_type="incoherent",
+                left_source="auto-extract",
+                right_source=peer_key,
+                reason="极性相反：禁止 pydantic vs 允许 pydantic",
+                hold_sources=["auto-extract", peer_key],
+                recommended="keep_item",
+                recommended_reason="新稿来自刚才这次对话的明确否定",
+            )],
+            {"auto-extract": new_id, peer_key: hist_id},
+        )
+        assert n == 1
+        conflict = await _open_conflict(rt, rt.project_id)
+        assert conflict["user_rule_path"] == peer_key
+
+        explained = await rt.conflict_detector.explain(conflict["id"])
+        assert explained is not None
+        peer_side = next(s for s in explained["sides"] if s["role"] == "peer")
+        assert peer_side["title"] == hist_title
+        assert peer_side["item_id"] == hist_id
+        assert not peer_side["title"].startswith("item:")
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
 async def test_conflicts_tool_explain_requires_conflict_id(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
     root = tmp_path / "proj"

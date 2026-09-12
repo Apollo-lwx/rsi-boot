@@ -382,11 +382,15 @@ class ConflictDetector:
             return None
         item = await self._load_item(conn, row["item_id"])
         peer_src = self._norm_src(row["user_rule_path"])
-        peers = await self._items_by_source(conn, row["project_id"], peer_src)
+        peer = await _peer_row(
+            conn, row["project_id"],
+            peer_src,
+            row["user_rule_excerpt"] or "",
+        )
         item_excerpt = mask_text((item or {}).get("content") or "")[:_EXCERPT_MAX]
         peer_excerpt = row["user_rule_excerpt"] or ""
-        if peers:
-            peer_excerpt = mask_text(peers[0].get("content") or peer_excerpt)[:_EXCERPT_MAX]
+        if peer:
+            peer_excerpt = mask_text(peer.get("content") or peer_excerpt)[:_EXCERPT_MAX]
         sides = [
             {
                 "role": "item",
@@ -398,11 +402,11 @@ class ConflictDetector:
             },
             {
                 "role": "peer",
-                "item_id": peers[0]["id"] if peers else None,
-                "title": peers[0]["title"] if peers else "",
+                "item_id": peer["id"] if peer else None,
+                "title": (peer or {}).get("title") or "",
                 "excerpt": peer_excerpt,
                 "source": peer_src,
-                "status": peers[0]["status"] if peers else "",
+                "status": (peer or {}).get("status") or "",
             },
         ]
         recommended = self._recommended_of(row)
