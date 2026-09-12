@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ...project import tool_project_id
 from ...services.decision_queue import close_extract_runs
 from ...services.knowledge_service import KnowledgeService
 
@@ -46,7 +47,8 @@ async def _tags_of(knowledge: KnowledgeService, item_ids: list[str]) -> list[Any
 async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     knowledge = getattr(runtime_or_knowledge, "knowledge", runtime_or_knowledge)
     decisions = getattr(runtime_or_knowledge, "decisions", None)
-    project_id = str(arguments.get("project_id") or "")
+    db = getattr(runtime_or_knowledge, "db", knowledge._db)
+    project_id = tool_project_id(runtime_or_knowledge, arguments)
     action = str(arguments.get("action", ""))
     if action not in ("approve", "reject"):
         return {"status": "error", "message": "action 非法（approve/reject）"}
@@ -59,7 +61,7 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
         tags = await _tags_of(knowledge, ids)
         result = await knowledge.review_batch(project_id, approve, ids=ids)
         if result.get("processed"):
-            close_extract_runs(decisions, tags)
+            await close_extract_runs(decisions, tags, db=db, project_id=project_id)
         return {"status": "ok", **result}
 
     if arguments.get("all_pending"):
@@ -78,5 +80,5 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
     new_status = await knowledge.review(item_id, project_id, approve=approve)
     if new_status is None:
         return {"status": "error", "message": f"条目不存在或不处于待审状态: {item_id}"}
-    close_extract_runs(decisions, tags)
+    await close_extract_runs(decisions, tags, db=db, project_id=project_id)
     return {"status": "ok", "id": item_id, "new_status": new_status}

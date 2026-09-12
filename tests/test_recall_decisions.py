@@ -162,6 +162,52 @@ async def test_resolve_closes_decision_card(tmp_path, monkeypatch):
         await rt.close()
 
 
+async def test_knowledge_review_keeps_extract_card_while_pending_remain(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-partial"
+    rsi = root / ".rsi"
+    rsi.mkdir()
+    (rsi / "bootstrap_run.json").write_text(
+        json.dumps({"latest": run_id}), encoding="utf-8",
+    )
+    rt = await build_runtime(project_root=root)
+    try:
+        item_a = await _insert_item(
+            rt.db, project_id=rt.project_id, title="抽取 A",
+            source_url="cursor/chat-a.md",
+            tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
+        )
+        item_b = await _insert_item(
+            rt.db, project_id=rt.project_id, title="抽取 B",
+            source_url="cursor/chat-b.md",
+            tags=["signal:rules", f"bootstrap_run_id:{run_id}"],
+        )
+        first = await rt.recall.recall("开始任务", rt.project_id)
+        assert first["decisions"][0]["id"] == f"extract:{run_id}"
+        assert first["decisions"][0]["kind"] == "bootstrap_extract"
+        result = await knowledge_review_tool.handle(rt, {
+            "id": item_a,
+            "action": "approve",
+            "project_id": rt.project_id,
+        })
+        assert result["status"] == "ok"
+        second = await rt.recall.recall("开始任务", rt.project_id)
+        assert len(second["decisions"]) == 1
+        assert second["decisions"][0]["id"] == f"extract:{run_id}"
+        result_b = await knowledge_review_tool.handle(rt, {
+            "id": item_b,
+            "action": "approve",
+            "project_id": rt.project_id,
+        })
+        assert result_b["status"] == "ok"
+        third = await rt.recall.recall("开始任务", rt.project_id)
+        assert third["decisions"] == []
+    finally:
+        await rt.close()
+
+
 async def test_knowledge_review_closes_extract_card(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
     root = tmp_path / "proj"

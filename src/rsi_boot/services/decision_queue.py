@@ -283,11 +283,43 @@ async def collect_decision_cards(
     return cards
 
 
-def close_extract_runs(decisions: Optional[DecisionQueue], tags_rows: list[Any]) -> None:
-    """知识审批/accept 成功后，按条目 tags 关闭 extract:<run_id>。"""
+async def _pending_extract_count(db: SQLiteClient, project_id: str, run_id: str) -> int:
+    marker = f"bootstrap_run_id:{run_id}"
+    conn = await db.connect()
+    async with conn.execute(
+        "SELECT tags, source_url FROM knowledge_items "
+        "WHERE project_id = ? AND status = 'pending_review'",
+        (project_id,),
+    ) as cur:
+        pending = await cur.fetchall()
+    n = 0
+    for prow in pending:
+        if (prow["source_url"] or "") == "auto-extract":
+            continue
+        ptags = _parse_tags(prow["tags"])
+        if marker not in ptags:
+            continue
+        if not _EXTRACT_SIGNALS.intersection(ptags):
+            continue
+        n += 1
+    return n
+
+
+async def close_extract_runs(
+    decisions: Optional[DecisionQueue],
+    tags_rows: list[Any],
+    *,
+    db: SQLiteClient,
+    project_id: str,
+) -> None:
+    """知识审批成功后，仅当该 run 无剩余 pending 抽取时关闭 extract:<run_id>。"""
     if decisions is None:
         return
+    run_ids: set[str] = set()
     for raw in tags_rows:
         for tag in _parse_tags(raw):
             if tag.startswith("bootstrap_run_id:"):
-                decisions.close(f"extract:{tag.split(':', 1)[1]}")
+                run_ids.add(tag.split(":", 1)[1])
+    for run_id in run_ids:
+        if await _pending_extract_count(db, project_id, run_id) == 0:
+            decisions.close(f"extract:{run_id}")
