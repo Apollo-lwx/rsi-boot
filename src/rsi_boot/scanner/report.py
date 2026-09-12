@@ -21,7 +21,8 @@ class BootstrapReport:
     archived: int = 0                                           # 信号源删除归档数（§10.9.10）
     superseded: int = 0                                         # 内容变更收敛的旧版本条目数（§10.9.10）
     revived: int = 0                                            # revert/切回复活的条目数
-    review_queue_archived: int = 0                              # 审批队列限量溢出置 archived 数
+    review_queue_archived: int = 0                              # 已弃用：帽不再 archived
+    review_queue_warning: str = ""                              # 带 bootstrap_run_id 的 pending 超过 500 时的警告
     prohibition_seeds: int = 0                                  # 用户规则禁止句式种子数（ISSUE-6）
     version_conflicts: int = 0                                  # 多版本文档家族冲突（待用户裁决）
     code_modules: int = 0                                       # AST 骨架模块数（P2.6）
@@ -55,6 +56,8 @@ class BootstrapReport:
                 )
             if self.prohibition_seeds:
                 lines.append(f"禁止项种子: {self.prohibition_seeds} 条（来自用户规则文件，待审批）")
+            if self.review_queue_warning:
+                lines.append(f"审批队列: {self.review_queue_warning}")
             if self.review_queue_archived:
                 lines.append(
                     f"审批队列限量: {self.review_queue_archived} 条溢出置 archived"

@@ -11,7 +11,7 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime, timezone
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Set
 
@@ -19,8 +19,9 @@ from ..bootstrap import build_runtime, detect_user_id
 from ..project import load_or_create_identity
 from ..core.masking import mask_text
 from ..core.models import KnowledgeItem
-from ..scanner.code_scanner import aggregate_imports, group_by_directory, scan_code
+from ..scanner.code_scanner import aggregate_imports, scan_code
 from ..scanner.config_scanner import scan_configs
+from ..scanner.conflict_gate import DraftItem, gate_drafts
 from ..scanner.conversation_scanner import scan_conversations
 from ..scanner.correlation_engine import (
     correlate_commit_files,
@@ -28,6 +29,7 @@ from ..scanner.correlation_engine import (
     correlate_test_code,
     summarize_correlations,
 )
+from ..scanner.document_scanner import slice_document
 from ..scanner.git_analyzer import analyze_git
 from ..scanner.incremental import archive_missing_signals, ingest_document, reconcile_scope
 from ..scanner.profile_generator import (
@@ -40,8 +42,69 @@ from ..scanner.report import BootstrapReport
 from ..scanner.rule_seed_scanner import scan_rule_seeds
 from ..scanner.signal_discovery import discover_signals, plan_scopes
 from ..scanner.validator import DedupSet, ErrorCollector, content_hash, read_text_tolerant, validate_chunk
+from .progress import Progress
+
+_LANE_B = frozenset({"conversation", "rules"})
+_REVIEW_CAP_WARN = 500
+
+
+def _norm_src(path: str) -> str:
+    return (path or "").replace("\\", "/")
+
+
+def _write_status(signal: str, source_url: str, hold_sources: Set[str]) -> str:
+    src = _norm_src(source_url)
+    if src and src in hold_sources:
+        return "pending_review"
+    if signal in _LANE_B:
+        return "pending_review"
+    return "active"
+
+
+def _run_tags(signal: str, run_id: str, extra: List[str] | None = None) -> List[str]:
+    tags = [f"signal:{signal}", f"bootstrap_run_id:{run_id}"]
+    if extra:
+        tags.extend(extra)
+    return tags
+
+
+def _save_bootstrap_run(rsi_dir: Path, run_id: str) -> None:
+    rsi_dir.mkdir(parents=True, exist_ok=True)
+    (rsi_dir / "bootstrap_run.json").write_text(
+        json.dumps({"latest": run_id}, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 logger = logging.getLogger(__name__)
+
+
+def _phase_names(plan: Dict[str, bool], dry_run: bool) -> List[str]:
+    names = ["扫描文件树"]
+    if dry_run:
+        return names
+    names.append("初始化数据库")
+    if plan.get("docs"):
+        names.append("文档")
+    if plan.get("config"):
+        names.append("配置")
+    if plan.get("code"):
+        names.append("代码")
+    if plan.get("git"):
+        names.append("Git")
+    if plan.get("conversation"):
+        names.append("对话")
+    if plan.get("config"):
+        names.append("规则种子")
+    names.extend(["关联与画像", "收尾"])
+    return names
+
+
+def _signal_summary(signals: Dict[str, Any]) -> str:
+    parts: List[str] = []
+    for name, info in signals.items():
+        if not info.present:
+            continue
+        parts.append(f"{name} {info.file_count}" if info.file_count else name)
+    return " · ".join(parts) or "无"
 
 
 def _parse_size(text: str) -> int:
@@ -85,6 +148,7 @@ def _ensure_gitignore(project_root: Path) -> None:
 async def _write_code_batch(
     runtime: Any, project_id: str, batch: List[str], dedup: DedupSet,
     report: BootstrapReport, kept_hashes: Set[str],
+    *, status: str, tags: List[str],
 ) -> None:
     """代码骨架批次写入（生成内容豁免 50 token 噪声下限，与配置摘要同口径）。
     无论写不写都记录内容哈希——供批次级 reconcile 区分「未变保留」与「旧版本」"""
@@ -94,14 +158,30 @@ async def _write_code_batch(
         report.duplicates_skipped += 1
         return
     await runtime.knowledge.add(KnowledgeItem(
-        project_id=project_id, title="代码骨架摘要", content=text, status="pending_review",
-        content_type="architecture", domain="bootstrap", tags=["signal:code"],
+        project_id=project_id, title="代码骨架摘要", content=text, status=status,
+        content_type="architecture", domain="bootstrap", tags=tags,
     ))
     report.knowledge_written += 1
 
 
+async def _source_to_item_id(runtime: Any, project_id: str) -> Dict[str, str]:
+    conn = await runtime.db.connect()
+    async with conn.execute(
+        "SELECT id, source_url FROM knowledge_items "
+        "WHERE project_id = ? AND source_url IS NOT NULL AND source_url != '' "
+        "ORDER BY created_at",
+        (project_id,),
+    ) as cur:
+        rows = await cur.fetchall()
+    mapping: Dict[str, str] = {}
+    for row in rows:
+        key = _norm_src(row["source_url"])
+        mapping.setdefault(key, row["id"])
+    return mapping
+
+
 async def _existing_hashes(runtime: Any, project_id: str) -> Set[str]:
-    # archived 参与去重：限量溢出的条目在 force/内容微调重跑时不得重新入队
+    # archived 参与去重：收敛/归档条目在 force/内容微调重跑时不得重新入队
     conn = await runtime.db.connect()
     async with conn.execute(
         "SELECT content FROM knowledge_items WHERE project_id = ? AND status IN ('active', 'pending_review', 'archived')",
@@ -111,37 +191,24 @@ async def _existing_hashes(runtime: Any, project_id: str) -> Set[str]:
     return {content_hash(r["content"]) for r in rows}
 
 
-#: 审批队列限量优先级（值越小越优先保留在 pending_review）；
-#: prohibition 仅次 convention——禁止项召回置顶/常驻注入，冷启动价值最高
-_REVIEW_PRIORITY = {"convention": 0, "prohibition": 1, "architecture": 2, "faq": 3, "documentation": 4}
-
-
 async def _enforce_review_cap(
     runtime: Any, project_id: str, cap: int, report: BootstrapReport
 ) -> None:
-    """审批队列限量（bootstrap.review_queue_cap）：pending_review 超上限时，
-    按 content_type 优先级 + 写入先后保留前 cap 条，溢出置 archived（可批量审批恢复）"""
+    """只统计 tags 含 bootstrap_run_id 的 pending；超过 500 打 warning，不 archived。"""
+    del cap
     conn = await runtime.db.connect()
     async with conn.execute(
-        "SELECT id, content_type, created_at FROM knowledge_items "
-        "WHERE project_id = ? AND status = 'pending_review'",
+        "SELECT id FROM knowledge_items "
+        "WHERE project_id = ? AND status = 'pending_review' "
+        "AND tags LIKE '%bootstrap_run_id%'",
         (project_id,),
     ) as cur:
         rows = await cur.fetchall()
-    if len(rows) <= cap:
-        return
-    rows.sort(key=lambda r: (_REVIEW_PRIORITY.get(r["content_type"], 9), r["created_at"]))
-    overflow = [r["id"] for r in rows[cap:]]
-    now = datetime.now(timezone.utc).isoformat()
-    for i in range(0, len(overflow), 500):  # SQLite 宿主变量上限 999，分批 UPDATE
-        chunk = overflow[i:i + 500]
-        await conn.execute(
-            f"UPDATE knowledge_items SET status = 'archived', updated_at = ? "
-            f"WHERE id IN ({','.join('?' for _ in chunk)})",
-            [now, *chunk],
+    if len(rows) > _REVIEW_CAP_WARN:
+        report.review_queue_warning = (
+            f"本轮待审 {len(rows)} 条，超过 {_REVIEW_CAP_WARN}（未归档）"
         )
-    await conn.commit()
-    report.review_queue_archived = len(overflow)
+        logger.warning(report.review_queue_warning)
 
 
 async def run_bootstrap(args: argparse.Namespace) -> int:
@@ -152,10 +219,18 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
     project_id = load_or_create_identity(project_root).project_id
     max_file_size = _parse_size(args.max_file_size)
     rsi_dir = project_root / ".rsi"
+    progress = Progress()
+    mode = "（预览）" if args.dry_run else ""
+    progress.start(10, title=f"开始学习{mode}：{project_root}")
 
     # ---- 阶段一：信号发现 + 扫描计划 ----
-    signals = discover_signals(project_root, max_file_size)
+    progress.phase("扫描文件树")
+    signals = discover_signals(project_root, max_file_size, on_progress=progress.tick)
     plan = plan_scopes(signals, args.scope or "", consent=args.consent)
+    progress.total_phases = len(_phase_names(plan, args.dry_run))
+    progress.writeln(f"发现信号：{_signal_summary(signals)}")
+    active = [name for name, on in plan.items() if on]
+    progress.writeln(f"将采集：{', '.join(active) or '（无）'}")
     report = BootstrapReport(
         project_root=str(project_root),
         signals={k: v.file_count for k, v in signals.items() if v.present},
@@ -164,21 +239,29 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
     )
 
     if args.dry_run:
+        progress.finish("（仅预览，未写入知识）")
         print(report.render_terminal())
         return 0
 
     collector = ErrorCollector(strict=args.strict)
+    progress.phase("初始化数据库")
     runtime = await build_runtime(project_root=project_root)
     try:
         manifest = {} if args.force else _load_manifest(rsi_dir)
         new_manifest = dict(manifest)
         dedup = DedupSet(await _existing_hashes(runtime, project_id))
+        run_id = uuid.uuid4().hex
+        drafts: List[DraftItem] = []
+        doc_jobs: List[Dict[str, Any]] = []
 
-        # ---- 阶段二/四：文档采集 + 知识写入（含变更收敛/复活，§10.9.10） ----
-        doc_titles: Dict[str, str] = {}  # 供 doc↔code 关联推理
+        # ---- 先切片/摘要成草稿，不写库 ----
+        doc_titles: Dict[str, str] = {}
         if plan.get("docs"):
-            for path in signals["docs"].files:
+            docs = signals["docs"].files
+            progress.phase("文档", total=len(docs))
+            for index, path in enumerate(docs, 1):
                 rel = str(path.relative_to(project_root))
+                rel_n = _norm_src(rel)
                 try:
                     text = read_text_tolerant(path)
                     if text is None:
@@ -186,148 +269,251 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                         continue
                     fingerprint = content_hash(text)
                     if manifest.get(rel) == fingerprint:
-                        continue  # 增量：指纹未变跳过（§10.9.10 幂等）
-                    stats = await ingest_document(
-                        runtime, project_root, project_id, path, dedup,
-                        status="pending_review", tags=["signal:docs"],
-                        allow_sensitive=args.allow_sensitive, text=text,
-                    )
-                    if stats["title"]:
-                        doc_titles[rel] = stats["title"]
-                    report.knowledge_written += stats["written"]
-                    report.chunks_skipped += stats["skipped"]
-                    report.duplicates_skipped += stats["duplicates"]
-                    report.superseded += stats["superseded"]
-                    report.revived += stats["revived"]
-                    new_manifest[rel] = fingerprint
+                        continue
+                    sliced = slice_document(path)
+                    title = None
+                    for chunk in sliced:
+                        if title is None:
+                            title = chunk.title
+                        drafts.append(DraftItem(
+                            title=chunk.title, content=chunk.content,
+                            content_type="documentation", source_url=rel_n,
+                            tags=["signal:docs"], signal="docs",
+                        ))
+                    if title:
+                        doc_titles[rel] = title
+                    doc_jobs.append({"path": path, "rel": rel, "text": text, "fp": fingerprint})
                 except Exception as exc:
                     collector.report(f"文档 {rel}", exc)
+                progress.tick(index)
 
-        # ---- 配置/规范解析 → 知识 + 画像 ----
+        if plan.get("config"):
+            progress.phase("配置")
         insights = scan_configs(
             project_root,
             signals["config"].files, signals["conventions"].files,
             signals["ci"].files, signals["code"].files,
         )
+        config_summary = None
         if plan.get("config"):
-            # 配置摘要是生成的结构化知识，不适用文档切片的 50 token 噪声下限（§10.9.7 针对切片）
-            summary = mask_text(insights.summary_text())
-            config_hashes = {content_hash(summary)}
-            if not dedup.is_duplicate(summary):
-                await runtime.knowledge.add(KnowledgeItem(
-                    project_id=project_id, title="项目配置与规范摘要", content=summary, status="pending_review",
-                    content_type="convention", domain="bootstrap", tags=["signal:config"],
-                ))
-                report.knowledge_written += 1
-            # 依赖/规范演进 → 旧版本摘要收敛
-            report.superseded += await reconcile_scope(
-                runtime, project_id, "tags LIKE ?", ['%"signal:config"%'], config_hashes
-            )
+            config_summary = mask_text(insights.summary_text())
+            drafts.append(DraftItem(
+                title="项目配置与规范摘要", content=config_summary,
+                content_type="convention", source_url="",
+                tags=["signal:config"], signal="config",
+            ))
 
-        # ---- 代码骨架（AST，P2.6）：按大小批次聚合写入（碎片合并，过 50 token 噪声下限） ----
         skeletons = []
+        code_batches: List[List[str]] = []
         if plan.get("code"):
-            skeletons = scan_code(project_root, signals["code"].files)
+            progress.phase("代码", total=len(signals["code"].files))
+            skeletons = scan_code(
+                project_root, signals["code"].files,
+                on_progress=lambda done, _total: progress.tick(done),
+            )
             report.code_modules = len(skeletons)
-            code_hashes: Set[str] = set()
             batch: List[str] = []
             batch_chars = 0
             for skeleton in skeletons:
                 batch.append(skeleton.to_text())
                 batch_chars += len(skeleton.to_text())
                 if batch_chars >= 3000:
-                    await _write_code_batch(runtime, project_id, batch, dedup, report, code_hashes)
+                    code_batches.append(batch)
+                    drafts.append(DraftItem(
+                        title="代码骨架摘要", content="\n\n".join(batch),
+                        content_type="architecture", source_url="",
+                        tags=["signal:code"], signal="code",
+                    ))
                     batch, batch_chars = [], 0
             if batch:
-                await _write_code_batch(runtime, project_id, batch, dedup, report, code_hashes)
-            if skeletons:
-                # 代码演进 → 旧批次收敛（未变批次哈希在 kept 集中，不受波及）
-                report.superseded += await reconcile_scope(
-                    runtime, project_id, "tags LIKE ?", ['%"signal:code"%'], code_hashes
-                )
+                code_batches.append(batch)
+                drafts.append(DraftItem(
+                    title="代码骨架摘要", content="\n\n".join(batch),
+                    content_type="architecture", source_url="",
+                    tags=["signal:code"], signal="code",
+                ))
 
-        # ---- Git 历史（P2.6）：风格/贡献/归属 → 知识 + 画像 ----
         git_insights = None
+        git_summary = None
         if plan.get("git"):
+            progress.phase(f"Git（最多 {args.max_commits} 次提交）")
             git_insights = analyze_git(project_root, max_commits=args.max_commits)
             if git_insights and git_insights.total_commits:
                 report.git_summary = (
                     f"{git_insights.total_commits} commits, "
                     f"{len(git_insights.authors)} 人, conventional {git_insights.conventional_ratio:.0%}"
                 )
-                summary = mask_text(git_insights.to_summary())
-                git_hashes = {content_hash(summary)}
-                if not dedup.is_duplicate(summary):
-                    await runtime.knowledge.add(KnowledgeItem(
-                        project_id=project_id, title="Git 历史分析", content=summary, status="pending_review",
-                        content_type="architecture", domain="bootstrap", tags=["signal:git"],
-                    ))
-                    report.knowledge_written += 1
-                # commit 持续累积 → 旧摘要收敛
-                report.superseded += await reconcile_scope(
-                    runtime, project_id, "tags LIKE ?", ['%"signal:git"%'], git_hashes
-                )
+                git_summary = mask_text(git_insights.to_summary())
+                drafts.append(DraftItem(
+                    title="Git 历史分析", content=git_summary,
+                    content_type="architecture", source_url="",
+                    tags=["signal:git"], signal="git",
+                ))
 
-        # ---- 对话上下文（P2.6，--consent 门控）：决策/问题模式 ----
+        convo_drafts: List[DraftItem] = []
         if plan.get("conversation"):
+            progress.phase("对话", total=max(len(signals["conversation"].files), 1))
             patterns = scan_conversations(project_root, signals["conversation"].files)
+            progress.tick(len(signals["conversation"].files) or 1)
             report.conversation_patterns = len(patterns)
             for pattern in patterns:
                 result = validate_chunk(pattern.text, allow_sensitive=args.allow_sensitive)
-                if not result.ok or dedup.is_duplicate(result.content):
+                if not result.ok:
                     continue
-                await runtime.knowledge.add(KnowledgeItem(
-                    project_id=project_id,
+                item = DraftItem(
                     title=f"{'决策记录' if pattern.kind == 'decision' else '常见问题'}（{Path(pattern.source).name}）",
-                    content=result.content,
-                    status="pending_review",
-                    content_type="faq",
-                    domain="bootstrap",
-                    tags=["signal:conversation", f"kind:{pattern.kind}"],
+                    content=result.content, content_type="faq",
                     source_url=pattern.source,
-                ))
-                report.knowledge_written += 1
+                    tags=["signal:conversation", f"kind:{pattern.kind}"],
+                    signal="conversation",
+                )
+                drafts.append(item)
+                convo_drafts.append(item)
 
-        # ---- 用户规则禁止句式 → prohibition 种子（ISSUE-6 冷启动，随 config 维度门控） ----
+        rule_drafts: List[DraftItem] = []
         if plan.get("config"):
-            seed_hashes: Set[str] = set()
+            progress.phase("规则种子")
             for seed in scan_rule_seeds(project_root):
-                seed_hashes.add(content_hash(seed.content))
-                if dedup.is_duplicate(seed.content):
-                    report.duplicates_skipped += 1
-                    continue
+                item = DraftItem(
+                    title=seed.title, content=seed.content,
+                    content_type="prohibition", source_url=seed.source,
+                    tags=["signal:rules"], signal="rules",
+                )
+                drafts.append(item)
+                rule_drafts.append(item)
+
+        progress.phase("关联与画像")
+        correlations = correlate_test_code(signals["tests"].files, signals["code"].files, project_root)
+        correlations += correlate_doc_code(doc_titles, skeletons)
+        correlations += correlate_commit_files(git_insights)
+        corr_summary = None
+        if correlations:
+            for c in correlations:
+                report.correlations[c.kind] = report.correlations.get(c.kind, 0) + 1
+            corr_summary = mask_text(summarize_correlations(correlations))
+            drafts.append(DraftItem(
+                title="跨信号关联图谱", content=corr_summary,
+                content_type="architecture", source_url="",
+                tags=["signal:correlation"], signal="correlation",
+            ))
+
+        gate = gate_drafts(drafts, skeletons, project_root)
+        hold = {_norm_src(s) for s in gate.hold_sources}
+
+        # ---- 过闸后再写库 ----
+        for job in doc_jobs:
+            status = _write_status("docs", job["rel"], hold)
+            try:
+                stats = await ingest_document(
+                    runtime, project_root, project_id, job["path"], dedup,
+                    status=status, tags=_run_tags("docs", run_id),
+                    allow_sensitive=args.allow_sensitive, text=job["text"],
+                )
+                report.knowledge_written += stats["written"]
+                report.chunks_skipped += stats["skipped"]
+                report.duplicates_skipped += stats["duplicates"]
+                report.superseded += stats["superseded"]
+                report.revived += stats["revived"]
+                new_manifest[job["rel"]] = job["fp"]
+            except Exception as exc:
+                collector.report(f"文档 {job['rel']}", exc)
+
+        if config_summary is not None:
+            config_hashes = {content_hash(config_summary)}
+            if not dedup.is_duplicate(config_summary):
                 await runtime.knowledge.add(KnowledgeItem(
-                    project_id=project_id, title=seed.title, content=seed.content,
-                    status="pending_review", content_type="prohibition",
-                    domain="bootstrap", tags=["signal:rules"], source_url=seed.source,
+                    project_id=project_id, title="项目配置与规范摘要",
+                    content=config_summary,
+                    status=_write_status("config", "", hold),
+                    content_type="convention", domain="bootstrap",
+                    tags=_run_tags("config", run_id),
                 ))
                 report.knowledge_written += 1
-                report.prohibition_seeds += 1
-            # 规则文件改写/删除 → 旧种子收敛（规范推翻场景）
+            report.superseded += await reconcile_scope(
+                runtime, project_id, "tags LIKE ?", ['%"signal:config"%'], config_hashes
+            )
+
+        if code_batches:
+            code_hashes: Set[str] = set()
+            code_status = _write_status("code", "", hold)
+            code_tags = _run_tags("code", run_id)
+            for batch in code_batches:
+                await _write_code_batch(
+                    runtime, project_id, batch, dedup, report, code_hashes,
+                    status=code_status, tags=code_tags,
+                )
+            report.superseded += await reconcile_scope(
+                runtime, project_id, "tags LIKE ?", ['%"signal:code"%'], code_hashes
+            )
+
+        if git_summary is not None:
+            git_hashes = {content_hash(git_summary)}
+            if not dedup.is_duplicate(git_summary):
+                await runtime.knowledge.add(KnowledgeItem(
+                    project_id=project_id, title="Git 历史分析", content=git_summary,
+                    status=_write_status("git", "", hold),
+                    content_type="architecture", domain="bootstrap",
+                    tags=_run_tags("git", run_id),
+                ))
+                report.knowledge_written += 1
+            report.superseded += await reconcile_scope(
+                runtime, project_id, "tags LIKE ?", ['%"signal:git"%'], git_hashes
+            )
+
+        for item in convo_drafts:
+            if dedup.is_duplicate(item.content):
+                continue
+            await runtime.knowledge.add(KnowledgeItem(
+                project_id=project_id, title=item.title, content=item.content,
+                status=_write_status("conversation", item.source_url, hold),
+                content_type=item.content_type, domain="bootstrap",
+                tags=_run_tags("conversation", run_id, [t for t in item.tags if t.startswith("kind:")]),
+                source_url=item.source_url,
+            ))
+            report.knowledge_written += 1
+
+        seed_hashes: Set[str] = set()
+        for item in rule_drafts:
+            seed_hashes.add(content_hash(item.content))
+            if dedup.is_duplicate(item.content):
+                report.duplicates_skipped += 1
+                continue
+            await runtime.knowledge.add(KnowledgeItem(
+                project_id=project_id, title=item.title, content=item.content,
+                status=_write_status("rules", item.source_url, hold),
+                content_type="prohibition", domain="bootstrap",
+                tags=_run_tags("rules", run_id), source_url=item.source_url,
+            ))
+            report.knowledge_written += 1
+            report.prohibition_seeds += 1
+        if rule_drafts or plan.get("config"):
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:rules"%'], seed_hashes
             )
 
-        # ---- 阶段三：跨信号关联推理（§10.9.8） ----
-        correlations = correlate_test_code(signals["tests"].files, signals["code"].files, project_root)
-        correlations += correlate_doc_code(doc_titles, skeletons)
-        correlations += correlate_commit_files(git_insights)
-        if correlations:
-            for c in correlations:
-                report.correlations[c.kind] = report.correlations.get(c.kind, 0) + 1
-            summary = mask_text(summarize_correlations(correlations))
-            corr_hashes = {content_hash(summary)}
-            if not dedup.is_duplicate(summary):
+        if corr_summary is not None:
+            corr_hashes = {content_hash(corr_summary)}
+            if not dedup.is_duplicate(corr_summary):
                 await runtime.knowledge.add(KnowledgeItem(
-                    project_id=project_id, title="跨信号关联图谱", content=summary, status="pending_review",
-                    content_type="architecture", domain="bootstrap", tags=["signal:correlation"],
+                    project_id=project_id, title="跨信号关联图谱", content=corr_summary,
+                    status=_write_status("correlation", "", hold),
+                    content_type="architecture", domain="bootstrap",
+                    tags=_run_tags("correlation", run_id),
                 ))
                 report.knowledge_written += 1
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:correlation"%'], corr_hashes
             )
 
-        # ---- 初始画像（§3.8 推理规则，低于阈值留空） ----
+        if gate.conflicts:
+            mapping = await _source_to_item_id(runtime, project_id)
+            persist_n = await runtime.conflict_detector.persist_knowledge_conflicts(
+                project_id, gate.conflicts, mapping,
+            )
+            report.version_conflicts += persist_n
+
+        _save_bootstrap_run(rsi_dir, run_id)
+
         doc_quality = assess_doc_quality(signals["docs"].files, project_root)
         test_culture = assess_test_culture(signals["tests"].files, signals["code"].files)
         profile = build_profile(
@@ -342,22 +528,16 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             "expertise": ",".join(profile.expertise[:5]),
         }
 
-        # ---- 增量收敛：信号源删除 → 知识归档（§10.9.10） ----
+        progress.phase("收尾")
         current_files = {
             str(p.relative_to(project_root))
             for info in signals.values() for p in info.files
         }
         report.archived = await archive_missing_signals(runtime, project_id, manifest, current_files)
 
-        # ---- 审批队列限量：超出 cap 的 pending_review 置 archived（ISSUE-2） ----
         cap = int(runtime.config.get("bootstrap", {}).get("review_queue_cap", 50))
         await _enforce_review_cap(runtime, project_id, cap, report)
 
-        # 多版本文档并排 → version 冲突（只开冲突，不替用户归档）
-        conflict_stats = await runtime.conflict_detector.scan(project_id)
-        report.version_conflicts = int(conflict_stats.get("version_detected") or 0)
-
-        # 收敛/归档/复活走裸 SQL（绕过 add 的变更回调），统一补触发注入重写与缓存失效
         if report.superseded or report.archived or report.revived:
             await runtime.knowledge.notify_changed(project_id)
 
@@ -365,6 +545,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         _ensure_gitignore(project_root)
         report.errors = collector.errors
         report.write_json(rsi_dir / "bootstrap_report.json")
+        progress.finish()
         print(report.render_terminal())
         print(f"JSON 报告: {rsi_dir / 'bootstrap_report.json'}")
     finally:

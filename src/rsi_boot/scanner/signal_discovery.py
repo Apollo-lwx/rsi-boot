@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterator, List
+from typing import Callable, Dict, Iterator, List, Optional
 
 # 不扫描的目录（§10.9.6 设计原则：二进制/编译产物/依赖/缓存目录除外）
 EXCLUDED_DIRS = frozenset({
@@ -54,14 +54,22 @@ def _walk_files(root: Path, max_file_size: int) -> Iterator[Path]:
             yield path
 
 
-def discover_signals(project_root: Path, max_file_size: int = 1_000_000) -> Dict[str, SignalInfo]:
+def discover_signals(
+    project_root: Path,
+    max_file_size: int = 1_000_000,
+    on_progress: Optional[Callable[[int], None]] = None,
+) -> Dict[str, SignalInfo]:
     """扫描项目目录树，返回 9 类信号的发现结果"""
     root = Path(project_root)
     signals: Dict[str, SignalInfo] = {k: SignalInfo(k, False) for k in (
         "docs", "code", "git", "conversation", "config", "tests", "conventions", "templates", "ci",
     )}
 
+    walked = 0
     for path in _walk_files(root, max_file_size):
+        walked += 1
+        if on_progress is not None:
+            on_progress(walked)
         rel = path.relative_to(root)
         parts = {p.lower() for p in rel.parts[:-1]}
         name = path.name.lower()

@@ -47,9 +47,9 @@ async def _items(db_path: Path, project_id: str):
         await db.close()
 
 
-_LOGIN = "用户通过邮箱验证码登录，验证码有效期十分钟，连续失败五次锁定。" * 10
-_PAY_V1 = "接入微信支付渠道，下单后两小时内支付有效，超时自动关单。" * 10
-_PAY_V2 = "需求推翻：改为接入支付宝渠道，下单三十分钟内支付有效。" * 10
+_LOGIN = "用户通过邮箱验证码登录，验证码有效期十分钟，连续失败五次锁定账户。" * 15
+_PAY_V1 = "接入微信支付渠道，下单后两小时内支付有效，超时自动关单不再重开。" * 15
+_PAY_V2 = "需求推翻：改为接入支付宝渠道，下单三十分钟内支付有效必须关单。" * 15
 
 
 def _doc(pay_section: str) -> str:
@@ -74,13 +74,13 @@ def _report(root: Path) -> dict:
 
 
 async def test_full_rewrite_supersedes_old_chunks(tmp_path, monkeypatch):
-    """需求整体推翻重写 → 重跑后旧切片全部 archived，新切片 pending_review"""
+    """需求整体推翻重写 → 重跑后旧切片全部 archived，新切片 active（车道 A）"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
 
     assert await run_bootstrap(_args(root)) == 0
     before = await _proj_items(root)
-    assert before and all(i["status"] == "pending_review" for i in before)
+    assert before and all(i["status"] == "active" for i in before)
 
     (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
     assert await run_bootstrap(_args(root)) == 0
@@ -90,7 +90,7 @@ async def test_full_rewrite_supersedes_old_chunks(tmp_path, monkeypatch):
     pay_old = [i for i in after if i["id"] in old_ids and "支付" in i["title"]]
     assert pay_old and all(i["status"] == "archived" for i in pay_old)  # 旧版本收敛
     pay_new = [i for i in after if i["id"] not in old_ids and "支付" in i["title"]]
-    assert pay_new and all(i["status"] == "pending_review" for i in pay_new)
+    assert pay_new and all(i["status"] == "active" for i in pay_new)
     assert _report(root)["superseded"] >= 1
 
 
@@ -107,11 +107,11 @@ async def test_partial_edit_keeps_unchanged_sections(tmp_path, monkeypatch):
     after = await _proj_items(root)
 
     login_after = next(i for i in after if i["id"] == login_before["id"])
-    assert login_after["status"] == "pending_review"  # 未变章节不收敛、不重建
+    assert login_after["status"] == "active"  # 未变章节不收敛、不重建
 
 
 async def test_revert_revives_archived_items(tmp_path, monkeypatch):
-    """revert/分支切回：旧版本内容回来时复活（同 id 回 pending_review，不产生重复行）"""
+    """revert/分支切回：旧版本内容回来时复活（同 id 回 active，不产生重复行）"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
@@ -126,14 +126,14 @@ async def test_revert_revives_archived_items(tmp_path, monkeypatch):
     after = await _proj_items(root)
 
     revived = next(i for i in after if i["id"] == v1_pay["id"])
-    assert revived["status"] == "pending_review"
+    assert revived["status"] == "active"
     # 同内容不产生重复行
     assert sum(1 for i in after if i["content"] == v1_pay["content"]) == 1
     assert _report(root)["revived"] >= 1
 
 
 async def test_deleted_file_archives_pending_review_too(tmp_path, monkeypatch):
-    """源文件删除：pending_review 条目一并归档（此前只处理 active）"""
+    """源文件删除：车道 A 的 active 条目一并归档"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
@@ -198,7 +198,7 @@ async def test_config_summary_churn_supersedes(tmp_path, monkeypatch):
     old = next(i for i in cfg_after if i["id"] == cfg_before[0]["id"])
     new = next(i for i in cfg_after if i["id"] != cfg_before[0]["id"])
     assert old["status"] == "archived"
-    assert new["status"] == "pending_review"
+    assert new["status"] == "active"
     assert "fastapi" in new["content"]
 
 

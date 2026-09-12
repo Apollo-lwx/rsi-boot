@@ -21,9 +21,8 @@ harness:
   auto_apply: false             # true = 静态门禁通过即晋升，跳过人工确认（不推荐初期开启，§4.6）
 
 bootstrap:
-  review_queue_cap: 50          # 单次 bootstrap 入队 pending_review 上限；超出按优先级置
-                                # archived（convention > architecture > faq > documentation），
-                                # 可经 rsi_knowledge_review 批量审批恢复
+  review_queue_cap: 50          # 仅统计 tags 含 bootstrap_run_id 的 pending；
+                                # 超过 500 只打 warning，不再把溢出条目 archived
 
 feedback:
   # feedback_token HMAC 密钥；为空时启动生成随机密钥（进程级，重启后旧 token 失效——

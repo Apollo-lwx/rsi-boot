@@ -14,7 +14,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from .validator import read_text_tolerant
 
@@ -176,14 +176,21 @@ def extract_generic_skeleton(source: str, rel_path: str, ext: str) -> ModuleSkel
     return skeleton
 
 
-def scan_code(project_root: Path, files: List[Path]) -> List[ModuleSkeleton]:
+def scan_code(
+    project_root: Path,
+    files: List[Path],
+    on_progress: Optional[Callable[[int, int], None]] = None,
+) -> List[ModuleSkeleton]:
     """批量提取代码骨架；单文件失败跳过（§10.9.9 部分恢复）"""
     skeletons: List[ModuleSkeleton] = []
-    for path in files:
+    total = len(files)
+    for index, path in enumerate(files, 1):
         rel = str(path.relative_to(project_root))
         try:
             source = read_text_tolerant(path)
             if source is None:
+                if on_progress is not None:
+                    on_progress(index, total)
                 continue
             if path.suffix == ".py":
                 skeleton = extract_python_skeleton(source, rel)
@@ -193,6 +200,8 @@ def scan_code(project_root: Path, files: List[Path]) -> List[ModuleSkeleton]:
                 skeletons.append(skeleton)
         except Exception as exc:
             logger.info("代码骨架提取失败，跳过 %s: %s", rel, exc)
+        if on_progress is not None:
+            on_progress(index, total)
     return skeletons
 
 

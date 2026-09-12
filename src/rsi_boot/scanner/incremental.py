@@ -107,8 +107,8 @@ async def ingest_document(
     （命中 active/pending 保留不动；命中 archived 复活；未命中去重后写入）→
     旧版本切片收敛 archived。
 
-    复活统一回到入参 status（bootstrap=pending_review 重走审批，watch=active）——
-    当前生效版本应反映「现在文件里有的」，审批队列是收敛点。
+    复活统一回到入参 status（bootstrap 车道 A=active，B/C=pending_review；
+    watch=active）——当前生效版本应反映「现在文件里有的」。
     """
     stats: Dict[str, Any] = {
         "written": 0, "skipped": 0, "duplicates": 0,

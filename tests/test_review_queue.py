@@ -60,25 +60,28 @@ async def _status_counts(db_path: Path, project_id: str) -> dict[str, int]:
 
 
 async def test_bootstrap_caps_review_queue(tmp_path, monkeypatch):
-    """超出 cap 的条目置 archived；convention 优先级最高，保留在 pending 中"""
+    """帽只看 bootstrap_run_id，不再把车道 A 文档 archived；配置摘要直通 active。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
 
     db_path, pid = project_scope(root)
     counts = await _status_counts(db_path, pid)
-    assert counts.get("pending_review", 0) == 5  # 限量生效
-    assert counts.get("archived", 0) >= 3        # 8 篇文档 + 配置摘要 - 5
+    assert counts.get("archived", 0) == 0
+    assert counts.get("active", 0) >= 8  # 文档 + 配置直通
 
     db = SQLiteClient(db_path)
     try:
         conn = await db.connect()
         async with conn.execute(
-            "SELECT content_type FROM knowledge_items WHERE project_id = ? AND status = 'pending_review'",
+            "SELECT content_type, status FROM knowledge_items WHERE project_id = ?",
             (pid,),
         ) as cur:
-            types = [r["content_type"] for r in await cur.fetchall()]
-        assert "convention" in types  # 配置摘要按优先级保留
+            rows = await cur.fetchall()
+        conventions = [r for r in rows if r["content_type"] == "convention"]
+        assert conventions and all(r["status"] == "active" for r in conventions)
+        docs = [r for r in rows if r["content_type"] == "documentation"]
+        assert docs and all(r["status"] == "active" for r in docs)
     finally:
         await db.close()
 
