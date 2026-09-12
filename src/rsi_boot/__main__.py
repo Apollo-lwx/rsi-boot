@@ -206,6 +206,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="把默认排除的目录加回学习，可重复或逗号分隔；"
              "按目录名匹配（artifacts 会加回任意名为 artifacts 的文件夹）",
     )
+    p_boot.add_argument("--host-judge", action="store_true",
+                        help="对话内由宿主模型裁决冲突工作包（agent 用）")
+    p_boot.add_argument("--local-judge", action="store_true",
+                        help="本地整条知识比对裁决冲突（人类 CLI 用）")
     _add_verbose(p_boot)
 
     p_recall = sub.add_parser("recall", help="调试：执行一次记忆召回（禁止项置顶 + 相关经验）")

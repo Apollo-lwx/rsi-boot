@@ -15,7 +15,7 @@ import uuid
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Set
+from typing import Any, Dict, List, Optional, Sequence, Set
 
 from ..bootstrap import build_runtime, detect_user_id
 from ..project import load_or_create_identity
@@ -373,10 +373,26 @@ async def _enforce_review_cap(
         logger.warning(report.review_queue_warning)
 
 
+def _validate_judge_flags(args: argparse.Namespace) -> Optional[str]:
+    if getattr(args, "dry_run", False):
+        return None
+    host = bool(getattr(args, "host_judge", False))
+    local = bool(getattr(args, "local_judge", False))
+    if host and local:
+        return "不能同时使用 --host-judge 与 --local-judge"
+    if not host and not local:
+        return "必须指定 --host-judge 或 --local-judge"
+    return None
+
+
 async def run_bootstrap(args: argparse.Namespace) -> int:
     project_root = Path(args.project_root).resolve()
     if not project_root.is_dir():
         print(f"项目目录不存在: {project_root}", file=sys.stderr)
+        return 2
+    judge_error = _validate_judge_flags(args)
+    if judge_error:
+        print(judge_error, file=sys.stderr)
         return 2
     project_id = load_or_create_identity(project_root).project_id
     max_file_size = _parse_size(args.max_file_size)
