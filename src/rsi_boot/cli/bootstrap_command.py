@@ -59,6 +59,15 @@ def _norm_src(path: str) -> str:
     return (path or "").replace("\\", "/")
 
 
+def _record_applied(report: BootstrapReport, kind: str, title: str, active: bool) -> None:
+    if not active:
+        return
+    report.applied[kind] = report.applied.get(kind, 0) + 1
+    samples = report.applied_samples.setdefault(kind, [])
+    if len(samples) < 15:
+        samples.append(title)
+
+
 def _write_status(signal: str, source_url: str, hold_sources: Set[str]) -> str:
     src = _norm_src(source_url)
     if src and src in hold_sources:
@@ -363,9 +372,16 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     fingerprint = content_hash(text)
                     if manifest.get(rel) == fingerprint:
                         continue
-                    sliced = slice_document(path)
+                    slice_result = slice_document(path)
+                    stats = report.slice_stats
+                    stats["source_files"] = stats.get("source_files", 0) + 1
+                    stats["chunks"] = stats.get("chunks", 0) + len(slice_result.chunks)
+                    stats["merged_tiny"] = stats.get("merged_tiny", 0) + slice_result.merged_tiny
+                    stats["split_large"] = stats.get("split_large", 0) + slice_result.split_large
+                    stats["index_written"] = stats.get("index_written", 0) + slice_result.index_written
+                    stats["skipped_tiny"] = stats.get("skipped_tiny", 0) + slice_result.skipped_tiny
                     title = None
-                    for chunk in sliced:
+                    for chunk in slice_result:
                         if title is None:
                             title = chunk.title
                         drafts.append(DraftItem(
@@ -495,16 +511,36 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         drafts.extend(await _load_existing_drafts(runtime, project_id, already))
         gate = gate_drafts(drafts, skeletons, project_root)
         hold = {_norm_src(s) for s in gate.hold_sources}
+        report.extracts = [
+            {"title": item.title, "source": item.source_url}
+            for item in convo_drafts + rule_drafts
+        ]
+        report.conflicts = [
+            {
+                "type": c.conflict_type,
+                "left": c.left_source,
+                "right": c.right_source,
+                "reason": c.reason,
+            }
+            for c in gate.conflicts
+        ]
 
         # ---- 过闸后再写库 ----
         for job in doc_jobs:
             status = _write_status("docs", job["rel"], hold)
+            active = status == "active"
             try:
                 stats = await ingest_document(
                     runtime, project_root, project_id, job["path"], dedup,
                     status=status, tags=_run_tags("docs", run_id),
                     allow_sensitive=args.allow_sensitive, text=job["text"],
                 )
+                if active and stats["written"]:
+                    sample = f"{Path(job['rel']).name}# {doc_titles.get(job['rel'], stats.get('title') or job['rel'])}"
+                    report.applied["docs"] = report.applied.get("docs", 0) + stats["written"]
+                    samples = report.applied_samples.setdefault("docs", [])
+                    if len(samples) < 15:
+                        samples.append(sample)
                 report.knowledge_written += stats["written"]
                 report.chunks_skipped += stats["skipped"]
                 report.duplicates_skipped += stats["duplicates"]
@@ -516,16 +552,18 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
 
         if config_summary is not None:
             config_hashes = {content_hash(config_summary)}
+            config_status = _write_status("config", config_src, hold)
             if not dedup.is_duplicate(config_summary):
                 await runtime.knowledge.add(KnowledgeItem(
                     project_id=project_id, title="项目配置与规范摘要",
                     content=config_summary,
-                    status=_write_status("config", config_src, hold),
+                    status=config_status,
                     content_type="convention", domain="bootstrap",
                     tags=_run_tags("config", run_id),
                     source_url=config_src,
                 ))
                 report.knowledge_written += 1
+                _record_applied(report, "config", "项目配置与规范摘要", config_status == "active")
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:config"%'], config_hashes
             )
@@ -535,11 +573,19 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             code_hashes: Set[str] = set()
             code_status = _write_status("code", code_src, hold)
             code_tags = _run_tags("code", run_id)
+            wrote_code = 0
             for batch in code_batches:
+                before = report.knowledge_written
                 await _write_code_batch(
                     runtime, project_id, batch, dedup, report, code_hashes,
                     status=code_status, tags=code_tags, source_url=code_src,
                 )
+                wrote_code += report.knowledge_written - before
+            if wrote_code and code_status == "active":
+                report.applied["code"] = report.applied.get("code", 0) + wrote_code
+                samples = report.applied_samples.setdefault("code", [])
+                if len(samples) < 15:
+                    samples.append("代码骨架摘要")
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:code"%'], code_hashes
             )
@@ -547,15 +593,17 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         if git_summary is not None:
             git_src = _SIGNAL_SOURCE["git"]
             git_hashes = {content_hash(git_summary)}
+            git_status = _write_status("git", git_src, hold)
             if not dedup.is_duplicate(git_summary):
                 await runtime.knowledge.add(KnowledgeItem(
                     project_id=project_id, title="Git 历史分析", content=git_summary,
-                    status=_write_status("git", git_src, hold),
+                    status=git_status,
                     content_type="architecture", domain="bootstrap",
                     tags=_run_tags("git", run_id),
                     source_url=git_src,
                 ))
                 report.knowledge_written += 1
+                _record_applied(report, "git", "Git 历史分析", git_status == "active")
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:git"%'], git_hashes
             )
@@ -594,15 +642,17 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         if corr_summary is not None:
             corr_src = _SIGNAL_SOURCE["correlation"]
             corr_hashes = {content_hash(corr_summary)}
+            corr_status = _write_status("correlation", corr_src, hold)
             if not dedup.is_duplicate(corr_summary):
                 await runtime.knowledge.add(KnowledgeItem(
                     project_id=project_id, title="跨信号关联图谱", content=corr_summary,
-                    status=_write_status("correlation", corr_src, hold),
+                    status=corr_status,
                     content_type="architecture", domain="bootstrap",
                     tags=_run_tags("correlation", run_id),
                     source_url=corr_src,
                 ))
                 report.knowledge_written += 1
+                _record_applied(report, "correlation", "跨信号关联图谱", corr_status == "active")
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:correlation"%'], corr_hashes
             )
@@ -649,9 +699,12 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         _save_manifest(rsi_dir, new_manifest)
         _ensure_gitignore(project_root)
         report.errors = collector.errors
+        md_path = rsi_dir / "bootstrap_report.md"
         report.write_json(rsi_dir / "bootstrap_report.json")
+        report.write_markdown(md_path)
         progress.finish()
         print(report.render_terminal())
+        print(f"Markdown 报告: {md_path}")
         print(f"JSON 报告: {rsi_dir / 'bootstrap_report.json'}")
     finally:
         await runtime.close()

@@ -8,6 +8,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
+_SLICE_LABELS = {
+    "source_files": "源文件",
+    "chunks": "切出",
+    "merged_tiny": "合并碎块",
+    "split_large": "拆超长",
+    "index_written": "目录条目",
+    "skipped_tiny": "过碎跳过",
+}
+_APPLIED_LABELS = {
+    "docs": "文档",
+    "code": "代码",
+    "config": "配置",
+    "git": "Git",
+    "correlation": "关联",
+}
+
 
 @dataclass
 class BootstrapReport:
@@ -31,6 +47,11 @@ class BootstrapReport:
     correlations: Dict[str, int] = field(default_factory=dict)  # 关联推理成果（P2.6）
     errors: List[str] = field(default_factory=list)
     profile_summary: Dict[str, str] = field(default_factory=dict)
+    applied: Dict[str, int] = field(default_factory=dict)
+    applied_samples: Dict[str, List[str]] = field(default_factory=dict)
+    slice_stats: Dict[str, int] = field(default_factory=dict)
+    extracts: List[Dict[str, str]] = field(default_factory=list)
+    conflicts: List[Dict[str, str]] = field(default_factory=list)
     dry_run: bool = False
 
     def render_terminal(self) -> str:
@@ -81,3 +102,68 @@ class BootstrapReport:
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(asdict(self), ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def write_markdown(self, path: Path) -> None:
+        lines: List[str] = [
+            "# RSI Boot 学习报告",
+            "",
+            f"项目: {self.project_root}",
+            f"开始: {self.started_at}",
+            "",
+            "## 画像",
+        ]
+        if self.profile_summary:
+            for key, value in self.profile_summary.items():
+                if value:
+                    lines.append(f"- **{key}**: {value}")
+        if not any(self.profile_summary.values()):
+            lines.append("（信号不足，留空）")
+
+        lines.extend(["", "## 直通生效"])
+        if self.applied:
+            for kind in ("docs", "code", "config", "git", "correlation"):
+                count = self.applied.get(kind, 0)
+                if not count:
+                    continue
+                label = _APPLIED_LABELS.get(kind, kind)
+                lines.append(f"- **{label}**: {count} 条")
+                for title in self.applied_samples.get(kind, [])[:15]:
+                    lines.append(f"  - {title}")
+        else:
+            lines.append("（本轮无直通条目）")
+
+        lines.extend(["", "## 切片统计"])
+        if self.slice_stats:
+            for key, label in _SLICE_LABELS.items():
+                if key in self.slice_stats:
+                    lines.append(f"- **{label}**: {self.slice_stats[key]}")
+        else:
+            lines.append("（未扫描文档或未启用 docs 维度）")
+
+        lines.extend(["", "## 抽取待确认"])
+        if self.extracts:
+            for item in self.extracts:
+                lines.append(f"- {item.get('title', '')}（{item.get('source', '')}）")
+        else:
+            lines.append("（本轮无对话/规则抽取）")
+
+        lines.extend(["", "## 冲突组"])
+        if self.conflicts:
+            for item in self.conflicts:
+                lines.append(
+                    f"- **{item.get('type', '')}**: "
+                    f"{item.get('left', '')} ↔ {item.get('right', '')} — "
+                    f"{item.get('reason', '')}"
+                )
+        else:
+            lines.append("（未检测到冲突组）")
+
+        lines.extend([
+            "",
+            "## 下一步",
+            "打开 Cursor 继续开发时，**下一次任务会在对话里弹出抉择**，"
+            "用于确认本轮抽取项与冲突组；无 IDE 时可用 "
+            "`rsi knowledge accept` 作为兜底。",
+        ])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
