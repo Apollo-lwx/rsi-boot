@@ -80,22 +80,32 @@ def _merge_tiny_sections(
     return merged, merged_tiny
 
 
-def _split_text(text: str, max_tokens: int) -> list[str]:
+def _split_text(text: str, *, target_tokens: int, max_tokens: int) -> list[str]:
     max_chars = max_tokens * _CHARS_PER_TOKEN
+    target_chars = target_tokens * _CHARS_PER_TOKEN
     parts: list[str] = []
     buffer = ""
     for para in re.split(r"\n\s*\n", text):
-        if len(para) > max_chars:
+        para = para.strip()
+        if not para:
+            continue
+        if estimate_tokens(para) > target_tokens:
             if buffer.strip():
                 parts.append(buffer.strip())
                 buffer = ""
             start = 0
             while start < len(para):
-                parts.append(para[start : start + max_chars])
-                start += max_chars
+                end = min(start + target_chars, len(para))
+                end = min(end, start + max_chars)
+                parts.append(para[start:end])
+                start = end
             continue
         candidate = f"{buffer}\n\n{para}" if buffer else para
-        if estimate_tokens(candidate) > max_tokens and buffer.strip():
+        cand_tokens = estimate_tokens(candidate)
+        if cand_tokens > max_tokens and buffer.strip():
+            parts.append(buffer.strip())
+            buffer = para
+        elif cand_tokens > target_tokens and buffer.strip():
             parts.append(buffer.strip())
             buffer = para
         else:
@@ -103,6 +113,21 @@ def _split_text(text: str, max_tokens: int) -> list[str]:
     if buffer.strip():
         parts.append(buffer.strip())
     return parts
+
+
+def _filter_tiny_chunks(
+    chunks: list[DocChunk], min_tokens: int
+) -> tuple[list[DocChunk], int]:
+    index_chunks = [c for c in chunks if c.kind == "index"]
+    content = [c for c in chunks if c.kind != "index"]
+    if not content:
+        return chunks, 0
+
+    non_tiny = [c for c in content if estimate_tokens(c.content) >= min_tokens]
+    if non_tiny:
+        return non_tiny + index_chunks, len(content) - len(non_tiny)
+
+    return [content[0]] + index_chunks, len(content) - 1
 
 
 def _truncate_to_tokens(text: str, max_tokens: int) -> str:
@@ -120,7 +145,6 @@ def slice_document(
     max_tokens: int = 1500,
 ) -> SliceResult:
     """自适应切片：碎块合并、超长拆分、许可证/变更日志单条摘要。"""
-    _ = target_tokens  # reserved for future target-size packing
     text = read_text_tolerant(path)
     if not text:
         return SliceResult()
@@ -139,32 +163,30 @@ def slice_document(
     if has_headings:
         sections, result.merged_tiny = _merge_tiny_sections(sections, min_tokens)
 
+    pending: list[DocChunk] = []
     for title, body, _level in sections:
         body = body.strip()
         if not body:
             continue
         tokens = estimate_tokens(body)
-        if tokens <= max_tokens:
-            result.chunks.append(
+        if tokens <= target_tokens:
+            pending.append(
                 DocChunk(source=path, title=title, content=body, kind="section")
             )
             continue
 
-        parts = _split_text(body, max_tokens)
+        parts = _split_text(body, target_tokens=target_tokens, max_tokens=max_tokens)
         result.split_large += 1
         part_titles = [f"{title} ({i + 1}/{len(parts)})" for i in range(len(parts))]
         for part_title, part in zip(part_titles, parts):
-            if estimate_tokens(part) < min_tokens:
-                result.skipped_tiny += 1
-                continue
-            result.chunks.append(
+            pending.append(
                 DocChunk(source=path, title=part_title, content=part, kind="section")
             )
 
         if not has_headings and len(parts) >= 3:
             index_lines = "\n".join(f"- {t}" for t in part_titles)
             index_content = f"# {path.stem} 知识目录\n\n{index_lines}"
-            result.chunks.append(
+            pending.append(
                 DocChunk(
                     source=path,
                     title=f"{path.stem} 目录",
@@ -174,4 +196,6 @@ def slice_document(
             )
             result.index_written += 1
 
+    result.chunks, skipped = _filter_tiny_chunks(pending, min_tokens)
+    result.skipped_tiny += skipped
     return result

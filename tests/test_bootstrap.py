@@ -68,7 +68,10 @@ def test_plan_scopes_consent_gate(tmp_path):
 
 def test_slice_document_by_headings(tmp_path):
     doc = tmp_path / "d.md"
-    doc.write_text("# 标题一\n\n内容一\n\n## 标题二\n\n内容二\n", encoding="utf-8")
+    doc.write_text(
+        "# 标题一\n\n" + "内容一。" * 100 + "\n\n## 标题二\n\n" + "内容二。" * 100,
+        encoding="utf-8",
+    )
     chunks = slice_document(doc)
     assert [c.title for c in chunks] == ["标题一", "标题二"]
 
