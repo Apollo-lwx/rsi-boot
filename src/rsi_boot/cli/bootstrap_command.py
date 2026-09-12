@@ -12,6 +12,7 @@ import json
 import logging
 import sys
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Set
 
@@ -46,6 +47,12 @@ from .progress import Progress
 
 _LANE_B = frozenset({"conversation", "rules"})
 _REVIEW_CAP_WARN = 500
+_SIGNAL_SOURCE = {
+    "config": "signal:config",
+    "code": "signal:code",
+    "git": "signal:git",
+    "correlation": "signal:correlation",
+}
 
 
 def _norm_src(path: str) -> str:
@@ -148,7 +155,7 @@ def _ensure_gitignore(project_root: Path) -> None:
 async def _write_code_batch(
     runtime: Any, project_id: str, batch: List[str], dedup: DedupSet,
     report: BootstrapReport, kept_hashes: Set[str],
-    *, status: str, tags: List[str],
+    *, status: str, tags: List[str], source_url: str,
 ) -> None:
     """代码骨架批次写入（生成内容豁免 50 token 噪声下限，与配置摘要同口径）。
     无论写不写都记录内容哈希——供批次级 reconcile 区分「未变保留」与「旧版本」"""
@@ -160,6 +167,7 @@ async def _write_code_batch(
     await runtime.knowledge.add(KnowledgeItem(
         project_id=project_id, title="代码骨架摘要", content=text, status=status,
         content_type="architecture", domain="bootstrap", tags=tags,
+        source_url=source_url,
     ))
     report.knowledge_written += 1
 
@@ -189,6 +197,91 @@ async def _existing_hashes(runtime: Any, project_id: str) -> Set[str]:
     ) as cur:
         rows = await cur.fetchall()
     return {content_hash(r["content"]) for r in rows}
+
+
+def _signal_from_tags(tags_raw: Any) -> str:
+    try:
+        tags = json.loads(tags_raw) if isinstance(tags_raw, str) else (tags_raw or [])
+    except (TypeError, ValueError):
+        tags = []
+    if not isinstance(tags, list):
+        tags = []
+    for tag in tags:
+        if isinstance(tag, str) and tag.startswith("signal:"):
+            return tag.split(":", 1)[1]
+    return "docs"
+
+
+def _peer_title(title: str, source_url: str) -> str:
+    """ingest 标题是 `{filename}# {chunk.title}`；gate 按 chunk 标题比版本家族。"""
+    name = Path(source_url).name
+    prefix = f"{name}# "
+    if title.startswith(prefix):
+        return title[len(prefix):]
+    return title
+
+
+async def _load_existing_drafts(
+    runtime: Any, project_id: str, already: Set[str],
+) -> List[DraftItem]:
+    """把库中 active/pending 行当成本轮 DraftItem 同伴，供 gate 看到指纹跳过的版本对。"""
+    conn = await runtime.db.connect()
+    async with conn.execute(
+        "SELECT title, content, content_type, source_url, tags FROM knowledge_items "
+        "WHERE project_id = ? AND status IN ('active', 'pending_review') "
+        "AND source_url IS NOT NULL AND source_url != ''",
+        (project_id,),
+    ) as cur:
+        rows = await cur.fetchall()
+    peers: List[DraftItem] = []
+    for row in rows:
+        src = _norm_src(row["source_url"] or "")
+        if not src or src in already:
+            continue
+        try:
+            tags = json.loads(row["tags"]) if row["tags"] else []
+        except (TypeError, ValueError):
+            tags = []
+        if not isinstance(tags, list):
+            tags = []
+        signal = _signal_from_tags(row["tags"])
+        peers.append(DraftItem(
+            title=_peer_title(row["title"] or "", src),
+            content=row["content"] or "",
+            content_type=row["content_type"] or "documentation",
+            source_url=src,
+            tags=tags or [f"signal:{signal}"],
+            signal=signal,
+        ))
+    return peers
+
+
+async def _demote_held_active(
+    runtime: Any, project_id: str, hold_sources: Set[str],
+) -> int:
+    """hold 命中且已是 active 的存量条目 → pending_review（scan 不会改状态）。"""
+    hold = {_norm_src(s) for s in hold_sources if s}
+    if not hold:
+        return 0
+    conn = await runtime.db.connect()
+    async with conn.execute(
+        "SELECT id, source_url FROM knowledge_items "
+        "WHERE project_id = ? AND status = 'active' "
+        "AND source_url IS NOT NULL AND source_url != ''",
+        (project_id,),
+    ) as cur:
+        rows = await cur.fetchall()
+    ids = [r["id"] for r in rows if _norm_src(r["source_url"]) in hold]
+    if not ids:
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    cur = await conn.execute(
+        f"UPDATE knowledge_items SET status = 'pending_review', updated_at = ? "
+        f"WHERE id IN ({','.join('?' for _ in ids)})",
+        (now, *ids),
+    )
+    await conn.commit()
+    return cur.rowcount
 
 
 async def _enforce_review_cap(
@@ -295,11 +388,12 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             signals["ci"].files, signals["code"].files,
         )
         config_summary = None
+        config_src = _SIGNAL_SOURCE["config"]
         if plan.get("config"):
             config_summary = mask_text(insights.summary_text())
             drafts.append(DraftItem(
                 title="项目配置与规范摘要", content=config_summary,
-                content_type="convention", source_url="",
+                content_type="convention", source_url=config_src,
                 tags=["signal:config"], signal="config",
             ))
 
@@ -321,7 +415,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     code_batches.append(batch)
                     drafts.append(DraftItem(
                         title="代码骨架摘要", content="\n\n".join(batch),
-                        content_type="architecture", source_url="",
+                        content_type="architecture", source_url=_SIGNAL_SOURCE["code"],
                         tags=["signal:code"], signal="code",
                     ))
                     batch, batch_chars = [], 0
@@ -329,7 +423,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 code_batches.append(batch)
                 drafts.append(DraftItem(
                     title="代码骨架摘要", content="\n\n".join(batch),
-                    content_type="architecture", source_url="",
+                    content_type="architecture", source_url=_SIGNAL_SOURCE["code"],
                     tags=["signal:code"], signal="code",
                 ))
 
@@ -346,7 +440,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 git_summary = mask_text(git_insights.to_summary())
                 drafts.append(DraftItem(
                     title="Git 历史分析", content=git_summary,
-                    content_type="architecture", source_url="",
+                    content_type="architecture", source_url=_SIGNAL_SOURCE["git"],
                     tags=["signal:git"], signal="git",
                 ))
 
@@ -393,10 +487,12 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             corr_summary = mask_text(summarize_correlations(correlations))
             drafts.append(DraftItem(
                 title="跨信号关联图谱", content=corr_summary,
-                content_type="architecture", source_url="",
+                content_type="architecture", source_url=_SIGNAL_SOURCE["correlation"],
                 tags=["signal:correlation"], signal="correlation",
             ))
 
+        already = {_norm_src(d.source_url) for d in drafts if d.source_url}
+        drafts.extend(await _load_existing_drafts(runtime, project_id, already))
         gate = gate_drafts(drafts, skeletons, project_root)
         hold = {_norm_src(s) for s in gate.hold_sources}
 
@@ -424,9 +520,10 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 await runtime.knowledge.add(KnowledgeItem(
                     project_id=project_id, title="项目配置与规范摘要",
                     content=config_summary,
-                    status=_write_status("config", "", hold),
+                    status=_write_status("config", config_src, hold),
                     content_type="convention", domain="bootstrap",
                     tags=_run_tags("config", run_id),
+                    source_url=config_src,
                 ))
                 report.knowledge_written += 1
             report.superseded += await reconcile_scope(
@@ -434,26 +531,29 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             )
 
         if code_batches:
+            code_src = _SIGNAL_SOURCE["code"]
             code_hashes: Set[str] = set()
-            code_status = _write_status("code", "", hold)
+            code_status = _write_status("code", code_src, hold)
             code_tags = _run_tags("code", run_id)
             for batch in code_batches:
                 await _write_code_batch(
                     runtime, project_id, batch, dedup, report, code_hashes,
-                    status=code_status, tags=code_tags,
+                    status=code_status, tags=code_tags, source_url=code_src,
                 )
             report.superseded += await reconcile_scope(
                 runtime, project_id, "tags LIKE ?", ['%"signal:code"%'], code_hashes
             )
 
         if git_summary is not None:
+            git_src = _SIGNAL_SOURCE["git"]
             git_hashes = {content_hash(git_summary)}
             if not dedup.is_duplicate(git_summary):
                 await runtime.knowledge.add(KnowledgeItem(
                     project_id=project_id, title="Git 历史分析", content=git_summary,
-                    status=_write_status("git", "", hold),
+                    status=_write_status("git", git_src, hold),
                     content_type="architecture", domain="bootstrap",
                     tags=_run_tags("git", run_id),
+                    source_url=git_src,
                 ))
                 report.knowledge_written += 1
             report.superseded += await reconcile_scope(
@@ -492,13 +592,15 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             )
 
         if corr_summary is not None:
+            corr_src = _SIGNAL_SOURCE["correlation"]
             corr_hashes = {content_hash(corr_summary)}
             if not dedup.is_duplicate(corr_summary):
                 await runtime.knowledge.add(KnowledgeItem(
                     project_id=project_id, title="跨信号关联图谱", content=corr_summary,
-                    status=_write_status("correlation", "", hold),
+                    status=_write_status("correlation", corr_src, hold),
                     content_type="architecture", domain="bootstrap",
                     tags=_run_tags("correlation", run_id),
+                    source_url=corr_src,
                 ))
                 report.knowledge_written += 1
             report.superseded += await reconcile_scope(
@@ -511,6 +613,9 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 project_id, gate.conflicts, mapping,
             )
             report.version_conflicts += persist_n
+
+        await _demote_held_active(runtime, project_id, hold)
+        await runtime.conflict_detector.scan(project_id)
 
         _save_bootstrap_run(rsi_dir, run_id)
 

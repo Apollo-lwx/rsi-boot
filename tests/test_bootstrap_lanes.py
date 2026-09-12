@@ -73,6 +73,9 @@ async def test_clean_repo_docs_and_config_are_active(tmp_path, monkeypatch):
     assert any(r["status"] == "active" for r in rows)
     tag = f"bootstrap_run_id:{rid}"
     assert all(tag in (r["tags"] or "") for r in rows)
+    config_rows = [r for r in rows if "signal:config" in (r["tags"] or "")]
+    assert config_rows
+    assert all((r["source_url"] or "") == "signal:config" for r in config_rows)
 
 
 async def test_auto_extract_pending_survives_cap(tmp_path, monkeypatch):
@@ -148,6 +151,54 @@ async def test_versioned_docs_held_others_active(tmp_path, monkeypatch):
             assert r["status"] == "pending_review"
         else:
             assert r["status"] == "active"
+
+    conflicts = await _rows(
+        root,
+        "SELECT conflict_type, item_id FROM rule_conflicts WHERE project_id = ?",
+    )
+    assert any(c["conflict_type"] == "version" for c in conflicts)
+    assert all(c["item_id"] for c in conflicts)
+
+
+async def test_incremental_version_sibling_holds_existing_active(tmp_path, monkeypatch):
+    """先学 foo-v1.0.md（active）；再加 foo-v1.1.md → 两侧 pending 且有 version 冲突。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _clean_repo(tmp_path / "proj")
+    (root / "foo-v1.0.md").write_text(
+        "# Foo\n\n" + _long("旧版接口返回 xml 且字段名为 user_id"),
+        encoding="utf-8",
+    )
+
+    assert await run_bootstrap(_args(root)) == 0
+    first = await _rows(
+        root,
+        "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
+    )
+    v10 = [
+        r for r in first
+        if (r["source_url"] or "").replace("\\", "/") == "foo-v1.0.md"
+    ]
+    assert v10
+    assert all(r["status"] == "active" for r in v10)
+
+    (root / "foo-v1.1.md").write_text(
+        "# Foo\n\n" + _long("新版接口返回 json 且字段名为 accountId"),
+        encoding="utf-8",
+    )
+    assert await run_bootstrap(_args(root)) == 0
+
+    rows = await _rows(
+        root,
+        "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
+    )
+    held = [
+        r for r in rows
+        if (r["source_url"] or "").replace("\\", "/") in ("foo-v1.0.md", "foo-v1.1.md")
+    ]
+    assert { (r["source_url"] or "").replace("\\", "/") for r in held } == {
+        "foo-v1.0.md", "foo-v1.1.md",
+    }
+    assert all(r["status"] == "pending_review" for r in held)
 
     conflicts = await _rows(
         root,
