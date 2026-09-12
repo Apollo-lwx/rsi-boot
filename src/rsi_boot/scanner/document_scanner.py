@@ -1,20 +1,21 @@
-"""文档扫描器（§10.9.6）：Markdown/RST/TXT 文档 → 按标题/段落切片。
+"""文档扫描器（§10.9.6）：Markdown/RST/TXT 文档 → 自适应切片。
 
-切片规则：按标题聚合小节；小节 > 4000 token 按段落拆分（§10.9.7 上限）。
+按目标 token 体量切片：碎块合并、超长拆分、许可证/变更日志单条摘要。
 向量化在 P2.1 接入，核心层先落文本（embedding BLOB 留空）。
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List
 
 from .validator import estimate_tokens, read_text_tolerant
 
 _HEADING = re.compile(r"^(#{1,6})\s+(.+)$", re.MULTILINE)
-_MAX_CHUNK_TOKENS = 4000
+_DIGEST_NAMES = frozenset({"license", "copying"})
+_CHANGELOG_RE = re.compile(r"changelog", re.I)
+_CHARS_PER_TOKEN = 4
 
 
 @dataclass
@@ -22,38 +23,155 @@ class DocChunk:
     source: Path
     title: str
     content: str
+    kind: str = "section"  # section | index | digest
 
 
-def slice_document(path: Path) -> List[DocChunk]:
-    """按标题切片；超长小节按段落二次拆分"""
-    text = read_text_tolerant(path)
-    if not text:
-        return []
+@dataclass
+class SliceResult:
+    chunks: list[DocChunk] = field(default_factory=list)
+    merged_tiny: int = 0
+    split_large: int = 0
+    skipped_tiny: int = 0
+    index_written: int = 0
 
-    sections: List[tuple[str, str]] = []
+    def __iter__(self):
+        yield from self.chunks
+
+
+def _is_digest_file(path: Path) -> bool:
+    name = path.name.lower()
+    if name in _DIGEST_NAMES or name.startswith("license"):
+        return True
+    return bool(_CHANGELOG_RE.search(name))
+
+
+def _parse_sections(text: str, stem: str) -> list[tuple[str, str, int]]:
     matches = list(_HEADING.finditer(text))
     if not matches:
-        sections.append((path.stem, text))
-    else:
-        if matches[0].start() > 0 and text[: matches[0].start()].strip():
-            sections.append((path.stem, text[: matches[0].start()]))
-        for i, match in enumerate(matches):
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-            sections.append((match.group(2).strip(), text[match.start():end]))
+        return [(stem, text, 0)]
+    sections: list[tuple[str, str, int]] = []
+    if matches[0].start() > 0 and text[: matches[0].start()].strip():
+        sections.append((stem, text[: matches[0].start()], 0))
+    for i, match in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        level = len(match.group(1))
+        sections.append((match.group(2).strip(), text[match.start() : end], level))
+    return sections
 
-    chunks: List[DocChunk] = []
-    for title, body in sections:
-        if estimate_tokens(body) <= _MAX_CHUNK_TOKENS:
-            chunks.append(DocChunk(source=path, title=title, content=body.strip()))
+
+def _merge_tiny_sections(
+    sections: list[tuple[str, str, int]], min_tokens: int
+) -> tuple[list[tuple[str, str, int]], int]:
+    if not sections:
+        return [], 0
+    merged: list[tuple[str, str, int]] = []
+    merged_tiny = 0
+    i = 0
+    while i < len(sections):
+        title, body, level = sections[i]
+        j = i + 1
+        while j < len(sections) and sections[j][2] == level and estimate_tokens(body) < min_tokens:
+            _, next_body, _ = sections[j]
+            body = f"{body}\n\n{next_body}"
+            merged_tiny += 1
+            j += 1
+        merged.append((title, body, level))
+        i = j
+    return merged, merged_tiny
+
+
+def _split_text(text: str, max_tokens: int) -> list[str]:
+    max_chars = max_tokens * _CHARS_PER_TOKEN
+    parts: list[str] = []
+    buffer = ""
+    for para in re.split(r"\n\s*\n", text):
+        if len(para) > max_chars:
+            if buffer.strip():
+                parts.append(buffer.strip())
+                buffer = ""
+            start = 0
+            while start < len(para):
+                parts.append(para[start : start + max_chars])
+                start += max_chars
             continue
-        # 超长小节按段落拆分，尽量保持语义边界
-        buffer = ""
-        for para in re.split(r"\n\s*\n", body):
-            if estimate_tokens(buffer + para) > _MAX_CHUNK_TOKENS and buffer:
-                chunks.append(DocChunk(source=path, title=title, content=buffer.strip()))
-                buffer = para
-            else:
-                buffer = f"{buffer}\n\n{para}" if buffer else para
-        if buffer.strip():
-            chunks.append(DocChunk(source=path, title=title, content=buffer.strip()))
-    return chunks
+        candidate = f"{buffer}\n\n{para}" if buffer else para
+        if estimate_tokens(candidate) > max_tokens and buffer.strip():
+            parts.append(buffer.strip())
+            buffer = para
+        else:
+            buffer = candidate
+    if buffer.strip():
+        parts.append(buffer.strip())
+    return parts
+
+
+def _truncate_to_tokens(text: str, max_tokens: int) -> str:
+    max_chars = max_tokens * _CHARS_PER_TOKEN
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars]
+
+
+def slice_document(
+    path: Path,
+    *,
+    target_tokens: int = 400,
+    min_tokens: int = 80,
+    max_tokens: int = 1500,
+) -> SliceResult:
+    """自适应切片：碎块合并、超长拆分、许可证/变更日志单条摘要。"""
+    _ = target_tokens  # reserved for future target-size packing
+    text = read_text_tolerant(path)
+    if not text:
+        return SliceResult()
+
+    result = SliceResult()
+
+    if _is_digest_file(path):
+        content = _truncate_to_tokens(text.strip(), max_tokens)
+        result.chunks.append(
+            DocChunk(source=path, title=path.name, content=content, kind="digest")
+        )
+        return result
+
+    has_headings = bool(_HEADING.search(text))
+    sections = _parse_sections(text, path.stem)
+    if has_headings:
+        sections, result.merged_tiny = _merge_tiny_sections(sections, min_tokens)
+
+    for title, body, _level in sections:
+        body = body.strip()
+        if not body:
+            continue
+        tokens = estimate_tokens(body)
+        if tokens <= max_tokens:
+            result.chunks.append(
+                DocChunk(source=path, title=title, content=body, kind="section")
+            )
+            continue
+
+        parts = _split_text(body, max_tokens)
+        result.split_large += 1
+        part_titles = [f"{title} ({i + 1}/{len(parts)})" for i in range(len(parts))]
+        for part_title, part in zip(part_titles, parts):
+            if estimate_tokens(part) < min_tokens:
+                result.skipped_tiny += 1
+                continue
+            result.chunks.append(
+                DocChunk(source=path, title=part_title, content=part, kind="section")
+            )
+
+        if not has_headings and len(parts) >= 3:
+            index_lines = "\n".join(f"- {t}" for t in part_titles)
+            index_content = f"# {path.stem} 知识目录\n\n{index_lines}"
+            result.chunks.append(
+                DocChunk(
+                    source=path,
+                    title=f"{path.stem} 目录",
+                    content=index_content,
+                    kind="index",
+                )
+            )
+            result.index_written += 1
+
+    return result
