@@ -289,6 +289,50 @@ async def test_extract_card_approve_via_bootstrap_run_id(tmp_path, monkeypatch):
         await rt.close()
 
 
+async def test_bootstrap_run_id_all_pending_skips_docs_lane(tmp_path, monkeypatch):
+    """同 run 有 conversation + docs pending：整批 bootstrap_run_id 只放行抽取车道 B。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-mixed"
+    rsi = root / ".rsi"
+    rsi.mkdir()
+    (rsi / "bootstrap_run.json").write_text(
+        json.dumps({"latest": run_id}), encoding="utf-8",
+    )
+    rt = await build_runtime(project_root=root)
+    try:
+        conv_id = await _insert_item(
+            rt.db, project_id=rt.project_id, title="对话抽取",
+            source_url="cursor/chat.md",
+            tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
+        )
+        docs_id = await _insert_item(
+            rt.db, project_id=rt.project_id, title="冲突文档",
+            source_url="docs/foo.md",
+            tags=["signal:docs", f"bootstrap_run_id:{run_id}"],
+        )
+        result = await knowledge_review_tool.handle(rt, {
+            "action": "approve",
+            "bootstrap_run_id": run_id,
+            "all_pending": True,
+            "project_id": rt.project_id,
+        })
+        assert result["status"] == "ok"
+        assert result["processed"] == 1
+        conn = await rt.db.connect()
+        async with conn.execute(
+            "SELECT status FROM knowledge_items WHERE id = ?", (conv_id,),
+        ) as cur:
+            assert (await cur.fetchone())["status"] == "active"
+        async with conn.execute(
+            "SELECT status FROM knowledge_items WHERE id = ?", (docs_id,),
+        ) as cur:
+            assert (await cur.fetchone())["status"] == "pending_review"
+    finally:
+        await rt.close()
+
+
 async def test_knowledge_review_skip_suppresses_extract_card(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
     root = tmp_path / "proj"

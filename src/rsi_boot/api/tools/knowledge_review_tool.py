@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import json
 import logging
+from types import SimpleNamespace
 from typing import Any
 
+from ...cli.knowledge_accept import _extract_ids
 from ...project import tool_project_id
 from ...services.decision_queue import close_extract_runs
 from ...services.knowledge_service import KnowledgeService
@@ -89,13 +91,31 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
         return {"status": "ok", **result}
 
     if arguments.get("all_pending") or (bootstrap_run_id and not arguments.get("id")):
-        result = await knowledge.review_batch(
-            project_id, approve,
-            content_type=arguments.get("content_type") or None,
-            include_archived=bool(arguments.get("include_archived")),
-            bootstrap_run_id=bootstrap_run_id,
-            exclude_bootstrap=not bool(bootstrap_run_id),
-        )
+        content_type = arguments.get("content_type") or None
+        include_archived = bool(arguments.get("include_archived"))
+        if bootstrap_run_id:
+            scope = SimpleNamespace(db=db, project_id=project_id)
+            extract_ids = await _extract_ids(scope, bootstrap_run_id)
+            if extract_ids:
+                result = await knowledge.review_batch(
+                    project_id, approve,
+                    ids=extract_ids,
+                    content_type=content_type,
+                    include_archived=include_archived,
+                    bootstrap_run_id=bootstrap_run_id,
+                )
+            else:
+                result = {
+                    "processed": 0,
+                    "new_status": "active" if approve else "rejected",
+                }
+        else:
+            result = await knowledge.review_batch(
+                project_id, approve,
+                content_type=content_type,
+                include_archived=include_archived,
+                exclude_bootstrap=True,
+            )
         if result.get("processed") and bootstrap_run_id:
             await close_extract_runs(
                 decisions, [json.dumps([f"bootstrap_run_id:{bootstrap_run_id}"])],
