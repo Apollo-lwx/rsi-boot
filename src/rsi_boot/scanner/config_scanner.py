@@ -36,6 +36,22 @@ _POM_TEST_FRAMEWORKS = {"junit": "junit", "testng": "testng",
                         "spring-boot-starter-test": "junit"}
 
 
+def format_stack_buckets(by_lang: Dict[str, List[str]]) -> str:
+    """python:pydantic+pytest; java:junit — 空桶省略"""
+    parts: List[str] = []
+    for lang in sorted(by_lang):
+        items = by_lang[lang]
+        if items:
+            parts.append(f"{lang}:{'+'.join(items)}")
+    return "; ".join(parts)
+
+
+def _add_to_bucket(buckets: Dict[str, List[str]], lang: str, value: str) -> None:
+    lst = buckets.setdefault(lang, [])
+    if value not in lst:
+        lst.append(value)
+
+
 @dataclass
 class ConfigInsights:
     language: Optional[str] = None
@@ -48,6 +64,8 @@ class ConfigInsights:
     #: 清单声明的依赖名（归一化小写，供画像 expertise 种子；pom 不收集——
     #: artifactId 含项目自身坐标，噪声大）
     dependency_names: List[str] = field(default_factory=list)
+    frameworks_by_lang: Dict[str, List[str]] = field(default_factory=dict)
+    test_frameworks_by_lang: Dict[str, List[str]] = field(default_factory=dict)
 
     def summary_text(self) -> str:
         lines = ["# 项目配置与规范摘要"]
@@ -79,14 +97,13 @@ def _parse_pyproject(path: Path, insights: ConfigInsights) -> None:
 
     for dep, label in _FRAMEWORK_HINTS.items():
         if dep in dep_names:
-            insights.framework = insights.framework or label
+            _add_to_bucket(insights.frameworks_by_lang, "python", label)
     for tf in _TEST_FRAMEWORKS:
         if tf.split()[0] in dep_names:
-            insights.test_framework = insights.test_framework or tf
+            _add_to_bucket(insights.test_frameworks_by_lang, "python", tf)
     build = data.get("build-system", {}).get("build-backend", "")
     if build:
         insights.build_system = build.split(".")[0]
-    insights.language = insights.language or "python"
 
 
 def _parse_package_json(path: Path, insights: ConfigInsights) -> None:
@@ -100,12 +117,11 @@ def _parse_package_json(path: Path, insights: ConfigInsights) -> None:
     insights.dependency_names.extend(sorted(d.lower() for d in deps))
     for dep, label in _FRAMEWORK_HINTS.items():
         if dep in deps:
-            insights.framework = insights.framework or label
+            _add_to_bucket(insights.frameworks_by_lang, "javascript", label)
     for tf in ("jest", "vitest", "mocha"):
         if tf in deps:
-            insights.test_framework = insights.test_framework or tf
+            _add_to_bucket(insights.test_frameworks_by_lang, "javascript", tf)
     insights.build_system = insights.build_system or "npm"
-    insights.language = insights.language or "javascript"
 
 
 def _parse_requirements(path: Path, insights: ConfigInsights) -> None:
@@ -127,12 +143,11 @@ def _parse_requirements(path: Path, insights: ConfigInsights) -> None:
     insights.dependency_names.extend(sorted(dep_names))
     for dep, label in _FRAMEWORK_HINTS.items():
         if dep in dep_names:
-            insights.framework = insights.framework or label
+            _add_to_bucket(insights.frameworks_by_lang, "python", label)
     for tf in _TEST_FRAMEWORKS:
         if tf.split()[0] in dep_names:
-            insights.test_framework = insights.test_framework or tf
+            _add_to_bucket(insights.test_frameworks_by_lang, "python", tf)
     insights.build_system = insights.build_system or "pip"
-    insights.language = insights.language or "python"
 
 
 def _parse_pom(path: Path, insights: ConfigInsights) -> None:
@@ -149,12 +164,11 @@ def _parse_pom(path: Path, insights: ConfigInsights) -> None:
     insights.dependencies_count += len(artifacts)
     for hint, label in _POM_FRAMEWORK_HINTS.items():
         if any(hint in a for a in artifacts):
-            insights.framework = insights.framework or label
+            _add_to_bucket(insights.frameworks_by_lang, "java", label)
     for hint, label in _POM_TEST_FRAMEWORKS.items():
         if any(a == hint or a.startswith(hint + "-") for a in artifacts):
-            insights.test_framework = insights.test_framework or label
+            _add_to_bucket(insights.test_frameworks_by_lang, "java", label)
     insights.build_system = insights.build_system or "maven"
-    insights.language = insights.language or "java"
 
 
 def scan_configs(project_root: Path, config_files: List[Path], convention_files: List[Path],
@@ -175,6 +189,7 @@ def scan_configs(project_root: Path, config_files: List[Path], convention_files:
             insights.build_system = insights.build_system or "make"
 
     # 语言占比：按代码文件扩展名分布（行数统计在 P2.6 代码层，核心层按文件数）
+    code_langs: set[str] = set()
     if code_files:
         ext_count: Dict[str, int] = {}
         ext_lang = {".py": "python", ".js": "javascript", ".ts": "typescript", ".vue": "vue",
@@ -184,9 +199,13 @@ def scan_configs(project_root: Path, config_files: List[Path], convention_files:
             if lang:
                 ext_count[lang] = ext_count.get(lang, 0) + 1
         if ext_count:
-            top, count = max(ext_count.items(), key=lambda kv: kv[1])
-            if count / sum(ext_count.values()) >= 0.4:  # §3.8：主语言占比 ≥ 40%
-                insights.language = top
+            total = sum(ext_count.values())
+            code_langs = {lang for lang, count in ext_count.items() if count / total >= 0.4}
+
+    config_langs = set(insights.frameworks_by_lang) | set(insights.test_frameworks_by_lang)
+    all_langs = code_langs | config_langs
+    if all_langs:
+        insights.language = ",".join(sorted(all_langs))
 
     insights.dependency_names = list(dict.fromkeys(insights.dependency_names))[:50]
     insights.conventions = sorted({p.name for p in convention_files})
@@ -200,7 +219,28 @@ def scan_configs(project_root: Path, config_files: List[Path], convention_files:
             insights.ci_pipeline = "gitlab-ci"
 
     # 无依赖声明时的兜底推断（§3.8：依赖声明优先于目录/配置文件推断）
-    if not insights.test_framework and insights.language == "python":
+    if "python" not in insights.test_frameworks_by_lang and "python" in all_langs:
         if (root / "tests").is_dir() or (root / "pytest.ini").is_file() or (root / "tox.ini").is_file():
-            insights.test_framework = "pytest"
+            _add_to_bucket(insights.test_frameworks_by_lang, "python", "pytest")
+
+    _finalize_stack_display(insights)
     return insights
+
+
+def _finalize_stack_display(insights: ConfigInsights) -> None:
+    """分桶 → 展示串；单栈保持扁平 framework 以兼容旧断言。"""
+    langs = set((insights.language or "").split(",")) if insights.language else set()
+    multi_stack = len(langs) > 1 or len(insights.frameworks_by_lang) > 1
+
+    if multi_stack:
+        if insights.frameworks_by_lang:
+            insights.framework = format_stack_buckets(insights.frameworks_by_lang) or None
+        if insights.test_frameworks_by_lang:
+            insights.test_framework = format_stack_buckets(insights.test_frameworks_by_lang) or None
+    else:
+        if insights.frameworks_by_lang:
+            items = next(iter(insights.frameworks_by_lang.values()), [])
+            insights.framework = items[0] if items else None
+        if insights.test_frameworks_by_lang:
+            items = next(iter(insights.test_frameworks_by_lang.values()), [])
+            insights.test_framework = items[0] if items else None

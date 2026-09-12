@@ -14,7 +14,7 @@ from typing import Counter, List, Optional
 
 from ..core.models import UserProfile
 from ..data.sqlite import SQLiteClient
-from .config_scanner import ConfigInsights
+from .config_scanner import ConfigInsights, format_stack_buckets
 from .git_analyzer import GitInsights
 
 logger = logging.getLogger(__name__)
@@ -65,12 +65,20 @@ def build_profile(
     profile = UserProfile(user_id=user_id, project_id=project_id)
     if insights.language:
         profile.preferences.role_specific["language"] = insights.language
-    if insights.framework:
+    if insights.frameworks_by_lang:
+        profile.preferences.role_specific["framework"] = format_stack_buckets(insights.frameworks_by_lang)
+    elif insights.framework:
         profile.preferences.role_specific["framework"] = insights.framework
-    if insights.test_framework:
+    if insights.test_frameworks_by_lang:
+        profile.preferences.role_specific["test_framework"] = format_stack_buckets(insights.test_frameworks_by_lang)
+    elif insights.test_framework:
         profile.preferences.role_specific["test_framework"] = insights.test_framework
     profile.project_insights = {
-        "architecture": insights.framework or "",
+        "architecture": (
+            format_stack_buckets(insights.frameworks_by_lang)
+            if insights.frameworks_by_lang
+            else (insights.framework or "")
+        ),
         "build_system": insights.build_system or "",
         "ci_pipeline": insights.ci_pipeline or "",
         "doc_quality": doc_quality,
