@@ -7,6 +7,7 @@ include_archived 含 bootstrap 限量溢出条目）。
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -21,13 +22,24 @@ TOOL_NAME = "rsi_knowledge_review"
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "id": {"type": "string", "description": "待审知识条目 ID（status=pending_review/archived）"},
+        "id": {
+            "type": "string",
+            "description": "待审知识条目 ID；action=skip 时为决策卡 id（extract:<run_id> 或冲突 id）",
+        },
         "ids": {"type": "array", "items": {"type": "string"}, "description": "批量审批的条目 ID 列表"},
         "all_pending": {"type": "boolean", "description": "true = 审批全部 pending_review 条目"},
+        "bootstrap_run_id": {
+            "type": "string",
+            "description": "只审批该 bootstrap 轮次的抽取（与 all_pending 联用，或单独表示本轮全部）",
+        },
         "content_type": {"type": "string", "description": "批量审批时按内容类型过滤（convention/architecture/faq/documentation）"},
         "include_archived": {"type": "boolean", "description": "批量审批时包含 archived（bootstrap 限量溢出）条目"},
         "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
-        "action": {"type": "string", "enum": ["approve", "reject"], "description": "审批动作"},
+        "action": {
+            "type": "string",
+            "enum": ["approve", "reject", "skip"],
+            "description": "approve/reject=审批；skip=抑制决策卡（不审批）",
+        },
     },
     "required": ["action"],
 }
@@ -50,27 +62,45 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
     db = getattr(runtime_or_knowledge, "db", knowledge._db)
     project_id = tool_project_id(runtime_or_knowledge, arguments)
     action = str(arguments.get("action", ""))
+    if action == "skip":
+        decision_id = str(arguments.get("id") or "")
+        if not decision_id:
+            return {"status": "error", "message": "skip 需要决策卡 id"}
+        if decisions is not None:
+            decisions.suppress(decision_id)
+        return {"status": "ok", "id": decision_id, "suppressed": True}
     if action not in ("approve", "reject"):
-        return {"status": "error", "message": "action 非法（approve/reject）"}
+        return {"status": "error", "message": "action 非法（approve/reject/skip）"}
     approve = action == "approve"
+    bootstrap_run_id = arguments.get("bootstrap_run_id") or None
+    if bootstrap_run_id is not None:
+        bootstrap_run_id = str(bootstrap_run_id)
 
     ids = arguments.get("ids")
     if ids:
         if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
             return {"status": "error", "message": "ids 必须是字符串数组"}
         tags = await _tags_of(knowledge, ids)
-        result = await knowledge.review_batch(project_id, approve, ids=ids)
+        result = await knowledge.review_batch(
+            project_id, approve, ids=ids, bootstrap_run_id=bootstrap_run_id,
+        )
         if result.get("processed"):
             await close_extract_runs(decisions, tags, db=db, project_id=project_id)
         return {"status": "ok", **result}
 
-    if arguments.get("all_pending"):
+    if arguments.get("all_pending") or (bootstrap_run_id and not arguments.get("id")):
         result = await knowledge.review_batch(
             project_id, approve,
             content_type=arguments.get("content_type") or None,
             include_archived=bool(arguments.get("include_archived")),
-            exclude_bootstrap=True,
+            bootstrap_run_id=bootstrap_run_id,
+            exclude_bootstrap=not bool(bootstrap_run_id),
         )
+        if result.get("processed") and bootstrap_run_id:
+            await close_extract_runs(
+                decisions, [json.dumps([f"bootstrap_run_id:{bootstrap_run_id}"])],
+                db=db, project_id=project_id,
+            )
         return {"status": "ok", **result}
 
     item_id = str(arguments.get("id", ""))

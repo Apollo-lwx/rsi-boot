@@ -239,6 +239,89 @@ async def test_knowledge_review_closes_extract_card(tmp_path, monkeypatch):
         await rt.close()
 
 
+async def test_extract_card_approve_via_bootstrap_run_id(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-batch"
+    rsi = root / ".rsi"
+    rsi.mkdir()
+    (rsi / "bootstrap_run.json").write_text(
+        json.dumps({"latest": run_id}), encoding="utf-8",
+    )
+    rt = await build_runtime(project_root=root)
+    try:
+        item_id = await _insert_item(
+            rt.db, project_id=rt.project_id, title="对话抽取",
+            source_url="cursor/chat.md",
+            tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
+        )
+        daily_id = await _insert_item(
+            rt.db, project_id=rt.project_id, title="日常草稿",
+            source_url="auto-extract", tags=["signal:conversation"],
+        )
+        first = await rt.recall.recall("开始任务", rt.project_id)
+        card = first["decisions"][0]
+        assert card["id"] == f"extract:{run_id}"
+        assert card["impact"]["run_id"] == run_id
+        side_ids = [s["item_id"] for s in card["sides"] if s.get("role") == "extract"]
+        assert item_id in side_ids
+        result = await knowledge_review_tool.handle(rt, {
+            "action": "approve",
+            "bootstrap_run_id": run_id,
+            "all_pending": True,
+            "project_id": rt.project_id,
+        })
+        assert result["status"] == "ok"
+        assert result.get("processed", 0) >= 1
+        conn = await rt.db.connect()
+        async with conn.execute(
+            "SELECT status FROM knowledge_items WHERE id = ?", (item_id,),
+        ) as cur:
+            assert (await cur.fetchone())["status"] == "active"
+        async with conn.execute(
+            "SELECT status FROM knowledge_items WHERE id = ?", (daily_id,),
+        ) as cur:
+            assert (await cur.fetchone())["status"] == "pending_review"
+        second = await rt.recall.recall("开始任务", rt.project_id)
+        assert second["decisions"] == [] or second["decisions"][0]["id"] != f"extract:{run_id}"
+    finally:
+        await rt.close()
+
+
+async def test_knowledge_review_skip_suppresses_extract_card(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-skip"
+    rsi = root / ".rsi"
+    rsi.mkdir()
+    (rsi / "bootstrap_run.json").write_text(
+        json.dumps({"latest": run_id}), encoding="utf-8",
+    )
+    rt = await build_runtime(project_root=root)
+    try:
+        await _insert_item(
+            rt.db, project_id=rt.project_id, title="对话抽取",
+            source_url="cursor/chat.md",
+            tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
+        )
+        first = await rt.recall.recall("开始任务", rt.project_id)
+        extract_id = first["decisions"][0]["id"]
+        assert extract_id == f"extract:{run_id}"
+        result = await knowledge_review_tool.handle(rt, {
+            "action": "skip",
+            "id": extract_id,
+            "project_id": rt.project_id,
+        })
+        assert result["status"] == "ok"
+        second = await rt.recall.recall("开始任务", rt.project_id)
+        ids = [d["id"] for d in second["decisions"]]
+        assert extract_id not in ids
+    finally:
+        await rt.close()
+
+
 async def test_runtime_decisions_survives_config_reload(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
     root = tmp_path / "proj"

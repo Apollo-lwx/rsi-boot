@@ -88,15 +88,17 @@ async def _insert_item(db, *, project_id, title, source_url, tags, status="pendi
     return item_id
 
 
-async def _insert_conflict(db, *, project_id, item_id, peer_source, conflict_type="incoherent"):
+async def _insert_conflict(
+    db, *, project_id, item_id, peer_source, conflict_type="incoherent", excerpt="excerpt",
+):
     conn = await db.connect()
     now = datetime.now(timezone.utc).isoformat()
     cid = uuid.uuid4().hex
     await conn.execute(
         "INSERT INTO rule_conflicts (id, project_id, item_id, user_rule_path, user_rule_excerpt,"
         " user_rule_hash, conflict_type, status, resolution_note, detected_at)"
-        " VALUES (?, ?, ?, ?, 'excerpt', ?, ?, 'open', 'recommended:keep_item', ?)",
-        (cid, project_id, item_id, peer_source, uuid.uuid4().hex, conflict_type, now),
+        " VALUES (?, ?, ?, ?, ?, ?, ?, 'open', 'recommended:keep_item', ?)",
+        (cid, project_id, item_id, peer_source, excerpt, uuid.uuid4().hex, conflict_type, now),
     )
     await conn.commit()
     return cid
@@ -143,3 +145,70 @@ async def test_collect_classifies_daily_and_bootstrap_and_extract(db, tmp_path):
     ]
     skip = next(o for o in by_kind["bootstrap_extract"].options if o["id"] == "skip")
     assert "suppress" in (skip.get("label") or skip.get("note") or "").lower() or "跳过" in str(skip)
+    extract = by_kind["bootstrap_extract"]
+    assert extract.impact.get("run_id") == run_id
+    extract_ids = [s.get("item_id") for s in extract.sides if s.get("role") == "extract"]
+    assert len(extract_ids) == 1
+    assert all(extract_ids)
+
+
+async def test_collect_item_peer_path_uses_real_old_title(db):
+    pid = "p1"
+    old_id = await _insert_item(
+        db, project_id=pid, title="API 用 pydantic",
+        source_url="", tags=["signal:conversation"], status="active",
+    )
+    new_id = await _insert_item(
+        db, project_id=pid, title="禁止：pydantic",
+        source_url="auto-extract", tags=["signal:conversation"],
+    )
+    await _insert_conflict(
+        db, project_id=pid, item_id=new_id, peer_source=f"item:{old_id}",
+        excerpt=f"极性相反 historical_id={old_id}",
+    )
+    cards = await collect_decision_cards(db, pid, project_root=None)
+    daily = next(c for c in cards if c.kind == "daily_conflict")
+    old_side = next(s for s in daily.sides if s["role"] == "old")
+    assert old_side["title"] == "API 用 pydantic"
+    assert not old_side["title"].startswith("item:")
+
+
+async def test_collect_hash_peer_path_uses_real_old_title(db):
+    pid = "p1"
+    old_id = await _insert_item(
+        db, project_id=pid, title="共享文档旧稿",
+        source_url="docs/shared.md", tags=["signal:docs"], status="active",
+    )
+    new_id = await _insert_item(
+        db, project_id=pid, title="共享文档新稿",
+        source_url="auto-extract", tags=["signal:conversation"],
+    )
+    await _insert_conflict(
+        db, project_id=pid, item_id=new_id,
+        peer_source=f"docs/shared.md#{old_id}",
+    )
+    cards = await collect_decision_cards(db, pid, project_root=None)
+    daily = next(c for c in cards if c.kind == "daily_conflict")
+    old_side = next(s for s in daily.sides if s["role"] == "old")
+    assert old_side["title"] == "共享文档旧稿"
+
+
+async def test_collect_historical_id_excerpt_fallback(db):
+    pid = "p1"
+    old_id = await _insert_item(
+        db, project_id=pid, title="历史约定",
+        source_url="", tags=["signal:conversation"], status="active",
+    )
+    new_id = await _insert_item(
+        db, project_id=pid, title="新约定",
+        source_url="auto-extract", tags=["signal:conversation"],
+    )
+    await _insert_conflict(
+        db, project_id=pid, item_id=new_id,
+        peer_source="unresolvable-path",
+        excerpt=f"极性相反 historical_id={old_id}",
+    )
+    cards = await collect_decision_cards(db, pid, project_root=None)
+    daily = next(c for c in cards if c.kind == "daily_conflict")
+    old_side = next(s for s in daily.sides if s["role"] == "old")
+    assert old_side["title"] == "历史约定"

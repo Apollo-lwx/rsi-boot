@@ -219,3 +219,9 @@ async def test_tool_missing_target_is_error(db, base_config):
         knowledge, {"action": "approve", "project_id": "p1"}
     )
     assert result["status"] == "error"
+
+
+def test_knowledge_review_schema_exposes_skip_and_bootstrap_run_id():
+    props = knowledge_review_tool.INPUT_SCHEMA["properties"]
+    assert "skip" in props["action"]["enum"]
+    assert "bootstrap_run_id" in props
