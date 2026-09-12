@@ -203,59 +203,82 @@ def _detect_doc_code_conflicts(
         )
 
 
+def _incoherent_hit(left: DraftItem, right: DraftItem) -> tuple[str, str, str] | None:
+    text_l = f"{left.title}\n{left.content}"
+    text_r = f"{right.title}\n{right.content}"
+    for phrase in _candidate_phrases(left):
+        if len(phrase) < _MIN_KEY_PHRASE_LEN:
+            continue
+        if _find_phrase(text_r, phrase) < 0:
+            continue
+        idx_l = _find_phrase(text_l, phrase)
+        idx_r = _find_phrase(text_r, phrase)
+        if idx_l < 0 or idx_r < 0:
+            continue
+        win_l = text_l[max(0, idx_l - _EXCERPT_WINDOW): idx_l + len(phrase) + _EXCERPT_WINDOW]
+        win_r = text_r[max(0, idx_r - _EXCERPT_WINDOW): idx_r + len(phrase) + _EXCERPT_WINDOW]
+        pol_l, pol_r = _polarity(win_l), _polarity(win_r)
+        if {pol_l, pol_r} != {"prohibitive", "permissive"}:
+            continue
+        return phrase, pol_l, pol_r
+    return None
+
+
+def _emit_incoherent(
+    left: DraftItem,
+    right: DraftItem,
+    hold_sources: Set[str],
+    conflicts: list[ConflictDraft],
+    *,
+    hold_right: bool,
+) -> bool:
+    hit = _incoherent_hit(left, right)
+    if hit is None:
+        return False
+    phrase, pol_l, pol_r = hit
+    src_l, src_r = _norm_src(left.source_url), _norm_src(right.source_url)
+    hold_sources.add(src_l)
+    held = [src_l]
+    if hold_right:
+        hold_sources.add(src_r)
+        held.append(src_r)
+    conflicts.append(
+        ConflictDraft(
+            conflict_type="incoherent",
+            left_source=src_l,
+            right_source=src_r,
+            reason=f"共享关键短语「{phrase}」，极性相反（{pol_l} vs {pol_r}）",
+            hold_sources=held,
+            recommended="coexist",
+            recommended_reason="需用户裁决口径是否可并存",
+        )
+    )
+    return True
+
+
 def _detect_incoherent_conflicts(
     drafts: list[DraftItem],
     hold_sources: Set[str],
     conflicts: list[ConflictDraft],
+    peers: list[DraftItem] | None = None,
 ) -> None:
     for i in range(len(drafts)):
         for j in range(i + 1, len(drafts)):
-            left, right = drafts[i], drafts[j]
-            text_l = f"{left.title}\n{left.content}"
-            text_r = f"{right.title}\n{right.content}"
-            matched = False
-            for phrase in _candidate_phrases(left):
-                if len(phrase) < _MIN_KEY_PHRASE_LEN:
-                    continue
-                if _find_phrase(text_r, phrase) < 0:
-                    continue
-                idx_l = _find_phrase(text_l, phrase)
-                idx_r = _find_phrase(text_r, phrase)
-                if idx_l < 0 or idx_r < 0:
-                    continue
-                win_l = text_l[max(0, idx_l - _EXCERPT_WINDOW): idx_l + len(phrase) + _EXCERPT_WINDOW]
-                win_r = text_r[max(0, idx_r - _EXCERPT_WINDOW): idx_r + len(phrase) + _EXCERPT_WINDOW]
-                pol_l, pol_r = _polarity(win_l), _polarity(win_r)
-                if {pol_l, pol_r} != {"prohibitive", "permissive"}:
-                    continue
-                src_l, src_r = _norm_src(left.source_url), _norm_src(right.source_url)
-                hold_sources.add(src_l)
-                hold_sources.add(src_r)
-                conflicts.append(
-                    ConflictDraft(
-                        conflict_type="incoherent",
-                        left_source=src_l,
-                        right_source=src_r,
-                        reason=f"共享关键短语「{phrase}」，极性相反（{pol_l} vs {pol_r}）",
-                        hold_sources=[src_l, src_r],
-                        recommended="coexist",
-                        recommended_reason="需用户裁决口径是否可并存",
-                    )
-                )
-                matched = True
-                break
-            if matched:
-                continue
+            _emit_incoherent(drafts[i], drafts[j], hold_sources, conflicts, hold_right=True)
+    for draft in drafts:
+        for peer in peers or []:
+            _emit_incoherent(draft, peer, hold_sources, conflicts, hold_right=False)
 
 
 def gate_drafts(
     drafts: list[DraftItem],
     skeletons: list[Any],
     project_root: Path,
+    peers: list[DraftItem] | None = None,
 ) -> GateResult:
     hold_sources: set[str] = set()
     conflicts: list[ConflictDraft] = []
     _detect_version_conflicts(drafts, project_root, hold_sources, conflicts)
     _detect_doc_code_conflicts(drafts, skeletons, hold_sources, conflicts)
-    _detect_incoherent_conflicts(drafts, hold_sources, conflicts)
+    _detect_incoherent_conflicts(drafts, hold_sources, conflicts, peers)
     return GateResult(hold_sources=hold_sources, conflicts=conflicts)

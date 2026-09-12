@@ -18,12 +18,15 @@ import json
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
 from ..data.sqlite import SQLiteClient
+from ..injector.conflict import ConflictDetector
 from ..knowledge.embedding import EmbeddingService, deserialize_embedding
+from ..scanner.conflict_gate import DraftItem, gate_drafts
 
 logger = logging.getLogger(__name__)
 
@@ -238,19 +241,21 @@ class KnowledgeExtractor:
                 )
                 stats["merged"] += 1
             else:
+                new_id = uuid.uuid4().hex
                 await conn.execute(
                     "INSERT INTO knowledge_items"
                     " (id, project_id, title, content, content_type, roles, domain, tags,"
                     "  source_url, status, embedding, created_at, updated_at)"
                     " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'auto-extract', 'pending_review', NULL, ?, ?)",
                     (
-                        uuid.uuid4().hex, cand["project_id"], draft["title"], draft["content"],
+                        new_id, cand["project_id"], draft["title"], draft["content"],
                         draft.get("content_type", "convention"),
                         json.dumps(draft["roles"], ensure_ascii=False), draft["domain"],
                         json.dumps(draft["tags"], ensure_ascii=False), now, now,
                     ),
                 )
                 stats["extracted"] += 1
+                await self._persist_incoherent_vs_actives(cand["project_id"], new_id, draft)
             await conn.execute(
                 "UPDATE extraction_candidates SET status = 'extracted', processed_at = ? WHERE id = ?",
                 (now, cand["id"]),
@@ -261,6 +266,70 @@ class KnowledgeExtractor:
         if any(stats.values()):
             logger.info("知识提取每日任务完成：%s", stats)
         return stats
+
+    async def _load_active_peers(self, project_id: str) -> List[Tuple[str, DraftItem]]:
+        conn = await self._db.connect()
+        async with conn.execute(
+            "SELECT id, title, content, content_type, source_url, tags FROM knowledge_items "
+            "WHERE project_id = ? AND status = 'active' "
+            "AND content_type IN ('convention', 'prohibition', 'experience')",
+            (project_id,),
+        ) as cur:
+            rows = await cur.fetchall()
+        peers: List[Tuple[str, DraftItem]] = []
+        for row in rows:
+            tags: List[str] = []
+            if row["tags"]:
+                try:
+                    loaded = json.loads(row["tags"])
+                    if isinstance(loaded, list):
+                        tags = [str(t) for t in loaded]
+                except json.JSONDecodeError:
+                    pass
+            peers.append((
+                row["id"],
+                DraftItem(
+                    title=row["title"] or "",
+                    content=row["content"] or "",
+                    content_type=row["content_type"] or "convention",
+                    source_url=row["source_url"] or "",
+                    tags=tags,
+                    signal="",
+                ),
+            ))
+        return peers
+
+    async def _persist_incoherent_vs_actives(
+        self, project_id: str, new_id: str, draft: Dict[str, Any],
+    ) -> None:
+        peer_rows = await self._load_active_peers(project_id)
+        if not peer_rows:
+            return
+        new_draft = DraftItem(
+            title=draft["title"],
+            content=draft["content"],
+            content_type=draft.get("content_type", "convention"),
+            source_url="auto-extract",
+            tags=list(draft.get("tags") or []),
+            signal="",
+        )
+        peers = [item for _, item in peer_rows]
+        result = gate_drafts([new_draft], [], Path("."), peers=peers)
+        detector = ConflictDetector(self._db)
+        id_by_source = {
+            (item.source_url.replace("\\", "/") if item.source_url else ""): pid
+            for pid, item in peer_rows
+        }
+        for conflict in result.conflicts:
+            if conflict.conflict_type != "incoherent":
+                continue
+            hist_id = id_by_source.get(conflict.right_source)
+            if hist_id:
+                conflict.reason = f"{conflict.reason} historical_id={hist_id}"
+            conflict.left_source = "auto-extract"
+            await detector.persist_knowledge_conflicts(
+                project_id, [conflict], {"auto-extract": new_id},
+            )
 
     async def cleanup_rejected(self) -> int:
         """rejected 条目留存 30 天后删除（§4.3）"""
