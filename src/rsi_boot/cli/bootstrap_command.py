@@ -279,7 +279,7 @@ async def _write_host_judge_queue(
     mapping = await _source_to_item_id(runtime, project_id)
     item_to_source = {item_id: src for src, item_id in mapping.items()}
     gate_by_pair = {
-        (_norm_src(c.left_source), _norm_src(c.right_source)): c
+        (c.conflict_type, _norm_src(c.left_source), _norm_src(c.right_source)): c
         for c in gate.conflicts
     }
     rows = await runtime.conflict_detector.list_conflicts(
@@ -289,7 +289,7 @@ async def _write_host_judge_queue(
     for row in rows:
         left = _norm_src(item_to_source.get(row.get("item_id") or "", ""))
         right = _norm_src(row.get("user_rule_path") or "")
-        conflict = gate_by_pair.get((left, right))
+        conflict = gate_by_pair.get((row.get("conflict_type") or "", left, right))
         left_draft = sides.get(left) or drafts_by_source.get(left)
         right_draft = sides.get(right) or drafts_by_source.get(right)
         left_content, left_cut = _truncate_for_queue(left_draft.content if left_draft else "")

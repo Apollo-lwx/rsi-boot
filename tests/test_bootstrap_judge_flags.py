@@ -92,3 +92,102 @@ async def test_local_judge_deletes_stale_queue(tmp_path, monkeypatch):
     assert not stale.exists()
     report = json.loads((rsi / "bootstrap_report.json").read_text(encoding="utf-8"))
     assert report["judge"] == "local"
+
+
+class _QueueFakeCursor:
+    def __init__(self, rows):
+        self._rows = rows
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+    async def fetchall(self):
+        return self._rows
+
+
+class _QueueFakeConn:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def execute(self, _sql, _params=()):
+        return _QueueFakeCursor(self._rows)
+
+
+class _QueueFakeDB:
+    def __init__(self, rows):
+        self._rows = rows
+
+    async def connect(self):
+        return _QueueFakeConn(self._rows)
+
+
+class _QueueFakeDetector:
+    def __init__(self, rows):
+        self._rows = rows
+
+    async def list_conflicts(
+        self, project_id, status="open", *, bootstrap_run_id=None, limit=100, offset=0,
+    ):
+        return self._rows
+
+
+class _QueueFakeRuntime:
+    def __init__(self, item_rows, conflict_rows):
+        self.db = _QueueFakeDB(item_rows)
+        self.conflict_detector = _QueueFakeDetector(conflict_rows)
+
+
+async def test_host_judge_queue_same_pair_two_types_not_crossed(tmp_path):
+    """同 (left, right) 检出 version + incoherent 两类时，队列项各拿各的标签。"""
+    from rsi_boot.cli.bootstrap_command import _write_host_judge_queue
+    from rsi_boot.scanner.conflict_gate import ConflictDraft, DraftItem, GateResult
+
+    drafts = [
+        DraftItem(title="Foo", content="旧版接口返回 xml 且字段名为 user_id",
+                  content_type="documentation", source_url="foo-v1.0.md",
+                  tags=["signal:docs"], signal="docs"),
+        DraftItem(title="Foo", content="新版接口返回 json 且字段名为 accountId",
+                  content_type="documentation", source_url="foo-v1.1.md",
+                  tags=["signal:docs"], signal="docs"),
+    ]
+    gate = GateResult(
+        hold_sources=set(),
+        conflicts=[
+            ConflictDraft(
+                conflict_type="version",
+                left_source="foo-v1.0.md", right_source="foo-v1.1.md",
+                reason="版本家族", hold_sources=["foo-v1.0.md", "foo-v1.1.md"],
+                recommended="keep_peer", recommended_reason="倾向仍有效侧",
+            ),
+            ConflictDraft(
+                conflict_type="incoherent",
+                left_source="foo-v1.0.md", right_source="foo-v1.1.md",
+                reason="同桶近似", hold_sources=[],
+                recommended="coexist", recommended_reason="待宿主裁决",
+            ),
+        ],
+    )
+    runtime = _QueueFakeRuntime(
+        item_rows=[{"id": "item-1", "source_url": "foo-v1.0.md"}],
+        conflict_rows=[
+            {"id": "c-version", "item_id": "item-1",
+             "user_rule_path": "foo-v1.1.md", "conflict_type": "version",
+             "resolution_note": "recommended:keep_peer"},
+            {"id": "c-incoh", "item_id": "item-1",
+             "user_rule_path": "foo-v1.1.md", "conflict_type": "incoherent",
+             "resolution_note": "recommended:coexist"},
+        ],
+    )
+    queue_path, unresolved = await _write_host_judge_queue(
+        runtime, tmp_path / ".rsi", "p1", "run1", gate, drafts,
+    )
+    assert unresolved == 2
+    data = json.loads(queue_path.read_text(encoding="utf-8"))
+    items = {item["conflict_id"]: item for item in data["items"]}
+    assert items["c-version"]["conflict_type"] == "version"
+    assert items["c-version"]["recommended"] == "keep_peer"
+    assert items["c-incoh"]["conflict_type"] == "incoherent"
+    assert items["c-incoh"]["recommended"] == "coexist"
