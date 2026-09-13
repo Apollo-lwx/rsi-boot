@@ -11,12 +11,15 @@ import asyncio
 import logging
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..core.models import KnowledgeItem, RSIRequest, generate_feedback_token
 from ..data.sqlite import SQLiteClient
 from ..knowledge.retriever import KnowledgeRetriever
+from ..memory.store import MemoryStore
+from ..memory.types import MemoryDoc
 from ..strategy.recall import RecallArmSelector
 from .decision_queue import DecisionQueue, collect_decision_cards
 from .log_service import LogService
@@ -25,20 +28,29 @@ from .profile_service import ProfileService
 logger = logging.getLogger(__name__)
 
 _RECALL_SCAN_LIMIT = 200  # 禁止项匹配的项目内扫描上限
+_STORE_DEFAULT_ARM = "recall-balanced"
+_STORE_DEFAULT_TOP_N = 5
+_STORE_DEFAULT_THRESHOLD = 0.6
+_ITEM_TYPES = frozenset({"convention", "documentation"})
+_SEARCH_TYPES = frozenset({"prohibition", "convention", "documentation"})
 
 
 class RecallService:
     def __init__(
         self,
-        db: SQLiteClient,
-        retriever: KnowledgeRetriever,
-        arms: RecallArmSelector,
-        feedback_secret: str,
+        db: Optional[SQLiteClient] = None,
+        retriever: Optional[KnowledgeRetriever] = None,
+        arms: Optional[RecallArmSelector] = None,
+        feedback_secret: str = "",
         profiles: Optional[ProfileService] = None,
         bound_project_id: Optional[str] = None,
         decisions: Optional[DecisionQueue] = None,
         project_root: Optional[Path] = None,
+        store: Optional[MemoryStore] = None,
     ):
+        if store is None and (db is None or retriever is None or arms is None):
+            raise TypeError("db, retriever, and arms are required when store is omitted")
+        self._store = store
         self._db = db
         self._retriever = retriever
         self._arms = arms
@@ -47,7 +59,7 @@ class RecallService:
         self.bound_project_id = bound_project_id
         self._decisions = decisions if decisions is not None else DecisionQueue()
         self._project_root = project_root
-        self._logs = LogService(db)
+        self._logs = LogService(db) if db is not None else None
         self._bg_tasks: set[asyncio.Task] = set()  # 画像增量后台任务，close 前 drain
 
     async def recall(
@@ -58,6 +70,9 @@ class RecallService:
         role: Optional[str] = None,
         top_k: Optional[int] = None,
     ) -> Dict[str, Any]:
+        if self._store is not None:
+            return await self._recall_from_store(task, project_id, user_id, role, top_k)
+
         from ..project import bind_project_id
 
         project_id = bind_project_id(self.bound_project_id, project_id)
@@ -97,10 +112,127 @@ class RecallService:
                 {"title": i.title, "content": i.content, "content_type": i.content_type, "tags": i.tags}
                 for i in items
             ],
+            "skills": [],
             "recall_arm": arm.name,
             "feedback_token": token,
             "decisions": decisions,
         }
+
+    async def _recall_from_store(
+        self,
+        task: str,
+        project_id: str,
+        user_id: str,
+        role: Optional[str],
+        top_k: Optional[int],
+    ) -> Dict[str, Any]:
+        from ..memory.logstore import append_event
+        from ..project import bind_project_id
+        from ..rag.index import build_index, search
+        from ..rag.query import expand_query
+
+        store = self._store
+        assert store is not None
+        project_id = bind_project_id(self.bound_project_id, project_id)
+        started = time.monotonic()
+        limit = min(top_k, 10) if top_k else _STORE_DEFAULT_TOP_N
+
+        docs = self._store_search_docs(store, role)
+        by_id = {doc.id: doc for doc in docs}
+        expanded, intent, _confidence = expand_query(task, role=role)
+        index = build_index(docs)
+
+        prohibitions = [
+            by_id[doc_id]
+            for doc_id, _score in search(index, expanded, types={"prohibition"}, top_n=_RECALL_SCAN_LIMIT)
+            if doc_id in by_id
+        ]
+        items = [
+            by_id[doc_id]
+            for doc_id, score in search(index, expanded, types=_ITEM_TYPES, top_n=limit)
+            if doc_id in by_id and score >= _STORE_DEFAULT_THRESHOLD
+        ]
+        skills = self._store_skill_catalog(store)
+        hits = prohibitions + items
+        latency_ms = int((time.monotonic() - started) * 1000)
+
+        request = RSIRequest(user_id=user_id, project_id=project_id, role=role, raw_input=task)
+        token = generate_feedback_token(request.request_id, user_id, self._secret)
+        retrieved = [doc.id for doc in hits]
+        event: Dict[str, Any] = {
+            "id": uuid.uuid4().hex,
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "kind": "recall",
+            "task": task,
+            "retrieved": retrieved,
+            "arm": _STORE_DEFAULT_ARM,
+            "token": token,
+            "intent": intent,
+            "latency_ms": latency_ms,
+        }
+        if hits:
+            event["excerpt"] = "\n".join(doc.title for doc in hits)
+        append_event(store.rsi_dir, event)
+
+        return {
+            "prohibitions": [self._prohibition_payload(doc) for doc in prohibitions],
+            "items": [self._item_payload(doc) for doc in items],
+            "skills": skills,
+            "feedback_token": token,
+            "recall_arm": _STORE_DEFAULT_ARM,
+        }
+
+    def _store_search_docs(self, store: MemoryStore, role: Optional[str]) -> List[MemoryDoc]:
+        docs: List[MemoryDoc] = []
+        for typ in ("prohibition", "convention", "documentation"):
+            for doc in store.list_official(typ):
+                if doc.status != "active" or doc.type not in _SEARCH_TYPES:
+                    continue
+                if doc.roles and role and role not in doc.roles:
+                    continue
+                docs.append(doc)
+        return docs
+
+    def _store_skill_catalog(self, store: MemoryStore) -> List[Dict[str, Any]]:
+        catalog: List[Dict[str, Any]] = []
+        for doc in store.list_official("skill"):
+            if doc.status != "active":
+                continue
+            catalog.append({
+                "name": str(doc.payload.get("name") or doc.title),
+                "description": doc.description or "",
+                "path": doc.path or "",
+            })
+        return catalog
+
+    @staticmethod
+    def _prohibition_payload(doc: MemoryDoc) -> Dict[str, Any]:
+        return {
+            "id": doc.id,
+            "title": doc.title,
+            "content": doc.content,
+            "domain": doc.domain,
+            "source_path": doc.path,
+        }
+
+    @staticmethod
+    def _item_payload(doc: MemoryDoc) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "id": doc.id,
+            "title": doc.title,
+            "content": doc.content,
+            "content_type": doc.type,
+            "source_path": doc.path,
+            "heading": "",
+        }
+        extra = doc.extra or {}
+        nested = doc.payload or {}
+        for key in ("weight", "conflict_open"):
+            if key in extra:
+                payload[key] = extra[key]
+            elif key in nested:
+                payload[key] = nested[key]
+        return payload
 
     async def _match_prohibitions(
         self, task: str, project_id: str, role: Optional[str]
