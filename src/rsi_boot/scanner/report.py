@@ -53,6 +53,11 @@ class BootstrapReport:
     extracts: List[Dict[str, str]] = field(default_factory=list)
     conflicts: List[Dict[str, str]] = field(default_factory=list)
     conflict_counts: Dict[str, int] = field(default_factory=dict)
+    judge: str = ""                                             # "host" | "local" | ""（dry-run）
+    judge_candidates: int = 0                                   # 候选组数（gate.conflicts 总数）
+    judge_unresolved: int = 0                                   # host：队列 items 数；local：0
+    judge_queue_path: str = ""                                  # host：.rsi/host_judge_queue.json
+    judge_omitted: int = 0                                      # 超 10000 被截断的候选数
     dry_run: bool = False
     will_apply: List[str] = field(default_factory=list)
     will_confirm: List[str] = field(default_factory=list)

@@ -23,7 +23,7 @@ from ..core.masking import mask_text
 from ..core.models import KnowledgeItem
 from ..scanner.code_scanner import aggregate_imports, scan_code
 from ..scanner.config_scanner import scan_configs
-from ..scanner.conflict_gate import DraftItem, gate_drafts
+from ..scanner.conflict_gate import DraftItem, GateResult, gate_drafts
 from ..scanner.conversation_scanner import scan_conversations
 from ..scanner.correlation_engine import (
     correlate_commit_files,
@@ -54,6 +54,8 @@ from .progress import Progress
 
 _LANE_B = frozenset({"conversation", "rules"})
 _REVIEW_CAP_WARN = 500
+_QUEUE_NAME = "host_judge_queue.json"
+_QUEUE_CONTENT_CAP = 6000  # 与 slice max_tokens 1500 × 4 字符一致
 _SIGNAL_SOURCE = {
     "config": "signal:config",
     "code": "signal:code",
@@ -246,6 +248,94 @@ async def _source_to_item_id(runtime: Any, project_id: str) -> Dict[str, str]:
     return mapping
 
 
+def _truncate_for_queue(text: str) -> tuple[str, bool]:
+    """超 _QUEUE_CONTENT_CAP 截断并标 truncated。"""
+    if len(text) <= _QUEUE_CONTENT_CAP:
+        return text, False
+    return text[:_QUEUE_CONTENT_CAP], True
+
+
+def _conflict_sides(
+    gate: GateResult, drafts_by_source: Dict[str, DraftItem],
+) -> Dict[str, DraftItem]:
+    """left/right source → DraftItem（库内同伴已在 drafts 里，直接索引）。"""
+    sides: Dict[str, DraftItem] = {}
+    for conflict in gate.conflicts:
+        for src in (conflict.left_source, conflict.right_source):
+            key = _norm_src(src)
+            if key and key not in sides and key in drafts_by_source:
+                sides[key] = drafts_by_source[key]
+    return sides
+
+
+async def _write_host_judge_queue(
+    runtime: Any, rsi_dir: Path, project_id: str, run_id: str,
+    gate: GateResult, drafts: List[DraftItem],
+) -> tuple[Path, int]:
+    """持久化冲突后，把本 run 全部 open 冲突（含 conflict_id）写成队列文件。
+    返回 (队列路径, 未决组数)。写失败抛 OSError（调用方转 exit 1）。"""
+    drafts_by_source = {_norm_src(d.source_url): d for d in drafts if d.source_url}
+    sides = _conflict_sides(gate, drafts_by_source)
+    mapping = await _source_to_item_id(runtime, project_id)
+    item_to_source = {item_id: src for src, item_id in mapping.items()}
+    gate_by_pair = {
+        (_norm_src(c.left_source), _norm_src(c.right_source)): c
+        for c in gate.conflicts
+    }
+    rows = await runtime.conflict_detector.list_conflicts(
+        project_id, "open", bootstrap_run_id=run_id,
+    )
+    items: List[Dict[str, Any]] = []
+    for row in rows:
+        left = _norm_src(item_to_source.get(row.get("item_id") or "", ""))
+        right = _norm_src(row.get("user_rule_path") or "")
+        conflict = gate_by_pair.get((left, right))
+        left_draft = sides.get(left) or drafts_by_source.get(left)
+        right_draft = sides.get(right) or drafts_by_source.get(right)
+        left_content, left_cut = _truncate_for_queue(left_draft.content if left_draft else "")
+        right_content, right_cut = _truncate_for_queue(right_draft.content if right_draft else "")
+        note = row.get("resolution_note") or ""
+        items.append({
+            "conflict_id": row["id"],
+            "conflict_type": conflict.conflict_type if conflict else row.get("conflict_type", ""),
+            "left": {
+                "title": left_draft.title if left_draft else left,
+                "content": left_content,
+                "source": left,
+            },
+            "right": {
+                "title": right_draft.title if right_draft else right,
+                "content": right_content,
+                "source": right,
+            },
+            "recommended": (
+                conflict.recommended if conflict
+                else note[len("recommended:"):] if note.startswith("recommended:") else ""
+            ),
+            "recommended_reason": conflict.recommended_reason if conflict else "",
+            "truncated": left_cut or right_cut,
+        })
+    payload = {
+        "bootstrap_run_id": run_id,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "judge": "host",
+        "capped": gate.omitted_candidates > 0,
+        "omitted": gate.omitted_candidates,
+        "items": items,
+    }
+    rsi_dir.mkdir(parents=True, exist_ok=True)
+    queue_path = rsi_dir / _QUEUE_NAME
+    queue_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return queue_path, len(items)
+
+
+def _delete_host_judge_queue(rsi_dir: Path) -> None:
+    """--local-judge：存在则删，避免 agent 误读旧 run。"""
+    (rsi_dir / _QUEUE_NAME).unlink(missing_ok=True)
+
+
 async def _existing_hashes(runtime: Any, project_id: str) -> Set[str]:
     # archived 参与去重：收敛/归档条目在 force/内容微调重跑时不得重新入队
     conn = await runtime.db.connect()
@@ -394,6 +484,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
     if judge_error:
         print(judge_error, file=sys.stderr)
         return 2
+    judge = "host" if getattr(args, "host_judge", False) else "local"
     project_id = load_or_create_identity(project_root).project_id
     max_file_size = _parse_size(args.max_file_size)
     rsi_dir = project_root / ".rsi"
@@ -610,9 +701,10 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         gate = gate_drafts(
             drafts, skeletons, project_root, on_progress=progress.tick,
             on_match_start=lambda n: progress.retarget(
-                "冲突检测（极性配对）", total=n or None,
+                "冲突检测（同桶配对）", total=n or None,
             ),
             include=include,
+            judge=judge,
         )
         hold = {_norm_src(s) for s in gate.hold_sources}
         report.extracts = [
@@ -796,6 +888,21 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             await runtime.conflict_detector.persist_knowledge_conflicts(
                 project_id, gate.conflicts, mapping,
             )
+        report.judge = judge
+        report.judge_candidates = len(gate.conflicts)
+        report.judge_omitted = gate.omitted_candidates
+        if judge == "host":
+            try:
+                queue_path, unresolved = await _write_host_judge_queue(
+                    runtime, rsi_dir, project_id, run_id, gate, drafts,
+                )
+            except OSError as exc:
+                print(f"写冲突工作包队列失败: {exc}", file=sys.stderr)
+                return 1
+            report.judge_unresolved = unresolved
+            report.judge_queue_path = str(queue_path)
+        else:
+            _delete_host_judge_queue(rsi_dir)
         progress.tick(1)
 
         await _demote_held_active(runtime, project_id, hold)
