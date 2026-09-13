@@ -64,6 +64,23 @@ class BootstrapReport:
     blocked_untagged_archive: int = 0
     wipe_hint: str = ""
 
+    def _format_judge_line(self) -> str:
+        if not self.judge:
+            return ""
+        if self.judge == "host":
+            line = (
+                f"判断: judge=host，候选 {self.judge_candidates} 组，"
+                f"未决 {self.judge_unresolved} 组，工作包 {self.judge_queue_path}"
+            )
+        else:
+            line = f"判断: judge=local，候选 {self.judge_candidates} 组"
+        if self.judge_omitted > 0:
+            line += (
+                f"（超上限截断 {self.judge_omitted} 组未入包，"
+                "建议收窄 --include 或分目录再学）"
+            )
+        return line
+
     def render_terminal(self) -> str:
         lines = ["", "=== RSI Boot 学习报告 ===", f"项目: {self.project_root}"]
         lines.append("信号发现: " + (", ".join(f"{k}({v})" for k, v in self.signals.items() if v) or "无"))
@@ -83,6 +100,9 @@ class BootstrapReport:
                 lines.append(
                     f"变更收敛: {self.superseded} 条旧版本归档；复活: {self.revived} 条（§10.9.10）"
                 )
+            judge_line = self._format_judge_line()
+            if judge_line:
+                lines.append(judge_line)
             if self.conflict_counts:
                 total = sum(self.conflict_counts.values())
                 detail = " · ".join(
@@ -190,6 +210,9 @@ class BootstrapReport:
                 lines.append(f"（仅列出前 {len(sample)} 条样例，其余 {extra} 组见库内 rsi_conflicts）")
         else:
             lines.append("（未检测到冲突组）")
+        judge_line = self._format_judge_line()
+        if judge_line:
+            lines.append(judge_line)
 
         if self.wipe_hint:
             lines.extend(["", "## 清库重学", self.wipe_hint])

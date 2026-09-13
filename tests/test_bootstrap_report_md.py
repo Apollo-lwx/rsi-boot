@@ -84,3 +84,26 @@ async def test_bootstrap_writes_markdown_report(tmp_path, monkeypatch, capsys):
 
     out = capsys.readouterr().out
     assert "bootstrap_report.md" in out
+
+
+def test_render_terminal_shows_judge_line(tmp_path):
+    report = BootstrapReport(
+        project_root=str(tmp_path),
+        judge="host", judge_candidates=12, judge_unresolved=12,
+        judge_queue_path=str(tmp_path / ".rsi" / "host_judge_queue.json"),
+    )
+    text = report.render_terminal()
+    assert "judge=host" in text
+    assert "12" in text
+    assert "host_judge_queue.json" in text
+
+
+def test_render_terminal_shows_omitted_hint(tmp_path):
+    report = BootstrapReport(
+        project_root=str(tmp_path), judge="local", judge_candidates=10000,
+        judge_omitted=320,
+    )
+    text = report.render_terminal()
+    assert "judge=local" in text
+    assert "320" in text
+    assert "--include" in text
