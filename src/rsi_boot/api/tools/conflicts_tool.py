@@ -42,6 +42,23 @@ INPUT_SCHEMA: dict[str, Any] = {
                            "version/doc_code/incoherent 用 keep_peer/keep_item/coexist",
         },
         "note": {"type": "string", "maxLength": 500, "description": "resolve 可选：裁决备注"},
+        "decisions": {
+            "type": "array",
+            "maxItems": 200,
+            "description": "resolve 批量：逐条裁决，存在时忽略 conflict_id/resolution",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "conflict_id": {"type": "string"},
+                    "resolution": {
+                        "type": "string",
+                        "enum": ["user_wins", "memory_wins", "coexist", "keep_peer", "keep_item"],
+                    },
+                    "note": {"type": "string", "maxLength": 500},
+                },
+                "required": ["conflict_id", "resolution"],
+            },
+        },
     },
     "required": ["action"],
 }
@@ -73,6 +90,16 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
             return {"status": "error", "message": "冲突不存在"}
         return {"status": "success", "data": data}
     if action == "resolve":
+        batch_decisions = arguments.get("decisions")
+        if batch_decisions is not None:
+            if len(batch_decisions) > 200:
+                return {"status": "error", "message": "单批最多 200 条"}
+            data = await detector.resolve_batch(batch_decisions)
+            decisions = getattr(runtime, "decisions", None)
+            if decisions is not None:
+                for r in data["resolved"]:
+                    decisions.close(r["conflict_id"])
+            return {"status": "success", "data": data}
         conflict_id = str(arguments.get("conflict_id") or "")
         resolution = str(arguments.get("resolution") or "")
         result = await detector.resolve(conflict_id, resolution, str(arguments.get("note") or ""))

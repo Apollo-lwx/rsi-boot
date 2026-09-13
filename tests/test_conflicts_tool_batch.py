@@ -95,3 +95,45 @@ async def test_list_pagination_stable_when_detected_at_ties(db):
         ids2 = {c["id"] for c in page2["data"]["conflicts"]}
         assert len(ids1 | ids2) == 3
         assert not ids1 & ids2
+
+
+async def test_resolve_decisions_batch_partial_failure_no_rollback(db):
+    item = await _item(db, "p1", "甲", "docs/a.md", ["signal:docs"])
+    ok1 = await _conflict(db, "p1", item, "docs/p1.md")
+    ok2 = await _conflict(db, "p1", item, "docs/p2.md")
+    rt = _runtime(db)
+    result = await conflicts_tool.handle(rt, {
+        "action": "resolve",
+        "decisions": [
+            {"conflict_id": ok1, "resolution": "coexist"},
+            {"conflict_id": "不存在的id", "resolution": "coexist"},
+            {"conflict_id": ok2, "resolution": "keep_item"},
+        ],
+    })
+    assert result["status"] == "success"
+    data = result["data"]
+    assert {r["conflict_id"] for r in data["resolved"]} == {ok1, ok2}
+    assert [f["conflict_id"] for f in data["failed"]] == ["不存在的id"]
+    # 已成功的不回滚
+    conn = await db.connect()
+    async with conn.execute(
+        "SELECT status FROM rule_conflicts WHERE id = ?", (ok1,)
+    ) as cur:
+        assert (await cur.fetchone())["status"] == "coexist"
+
+
+async def test_resolve_decisions_over_200_rejected_without_executing(db):
+    item = await _item(db, "p1", "甲", "docs/a.md", ["signal:docs"])
+    cid = await _conflict(db, "p1", item, "docs/p1.md")
+    rt = _runtime(db)
+    result = await conflicts_tool.handle(rt, {
+        "action": "resolve",
+        "decisions": [{"conflict_id": cid, "resolution": "coexist"}] * 201,
+    })
+    assert result["status"] == "error"
+    assert "200" in result["message"]
+    conn = await db.connect()
+    async with conn.execute(
+        "SELECT status FROM rule_conflicts WHERE id = ?", (cid,)
+    ) as cur:
+        assert (await cur.fetchone())["status"] == "open"  # 一条都没执行

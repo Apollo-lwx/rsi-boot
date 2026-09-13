@@ -590,6 +590,26 @@ class ConflictDetector:
                 logger.exception("裁决后注入重写失败（下轮变更重试）")
         return {"conflict_id": conflict_id, "resolution": resolution, "guidance": guidance}
 
+    async def resolve_batch(
+        self, decisions: List[Dict[str, str]],
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """逐条调 self.resolve；返回 {"resolved": [...], "failed": [{conflict_id, reason}]}。
+        部分失败不回滚已成功。"""
+        resolved: List[Dict[str, Any]] = []
+        failed: List[Dict[str, Any]] = []
+        for d in decisions:
+            result = await self.resolve(
+                d["conflict_id"], d["resolution"], d.get("note") or "",
+            )
+            if result is None:
+                failed.append({
+                    "conflict_id": d["conflict_id"],
+                    "reason": "冲突不存在/已关闭，或 resolution 非法",
+                })
+            else:
+                resolved.append(result)
+        return {"resolved": resolved, "failed": failed}
+
     async def _resolve_version(self, row: Any, resolution: str, now: str) -> tuple[str, List[str]]:
         """版本冲突裁决：归档落败来源全部条目，保留侧 pending→active；coexist 两侧激活。"""
         conn = await self._db.connect()
