@@ -43,6 +43,19 @@ def _utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _parse_tags(raw: Any) -> List[str]:
+    if isinstance(raw, list):
+        return [str(x) for x in raw]
+    if not raw:
+        return []
+    import json as _json
+    try:
+        data = _json.loads(raw)
+    except (TypeError, ValueError):
+        return []
+    return [str(x) for x in data] if isinstance(data, list) else []
+
+
 @dataclass
 class UserRuleFile:
     rel_path: str
@@ -321,7 +334,11 @@ class ConflictDetector:
 
     # ---------- 查询与裁决 ----------
 
-    async def list_conflicts(self, project_id: str, status: str = "open") -> List[Dict[str, Any]]:
+    async def list_conflicts(
+        self, project_id: str, status: str = "open",
+        *, bootstrap_run_id: Optional[str] = None,
+        limit: int = 100, offset: int = 0,
+    ) -> List[Dict[str, Any]]:
         conn = await self._db.connect()
         sql = (
             "SELECT c.id, c.item_id, k.title AS item_title, k.source_url AS item_source,"
@@ -334,8 +351,33 @@ class ConflictDetector:
         if status != "all":
             sql += " AND c.status = ?"
             args = (project_id, status)
-        async with conn.execute(sql + " ORDER BY c.detected_at DESC LIMIT 50", args) as cur:
-            return [dict(r) for r in await cur.fetchall()]
+        async with conn.execute(sql + " ORDER BY c.detected_at DESC", args) as cur:
+            rows = [dict(r) for r in await cur.fetchall()]
+        if bootstrap_run_id:
+            marker = f"bootstrap_run_id:{bootstrap_run_id}"
+            rows = [r for r in rows if await self._in_run(conn, project_id, r, marker)]
+        limit = max(1, min(int(limit), 200))
+        offset = max(0, int(offset))
+        return rows[offset:offset + limit]
+
+    async def _in_run(
+        self, conn: Any, project_id: str, row: Dict[str, Any], marker: str,
+    ) -> bool:
+        """run 归属（与 knowledge_accept._conflicts_for_run 同口径）：
+        item_id 侧 tags 含 marker，或 user_rule_path 侧（_peer_row 解析）条目 tags 含 marker"""
+        item_id = row.get("item_id")
+        if item_id:
+            async with conn.execute(
+                "SELECT tags FROM knowledge_items WHERE id = ?", (item_id,),
+            ) as cur:
+                item = await cur.fetchone()
+            if item and marker in _parse_tags(item["tags"]):
+                return True
+        peer_src = self._norm_src(row.get("user_rule_path"))
+        if not peer_src:
+            return False
+        peer = await _peer_row(conn, project_id, peer_src, row.get("user_rule_excerpt") or "")
+        return bool(peer and marker in _parse_tags(peer.get("tags")))
 
     async def persist_knowledge_conflicts(
         self, project_id: str, drafts: list[ConflictDraft],

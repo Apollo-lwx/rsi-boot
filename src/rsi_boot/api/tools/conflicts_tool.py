@@ -27,6 +27,13 @@ INPUT_SCHEMA: dict[str, Any] = {
                        "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "status": {"type": "string", "default": "open",
                    "description": "list 过滤：open/user_wins/memory_wins/keep_peer/keep_item/coexist/closed/all"},
+        "bootstrap_run_id": {"type": "string", "maxLength": 128,
+                             "description": "list 过滤：只列该 bootstrap run 的冲突"
+                                            "（item 侧或 user_rule_path 侧条目 tags 含 bootstrap_run_id:<id>）"},
+        "limit": {"type": "integer", "default": 100, "maximum": 200,
+                  "description": "list 分页：每页条数（夹到 [1, 200]）"},
+        "offset": {"type": "integer", "default": 0,
+                   "description": "list 分页：起始偏移"},
         "conflict_id": {"type": "string", "description": "resolve/explain 必填：冲突 id"},
         "resolution": {
             "type": "string",
@@ -50,7 +57,12 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     if action == "scan":
         return {"status": "success", "data": await detector.scan(project_id)}
     if action == "list":
-        items = await detector.list_conflicts(project_id, status=str(arguments.get("status") or "open"))
+        items = await detector.list_conflicts(
+            project_id, status=str(arguments.get("status") or "open"),
+            bootstrap_run_id=arguments.get("bootstrap_run_id") or None,
+            limit=int(arguments.get("limit") or 100),
+            offset=int(arguments.get("offset") or 0),
+        )
         return {"status": "success", "data": {"conflicts": items, "count": len(items)}}
     if action == "explain":
         conflict_id = str(arguments.get("conflict_id") or "")
