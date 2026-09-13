@@ -26,7 +26,7 @@ _DECISIONS_BODY = (
     "用户要自动执行（你看着办/按推荐）时立刻用 recommended 调工具。"
     "用户要展开或问影响面时用 explain 或卡上的 sides/impact，不要关闭这张卡。"
     "不要让用户自己去终端跑 rsi。"
-    "用户说重新学习时你执行 rsi bootstrap --consent --host-judge（要清库先 rsi wipe --yes），"
+    "用户说重新学习时你执行 rsi bootstrap --consent --host-judge（要清文件记忆先 rsi wipe --yes），"
     "看到「必须指定 --host-judge 或 --local-judge」就加 --host-judge 重跑，不要改用 --local-judge。"
     "学完读 .rsi/host_judge_queue.json 或 rsi_conflicts list（带 bootstrap_run_id），"
     "每批最多 200 条 resolve，直到未决为 0；只有你不确定的才留给以后的 recall 卡。"
@@ -56,6 +56,7 @@ class MemoryRow:
 class MemoryBundle:
     prohibitions: List[MemoryRow] = field(default_factory=list)
     conventions: List[MemoryRow] = field(default_factory=list)  # 含 legacy 'experience'
+    skills: List[MemoryRow] = field(default_factory=list)  # name/description/path only
 
 
 @dataclass
@@ -191,6 +192,12 @@ class AgentsMdTarget:
         if bundle.conventions:
             lines.append("## 经验约定")
             lines += [f"- **{r.title}**：{r.content}" for r in bundle.conventions]
+            lines.append("")
+        if bundle.skills:
+            lines.append("## 技能目录")
+            for r in bundle.skills:
+                path = r.domain or ""
+                lines.append(f"- **{r.title}**：{r.content}（{path}）")
             lines.append("")
         lines.append(self.END)
         block = "\n".join(lines)
