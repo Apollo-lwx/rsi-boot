@@ -380,3 +380,16 @@ async def test_runtime_decisions_survives_config_reload(tmp_path, monkeypatch):
         assert rt.recall._decisions is queue
     finally:
         await rt.close()
+
+
+def test_decisions_mdc_covers_host_judge_recipe(tmp_path):
+    target = CursorRuleTarget(tmp_path)
+    target.write(MemoryBundle())
+    text = (tmp_path / ".cursor" / "rules" / "rsi-decisions.mdc").read_text(encoding="utf-8")
+    body = text.split("---", 2)[-1]
+    assert len(body) <= 800
+    assert "--host-judge" in text
+    assert "rsi wipe --yes" in text
+    assert "host_judge_queue.json" in text
+    assert "200" in text
+    assert "不要让用户自己去终端" in text
