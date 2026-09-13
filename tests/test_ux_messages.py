@@ -1,9 +1,15 @@
 from rsi_boot.ux.messages import STRINGS, TOOL_DESC, t
 
 
+def _has_han(text: str) -> bool:
+    return any("\u4e00" <= c <= "\u9fff" for c in text)
+
+
 def test_keys_have_zh_and_en():
     for key, pair in STRINGS.items():
         assert pair["zh"].strip() and pair["en"].strip(), key
+        assert _has_han(pair["zh"]), key
+        assert not _has_han(pair["en"]), key
     assert "rsi_knowledge_review" in STRINGS["PHASE_PROMOTE"]["zh"]
     assert "rsi_knowledge_review" in STRINGS["PHASE_PROMOTE"]["en"]
 
