@@ -27,13 +27,15 @@ rsi recall "本项目的命名约定是什么"
 
 # 4. 项目自学习：扫描文档/配置/规范，无冲突原文直通生效；抽取与冲突留待确认
 rsi bootstrap --dry-run          # 预览：信号发现 + 将直通 / 将进确认
-rsi bootstrap                    # 正式学习（幂等，未改文件会跳过）
-rsi bootstrap --force            # 忽略 manifest 指纹，按当前文件全量再扫
+rsi bootstrap --local-judge      # 正式学习（幂等，未改文件会跳过）
+rsi bootstrap --local-judge --force   # 忽略 manifest 指纹，按当前文件全量再扫
 rsi bootstrap --include .auto-learn   # 默认不扫 .worktrees/.auto-learn/.superpowers/任意 artifacts/，按需加回
 
 # 5. 启动 MCP stdio server（接入 Cursor 等客户端）
 rsi serve
 ```
+
+在 Cursor 对话里由 agent 重新学习时走 `--host-judge`（冲突工作包由宿主模型当场裁决）；你自己敲终端用 `--local-judge`（本地整条比对，宁缺毋滥）。两者必须且只能给一个，`--dry-run` 除外。
 
 无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。
 
@@ -42,7 +44,7 @@ rsi serve
 ```bash
 # 在该项目根目录。若 Cursor 会立刻把 MCP 拉回来，先在 Settings → MCP 关掉 rsi-boot
 rsi wipe --yes
-rsi bootstrap
+rsi bootstrap --local-judge
 ```
 
 ## MCP 客户端配置（Cursor 示例）
