@@ -623,7 +623,7 @@ async def test_list_filters_by_bootstrap_run_id(db):
     item_b = await _item(db, "p1", "乙", "docs/b.md", ["signal:docs", f"bootstrap_run_id:{run_b}"])
     peer_a = await _item(db, "p1", "甲伴", "docs/a2.md", ["signal:docs", f"bootstrap_run_id:{run_a}"])
     await _conflict(db, "p1", item_a, "docs/a2.md")   # 双侧 run A
-    await _conflict(db, "p1", item_b, "docs/a2.md")   # item 侧 run B，peer 侧 run A → 算 run A
+    await _conflict(db, "p1", item_b, "docs/a2.md")   # item 侧 run B × peer 侧 run A → OR 口径两侧都算
     await _conflict(db, "p1", item_b, "docs/nowhere.md")  # 只 run B
     rt = _runtime(db)
     listed = await conflicts_tool.handle(rt, {
@@ -634,7 +634,7 @@ async def test_list_filters_by_bootstrap_run_id(db):
     listed_b = await conflicts_tool.handle(rt, {
         "action": "list", "bootstrap_run_id": run_b,
     })
-    assert listed_b["data"]["count"] == 1
+    assert listed_b["data"]["count"] == 2
 
 
 async def test_list_paginates_with_limit_offset(db):
