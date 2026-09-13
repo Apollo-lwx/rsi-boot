@@ -10,15 +10,20 @@ import unicodedata
 from typing import Optional, TextIO
 
 
-def format_duration(seconds: float) -> str:
+def format_duration(seconds: float, lang: str | None = None) -> str:
+    from rsi_boot.ux.messages import t
+
+    loc = lang or "zh"
     s = max(0, int(seconds))
     if s < 60:
-        return f"{s}秒"
+        return t("SEC", loc, n=s)
     minutes, rem = divmod(s, 60)
     if minutes < 60:
-        return f"{minutes}分" if rem == 0 else f"{minutes}分{rem}秒"
+        if rem == 0:
+            return t("MIN", loc, n=minutes)
+        return f"{t('MIN', loc, n=minutes)}{t('SEC', loc, n=rem)}"
     hours, minutes = divmod(minutes, 60)
-    return f"{hours}小时{minutes}分"
+    return f"{t('HOUR', loc, n=hours)}{t('MIN', loc, n=minutes)}"
 
 
 def format_remaining(seconds: float) -> str:
@@ -134,11 +139,16 @@ class Progress:
         """另起一行写说明，避免打断 TTY 上的 \\r 进度。"""
         self._writeln(text)
 
-    def finish(self, message: str = "") -> None:
+    def finish(self, message: str = "", *, summary: str | None = None, lang: str | None = None) -> None:
+        from rsi_boot.ux.lang import locale_lang
+        from rsi_boot.ux.messages import t
+
         if self.phase_name:
             self._complete_phase()
+        loc = lang or locale_lang()
+        head = summary if summary is not None else t("BOOTSTRAP_DONE", loc)
         extra = f"  {message}" if message else ""
-        self._writeln(f"学习完成，总耗时 {format_duration(self._total_elapsed())}{extra}")
+        self._writeln(f"{head} {t('DURATION', loc, duration=format_duration(self._total_elapsed(), loc))}{extra}")
 
     def _phase_elapsed(self) -> float:
         if self._elapsed_override is not None:
