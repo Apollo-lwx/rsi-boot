@@ -230,7 +230,11 @@ def _peer_parent_key(draft: DraftItem) -> str | None:
     """父目录 + 一级标题 桶键；auto-extract / item: / 无路径来源返回 None（只进标题桶）。"""
 
 def _strip_modals(text: str) -> str:
-    """去语气词后取剩余词块（标题 + 首句），作为约束对象近似。"""
+    """去语气词后取剩余词块（排序词集 join），作为约束对象近似。"""
+
+def _constraint_object(draft: DraftItem) -> str:
+    """约束对象 = 正文首个 `# ` 一级标题（否则条目标题）去语气词后的排序词集。
+    粒度刻意停在标题级：本地路径是兜底，标题相同但首句对象不同的细分交 host 模型。"""
 
 def _local_peer_conflict(left: DraftItem, right: DraftItem) -> ConflictDraft | None:
     """本地裁决：对象相同且极性相反 → ConflictDraft(incoherent, hold 两侧)；否则 None。"""
@@ -340,15 +344,17 @@ Expected: FAIL（`judge` 参数不存在 → TypeError；旧极性用例已删�
 
 ```python
 def _strip_modals(text: str) -> str:
-    first = re.split(r"[。\n.]", text, maxsplit=1)[0]
-    blob = f"{first}"
+    blob = text
     for word in _MODAL_WORDS:
         blob = blob.replace(word, " ")
-    return " ".join(sorted(_words(blob)))
+    return " ".join(sorted(_gate_words(blob)))
+
+def _constraint_object(draft: DraftItem) -> str:
+    h1 = _h1_text(draft.content)  # 正文首个 `# ` 行；无则 None
+    return _strip_modals(h1 or draft.title)
 
 def _local_peer_conflict(left, right):
-    obj_l = _strip_modals(f"{left.title}\n{left.content}")
-    obj_r = _strip_modals(f"{right.title}\n{right.content}")
+    obj_l, obj_r = _constraint_object(left), _constraint_object(right)
     if not obj_l or obj_l != obj_r:
         return None
     pol_l = "prohibitive" if any(w in f"{left.title}{left.content}".lower() for w in _PROHIBITIVE) else "permissive"
@@ -358,7 +364,7 @@ def _local_peer_conflict(left, right):
     ...  # 组 ConflictDraft
 ```
 
-注意「对象相同」用去语气词后的**排序词集合相等**判定（`_strip_modals` 返回排序后 join 的串）；明文 vs 加密密码词集合不同自然不中。极性判定用 `_PROHIBITIVE` 命中即 prohibitive，否则 permissive（候选对已由分桶保证相关，宁缺毋滥体现在对象相等这道闸）。
+注意：①「对象相同」用去语气词后的**排序词集合相等**判定；② 对象粒度是 H1/标题级（不含首句）——明文 vs 加密密码在同标题下对象相等，实际由候选带宽（标题+正文 Jaccard 须落 [0.35, 0.85)）挡住，这是刻意的：本地路径宁缺毋滥，细分语义判断归 host 模型；③ 词集用门内 CJK 感知 `_WORD_RE`（correlation `_words` 是 ASCII-only，会掏空纯中文对象）；④ 候选相似度 `_peer_sim` 计「标题 + 正文」（纯正文对 CJK 短句太苛刻，brief 自身用例验证）。极性判定用 `_PROHIBITIVE` 命中即 prohibitive，否则 permissive。
 
 - [ ] **Step 4: Run tests**
 
@@ -378,7 +384,8 @@ refactor: 冲突门废除极性叉乘，改同桶整条比对 + host/local 双�
 
 **Files:**
 - Modify: `tests/test_extract_incoherent.py`
-- （预期 `src/rsi_boot/learning/knowledge_extractor.py` 不改；若 `gate_drafts` 默认 `judge="local"` 行为覆盖旧语义则零改动）
+- Modify: `src/rsi_boot/scanner/conflict_gate.py`（`_norm_title` 增加 `禁止：`/`禁止:` 前缀剥离——`extract_draft_rule` 给 rejected 抽取恒加 `禁止：` 前缀，不剥离则与历史同题条目永不共桶；对 version 家族标题比较无害）
+- （`src/rsi_boot/learning/knowledge_extractor.py` 不改）
 
 **Interfaces:**
 - Consumes: 新 `gate_drafts([new_draft], [], Path("."), peers=peers)`（默认 local）。
@@ -386,8 +393,8 @@ refactor: 冲突门废除极性叉乘，改同桶整条比对 + host/local 双�
 
 - [ ] **Step 1: Write the failing test（改写现有文件）**
 
-- `_PROHIBIT_BODY` / `_PERMIT_BODY` 保持不变。
-- 所有用例中历史条目标题与新提取标题统一为 `"pydantic 入参"`（新提取内容首行 `pydantic 入参\n禁止…`，使 `_norm_title` 相等）：
+- `_PROHIBIT_BODY` 保持不变；`_PERMIT_BODY` 改为 `"允许使用 pydantic 作为入参。 "`（统一标题「pydantic 入参」后，旧「校验请求体」正文 Jaccard 只有 0.333 出带；共享「作为入参」后 0.600 落带）。A/B 变体用 `_PERMIT_BODY_B`（首句改「，解析请求体。」），sim 0.500。
+- 所有用例中历史条目标题与新提取标题统一为 `"pydantic 入参"`（新提取内容首行 `pydantic 入参\n禁止…`；extractor 会加 `禁止：` 前缀，靠 `_norm_title` 剥离后共桶）：
   - `test_gate_peers_incoherent_holds_draft_only`：draft 标题 `"pydantic 入参"`（prohibition），peer 标题 `"pydantic 入参"`（convention）。断言不变（hold 只含 `auto-extract`）。
   - `test_daily_new_prohibition_vs_active_permission_opens_incoherent`：历史 `KnowledgeItem(title="pydantic 入参", …)`；`_insert_rejected(db, f"pydantic 入参\n{_PROHIBIT_BODY}")`。断言不变。
   - `test_empty_source_url_peer_still_persists_incoherent`、`test_duplicate_peer_source_url_unique_historical_ids`、`test_keep_item_item_key_archives_only_that_history`、`test_keep_item_hashed_url_archives_only_hashed_peer`：同样把 `"API 用 pydantic"` 系列标题改成 `"pydantic 入参"`（A/B 变体用 `"pydantic 入参"` 同标题、正文微调保持 Jaccard 在带内）。
@@ -471,7 +478,8 @@ def _delete_host_judge_queue(rsi_dir: Path) -> None:
 - `capped` = `gate.omitted_candidates > 0`，`omitted` = `gate.omitted_candidates`。
 - `--host-judge` 且无冲突：写 `items: []` 的空队列（`capped: false, omitted: 0`）。
 - 调用点（`run_bootstrap` 收尾段，`persist_knowledge_conflicts` 之后）：`judge == "host"` → 写队列，失败则 `print(..., file=sys.stderr); return 1`；`judge == "local"` → `_delete_host_judge_queue(rsi_dir)`。
-- 报告字段（Task 6 完整落地，本任务先赋值）：`report.judge = judge`、`report.judge_candidates = len(gate.conflicts)`、`report.judge_unresolved`（host 时为队列 items 数）、`report.judge_queue_path`（host 时为 str 路径）、`report.judge_omitted = gate.omitted_candidates`。
+- 报告字段（Task 7 做终端/Markdown 渲染，本任务先在 `BootstrapReport` dataclass **声明字段并赋值**——`write_json` 走 `asdict`，不声明则 JSON 里 KeyError）：`judge: str = ""`、`judge_candidates: int = 0`、`judge_unresolved: int = 0`（host 时为队列 items 数）、`judge_queue_path: str = ""`（host 时为 str 路径）、`judge_omitted: int = 0`（= `gate.omitted_candidates`）。
+- 对齐取 `conflict_id` 的注意点：DB 行 `user_rule_path` 是 `_norm_src(right)` 归一化值，`item_id` 是 left 侧条目 id；用现成 `_source_to_item_id(runtime, project_id)`（795 行）求逆映射得 `item_id → source`，两侧都经 `_norm_src` 后以 `(left, right)` 键与 `gate.conflicts` 对齐。
 
 - [ ] **Step 1: Write the failing test**
 
