@@ -43,7 +43,8 @@ def _args(tmp_path: Path, **overrides) -> argparse.Namespace:
     defaults = dict(
         project_root=str(tmp_path), scope="", dry_run=False, consent=False,
         then_start=False, force=False, strict=False, allow_sensitive=False,
-        max_file_size="1MB", max_commits=500,
+        max_file_size="1MB", max_commits=500, include=[],
+        host_judge=False, local_judge=True,
     )
     return argparse.Namespace(**{**defaults, **overrides})
 
