@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ...rag.query import expand_query
 from ...services.knowledge_service import KnowledgeService
 
 logger = logging.getLogger(__name__)
@@ -28,10 +29,12 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
     if not query:
         return {"status": "error", "message": "query 必填"}
     top_k = min(20, max(1, int(arguments.get("top_k") or 5)))
+    role = arguments.get("role") or None
+    expanded, _, _ = expand_query(query, role=role)
     items = await knowledge.search(
-        query,
+        expanded,
         str(arguments.get("project_id") or ""),
-        role=arguments.get("role") or None,
+        role=role,
         top_k=top_k,
     )
     return {

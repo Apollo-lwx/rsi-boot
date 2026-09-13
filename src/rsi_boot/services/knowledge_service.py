@@ -11,45 +11,81 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from pathlib import Path
+from typing import Any, List, Optional, Union
+from uuid import UUID
 
 from ..core.masking import mask_text
 from ..core.models import KnowledgeItem
 from ..data.sqlite import SQLiteClient
 from ..data.vec import VectorBackend
+from ..injector.rule_injector import RuleInjector
+from ..injector.slug import slugify
 from ..knowledge.embedding import EmbeddingService, serialize_embedding
 from ..knowledge.retriever import KnowledgeRetriever
+from ..memory.paths import official_dir, pending_dir
+from ..memory.store import MemoryStore, memory_filename
+from ..memory.types import MEMORY_TYPES, MemoryDoc, type_from_legacy
+from ..ux.lang import locale_lang
+from ..ux.messages import t
 
 logger = logging.getLogger(__name__)
+
+_PENDING_TYPES = frozenset({"prohibition", "convention", "skill"})
 
 
 def _utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _archive_dir(store: MemoryStore) -> Path:
+    return store.rsi_dir / "memory" / "archive"
+
+
 class KnowledgeService:
     def __init__(
         self,
-        db: SQLiteClient,
-        retriever: KnowledgeRetriever,
+        db: Optional[SQLiteClient] = None,
+        retriever: Optional[KnowledgeRetriever] = None,
         embedding: Optional[EmbeddingService] = None,
         vec: Optional[VectorBackend] = None,
         bound_project_id: Optional[str] = None,
+        store: Optional[MemoryStore] = None,
+        project_root: Optional[Path] = None,
     ):
+        if store is None and (db is None or retriever is None):
+            raise TypeError("db and retriever are required when store is omitted")
+        self._store = store
         self._db = db
         self._retriever = retriever
         self._embedding = embedding
         self._vec = vec
         self.bound_project_id = bound_project_id
+        self._project_root = Path(project_root) if project_root is not None else None
+        self._injector: Optional[RuleInjector] = None
+        if store is not None and self._project_root is not None:
+            self._injector = RuleInjector(store=store, project_root=self._project_root)
         # 记忆变更回调（Spec v3.0 §4.2：add/review/delete 后触发规则注入重写）
         self.on_change: Optional[Any] = None
 
     def _scope(self, project_id: Optional[str] = None) -> str:
+        if self._store is not None:
+            return project_id or self.bound_project_id or ""
         from ..project import bind_project_id
 
         return bind_project_id(self.bound_project_id, project_id)
 
+    def _invalidate(self) -> None:
+        if self._retriever is not None:
+            self._retriever.invalidate_cache()
+
     async def _notify_change(self, project_id: str) -> None:
+        if self._injector is not None:
+            try:
+                await self._injector.rewrite(project_id)
+            except Exception:
+                logger.exception("注入重写失败（下轮变更重试）")
+            return
         if self.on_change is None:
             return
         try:
@@ -59,12 +95,16 @@ class KnowledgeService:
 
     async def notify_changed(self, project_id: str) -> None:
         """裸 SQL 状态变更（收敛/归档/复活）后触发注入重写与缓存失效"""
-        self._retriever.invalidate_cache()
+        self._invalidate()
         await self._notify_change(project_id)
 
-    async def add(self, item: KnowledgeItem, api_key: Optional[str] = None) -> str:
+    async def add(
+        self, item: KnowledgeItem, api_key: Optional[str] = None
+    ) -> Union[str, dict[str, Any]]:
         """写入知识条目。item.status 缺省 active；bootstrap 等批量来源传 pending_review
         走审批流（PRD v3.0 M2）——pending 条目不生成 embedding、不入检索/注入"""
+        if self._store is not None:
+            return self._add_to_store(item)
         conn = await self._db.connect()
         item_id = uuid.uuid4().hex
         now = _utc_iso()
@@ -113,11 +153,57 @@ class KnowledgeService:
             except Exception as exc:
                 logger.warning("向量索引更新失败（条目仍仅 FTS 可检索）: %s", exc)
         await conn.commit()
-        self._retriever.invalidate_cache()  # §2.4：知识写入后检索结果缓存失效
+        self._invalidate()  # §2.4：知识写入后检索结果缓存失效
         await self._notify_change(item.project_id)
         return item_id
 
+    def _add_to_store(self, item: KnowledgeItem) -> dict[str, Any]:
+        store = self._store
+        assert store is not None
+        typ, extra_update = type_from_legacy(item.content_type or "documentation")
+        if typ not in MEMORY_TYPES:
+            typ = "documentation"
+        item_id = uuid.uuid4().hex
+        extra = dict(extra_update)
+        if item.source_url:
+            extra["source_url"] = item.source_url
+        doc = MemoryDoc(
+            id=item_id,
+            type=typ,
+            title=item.title[:120],
+            content=item.content[:20000],
+            domain=item.domain,
+            tags=list(item.tags),
+            roles=list(item.roles),
+            extra=extra,
+        )
+        if typ in _PENDING_TYPES:
+            dest = pending_dir(store.rsi_dir, typ) / memory_filename(doc.title, item_id)
+        else:
+            dest = official_dir(store.rsi_dir, typ) / memory_filename(doc.title, item_id)
+        written = store.write(doc, dest=dest)
+        return {
+            "id": written.id,
+            "path": written.path,
+            "message": written.path or "",
+        }
+
     async def list(self, project_id: str, limit: int = 50) -> List[dict[str, Any]]:
+        if self._store is not None:
+            docs = list(self._store.list_official()) + list(self._store.list_pending())
+            docs.sort(key=lambda d: d.created_at or "", reverse=True)
+            return [
+                {
+                    "id": d.id,
+                    "title": d.title,
+                    "content_type": d.type,
+                    "domain": d.domain,
+                    "tags": d.tags,
+                    "status": d.status,
+                    "created_at": d.created_at,
+                }
+                for d in docs[:limit]
+            ]
         project_id = self._scope(project_id)
         conn = await self._db.connect()
         async with conn.execute(
@@ -136,14 +222,101 @@ class KnowledgeService:
         top_k: int = 5,
         api_key: Optional[str] = None,
     ) -> List[KnowledgeItem]:
+        if self._store is not None:
+            return self._search_store(query, role=role, top_k=top_k)
         return await self._retriever.search(
             query, self._scope(project_id), role=role, top_k=top_k, api_key=api_key,
         )
+
+    def _search_store(
+        self, query: str, *, role: Optional[str] = None, top_k: int = 5
+    ) -> List[KnowledgeItem]:
+        from ..rag.retriever import retrieve
+
+        store = self._store
+        assert store is not None
+        docs = [d for d in store.list_official() if d.status == "active"]
+        if role:
+            docs = [d for d in docs if not d.roles or role in d.roles]
+        by_id = {d.id: d for d in docs}
+        hits = retrieve(docs, query, role=role, top_n=top_k)
+        items: List[KnowledgeItem] = []
+        for doc_id, _score in hits:
+            doc = by_id.get(doc_id)
+            if doc is None:
+                continue
+            items.append(self._doc_to_item(doc))
+        return items
+
+    def _doc_to_item(self, doc: MemoryDoc) -> KnowledgeItem:
+        return KnowledgeItem(
+            id=UUID(hex=doc.id),
+            project_id=self.bound_project_id or "",
+            title=doc.title,
+            content=doc.content,
+            content_type=doc.type,
+            roles=list(doc.roles),
+            domain=doc.domain,
+            tags=list(doc.tags),
+            status=doc.status,
+        )
+
+    async def review_approve(self, item_id: str) -> dict[str, Any]:
+        store = self._store
+        if store is None:
+            raise RuntimeError("review_approve requires store")
+        doc = store.read(item_id)
+        old_path = doc.path
+        if doc.type == "skill":
+            name = str(doc.payload.get("name") or slugify(doc.title))
+            dest = official_dir(store.rsi_dir, "skill") / name / "skill.yaml"
+            written = self._relocate(doc, dest)
+        else:
+            written = store.move(item_id, official_dir(store.rsi_dir, doc.type))
+        await self._notify_change(self.bound_project_id or "")
+        return {
+            "moved": [{"from": old_path, "to": written.path}],
+            "message": t("REVIEW_APPROVED", locale_lang(), n=1),
+        }
+
+    async def review_reject(self, item_id: str) -> dict[str, Any]:
+        store = self._store
+        if store is None:
+            raise RuntimeError("review_reject requires store")
+        doc = store.read(item_id)
+        old_path = doc.path
+        extra = dict(doc.extra)
+        extra["review"] = "rejected"
+        updated = doc.model_copy(update={"extra": extra})
+        dest = _archive_dir(store) / memory_filename(doc.title, doc.id)
+        written = self._relocate(updated, dest)
+        return {
+            "moved": [{"from": old_path, "to": written.path}],
+            "message": t("REVIEW_REJECTED", locale_lang(), n=1),
+        }
+
+    def _relocate(self, doc: MemoryDoc, dest: Path) -> MemoryDoc:
+        store = self._store
+        assert store is not None
+        src = store.rsi_dir / doc.path if doc.path else None
+        written = store.write(doc, dest=dest)
+        if src is not None and src.exists() and src.resolve() != dest.resolve():
+            src.unlink()
+        return written
 
     async def review(self, item_id: str, project_id: str, approve: bool) -> Optional[str]:
         """人工确认（§4.3）：pending_review 草稿 approve → active 并生成 embedding 入检索；
         reject → rejected（留存 30 天由每日任务清理）。返回新状态；条目不存在或非待审返回 None。
         archived（bootstrap 审批队列限量溢出）同样可审批恢复"""
+        if self._store is not None:
+            try:
+                if approve:
+                    await self.review_approve(item_id)
+                    return "active"
+                await self.review_reject(item_id)
+                return "archived"
+            except FileNotFoundError:
+                return None
         project_id = self._scope(project_id)
         conn = await self._db.connect()
         async with conn.execute(
@@ -161,7 +334,7 @@ class KnowledgeService:
                 (now, item_id),
             )
             await conn.commit()
-            self._retriever.invalidate_cache()
+            self._invalidate()
             return "rejected"  # 草稿从未入检索/注入，无需重写
 
         # 确认时才生成 embedding（§4.3）：此前 pending_review 不入向量/FTS 检索
@@ -181,7 +354,7 @@ class KnowledgeService:
             except Exception as exc:
                 logger.warning("向量索引更新失败（条目仍仅 FTS 可检索）: %s", exc)
         await conn.commit()
-        self._retriever.invalidate_cache()
+        self._invalidate()
         await self._notify_change(project_id)  # 草稿转 active → 规则文件重写
         return "active"
 
@@ -214,7 +387,7 @@ class KnowledgeService:
                 except Exception as exc:
                     logger.warning("向量索引更新失败（条目仍仅 FTS 可检索）: %s", exc)
         await conn.commit()
-        self._retriever.invalidate_cache()
+        self._invalidate()
         await self._notify_change(project_id)
 
     async def review_batch(
@@ -283,12 +456,19 @@ class KnowledgeService:
                     logger.warning("向量索引更新失败（条目仍仅 FTS 可检索）: %s", exc)
         await conn.commit()
         if rows:
-            self._retriever.invalidate_cache()
+            self._invalidate()
             if approve:
                 await self._notify_change(project_id)  # 批量只重写一次规则文件
         return {"processed": len(rows), "new_status": new_status}
 
     async def delete(self, item_id: str, project_id: str) -> bool:
+        if self._store is not None:
+            try:
+                self._store.move(item_id, _archive_dir(self._store))
+            except FileNotFoundError:
+                return False
+            await self._notify_change(self._scope(project_id))
+            return True
         project_id = self._scope(project_id)
         conn = await self._db.connect()
         async with conn.execute(
@@ -306,6 +486,6 @@ class KnowledgeService:
             except Exception as exc:
                 logger.warning("向量索引删除失败（不影响主删除）: %s", exc)
         await conn.commit()
-        self._retriever.invalidate_cache()
+        self._invalidate()
         await self._notify_change(project_id)
         return True

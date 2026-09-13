@@ -21,6 +21,10 @@ INPUT_SCHEMA: dict[str, Any] = {
         "tags": {"type": "array", "items": {"type": "string"}, "description": "标签"},
         "roles": {"type": "array", "items": {"type": "string"}, "description": "适用角色，空=通用"},
         "domain": {"type": "string", "description": "领域"},
+        "content_type": {
+            "type": "string",
+            "description": "prohibition/convention/skill/documentation 或案例类型",
+        },
     },
     "required": ["title", "content"],
 }
@@ -35,9 +39,12 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
         project_id=str(arguments.get("project_id") or ""),
         title=title,
         content=content,
+        content_type=str(arguments.get("content_type") or arguments.get("type") or "documentation"),
         tags=[str(t) for t in arguments.get("tags") or []],
         roles=[str(r) for r in arguments.get("roles") or []],
         domain=arguments.get("domain") or None,
     )
-    item_id = await knowledge.add(item)
-    return {"status": "ok", "id": item_id}
+    result = await knowledge.add(item)
+    if isinstance(result, dict):
+        return {"status": "ok", **result}
+    return {"status": "ok", "id": result}

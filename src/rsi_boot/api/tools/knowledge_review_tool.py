@@ -16,10 +16,12 @@ from ...cli.knowledge_accept import _extract_ids
 from ...project import tool_project_id
 from ...services.decision_queue import close_extract_runs
 from ...services.knowledge_service import KnowledgeService
+from ...ux.messages import TOOL_DESC
 
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "rsi_knowledge_review"
+TOOL_DESCRIPTION = TOOL_DESC["review"]
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -54,7 +56,7 @@ INPUT_SCHEMA: dict[str, Any] = {
 
 
 async def _tags_of(knowledge: KnowledgeService, item_ids: list[str]) -> list[Any]:
-    if not item_ids:
+    if not item_ids or knowledge._db is None:
         return []
     conn = await knowledge._db.connect()
     placeholders = ",".join("?" for _ in item_ids)
