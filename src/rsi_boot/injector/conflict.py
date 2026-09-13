@@ -351,7 +351,7 @@ class ConflictDetector:
         if status != "all":
             sql += " AND c.status = ?"
             args = (project_id, status)
-        async with conn.execute(sql + " ORDER BY c.detected_at DESC", args) as cur:
+        async with conn.execute(sql + " ORDER BY c.detected_at DESC, c.id DESC", args) as cur:
             rows = [dict(r) for r in await cur.fetchall()]
         if bootstrap_run_id:
             marker = f"bootstrap_run_id:{bootstrap_run_id}"

@@ -72,3 +72,26 @@ async def test_list_paginates_with_limit_offset(db):
     ids1 = {c["id"] for c in page1["data"]["conflicts"]}
     ids2 = {c["id"] for c in page2["data"]["conflicts"]}
     assert not ids1 & ids2
+
+
+async def test_list_pagination_stable_when_detected_at_ties(db):
+    """同批 detected_at 并列时分页不得漏/重：ORDER BY 需 id 决胜键。"""
+    item = await _item(db, "p1", "甲", "docs/a.md", ["signal:docs"])
+    conn = await db.connect()
+    same_ts = "2026-09-13T00:00:00+00:00"
+    for i in range(3):
+        await conn.execute(
+            "INSERT INTO rule_conflicts (id, project_id, item_id, user_rule_path, user_rule_excerpt,"
+            " user_rule_hash, conflict_type, status, resolution_note, detected_at)"
+            " VALUES (?, ?, ?, ?, 'excerpt', ?, 'incoherent', 'open', 'recommended:coexist', ?)",
+            (uuid.uuid4().hex, "p1", item, f"docs/tie{i}.md", uuid.uuid4().hex, same_ts),
+        )
+    await conn.commit()
+    rt = _runtime(db)
+    for _ in range(5):
+        page1 = await conflicts_tool.handle(rt, {"action": "list", "limit": 2, "offset": 0})
+        page2 = await conflicts_tool.handle(rt, {"action": "list", "limit": 2, "offset": 2})
+        ids1 = {c["id"] for c in page1["data"]["conflicts"]}
+        ids2 = {c["id"] for c in page2["data"]["conflicts"]}
+        assert len(ids1 | ids2) == 3
+        assert not ids1 & ids2
