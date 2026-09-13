@@ -15,7 +15,8 @@ from rsi_boot.services.knowledge_service import KnowledgeService
 
 _NOW = datetime.now(timezone.utc).isoformat()
 _PROHIBIT_BODY = "禁止使用 pydantic 作为入参。 " * 4
-_PERMIT_BODY = "允许使用 pydantic 校验请求体。 " * 4
+_PERMIT_BODY = "允许使用 pydantic 作为入参。 " * 4
+_PERMIT_BODY_B = _PERMIT_BODY.replace("。 ", "，解析请求体。 ", 1)
 
 
 def _config():
@@ -50,7 +51,7 @@ async def _insert_rejected(db, answer: str, project_id: str = "p1") -> None:
 def test_gate_peers_incoherent_holds_draft_only():
     drafts = [
         DraftItem(
-            "禁止：pydantic",
+            "pydantic 入参",
             _PROHIBIT_BODY,
             "prohibition",
             "auto-extract",
@@ -60,7 +61,7 @@ def test_gate_peers_incoherent_holds_draft_only():
     ]
     peers = [
         DraftItem(
-            "API 用 pydantic",
+            "pydantic 入参",
             _PERMIT_BODY,
             "convention",
             "docs/api.md",
@@ -99,17 +100,32 @@ def test_gate_peers_skip_doc_code():
     assert "docs/user.md" not in result.hold_sources
 
 
+def test_gate_peers_different_object_not_paired():
+    """日常提取 vs 历史：对象不同（明文 vs 加密密码）不开 incoherent。"""
+    drafts = [
+        DraftItem("密码存储", "禁止写入明文密码到数据库。 " * 6,
+                  "prohibition", "auto-extract", ["signal:rules"], "rules"),
+    ]
+    peers = [
+        DraftItem("密码存储", "允许写入加密密码到数据库。 " * 6,
+                  "convention", "docs/crypto.md", ["signal:docs"], "docs"),
+    ]
+    result = gate_drafts(drafts, [], Path("."), peers=peers)
+    assert not any(c.conflict_type == "incoherent" for c in result.conflicts)
+    assert "auto-extract" not in result.hold_sources
+
+
 async def test_daily_new_prohibition_vs_active_permission_opens_incoherent(db):
     extractor, knowledge = _extractor(db)
     old_id = await knowledge.add(KnowledgeItem(
         project_id="p1",
-        title="API 用 pydantic",
+        title="pydantic 入参",
         content=_PERMIT_BODY,
         content_type="convention",
         source_url="docs/api.md",
         status="active",
     ))
-    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+    await _insert_rejected(db, f"pydantic 入参\n{_PROHIBIT_BODY}")
 
     stats = await extractor.run_daily()
     assert stats["extracted"] == 1
@@ -150,13 +166,13 @@ async def test_empty_source_url_peer_still_persists_incoherent(db):
     extractor, knowledge = _extractor(db)
     old_id = await knowledge.add(KnowledgeItem(
         project_id="p1",
-        title="API 用 pydantic",
+        title="pydantic 入参",
         content=_PERMIT_BODY,
         content_type="convention",
         source_url=None,
         status="active",
     ))
-    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+    await _insert_rejected(db, f"pydantic 入参\n{_PROHIBIT_BODY}")
 
     stats = await extractor.run_daily()
     assert stats["extracted"] == 1
@@ -186,7 +202,7 @@ async def test_duplicate_peer_source_url_unique_historical_ids(db):
     extractor, knowledge = _extractor(db)
     old_a = await knowledge.add(KnowledgeItem(
         project_id="p1",
-        title="API 用 pydantic A",
+        title="pydantic 入参",
         content=_PERMIT_BODY,
         content_type="convention",
         source_url="docs/shared.md",
@@ -194,13 +210,13 @@ async def test_duplicate_peer_source_url_unique_historical_ids(db):
     ))
     old_b = await knowledge.add(KnowledgeItem(
         project_id="p1",
-        title="API 用 pydantic B",
-        content=_PERMIT_BODY.replace("校验", "解析"),
+        title="pydantic 入参",
+        content=_PERMIT_BODY_B,
         content_type="convention",
         source_url="docs/shared.md",
         status="active",
     ))
-    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+    await _insert_rejected(db, f"pydantic 入参\n{_PROHIBIT_BODY}")
 
     stats = await extractor.run_daily()
     assert stats["extracted"] == 1
@@ -223,7 +239,7 @@ async def test_keep_item_item_key_archives_only_that_history(db):
     extractor, knowledge = _extractor(db)
     old_id = await knowledge.add(KnowledgeItem(
         project_id="p1",
-        title="API 用 pydantic",
+        title="pydantic 入参",
         content=_PERMIT_BODY,
         content_type="convention",
         source_url=None,
@@ -245,7 +261,7 @@ async def test_keep_item_item_key_archives_only_that_history(db):
         source_url="auto-extract",
         status="pending_review",
     ))
-    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+    await _insert_rejected(db, f"pydantic 入参\n{_PROHIBIT_BODY}")
     await extractor.run_daily()
 
     items = await knowledge.list("p1")
@@ -278,7 +294,7 @@ async def test_keep_item_hashed_url_archives_only_hashed_peer(db):
     extractor, knowledge = _extractor(db)
     old_a = await knowledge.add(KnowledgeItem(
         project_id="p1",
-        title="API 用 pydantic A",
+        title="pydantic 入参",
         content=_PERMIT_BODY,
         content_type="convention",
         source_url="docs/shared.md",
@@ -286,13 +302,13 @@ async def test_keep_item_hashed_url_archives_only_hashed_peer(db):
     ))
     old_b = await knowledge.add(KnowledgeItem(
         project_id="p1",
-        title="API 用 pydantic B",
-        content=_PERMIT_BODY.replace("校验", "解析"),
+        title="pydantic 入参",
+        content=_PERMIT_BODY_B,
         content_type="convention",
         source_url="docs/shared.md",
         status="active",
     ))
-    await _insert_rejected(db, f"禁止：pydantic\n{_PROHIBIT_BODY}")
+    await _insert_rejected(db, f"pydantic 入参\n{_PROHIBIT_BODY}")
     await extractor.run_daily()
 
     conn = await db.connect()

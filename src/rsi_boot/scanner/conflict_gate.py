@@ -70,7 +70,8 @@ class GateResult:
 
 
 def _norm_title(title: str) -> str:
-    return re.sub(r"\s+", " ", title.strip().lower())
+    stripped = title.removeprefix("禁止：").removeprefix("禁止:").strip()
+    return re.sub(r"\s+", " ", stripped.lower())
 
 
 def _gate_words(text: str) -> Set[str]:
