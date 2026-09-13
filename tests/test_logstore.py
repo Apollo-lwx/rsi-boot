@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -105,3 +106,31 @@ def test_rolls_events_over_50mb(tmp_path):
     assert events.stat().st_size < 50 * 1024 * 1024
     rows = list(iter_events(tmp_path))
     assert any(r.get("id") == "e2" for r in rows)
+
+
+def test_same_month_reroll_keeps_archive_marker(tmp_path, monkeypatch):
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    yyyymm = datetime.now(timezone.utc).strftime("%Y%m")
+    rolled = logs / f"events-{yyyymm}.jsonl"
+    marker = {"id": "marker-keep", "kind": "recall", "task": "archive-seed"}
+    rolled.write_text(json.dumps(marker) + "\n", encoding="utf-8")
+    events = logs / "events.jsonl"
+    events.write_bytes(b" " * (50 * 1024 * 1024 + 1))
+
+    orig_open = Path.open
+
+    def guarded_open(self, *args, **kwargs):
+        mode = args[0] if args else kwargs.get("mode", "r")
+        if self.resolve() == rolled.resolve() and "w" in str(mode) and "a" not in str(mode):
+            raise AssertionError(f"same-month roll must not truncate {rolled.name} (mode={mode})")
+        return orig_open(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", guarded_open)
+    append_event(tmp_path, {"id": "e-new", "kind": "recall", "retrieved": ["c" * 32]})
+    rows = list(iter_events(tmp_path))
+    ids = [r.get("id") for r in rows]
+    assert "marker-keep" in ids
+    assert "e-new" in ids
+    assert rolled.is_file()
+    assert any("marker-keep" in line for line in rolled.read_text(encoding="utf-8").splitlines())

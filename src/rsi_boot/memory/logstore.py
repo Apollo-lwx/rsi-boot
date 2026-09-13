@@ -35,12 +35,22 @@ def _validate_retrieved(event: dict) -> None:
         raise ValueError("retrieved must be a list of 32-hex document ids")
 
 
+def _append_copy(src: Path, dest: Path, *, chunk_size: int = 1024 * 1024) -> None:
+    with dest.open("ab") as out, src.open("rb") as inp:
+        while True:
+            chunk = inp.read(chunk_size)
+            if not chunk:
+                break
+            out.write(chunk)
+        out.flush()
+
+
 def _roll_if_needed(events_path: Path) -> None:
     if not events_path.is_file() or events_path.stat().st_size < ROLL_THRESHOLD_BYTES:
         return
     dest = events_path.parent / f"events-{datetime.now(timezone.utc).strftime('%Y%m')}.jsonl"
     if dest.exists():
-        dest.write_bytes(dest.read_bytes() + events_path.read_bytes())
+        _append_copy(events_path, dest)
         events_path.unlink()
     else:
         events_path.replace(dest)
