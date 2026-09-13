@@ -32,6 +32,7 @@ from ..ux.messages import t
 logger = logging.getLogger(__name__)
 
 _PENDING_TYPES = frozenset({"prohibition", "convention", "skill"})
+_REVIEWABLE_STATUSES = frozenset({"pending_review", "archived"})
 
 
 def _utc_iso() -> str:
@@ -261,11 +262,24 @@ class KnowledgeService:
             status=doc.status,
         )
 
+    def _read_reviewable(self, item_id: str) -> MemoryDoc | None:
+        store = self._store
+        assert store is not None
+        try:
+            doc = store.read(item_id)
+        except FileNotFoundError:
+            return None
+        if doc.status not in _REVIEWABLE_STATUSES:
+            return None
+        return doc
+
     async def review_approve(self, item_id: str) -> dict[str, Any]:
         store = self._store
         if store is None:
             raise RuntimeError("review_approve requires store")
-        doc = store.read(item_id)
+        doc = self._read_reviewable(item_id)
+        if doc is None:
+            raise FileNotFoundError(item_id)
         old_path = doc.path
         if doc.type == "skill":
             name = str(doc.payload.get("name") or slugify(doc.title))
@@ -283,13 +297,16 @@ class KnowledgeService:
         store = self._store
         if store is None:
             raise RuntimeError("review_reject requires store")
-        doc = store.read(item_id)
+        doc = self._read_reviewable(item_id)
+        if doc is None:
+            raise FileNotFoundError(item_id)
         old_path = doc.path
         extra = dict(doc.extra)
         extra["review"] = "rejected"
         updated = doc.model_copy(update={"extra": extra})
         dest = _archive_dir(store) / memory_filename(doc.title, doc.id)
         written = self._relocate(updated, dest)
+        await self._notify_change(self.bound_project_id or "")
         return {
             "moved": [{"from": old_path, "to": written.path}],
             "message": t("REVIEW_REJECTED", locale_lang(), n=1),
@@ -309,6 +326,8 @@ class KnowledgeService:
         reject → rejected（留存 30 天由每日任务清理）。返回新状态；条目不存在或非待审返回 None。
         archived（bootstrap 审批队列限量溢出）同样可审批恢复"""
         if self._store is not None:
+            if self._read_reviewable(item_id) is None:
+                return None
             try:
                 if approve:
                     await self.review_approve(item_id)

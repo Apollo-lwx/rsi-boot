@@ -129,3 +129,39 @@ def test_knowledge_review_tool_description_is_locked():
     assert TOOL_DESCRIPTION == TOOL_DESC["review"]
     assert "approve" in TOOL_DESCRIPTION
     assert "pending" in TOOL_DESCRIPTION
+
+
+@pytest.mark.asyncio
+async def test_review_official_active_reject_returns_none(tmp_path):
+    from rsi_boot.injector.rule_injector import RuleInjector
+
+    store = MemoryStore(tmp_path / ".rsi")
+    store.write(
+        MemoryDoc(id="9"*32, type="prohibition", title="禁止 SELECT *", content="必须列字段"),
+        dest=official_dir(store.rsi_dir, "prohibition") / "no-star--99999999.yaml",
+    )
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    await RuleInjector(store=store, project_root=tmp_path).rewrite("")
+    rules = tmp_path / ".cursor" / "rules"
+    before = {p.name: p.read_text(encoding="utf-8") for p in rules.glob("rsi-prohibition-*.mdc")}
+    assert before
+    result = await svc.review("9"*32, "p", approve=False)
+    assert result is None
+    after = {p.name: p.read_text(encoding="utf-8") for p in rules.glob("rsi-prohibition-*.mdc")}
+    assert after == before
+    assert store.read("9"*32).status == "active"
+
+
+@pytest.mark.asyncio
+async def test_review_pending_reject_archives_via_review(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    store.write(
+        MemoryDoc(id="8"*32, type="convention", title="x", content="y"),
+        dest=pending_dir(store.rsi_dir, "convention") / "x--88888888.yaml",
+    )
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    result = await svc.review("8"*32, "p", approve=False)
+    assert result == "archived"
+    got = store.read("8"*32)
+    assert got.status == "archived"
+    assert got.extra.get("review") == "rejected"
