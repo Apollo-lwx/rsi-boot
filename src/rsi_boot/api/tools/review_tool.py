@@ -18,10 +18,12 @@ from pathlib import Path
 from typing import Any
 
 from ...memory.store import MemoryStore
+from ...ux.messages import TOOL_DESC
 
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "rsi_review"
+TOOL_DESCRIPTION = TOOL_DESC["harness"]
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",

@@ -46,6 +46,19 @@ async def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def on_memory_yaml_change(runtime: object, _path: Path) -> None:
+    """Official-dir YAML change: rebuild index and rewrite injector (same as serve startup)."""
+    runtime.invalidate_index()
+    rewrite = runtime.injector.rewrite(runtime.project_id or "")
+    if asyncio.iscoroutine(rewrite) or asyncio.isfuture(rewrite):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(rewrite)
+        else:
+            loop.create_task(rewrite)
+
+
 async def run_serve(project_root: Path, *, watch: bool = False) -> int:
     """File-only serve: startup inject, optional YAML watch, no sqlite."""
     from .api.mcp_server import serve
@@ -69,7 +82,7 @@ async def run_serve(project_root: Path, *, watch: bool = False) -> int:
     if watch:
         watcher = YamlWatcher(
             project_root / ".rsi" / "memory",
-            on_change=lambda _p: runtime.invalidate_index(),
+            on_change=lambda path: on_memory_yaml_change(runtime, path),
         )
         yaml_task = asyncio.create_task(watcher.watch_loop())
     try:

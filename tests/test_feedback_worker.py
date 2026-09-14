@@ -180,3 +180,42 @@ async def test_tool_modified_with_content(db):
         {"feedback_token": token, "action": "modified", "modified_content": "改后的内容"},
     )
     assert result["status"] == "ok"
+
+
+async def test_file_runtime_rejected_comment_writes_pending_prohibition(tmp_path):
+    """File-runtime FeedbackWorker rejected+comment must extract pending YAML (not candidates-only)."""
+    from rsi_boot.core.models import RSIRequest
+    from rsi_boot.memory.store import MemoryStore
+
+    store = MemoryStore(tmp_path / ".rsi")
+    logs = LogService(store=store)
+    request = RSIRequest(user_id="u1", project_id="p1", raw_input="写查询")
+    token = "tok-file-reject-extract"
+    log_id = await logs.insert_pending(request, token)
+    await logs.finalize(
+        log_id, status="success", intent="recall",
+        strategy_name="recall-balanced",
+        retrieved_tags=["a" * 32],
+        latency_ms=1,
+    )
+    worker = FeedbackWorker(store=store)
+    worker.start()
+    try:
+        worker.submit(ImplicitEvent(
+            feedback_token=token, action="rejected", comment="不要再用 SELECT *",
+        ))
+        await _drain(worker)
+    finally:
+        await worker.stop()
+
+    pending = list((store.rsi_dir / "memory" / "pending").rglob("*.yaml"))
+    assert pending
+    rels = [p.relative_to(store.rsi_dir).as_posix() for p in pending]
+    assert any(
+        r.startswith("memory/pending/prohibitions") or r.startswith("memory/pending/conventions")
+        for r in rels
+    )
+    cand = store.rsi_dir / "logs" / "candidates.jsonl"
+    assert cand.is_file()
+    lines = [ln for ln in cand.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 1

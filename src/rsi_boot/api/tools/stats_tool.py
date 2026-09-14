@@ -11,10 +11,12 @@ from typing import Any, Optional
 
 from ...memory.store import MemoryStore
 from ...services.stats_service import StatsService
+from ...ux.messages import TOOL_DESC
 
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "rsi_stats"
+TOOL_DESCRIPTION = TOOL_DESC["stats"]
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",

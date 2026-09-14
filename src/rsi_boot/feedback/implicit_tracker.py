@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field
 
 from ..core.models import FeedbackAction
 from ..data.sqlite import SQLiteClient
+from ..learning.pipeline import extract_from_feedback
 from ..memory.logstore import iter_events
 from ..memory.store import MemoryStore
 from ..quality.assessor import QualityAssessor
@@ -233,34 +234,21 @@ class FeedbackWorker:
         arm = row.get("arm") or row.get("strategy_name")
         if reward != 0.0 and arm:
             await self._apply_reward_store(row.get("project_id") or "default", arm, reward)
-        if event.action == "modified" and event.modified_content:
-            ratio = diff_ratio(row.get("task") or row.get("raw_input") or "", event.modified_content)
-            if ratio > DIFF_CANDIDATE_THRESHOLD:
-                self._enqueue_candidate_store(row, "modified", event.modified_content)
-                logger.info("知识提取候选已入队：diff_ratio=%.2f", ratio)
-        if event.action == "rejected" and event.comment:
-            self._enqueue_candidate_store(row, "rejected", event.comment)
-            logger.info("禁止项提取候选已入队（rejected+comment）")
+        if event.action in ("rejected", "modified"):
+            written = extract_from_feedback(
+                self._store.rsi_dir,
+                action=event.action,
+                comment=event.comment,
+                retrieved=retrieved,
+                modified_content=event.modified_content,
+                question=row.get("task") or row.get("raw_input") or "",
+            )
+            if written:
+                logger.info("反馈提取已写入 pending：action=%s n=%s", event.action, len(written))
         if event.rating is not None and event.rating <= 2 and self._quality is not None:
             qresult = await self._quality.judge_negative_feedback(event.feedback_token)
             if qresult is not None:
                 await self._logs.refresh_quality_score(event.feedback_token, qresult.quality_score)
-
-    def _enqueue_candidate_store(self, log_row: dict, candidate_type: str, answer: str) -> None:
-        assert self._store is not None
-        path = self._store.rsi_dir / "logs" / "candidates.jsonl"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        record = {
-            "id": uuid.uuid4().hex,
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "type": candidate_type,
-            "question": log_row.get("task") or log_row.get("raw_input") or "",
-            "answer": answer[:8000],
-            "source_event_id": log_row.get("id"),
-            "status": "pending",
-        }
-        with path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     async def _apply_reward_store(self, project_id: str, strategy_name: str, reward: float) -> None:
         assert self._store is not None

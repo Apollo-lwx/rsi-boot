@@ -142,6 +142,12 @@ STRINGS = {
     "CLI_MEMORY_HELP": {"zh": "迁出/索引/打开", "en": "Migrate/index/open"},
     "CLI_LEARN_HELP": {"zh": "教学与收工", "en": "Teaching and closeout"},
     "CLI_LANG_HELP": {"zh": "叙述语言，覆盖环境", "en": "Narration language override"},
+    "QUERY_REQUIRED": {"zh": "query 必填", "en": "query is required"},
+    "FEEDBACK_ACTION_INVALID": {
+        "zh": "action 必须是 {actions} 之一",
+        "en": "action must be one of {actions}",
+    },
+    "FEEDBACK_RATING_RANGE": {"zh": "rating 须在 1-5 之间", "en": "rating must be between 1 and 5"},
 }
 
 # list_tools：中英并列，不走 t()。改字必须同步测试。
@@ -174,6 +180,58 @@ TOOL_DESC = {
         "(no rsi-convention rule files). "
         "审批 pending 规范：approve 搬到正式目录并注入禁止项，reject 搬到 archive。"
         "不新建正文。约定获准后只进召回，不会写成 rsi-convention 规则文件。"
+    ),
+    "feedback": (
+        "Submit feedback on a recall: explicit rating or IDE implicit action "
+        "(accepted/applied/modified/copied/referenced/ignored/rejected). "
+        "On rejected, a comment is extracted as a prohibition. "
+        "对召回结果提交反馈：显式评分或 IDE 隐式行为"
+        "（accepted/applied/modified/copied/referenced/ignored/rejected）；"
+        "rejected 时填 comment 将提炼为禁止项。"
+    ),
+    "knowledge_add": (
+        "Add a knowledge item (title + content required). "
+        "添加知识条目（title + content 必填）。"
+    ),
+    "knowledge_search": (
+        "Search the knowledge base (FTS5 + CJK bigram by default; embedding is optional). "
+        "搜索知识库（默认纯 FTS5 + CJK bigram；embedding 为可选增强）。"
+    ),
+    "knowledge_delete": (
+        "Delete a knowledge item (deletion right). "
+        "删除指定知识条目（删除权）。"
+    ),
+    "harness": (
+        "Harness improvement proposals: list/approve/reject/rollback/generate "
+        "and config snapshots snapshot_list/snapshot_switch/snapshot_export. "
+        "Harness 改进提案：list/approve/reject/rollback/generate "
+        "及配置快照 snapshot_list/snapshot_switch/snapshot_export。"
+    ),
+    "stats": (
+        "Memory usage stats: period=day/week/month summaries of reach, adoption, "
+        "prohibition follow-through, and proposal pass rate. "
+        "记忆使用统计：period=day/week/month 汇总触达/采纳/禁止项遵循/提案通过率。"
+    ),
+    "conflicts": (
+        "List or resolve suspected conflicts. Three kinds: "
+        "(1) learned memory vs handwritten rules (contradiction/stale/overlap) — "
+        "user_wins keeps your rule (learned memory no longer injected), "
+        "memory_wins keeps learned memory (edit the rule file yourself), "
+        "coexist keeps both and stops reminding; "
+        "(2) knowledge pairs (version/doc_code/incoherent) — "
+        "keep_item keeps item_id and archives the peer source_url, "
+        "keep_peer keeps the user_rule_path side, coexist keeps both; "
+        "(3) explain (conflict_id required) expands both sides read-only. "
+        "Call explain first when the user wants detail; do not close the card. "
+        "查询疑似冲突并对冲突做出裁决。三类："
+        "① 学习记忆 vs 手写规则（contradiction/stale/overlap）——"
+        "user_wins=以你的规则为准（学习记忆不再注入）、memory_wins=以学习记忆为准"
+        "（返回规则文件位置请手动修改）、coexist=两者共存不再提醒；"
+        "② 知识对（version/doc_code/incoherent）——"
+        "keep_item=保留 item_id 侧并归档对侧 source_url、keep_peer=保留 user_rule_path 侧、"
+        "coexist=两侧转/保持可用且不再提醒；"
+        "③ explain（conflict_id 必填）=只读展开两侧摘录与各 option 影响，不改库。"
+        "用户要展开说明时先 explain，不要关掉抉择卡。"
     ),
 }
 

@@ -7,10 +7,12 @@ from typing import Any
 
 from ...core.models import KnowledgeItem
 from ...services.knowledge_service import KnowledgeService
+from ...ux.messages import TOOL_DESC
 
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "rsi_knowledge_add"
+TOOL_DESCRIPTION = TOOL_DESC["knowledge_add"]
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",

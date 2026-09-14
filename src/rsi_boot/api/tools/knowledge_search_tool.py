@@ -7,10 +7,13 @@ from typing import Any
 
 from ...rag.query import expand_query
 from ...services.knowledge_service import KnowledgeService
+from ...ux.lang import locale_lang
+from ...ux.messages import TOOL_DESC, t
 
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "rsi_knowledge_search"
+TOOL_DESCRIPTION = TOOL_DESC["knowledge_search"]
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -27,7 +30,7 @@ INPUT_SCHEMA: dict[str, Any] = {
 async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict[str, Any]:
     query = str(arguments.get("query", "")).strip()
     if not query:
-        return {"status": "error", "message": "query 必填"}
+        return {"status": "error", "message": t("QUERY_REQUIRED", locale_lang())}
     top_k = min(20, max(1, int(arguments.get("top_k") or 5)))
     role = arguments.get("role") or None
     expanded, _, _ = expand_query(query, role=role)

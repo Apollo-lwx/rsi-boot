@@ -5,20 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from ...memory.store import MemoryStore
+from ...ux.messages import TOOL_DESC
 
 TOOL_NAME = "rsi_conflicts"
-
-TOOL_DESCRIPTION = (
-    "查询疑似冲突并对冲突做出裁决。三类："
-    "① 学习记忆 vs 手写规则（contradiction/stale/overlap）——"
-    "user_wins=以你的规则为准（学习记忆不再注入）、memory_wins=以学习记忆为准"
-    "（返回规则文件位置请手动修改）、coexist=两者共存不再提醒；"
-    "② 知识对（version/doc_code/incoherent）——"
-    "keep_item=保留 item_id 侧并归档对侧 source_url、keep_peer=保留 user_rule_path 侧、"
-    "coexist=两侧转/保持可用且不再提醒；"
-    "③ explain（conflict_id 必填）=只读展开两侧摘录与各 option 影响，不改库。"
-    "用户要展开说明时先 explain，不要关掉抉择卡。"
-)
+TOOL_DESCRIPTION = TOOL_DESC["conflicts"]
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",

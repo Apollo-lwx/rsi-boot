@@ -13,17 +13,20 @@ from typing import Any, Optional
 from ...core.models import verify_feedback_token
 from ...feedback.implicit_tracker import ALL_ACTIONS, FeedbackWorker, ImplicitEvent
 from ...services.log_service import LogService
+from ...ux.lang import locale_lang
+from ...ux.messages import TOOL_DESC, t
 
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "rsi_feedback"
+TOOL_DESCRIPTION = TOOL_DESC["feedback"]
 
 _ACTIONS = sorted(ALL_ACTIONS)
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "feedback_token": {"type": "string", "description": "rsi_query 返回的反馈令牌"},
+        "feedback_token": {"type": "string", "description": "rsi_recall 返回的反馈令牌"},
         "action": {"type": "string", "enum": _ACTIONS,
                    "description": "accepted/applied=采纳应用 modified=修改后采纳 copied=复制 "
                                   "referenced=参考 ignored=忽略 rejected=拒绝"},
@@ -50,10 +53,11 @@ async def handle(
     modified_content = arguments.get("modified_content")
     comment = arguments.get("comment")
 
+    lang = locale_lang()
     if action not in ALL_ACTIONS:
-        return {"status": "error", "message": f"action 必须是 {_ACTIONS} 之一"}
+        return {"status": "error", "message": t("FEEDBACK_ACTION_INVALID", lang, actions=_ACTIONS)}
     if rating is not None and not (1 <= int(rating) <= 5):
-        return {"status": "error", "message": "rating 须在 1-5 之间"}
+        return {"status": "error", "message": t("FEEDBACK_RATING_RANGE", lang)}
 
     context = await logs.get_token_context(token)
     if context is None:
