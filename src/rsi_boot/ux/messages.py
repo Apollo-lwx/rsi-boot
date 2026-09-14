@@ -91,6 +91,9 @@ STRINGS = {
     "WIPE_DONE": {"zh": "已删除记忆文件", "en": "Deleted memory files"},
     "WIPE_KEPT": {"zh": "已保留: {path}", "en": "Kept: {path}"},
     "BOOTSTRAP_PHASE_INIT": {"zh": "初始化记忆目录", "en": "Initialize memory directories"},
+    "CLI_MEMORY_HELP": {"zh": "迁出/索引/打开", "en": "Migrate/index/open"},
+    "CLI_LEARN_HELP": {"zh": "教学与收工", "en": "Teaching and closeout"},
+    "CLI_LANG_HELP": {"zh": "叙述语言，覆盖环境", "en": "Narration language override"},
 }
 
 # list_tools：中英并列，不走 t()。改字必须同步测试。

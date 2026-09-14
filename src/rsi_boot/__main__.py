@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from .bootstrap import build_runtime, detect_user_id, rsi_home
 from .common.logger import setup_cli_logging, setup_logging
 from .core.models import KnowledgeItem
 from .project import resolve_project_root
+from .ux.lang import locale_lang
+from .ux.messages import t
 
 
 def _print_json(payload: object) -> None:
@@ -194,7 +197,9 @@ def _add_verbose(p: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    loc = locale_lang()
     parser = argparse.ArgumentParser(prog="rsi", description="RSI Boot：个人本地 MCP 智能助手")
+    parser.add_argument("--lang", choices=["zh", "en"], default=None, help=t("CLI_LANG_HELP", loc))
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_init = sub.add_parser("init", help="初始化 ~/.rsi 用户配置目录")
@@ -288,14 +293,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_adopt.add_argument("--project-root", default=".", help="目标项目根，默认当前目录")
     _add_verbose(p_adopt)
 
-    p_mem = sub.add_parser("memory", help="迁出旧库 / 重建索引 / 打开记忆文件")
+    p_mem = sub.add_parser("memory", help=t("CLI_MEMORY_HELP", loc))
     _add_verbose(p_mem)
     p_mem.add_argument("argv", nargs=argparse.REMAINDER)
+
+    p_learn = sub.add_parser("learn", help=t("CLI_LEARN_HELP", loc))
+    _add_verbose(p_learn)
+    p_learn.add_argument("argv", nargs=argparse.REMAINDER)
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
+    if getattr(args, "lang", None) in ("zh", "en"):
+        os.environ["RSI_LANG"] = args.lang
     handlers = {
         "init": cmd_init,
         "serve": cmd_serve,
@@ -318,6 +329,15 @@ def main() -> None:
         setup_cli_logging(getattr(args, "verbose", False))
         try:
             sys.exit(run_memory(list(getattr(args, "argv", []) or [])))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "learn":
+        from .cli.learn_command import run_learn
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_learn(list(getattr(args, "argv", []) or [])))
         except KeyboardInterrupt:
             sys.exit(130)
 

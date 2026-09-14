@@ -75,3 +75,152 @@ def test_cli_mid_fail_half_leaves_db(tmp_path, capsys, monkeypatch):
     errors = rsi / "logs" / "errors.jsonl"
     assert errors.is_file()
     assert errors.read_text(encoding="utf-8").strip()
+
+
+def test_cli_memory_need_sub(tmp_path, capsys, monkeypatch):
+    from rsi_boot.cli.memory_command import run_memory
+    from rsi_boot.ux.messages import t
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RSI_LANG", "zh")
+    assert run_memory([]) == 2
+    assert capsys.readouterr().err.strip() == t("MEMORY_NEED_SUB", "zh")
+
+
+def test_cli_memory_lang_overrides_env(tmp_path, capsys, monkeypatch):
+    from rsi_boot.cli.memory_command import run_memory
+    from rsi_boot.ux.messages import t
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RSI_LANG", "en")
+    assert run_memory(["--lang", "zh"]) == 2
+    assert capsys.readouterr().err.strip() == t("MEMORY_NEED_SUB", "zh")
+
+
+def _seed_memory_docs(tmp_path):
+    from rsi_boot.memory.paths import official_dir
+    from rsi_boot.memory.store import MemoryStore
+    from rsi_boot.memory.types import MemoryDoc
+
+    store = MemoryStore(tmp_path / ".rsi")
+    titles = (
+        "禁止 SELECT 星号",
+        "必须列出列名",
+        "不要用 SELECT 星号",
+        "列名优于星号",
+        "查询必须写列",
+        "SQL 星号禁止",
+    )
+    docs = []
+    for i, title in enumerate(titles):
+        doc_id = f"{i + 1:08x}{'a' * 24}"
+        dest = official_dir(store.rsi_dir, "prohibition") / f"p--{doc_id[:8]}.yaml"
+        docs.append(
+            store.write(
+                MemoryDoc(id=doc_id, type="prohibition", title=title, content=f"{title} 必须列字段"),
+                dest=dest,
+            )
+        )
+    return docs
+
+
+def test_cli_memory_index_table_and_json(tmp_path, capsys, monkeypatch):
+    from rsi_boot.cli.memory_command import run_memory
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RSI_LANG", "zh")
+    docs = _seed_memory_docs(tmp_path)
+
+    assert run_memory(["index"]) == 0
+    table = capsys.readouterr().out.strip().splitlines()
+    assert table[0].split() == ["id", "type", "status", "title", "path"]
+    assert any(docs[0].id in line for line in table[1:])
+
+    assert run_memory(["index", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert isinstance(payload, list)
+    row = next(item for item in payload if item["id"] == docs[0].id)
+    assert row["type"] == "prohibition"
+    assert row["status"] == "active"
+    assert row["title"] == docs[0].title
+    assert row["path"]
+    assert set(row) >= {"id", "type", "status", "title", "path"}
+
+
+def test_cli_memory_open_yaml_and_missing(tmp_path, capsys, monkeypatch):
+    import yaml
+
+    from rsi_boot.cli.memory_command import run_memory
+    from rsi_boot.ux.messages import t
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RSI_LANG", "zh")
+    docs = _seed_memory_docs(tmp_path)
+
+    assert run_memory(["open", docs[0].id]) == 0
+    body = yaml.safe_load(capsys.readouterr().out)
+    assert body["id"] == docs[0].id
+    assert "必须列字段" in body["content"]
+
+    missing = "f" * 32
+    assert run_memory(["open", missing]) == 3
+    assert capsys.readouterr().err.strip() == t("NOT_FOUND", "zh", id=missing)
+
+
+def test_cli_memory_reindex_cache_stable(tmp_path, capsys, monkeypatch):
+    from rsi_boot.cli.memory_command import run_memory
+    from rsi_boot.rag.index import search
+    from rsi_boot.ux.messages import t
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RSI_LANG", "zh")
+    _seed_memory_docs(tmp_path)
+    cache = tmp_path / ".rsi" / "cache" / "inverted.json"
+
+    assert run_memory(["reindex"]) == 0
+    assert capsys.readouterr().out.strip() == t("REINDEX_DONE", "zh")
+    assert cache.is_file()
+    first = json.loads(cache.read_text(encoding="utf-8"))
+
+    cache.unlink()
+    assert not cache.exists()
+    assert run_memory(["reindex"]) == 0
+    capsys.readouterr()
+    assert cache.is_file()
+    second = json.loads(cache.read_text(encoding="utf-8"))
+
+    query = "列名 星号 SELECT"
+    top1 = [doc_id for doc_id, _ in search(first, query, top_n=5)]
+    top2 = [doc_id for doc_id, _ in search(second, query, top_n=5)]
+    union = set(top1) | set(top2)
+    overlap = (len(set(top1) & set(top2)) / len(union)) if union else 1.0
+    assert overlap >= 0.8
+
+
+def test_cli_memory_graph_not_in_phase(tmp_path, capsys, monkeypatch):
+    from rsi_boot.cli.memory_command import run_memory
+    from rsi_boot.ux.messages import t
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RSI_LANG", "zh")
+    assert run_memory(["graph"]) == 2
+    assert capsys.readouterr().err.strip() == t("PHASE_GRAPH", "zh")
+
+
+def test_cli_memory_help_avoids_db_words(monkeypatch):
+    from rsi_boot.cli.memory_command import _parser
+    from rsi_boot.__main__ import build_parser
+
+    monkeypatch.setenv("RSI_LANG", "zh")
+    mem_help = _parser().format_help()
+    assert "数据库" not in mem_help
+    assert "rsi.db" not in mem_help
+
+    root_help = build_parser().format_help()
+    # only the memory / learn choice lines — wipe/migrate still mention rsi.db
+    mem_line = next(line for line in root_help.splitlines() if line.strip().startswith("memory"))
+    learn_line = next(line for line in root_help.splitlines() if line.strip().startswith("learn"))
+    assert "数据库" not in mem_line and "rsi.db" not in mem_line
+    assert "数据库" not in learn_line and "rsi.db" not in learn_line
+    assert "迁出/索引/打开" in mem_line
+    assert "教学与收工" in learn_line
