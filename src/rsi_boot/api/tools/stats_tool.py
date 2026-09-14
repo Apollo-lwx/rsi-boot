@@ -7,8 +7,9 @@ export=true 或 format=csv 时写入 ~/.rsi/exports/ 并返回文件路径（§8
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
+from ...memory.store import MemoryStore
 from ...services.stats_service import StatsService
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,13 @@ INPUT_SCHEMA: dict[str, Any] = {
 }
 
 
-async def handle(stats: StatsService, arguments: dict[str, Any]) -> dict[str, Any]:
+async def handle(
+    stats: Optional[StatsService], arguments: dict[str, Any], store: MemoryStore | None = None,
+) -> dict[str, Any]:
+    if store is not None:
+        stats = StatsService(store=store)
+    if stats is None:
+        return {"status": "error", "message": "stats service unavailable"}
     period = str(arguments.get("period") or "")
     if period not in ("day", "week", "month"):
         return {"status": "error", "message": "period 必填（day/week/month）"}

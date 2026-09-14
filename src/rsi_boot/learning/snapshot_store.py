@@ -17,12 +17,16 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import yaml
+
 from ..data.sqlite import SQLiteClient
+from ..memory.store import MemoryStore
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +38,17 @@ def _utc_iso() -> str:
 
 
 class SnapshotStore:
-    def __init__(self, db: SQLiteClient, rsi_home: Path):
+    def __init__(
+        self,
+        db: Optional[SQLiteClient] = None,
+        rsi_home: Optional[Path] = None,
+        store: MemoryStore | None = None,
+    ):
+        if store is None and db is None:
+            raise TypeError("db is required when store is omitted")
         self._db = db
-        self._home = rsi_home
+        self._store = store
+        self._home = rsi_home if rsi_home is not None else (store.rsi_dir if store is not None else Path("."))
 
     # ---------- 槽位采集与重建 ----------
 
@@ -161,6 +173,9 @@ class SnapshotStore:
     # ---------- 版本管理 ----------
 
     async def _latest_version(self, project_id: str) -> int:
+        if self._store is not None:
+            versions = [v["version"] for v in self._list_store(project_id)]
+            return max(versions) if versions else 0
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT MAX(version) FROM config_snapshots WHERE project_id = ?", (project_id,)
@@ -194,6 +209,8 @@ class SnapshotStore:
 
     async def capture(self, project_id: str, trigger_proposal: Optional[str] = None) -> int:
         """晋升时整体快照：与上一版本解析结果一致的槽位存 inherit 标记。返回新版本号"""
+        if self._store is not None:
+            return self._capture_store(project_id, trigger_proposal)
         current = await self._gather_slots(project_id)
         prev_version = await self._latest_version(project_id)
         previous = await self._resolve(project_id, prev_version) if prev_version else {}
@@ -223,6 +240,8 @@ class SnapshotStore:
         return version
 
     async def list(self, project_id: str) -> List[Dict[str, Any]]:
+        if self._store is not None:
+            return self._list_store(project_id)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT version, trigger_proposal, status, created_at FROM config_snapshots"
@@ -233,6 +252,8 @@ class SnapshotStore:
 
     async def switch(self, project_id: str, version: int) -> bool:
         """回滚/切换：解析目标版本内容重建槽位；目标标记 rolled_back_to，原 active 转 superseded"""
+        if self._store is not None:
+            return self._switch_store(project_id, version)
         versions = {v["version"] for v in await self.list(project_id)}
         if version not in versions:
             return False
@@ -289,3 +310,93 @@ class SnapshotStore:
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         return out_dir
+
+    def _snapshots_root(self) -> Path:
+        assert self._store is not None
+        return self._store.rsi_dir / "state" / "snapshots"
+
+    def _list_store(self, project_id: str) -> List[Dict[str, Any]]:
+        root = self._snapshots_root()
+        if not root.is_dir():
+            return []
+        rows: List[Dict[str, Any]] = []
+        for snap in sorted(root.glob("*/snapshot.yaml")):
+            try:
+                data = yaml.safe_load(snap.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            if project_id and data.get("project_id") and data.get("project_id") != project_id:
+                continue
+            rows.append({
+                "version": data.get("version"),
+                "trigger_proposal": data.get("trigger_proposal"),
+                "status": data.get("status"),
+                "created_at": data.get("created_at"),
+            })
+        rows.sort(key=lambda r: int(r["version"] or 0), reverse=True)
+        return rows
+
+    def _write_snapshot_yaml(self, data: Dict[str, Any]) -> None:
+        ver = data.get("version")
+        dest = self._snapshots_root() / str(ver) / "snapshot.yaml"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(dest) + ".tmp")
+        tmp.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        os.replace(tmp, dest)
+
+    def _iter_snapshot_docs(self, project_id: str) -> List[Dict[str, Any]]:
+        root = self._snapshots_root()
+        if not root.is_dir():
+            return []
+        docs: List[Dict[str, Any]] = []
+        for snap in sorted(root.glob("*/snapshot.yaml")):
+            try:
+                data = yaml.safe_load(snap.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            if project_id and data.get("project_id") and data.get("project_id") != project_id:
+                continue
+            docs.append(data)
+        return docs
+
+    def _capture_store(self, project_id: str, trigger_proposal: Optional[str] = None) -> int:
+        version = 1
+        for data in self._iter_snapshot_docs(project_id):
+            ver = int(data.get("version") or 0)
+            if ver >= version:
+                version = ver + 1
+            if data.get("status") == "active":
+                data["status"] = "superseded"
+                self._write_snapshot_yaml(data)
+        payload = {
+            "id": uuid.uuid4().hex,
+            "project_id": project_id,
+            "version": version,
+            "trigger_proposal": trigger_proposal,
+            "slots": {},
+            "status": "active",
+            "created_at": _utc_iso(),
+        }
+        self._write_snapshot_yaml(payload)
+        logger.info("配置快照 v%d 已捕获（项目 %s，触发提案 %s）", version, project_id, trigger_proposal)
+        return version
+
+    def _switch_store(self, project_id: str, version: int) -> bool:
+        docs = self._iter_snapshot_docs(project_id)
+        versions = {int(d.get("version") or 0) for d in docs}
+        if version not in versions:
+            return False
+        for data in docs:
+            ver = int(data.get("version") or 0)
+            if data.get("status") == "active":
+                data["status"] = "superseded"
+                self._write_snapshot_yaml(data)
+            if ver == version:
+                data["status"] = "rolled_back_to"
+                self._write_snapshot_yaml(data)
+        logger.info("已切换到快照 v%d（项目 %s）", version, project_id)
+        return True

@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from ..data.sqlite import SQLiteClient
+from ..memory.store import MemoryStore
 from .failure_miner import FailureBucket, mine_failures
 from .regression_gate import RegressionGate
 from .snapshot_store import SnapshotStore
@@ -59,24 +60,32 @@ def _utc_iso() -> str:
 class ProposalEngine:
     def __init__(
         self,
-        db: SQLiteClient,
-        adapter: Any,
-        config: Dict[str, Any],
-        gate: Any,
-        snapshots: SnapshotStore,
-        rsi_home: Path,
+        db: Optional[SQLiteClient] = None,
+        adapter: Any = None,
+        config: Optional[Dict[str, Any]] = None,
+        gate: Any = None,
+        snapshots: Optional[SnapshotStore] = None,
+        rsi_home: Optional[Path] = None,
         on_change: Optional[Any] = None,
+        store: MemoryStore | None = None,
     ):
+        if store is None and db is None:
+            raise TypeError("db is required when store is omitted")
         self._db = db
+        self._store = store
         self._adapter = adapter
-        self._config = config
+        self._config = config or {}
         self._gate = gate  # StaticGate（默认）或 RegressionGate（enhance.gate_replay）
-        self._snapshots = snapshots
-        self._home = rsi_home
-        enhance = config.get("enhance", {})
+        if store is not None:
+            self._home = rsi_home or store.rsi_dir
+            self._snapshots = snapshots or SnapshotStore(store=store, rsi_home=self._home)
+        else:
+            self._snapshots = snapshots
+            self._home = rsi_home
+        enhance = self._config.get("enhance", {})
         self._use_llm = bool(enhance.get("proposal_llm")) and adapter is not None
         self._model = str(enhance.get("model", {}).get("default", "gpt-4o-mini"))
-        self._auto_apply = bool(config.get("harness", {}).get("auto_apply", False))
+        self._auto_apply = bool(self._config.get("harness", {}).get("auto_apply", False))
         # 记忆变更回调（知识/召回臂槽位变更后触发规则注入重写，§4.2）
         self._on_change = on_change
 
@@ -190,6 +199,8 @@ class ProposalEngine:
 
     async def generate(self, project_id: str, days: int = 7) -> List[str]:
         """失败挖掘 → 模板化（默认）/LLM（增强）提案 → 落库 proposed。返回提案 id 列表"""
+        if self._store is not None:
+            return []
         buckets = await mine_failures(self._db, days=days)
         raw: List[tuple[Dict[str, Any], Optional[FailureBucket]]] = []
         for bucket in buckets:
@@ -235,6 +246,8 @@ class ProposalEngine:
 
     async def validate(self, proposal_id: str) -> bool:
         """proposed → validating → approved/rejected（§3.9 第 3 步）。返回是否通过门禁"""
+        if self._store is not None:
+            return False
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT * FROM harness_proposals WHERE id = ?", (proposal_id,)
@@ -267,6 +280,8 @@ class ProposalEngine:
 
     async def validate_pending(self, project_id: str) -> Dict[str, int]:
         """批量验证全部 proposed 提案（每周离线任务）"""
+        if self._store is not None:
+            return {"validated": 0, "approved": 0}
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT id FROM harness_proposals WHERE project_id = ? AND status = 'proposed'",
@@ -375,6 +390,8 @@ class ProposalEngine:
 
     async def approve(self, proposal_id: str) -> bool:
         """approved → active：记录晋升前快照版本 → 应用槽位变更 → 捕获新快照 → 进入观察期"""
+        if self._store is not None:
+            return await self._approve_store(proposal_id)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT * FROM harness_proposals WHERE id = ?", (proposal_id,)
@@ -417,6 +434,13 @@ class ProposalEngine:
             logger.exception("注入重写回调失败（下轮变更重试）")
 
     async def reject(self, proposal_id: str, reason: str = "") -> bool:
+        if self._store is not None:
+            ok = self._update_proposal_status(
+                proposal_id, ("proposed", "validating", "approved"), "rejected",
+            )
+            if ok and reason:
+                logger.info("提案 %s 人工否决：%s", proposal_id[:8], reason)
+            return ok
         conn = await self._db.connect()
         cur = await conn.execute(
             "UPDATE harness_proposals SET status = 'rejected', decided_at = ?"
@@ -432,6 +456,8 @@ class ProposalEngine:
 
     async def rollback(self, proposal_id: str, reason: str = "") -> bool:
         """active → rolled_back：切换到晋升前快照（回滚 = 切换快照，非逆向重放 diff）"""
+        if self._store is not None:
+            return await self._rollback_store(proposal_id, reason)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT project_id, payload, status FROM harness_proposals WHERE id = ?", (proposal_id,)
@@ -470,6 +496,8 @@ class ProposalEngine:
 
     async def patrol(self, project_id: str) -> Dict[str, int]:
         """观察期每日巡检：采纳率较晋升前 7 天下降 > 5% → 自动回滚"""
+        if self._store is not None:
+            return {"patrolled": 0, "rolled_back": 0}
         conn = await self._db.connect()
         now = datetime.now(timezone.utc)
         async with conn.execute(
@@ -498,6 +526,8 @@ class ProposalEngine:
     # ---------- 查询 ----------
 
     async def list_proposals(self, project_id: str, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        if self._store is not None:
+            return self._list_proposals_store(project_id, status)
         conn = await self._db.connect()
         if status:
             sql = ("SELECT id, slot, target_ref, action, payload, status, evidence, regression_report,"
@@ -511,3 +541,111 @@ class ProposalEngine:
             args = (project_id,)
         async with conn.execute(sql, args) as cur:
             return [dict(r) for r in await cur.fetchall()]
+
+    def _proposals_dir(self) -> Path:
+        assert self._store is not None
+        return self._store.rsi_dir / "state" / "proposals"
+
+    def _write_proposal_yaml(self, data: Dict[str, Any]) -> None:
+        import os
+        pid = str(data.get("id") or uuid.uuid4().hex)
+        data["id"] = pid
+        dest = self._proposals_dir() / f"{pid}.yaml"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(dest) + ".tmp")
+        tmp.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        os.replace(tmp, dest)
+
+    def _load_proposal_yaml(self, proposal_id: str) -> Optional[Dict[str, Any]]:
+        path = self._proposals_dir() / f"{proposal_id}.yaml"
+        if not path.is_file():
+            return None
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def _list_proposals_store(
+        self, project_id: str, status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        root = self._proposals_dir()
+        if not root.is_dir():
+            return []
+        rows: List[Dict[str, Any]] = []
+        for path in sorted(root.glob("*.yaml")):
+            if path.name.endswith(".tmp"):
+                continue
+            try:
+                data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            if project_id and data.get("project_id") and data.get("project_id") != project_id:
+                continue
+            if status and data.get("status") != status:
+                continue
+            rows.append(data)
+        rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+        if not status:
+            rows = rows[:50]
+        return rows
+
+    def _update_proposal_status(self, proposal_id: str, allowed: tuple[str, ...], new_status: str) -> bool:
+        data = self._load_proposal_yaml(proposal_id)
+        if data is None or data.get("status") not in allowed:
+            return False
+        data["status"] = new_status
+        data["decided_at"] = _utc_iso()
+        if new_status == "active":
+            now = datetime.now(timezone.utc)
+            data["activated_at"] = now.isoformat()
+            data["observe_until"] = (now + timedelta(days=OBSERVATION_DAYS)).isoformat()
+        self._write_proposal_yaml(data)
+        return True
+
+    async def _approve_store(self, proposal_id: str) -> bool:
+        data = self._load_proposal_yaml(proposal_id)
+        if data is None or data.get("status") != "approved":
+            return False
+        project_id = str(data.get("project_id") or "")
+        payload = data.get("payload") or {}
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except (TypeError, ValueError):
+                payload = {}
+        pre_version = await self._snapshots._latest_version(project_id)
+        payload["pre_activation_version"] = pre_version
+        data["payload"] = payload
+        now = datetime.now(timezone.utc)
+        data["status"] = "active"
+        data["decided_at"] = now.isoformat()
+        data["activated_at"] = now.isoformat()
+        data["observe_until"] = (now + timedelta(days=OBSERVATION_DAYS)).isoformat()
+        self._write_proposal_yaml(data)
+        await self._snapshots.capture(project_id, trigger_proposal=proposal_id)
+        await self._notify_change(project_id)
+        return True
+
+    async def _rollback_store(self, proposal_id: str, reason: str = "") -> bool:
+        data = self._load_proposal_yaml(proposal_id)
+        if data is None or data.get("status") != "active":
+            return False
+        payload = data.get("payload") or {}
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except (TypeError, ValueError):
+                payload = {}
+        pre_version = int(payload.get("pre_activation_version") or 0)
+        project_id = str(data.get("project_id") or "")
+        if pre_version > 0:
+            await self._snapshots.switch(project_id, pre_version)
+        data["status"] = "rolled_back"
+        data["decided_at"] = _utc_iso()
+        self._write_proposal_yaml(data)
+        await self._notify_change(project_id)
+        logger.warning("提案 %s 已回滚到快照 v%d（%s）", proposal_id[:8], pre_version, reason or "人工回滚")
+        return True

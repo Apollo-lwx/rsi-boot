@@ -15,9 +15,13 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import yaml
+
 from ..data.sqlite import SQLiteClient
+from ..memory.store import MemoryStore
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +49,11 @@ class RecallArm:
 class RecallArmSelector:
     """召回臂的播种、Thompson 选择、曝光计数；运行时读取走 60s 内存缓存"""
 
-    def __init__(self, db: SQLiteClient):
+    def __init__(self, db: Optional[SQLiteClient] = None, store: MemoryStore | None = None):
+        if store is None and db is None:
+            raise TypeError("db is required when store is omitted")
         self._db = db
+        self._store = store
         self._cache: Dict[str, tuple[float, List[RecallArm]]] = {}
 
     async def pick(self, project_id: str) -> RecallArm:
@@ -61,6 +68,12 @@ class RecallArmSelector:
         cached = self._cache.get(project_id)
         if cached and time.monotonic() - cached[0] < _CACHE_TTL_S:
             return cached[1]
+
+        if self._store is not None:
+            rows = self._load_arms_store(project_id)
+            arms = [self._to_arm_row(r) for r in rows]
+            self._cache[project_id] = (time.monotonic(), arms)
+            return arms
 
         conn = await self._db.connect()
         async with conn.execute(
@@ -104,8 +117,98 @@ class RecallArmSelector:
             alpha=float(row["alpha"]), beta=float(row["beta"]),
         )
 
+    def _arms_path(self) -> Path:
+        assert self._store is not None
+        return self._store.rsi_dir / "state" / "arms.yaml"
+
+    def _read_all_arm_rows(self) -> List[Dict[str, Any]]:
+        path = self._arms_path()
+        if not path.is_file():
+            return []
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return []
+        if isinstance(data, list):
+            return [r for r in data if isinstance(r, dict)]
+        if isinstance(data, dict):
+            rows = data.get("arms") or []
+            return [r for r in rows if isinstance(r, dict)]
+        return []
+
+    def _write_all_arm_rows(self, rows: List[Dict[str, Any]]) -> None:
+        import os
+        dest = self._arms_path()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(dest) + ".tmp")
+        tmp.write_text(yaml.safe_dump(rows, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        os.replace(tmp, dest)
+
+    def _is_recall_arm(self, row: Dict[str, Any]) -> bool:
+        intent = row.get("intent") or RECALL_INTENT
+        return intent == RECALL_INTENT
+
+    def _is_active_arm(self, row: Dict[str, Any]) -> bool:
+        if "active" in row:
+            return bool(row.get("active"))
+        if "is_active" in row:
+            return bool(row.get("is_active"))
+        return True
+
+    def _load_arms_store(self, project_id: str) -> List[Dict[str, Any]]:
+        rows = self._read_all_arm_rows()
+        recall = [r for r in rows if self._is_recall_arm(r) and self._is_active_arm(r)]
+        if not recall:
+            now = datetime.now(timezone.utc).isoformat()
+            for name, params in DEFAULT_ARMS:
+                rows.append({
+                    "id": uuid.uuid4().hex,
+                    "name": name,
+                    "intent": RECALL_INTENT,
+                    "top_n": params["top_n"],
+                    "threshold": params["threshold"],
+                    "alpha": 1.0,
+                    "beta": 1.0,
+                    "exposure": 0,
+                    "active": True,
+                    "project_id": project_id,
+                    "params": params,
+                    "created_at": now,
+                    "updated_at": now,
+                })
+            self._write_all_arm_rows(rows)
+            recall = [r for r in rows if self._is_recall_arm(r) and self._is_active_arm(r)]
+        return recall
+
+    @staticmethod
+    def _to_arm_row(row: Dict[str, Any]) -> RecallArm:
+        params = row.get("params") or {}
+        if isinstance(params, str):
+            try:
+                params = json.loads(params)
+            except (TypeError, ValueError):
+                params = {}
+        return RecallArm(
+            id=str(row.get("id") or uuid.uuid4().hex),
+            name=str(row.get("name") or row.get("strategy_name") or "recall-balanced"),
+            top_n=int(row.get("top_n") or params.get("top_n", 5)),
+            threshold=float(row.get("threshold") or params.get("threshold", 0.6)),
+            alpha=float(row.get("alpha") if row.get("alpha") is not None else 1.0),
+            beta=float(row.get("beta") if row.get("beta") is not None else 1.0),
+        )
+
     def _spawn_exposure(self, arm_id: str) -> None:
         async def _incr() -> None:
+            if self._store is not None:
+                rows = self._read_all_arm_rows()
+                now = datetime.now(timezone.utc).isoformat()
+                for row in rows:
+                    if row.get("id") == arm_id:
+                        row["exposure"] = int(row.get("exposure") or row.get("exposure_count") or 0) + 1
+                        row["updated_at"] = now
+                        break
+                self._write_all_arm_rows(rows)
+                return
             conn = await self._db.connect()
             await conn.execute(
                 "UPDATE strategy_configs SET exposure_count = exposure_count + 1, updated_at = ? WHERE id = ?",

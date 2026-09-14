@@ -23,10 +23,13 @@ from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from typing import Dict, Optional
 
+import yaml
 from pydantic import BaseModel, Field
 
 from ..core.models import FeedbackAction
 from ..data.sqlite import SQLiteClient
+from ..memory.logstore import iter_events
+from ..memory.store import MemoryStore
 from ..quality.assessor import QualityAssessor
 from ..services.log_service import LogService
 from ..services.profile_service import ProfileService
@@ -93,15 +96,19 @@ class FeedbackWorker:
 
     def __init__(
         self,
-        db: SQLiteClient,
+        db: Optional[SQLiteClient] = None,
         maxsize: int = 1000,
         quality: Optional[QualityAssessor] = None,
         profiles: Optional[ProfileService] = None,
+        store: MemoryStore | None = None,
     ):
+        if store is None and db is None:
+            raise TypeError("db is required when store is omitted")
         self._db = db
+        self._store = store
         self._quality = quality
         self._profiles = profiles
-        self._logs = LogService(db)
+        self._logs = LogService(store=store) if store is not None else LogService(db)
         self.queue: asyncio.Queue[ImplicitEvent] = asyncio.Queue(maxsize=maxsize)
         self._task: Optional[asyncio.Task] = None
 
@@ -138,6 +145,9 @@ class FeedbackWorker:
                 self.queue.task_done()
 
     async def _process(self, event: ImplicitEvent) -> None:
+        if self._store is not None:
+            await self._process_store(event)
+            return
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT id, user_id, project_id, intent, strategy_name, raw_input, retrieved_tags "
@@ -203,8 +213,94 @@ class FeedbackWorker:
         )
         await conn.commit()
 
+    async def _process_store(self, event: ImplicitEvent) -> None:
+        assert self._store is not None
+        row = None
+        for ev in iter_events(self._store.rsi_dir):
+            if ev.get("token") == event.feedback_token and ev.get("kind") != "feedback":
+                row = ev
+        if row is None:
+            logger.warning("反馈事件 token 无对应日志，跳过")
+            return
+        retrieved = [str(x) for x in (row.get("retrieved") or [])]
+        legacy = [str(x) for x in (row.get("retrieved_legacy_tags") or [])]
+        tags = retrieved + legacy
+        if event.action in ("copied", "referenced") and self._profiles is not None and tags:
+            await self._profiles.record_interest_boost(
+                row.get("user_id") or "local", row.get("project_id") or "default", tags,
+            )
+        reward = ACTION_REWARD.get(event.action, 0.0) + rating_reward(event.rating)
+        arm = row.get("arm") or row.get("strategy_name")
+        if reward != 0.0 and arm:
+            await self._apply_reward_store(row.get("project_id") or "default", arm, reward)
+        if event.action == "modified" and event.modified_content:
+            ratio = diff_ratio(row.get("task") or row.get("raw_input") or "", event.modified_content)
+            if ratio > DIFF_CANDIDATE_THRESHOLD:
+                self._enqueue_candidate_store(row, "modified", event.modified_content)
+                logger.info("知识提取候选已入队：diff_ratio=%.2f", ratio)
+        if event.action == "rejected" and event.comment:
+            self._enqueue_candidate_store(row, "rejected", event.comment)
+            logger.info("禁止项提取候选已入队（rejected+comment）")
+        if event.rating is not None and event.rating <= 2 and self._quality is not None:
+            qresult = await self._quality.judge_negative_feedback(event.feedback_token)
+            if qresult is not None:
+                await self._logs.refresh_quality_score(event.feedback_token, qresult.quality_score)
+
+    def _enqueue_candidate_store(self, log_row: dict, candidate_type: str, answer: str) -> None:
+        assert self._store is not None
+        path = self._store.rsi_dir / "logs" / "candidates.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "id": uuid.uuid4().hex,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "type": candidate_type,
+            "question": log_row.get("task") or log_row.get("raw_input") or "",
+            "answer": answer[:8000],
+            "source_event_id": log_row.get("id"),
+            "status": "pending",
+        }
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    async def _apply_reward_store(self, project_id: str, strategy_name: str, reward: float) -> None:
+        assert self._store is not None
+        path = self._store.rsi_dir / "state" / "arms.yaml"
+        if not path.is_file():
+            return
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return
+        rows = data if isinstance(data, list) else (data or {}).get("arms") or []
+        now = datetime.now(timezone.utc).isoformat()
+        changed = False
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            name = row.get("name") or row.get("strategy_name")
+            if name != strategy_name:
+                continue
+            if row.get("active") is False or row.get("is_active") == 0:
+                continue
+            if reward > 0:
+                row["alpha"] = float(row.get("alpha") or 1.0) + reward
+            else:
+                row["beta"] = float(row.get("beta") or 1.0) + abs(reward)
+            row["updated_at"] = now
+            changed = True
+        if changed:
+            dest = path
+            tmp = dest.with_suffix(dest.suffix + ".tmp")
+            tmp.write_text(yaml.safe_dump(rows if isinstance(data, list) else {"arms": rows},
+                                          allow_unicode=True, sort_keys=False), encoding="utf-8")
+            tmp.replace(dest)
+            logger.info("策略 %s reward %+.1f 已应用", strategy_name, reward)
+
     async def _apply_reward(self, project_id: str, intent: Optional[str], strategy_name: str, reward: float) -> None:
         """§3.3：reward > 0 → alpha += reward；< 0 → beta += |reward|；兜底策略（未落库）跳过"""
+        if self._store is not None:
+            await self._apply_reward_store(project_id, strategy_name, reward)
+            return
         conn = await self._db.connect()
         now = datetime.now(timezone.utc).isoformat()
         if reward > 0:

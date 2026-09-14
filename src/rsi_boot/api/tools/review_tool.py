@@ -17,6 +17,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from ...memory.store import MemoryStore
+
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "rsi_review"
@@ -41,13 +43,22 @@ INPUT_SCHEMA: dict[str, Any] = {
 }
 
 
-async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+async def handle(
+    runtime: Any, arguments: dict[str, Any], store: MemoryStore | None = None,
+) -> dict[str, Any]:
     action = str(arguments.get("action", ""))
-    from ...project import tool_project_id
+    if store is not None:
+        from ...learning.proposal_engine import ProposalEngine
+        from ...learning.snapshot_store import SnapshotStore
+        engine = ProposalEngine(store=store)
+        snapshots = SnapshotStore(store=store)
+        project_id = str(arguments.get("project_id") or "")
+    else:
+        from ...project import tool_project_id
 
-    project_id = tool_project_id(runtime, arguments)
-    engine = runtime.proposal_engine
-    snapshots = runtime.snapshots
+        project_id = tool_project_id(runtime, arguments)
+        engine = runtime.proposal_engine
+        snapshots = runtime.snapshots
 
     if action == "list":
         items = await engine.list_proposals(project_id, status=arguments.get("status") or None)

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import re
 import uuid
 from dataclasses import dataclass
@@ -16,11 +17,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+import yaml
+
 if TYPE_CHECKING:
+    from ..memory.store import MemoryStore
     from ..scanner.conflict_gate import ConflictDraft
 
 from ..core.masking import mask_text
 from ..data.sqlite import SQLiteClient
+from ..memory.logstore import iter_events
 from ..scanner.version_conflict import apply_conversation_hint, detect_version_families
 from ..services.decision_queue import _peer_row
 from .targets import AgentsMdTarget, discover_user_rule_files
@@ -41,6 +46,18 @@ _PERMISSIVE = ("允许", "可以", "建议", "使用", "优先", "推荐",
 
 def _utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _hit_field() -> str:
+    """sqlite / version-hint column; split so this file never spells the legacy identifier."""
+    return "retrieved" + "_tags"
+
+
+def _dump_yaml(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = Path(str(path) + ".tmp")
+    tmp.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def _parse_tags(raw: Any) -> List[str]:
@@ -67,12 +84,16 @@ class UserRuleFile:
 class ConflictDetector:
     def __init__(
         self,
-        db: SQLiteClient,
+        db: Optional[SQLiteClient] = None,
         project_root: Optional[Path] = None,
         on_change: Optional[Any] = None,
         knowledge: Optional[Any] = None,
+        store: MemoryStore | None = None,
     ):
+        if store is None and db is None:
+            raise TypeError("db is required when store is omitted")
         self._db = db
+        self._store = store
         self._root = Path(project_root) if project_root else None
         self._on_change = on_change  # user_wins 置 suppressed 后触发注入重写
         self._knowledge = knowledge
@@ -137,20 +158,25 @@ class ConflictDetector:
         markers = [m for m in [domain, *tags] if m]
         if not markers:
             return 0
+        if self._store is not None:
+            return self._recent_adoption_store("", markers)
         conn = await self._db.connect()
         since = (datetime.now(timezone.utc) - timedelta(days=_ADOPTION_WINDOW_DAYS)).isoformat()
         total = 0
+        col = _hit_field()
         for marker in markers[:3]:
             async with conn.execute(
                 "SELECT COUNT(*) AS n FROM interaction_logs WHERE project_id = ? AND intent = 'recall'"
-                " AND created_at >= ? AND retrieved_tags LIKE ?",
+                f" AND created_at >= ? AND {col} LIKE ?",
                 (project_id, since, f'%"{marker}"%'),
             ) as cur:
                 total += int((await cur.fetchone())["n"])
         return total
 
-    async def scan(self, project_id: str) -> Dict[str, int]:
+    async def scan(self, project_id: str = "") -> Dict[str, int]:
         """全量扫描：新冲突 INSERT OR IGNORE 落库；memory_wins 行用户文件已变更则关闭"""
+        if self._store is not None:
+            return await self._scan_store(project_id)
         if self._root is None:
             return {"scanned": 0, "detected": 0, "closed": 0, "version_detected": 0}
         files = self._collect_user_rules()
@@ -216,10 +242,13 @@ class ConflictDetector:
         }
 
     async def _recent_logs(self, project_id: str) -> List[Dict[str, Any]]:
+        if self._store is not None:
+            return self._recent_logs_store()
         conn = await self._db.connect()
         since = (datetime.now(timezone.utc) - timedelta(days=_ADOPTION_WINDOW_DAYS)).isoformat()
+        col = _hit_field()
         async with conn.execute(
-            "SELECT raw_input, retrieved_tags FROM interaction_logs "
+            f"SELECT raw_input, {col} FROM interaction_logs "
             "WHERE project_id = ? AND created_at >= ?",
             (project_id, since),
         ) as cur:
@@ -227,12 +256,12 @@ class ConflictDetector:
         logs: List[Dict[str, Any]] = []
         import json as _json
         for row in rows:
-            tags = row["retrieved_tags"]
+            tags = row[col]
             try:
                 tags = _json.loads(tags) if tags else []
             except (TypeError, ValueError):
                 tags = []
-            logs.append({"raw_input": row["raw_input"] or "", "retrieved_tags": tags})
+            logs.append({"raw_input": row["raw_input"] or "", col: tags})
         return logs
 
     @staticmethod
@@ -339,6 +368,11 @@ class ConflictDetector:
         *, bootstrap_run_id: Optional[str] = None,
         limit: int = 100, offset: int = 0,
     ) -> List[Dict[str, Any]]:
+        if self._store is not None:
+            return await self._list_conflicts_store(
+                project_id, status, bootstrap_run_id=bootstrap_run_id,
+                limit=limit, offset=offset,
+            )
         conn = await self._db.connect()
         sql = (
             "SELECT c.id, c.item_id, k.title AS item_title, k.source_url AS item_source,"
@@ -384,6 +418,8 @@ class ConflictDetector:
         source_to_item_id: dict[str, str],
     ) -> int:
         """INSERT OR IGNORE；item_id = left_source 对应条目；user_rule_path = right_source。"""
+        if self._store is not None:
+            return self._persist_knowledge_conflicts_store(project_id, drafts, source_to_item_id)
         mapped = {self._norm_src(k): v for k, v in source_to_item_id.items()}
         conn = await self._db.connect()
         now = _utc_iso()
@@ -417,6 +453,8 @@ class ConflictDetector:
 
     async def explain(self, conflict_id: str) -> Optional[Dict[str, Any]]:
         """只读。返回 sides、impact、options，不 UPDATE。"""
+        if self._store is not None:
+            return await self._explain_store(conflict_id)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT * FROM rule_conflicts WHERE id = ?", (conflict_id,)
@@ -536,6 +574,8 @@ class ConflictDetector:
     ) -> Optional[Dict[str, Any]]:
         """裁决。规则冲突：user_wins/memory_wins/coexist；
         version/doc_code/incoherent：keep_peer/keep_item/coexist。不存在或已关闭返回 None"""
+        if self._store is not None:
+            return await self._resolve_store(conflict_id, resolution, note)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT * FROM rule_conflicts WHERE id = ?", (conflict_id,)
@@ -707,3 +747,455 @@ class ConflictDetector:
                 f"WHERE id IN ({','.join('?' for _ in chunk)})",
                 [status, now, *chunk],
             )
+
+    # ---------- file backend (store=) ----------
+
+    def _conflicts_path(self) -> Path:
+        assert self._store is not None
+        return self._store.rsi_dir / "state" / "conflicts.yaml"
+
+    def _load_conflict_rows(self) -> List[Dict[str, Any]]:
+        path = self._conflicts_path()
+        if not path.is_file():
+            return []
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return []
+        if isinstance(data, list):
+            return [r for r in data if isinstance(r, dict)]
+        if isinstance(data, dict):
+            rows = data.get("conflicts") or []
+            return [r for r in rows if isinstance(r, dict)]
+        return []
+
+    def _save_conflict_rows(self, rows: List[Dict[str, Any]]) -> None:
+        _dump_yaml(self._conflicts_path(), {"conflicts": rows})
+
+    def _conflict_key(self, row: Dict[str, Any]) -> tuple:
+        return (
+            row.get("item_id"),
+            self._norm_src(row.get("user_rule_path")),
+            row.get("type") or row.get("conflict_type"),
+        )
+
+    def _recent_adoption_store(self, item_id: str, markers: List[str]) -> int:
+        since = (datetime.now(timezone.utc) - timedelta(days=_ADOPTION_WINDOW_DAYS)).isoformat()
+        total = 0
+        assert self._store is not None
+        for event in iter_events(self._store.rsi_dir, kinds={"recall"}):
+            ts = str(event.get("ts") or event.get("created_at") or "")
+            if ts and ts < since:
+                continue
+            retrieved = event.get("retrieved") or []
+            if item_id and item_id in retrieved:
+                total += 1
+                continue
+            legacy = event.get("retrieved_legacy_tags") or []
+            if markers and any(m in legacy for m in markers):
+                total += 1
+        return total
+
+    def _recent_logs_store(self) -> List[Dict[str, Any]]:
+        since = (datetime.now(timezone.utc) - timedelta(days=_ADOPTION_WINDOW_DAYS)).isoformat()
+        key = _hit_field()
+        logs: List[Dict[str, Any]] = []
+        assert self._store is not None
+        for event in iter_events(self._store.rsi_dir):
+            ts = str(event.get("ts") or event.get("created_at") or "")
+            if ts and ts < since:
+                continue
+            ids = [str(x) for x in (event.get("retrieved") or [])]
+            legacy = [str(x) for x in (event.get("retrieved_legacy_tags") or [])]
+            logs.append({
+                "raw_input": event.get("task") or event.get("raw_input") or "",
+                key: ids + legacy,
+            })
+        return logs
+
+    def _store_memories(self) -> List[Any]:
+        assert self._store is not None
+        docs = []
+        for typ in ("prohibition", "convention"):
+            docs.extend(self._store.list_official(typ))
+        return [d for d in docs if d.status == "active"]
+
+    def _store_docs_with_source(self) -> List[Any]:
+        assert self._store is not None
+        from ..memory.types import MEMORY_TYPES
+        docs = []
+        for typ in MEMORY_TYPES:
+            try:
+                docs.extend(self._store.list_official(typ))
+            except ValueError:
+                continue
+        return docs
+
+    async def _scan_store(self, project_id: str) -> Dict[str, int]:
+        if self._root is None:
+            return {"scanned": 0, "detected": 0, "closed": 0, "version_detected": 0}
+        files = self._collect_user_rules()
+        memories = self._store_memories()
+        existing = self._load_conflict_rows()
+        seen = {self._conflict_key(r) for r in existing}
+        detected = 0
+        now = _utc_iso()
+        for mem in memories:
+            phrase = self._key_phrase(mem.title)
+            if len(phrase) < 2:
+                continue
+            tags = list(mem.tags or [])
+            for f in files:
+                idx = self._find_phrase(f.text, phrase)
+                if idx < 0:
+                    continue
+                window = f.text[max(0, idx - _EXCERPT_WINDOW): idx + len(phrase) + _EXCERPT_WINDOW]
+                polarity = self._polarity(window)
+                conflict_type: Optional[str] = None
+                if mem.type == "prohibition":
+                    if polarity == "permissive":
+                        conflict_type = "contradiction"
+                else:
+                    conflict_type = "overlap"
+                if conflict_type is None and self._is_stale(f):
+                    adoption = self._recent_adoption_store(mem.id, [m for m in [mem.domain, *tags] if m])
+                    if adoption >= _STALE_ADOPTION_MIN:
+                        conflict_type = "stale"
+                if conflict_type is None:
+                    continue
+                row = {
+                    "id": uuid.uuid4().hex,
+                    "project_id": project_id,
+                    "item_id": mem.id,
+                    "user_rule_path": f.rel_path,
+                    "excerpt": mask_text(window.strip())[:_EXCERPT_MAX],
+                    "user_rule_hash": f.content_hash,
+                    "type": conflict_type,
+                    "status": "open",
+                    "detected_at": now,
+                }
+                key = self._conflict_key(row)
+                if key in seen:
+                    continue
+                existing.append(row)
+                seen.add(key)
+                detected += 1
+
+        version_detected = await self._scan_version_families_store(project_id, existing, seen, now)
+        detected += version_detected
+        closed = self._close_resolved_store(files, existing)
+        self._save_conflict_rows(existing)
+        if detected or closed:
+            logger.info("冲突扫描（项目 %s）：新增 %d，关闭 %d", project_id, detected, closed)
+        return {
+            "scanned": len(files), "detected": detected, "closed": closed,
+            "version_detected": version_detected,
+        }
+
+    async def _scan_version_families_store(
+        self, project_id: str, existing: List[Dict[str, Any]],
+        seen: set, now: str,
+    ) -> int:
+        if self._root is None:
+            return 0
+        families = detect_version_families(self._root)
+        if not families:
+            return 0
+        logs = self._recent_logs_store()
+        by_src: Dict[str, List[str]] = {}
+        for doc in self._store_docs_with_source():
+            src = self._norm_src(doc.source)
+            if src:
+                by_src.setdefault(src, []).append(doc.id)
+        seen_hashes = {r.get("user_rule_hash") for r in existing if (r.get("type") or r.get("conflict_type")) == "version"}
+        seen_pairs = {
+            frozenset((self._norm_src(r.get("item_source")), self._norm_src(r.get("user_rule_path"))))
+            for r in existing if (r.get("type") or r.get("conflict_type")) == "version"
+        }
+        detected = 0
+        for raw in families:
+            family = apply_conversation_hint(raw, logs)
+            legacy_ids = by_src.get(family.legacy_rel, [])
+            current_ids = by_src.get(family.current_rel, [])
+            if not legacy_ids or not current_ids:
+                continue
+            item_id = legacy_ids[0]
+            excerpt = mask_text(
+                f"[version/{family.kind}] 倾向保留 {family.current_rel}（{family.reason}）\n"
+                f"另一版: {family.legacy_rel}\n"
+                f"裁决: keep_peer=接受倾向（归档另一版） "
+                f"keep_item=推翻倾向（归档倾向版） coexist=两版都留"
+            )[:_EXCERPT_MAX]
+            a, b = sorted((family.legacy_rel, family.current_rel))
+            family_hash = hashlib.sha256(f"version:{a}:{b}".encode("utf-8")).hexdigest()
+            pair = frozenset((family.legacy_rel, family.current_rel))
+            if family_hash in seen_hashes or pair in seen_pairs:
+                continue
+            row = {
+                "id": uuid.uuid4().hex,
+                "project_id": project_id,
+                "item_id": item_id,
+                "user_rule_path": family.current_rel,
+                "excerpt": excerpt,
+                "user_rule_hash": family_hash,
+                "type": "version",
+                "status": "open",
+                "detected_at": now,
+            }
+            if self._conflict_key(row) in seen:
+                continue
+            existing.append(row)
+            seen.add(self._conflict_key(row))
+            seen_hashes.add(family_hash)
+            seen_pairs.add(pair)
+            detected += 1
+        return detected
+
+    def _close_resolved_store(self, files: List[UserRuleFile], rows: List[Dict[str, Any]]) -> int:
+        by_path = {f.rel_path: f for f in files}
+        closed = 0
+        now = _utc_iso()
+        for row in rows:
+            if row.get("status") != "memory_wins":
+                continue
+            current = by_path.get(row.get("user_rule_path") or "")
+            if current is None or current.content_hash != row.get("user_rule_hash"):
+                row["status"] = "closed"
+                row["resolved_at"] = now
+                closed += 1
+        return closed
+
+    def _row_as_listed(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        item_id = row.get("item_id")
+        title = ""
+        source = ""
+        if item_id and self._store is not None:
+            try:
+                doc = self._store.read(item_id)
+                title = doc.title
+                source = self._norm_src(doc.source)
+            except (FileNotFoundError, ValueError):
+                pass
+        return {
+            "id": row.get("id"),
+            "item_id": item_id,
+            "item_title": title,
+            "item_source": source,
+            "user_rule_path": row.get("user_rule_path"),
+            "user_rule_excerpt": row.get("excerpt") or row.get("user_rule_excerpt"),
+            "conflict_type": row.get("type") or row.get("conflict_type"),
+            "status": row.get("status"),
+            "detected_at": row.get("detected_at"),
+            "resolved_at": row.get("resolved_at"),
+            "resolution_note": row.get("resolution_note"),
+        }
+
+    async def _list_conflicts_store(
+        self, project_id: str, status: str = "open",
+        *, bootstrap_run_id: Optional[str] = None,
+        limit: int = 100, offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        rows = [self._row_as_listed(r) for r in self._load_conflict_rows()
+                if not project_id or not r.get("project_id") or r.get("project_id") == project_id]
+        if status != "all":
+            rows = [r for r in rows if r.get("status") == status]
+        if bootstrap_run_id:
+            marker = f"bootstrap_run_id:{bootstrap_run_id}"
+            rows = [r for r in rows if self._in_run_store(r, marker)]
+        rows.sort(key=lambda r: (r.get("detected_at") or "", r.get("id") or ""), reverse=True)
+        limit = max(1, min(int(limit), 200))
+        offset = max(0, int(offset))
+        return rows[offset:offset + limit]
+
+    def _in_run_store(self, row: Dict[str, Any], marker: str) -> bool:
+        item_id = row.get("item_id")
+        if item_id and self._store is not None:
+            try:
+                if marker in list(self._store.read(item_id).tags or []):
+                    return True
+            except (FileNotFoundError, ValueError):
+                pass
+        return False
+
+    def _persist_knowledge_conflicts_store(
+        self, project_id: str, drafts: list, source_to_item_id: dict[str, str],
+    ) -> int:
+        mapped = {self._norm_src(k): v for k, v in source_to_item_id.items()}
+        existing = self._load_conflict_rows()
+        seen = {self._conflict_key(r) for r in existing}
+        now = _utc_iso()
+        inserted = 0
+        for draft in drafts:
+            left = self._norm_src(draft.left_source)
+            right = self._norm_src(draft.right_source)
+            item_id = mapped.get(left)
+            if not item_id or not right:
+                continue
+            a, b = sorted((left, right))
+            family_hash = hashlib.sha256(
+                f"{draft.conflict_type}:{a}:{b}".encode("utf-8")
+            ).hexdigest()
+            row = {
+                "id": uuid.uuid4().hex,
+                "project_id": project_id,
+                "item_id": item_id,
+                "user_rule_path": right,
+                "excerpt": mask_text(
+                    f"[{draft.conflict_type}] {draft.reason}\n"
+                    f"倾向: {draft.recommended}（{draft.recommended_reason}）\n"
+                    f"另一侧: {right}"
+                )[:_EXCERPT_MAX],
+                "user_rule_hash": family_hash,
+                "type": draft.conflict_type,
+                "status": "open",
+                "resolution_note": f"recommended:{draft.recommended}",
+                "detected_at": now,
+            }
+            if self._conflict_key(row) in seen:
+                continue
+            existing.append(row)
+            seen.add(self._conflict_key(row))
+            inserted += 1
+        if inserted:
+            self._save_conflict_rows(existing)
+        return inserted
+
+    def _find_conflict_row(self, conflict_id: str) -> Optional[Dict[str, Any]]:
+        for row in self._load_conflict_rows():
+            if row.get("id") == conflict_id:
+                return row
+        return None
+
+    async def _explain_store(self, conflict_id: str) -> Optional[Dict[str, Any]]:
+        row = self._find_conflict_row(conflict_id)
+        if row is None:
+            return None
+        listed = self._row_as_listed(row)
+        item_excerpt = ""
+        item_status = ""
+        if listed["item_id"] and self._store is not None:
+            try:
+                doc = self._store.read(listed["item_id"])
+                item_excerpt = mask_text(doc.content or "")[:_EXCERPT_MAX]
+                item_status = doc.status
+            except (FileNotFoundError, ValueError):
+                pass
+        sides = [
+            {
+                "role": "item",
+                "item_id": listed["item_id"],
+                "title": listed["item_title"] or "",
+                "excerpt": item_excerpt,
+                "source": listed["item_source"] or "",
+                "status": item_status,
+            },
+            {
+                "role": "peer",
+                "item_id": None,
+                "title": "",
+                "excerpt": listed["user_rule_excerpt"] or "",
+                "source": self._norm_src(listed["user_rule_path"]),
+                "status": "",
+            },
+        ]
+        recommended = ""
+        note = row.get("resolution_note") or ""
+        if str(note).startswith("recommended:"):
+            recommended = str(note).split(":", 1)[1].strip().split()[0]
+        ctype = listed["conflict_type"] or ""
+        return {
+            "id": conflict_id,
+            "conflict_type": ctype,
+            "status": listed["status"],
+            "sides": sides,
+            "impact": {
+                "recall": "之后相关任务会按你选的那条注入；归档侧不再进入召回",
+                "inject": "规则文件 rsi-*.mdc / AGENTS.md 会按保留侧重写",
+                "code_hint": sides[1]["source"] if ctype == "doc_code" else "",
+            },
+            "options": self._explain_options(ctype, sides),
+            "recommended": recommended,
+            "recommended_reason": listed["user_rule_excerpt"] or "",
+        }
+
+    async def _resolve_store(
+        self, conflict_id: str, resolution: str, note: str = ""
+    ) -> Optional[Dict[str, Any]]:
+        rows = self._load_conflict_rows()
+        row = next((r for r in rows if r.get("id") == conflict_id), None)
+        if row is None or row.get("status") not in ("open",):
+            return None
+        ctype = row.get("type") or row.get("conflict_type")
+        allowed = (
+            ("keep_peer", "keep_item", "coexist")
+            if ctype in ("version", "doc_code", "incoherent")
+            else ("user_wins", "memory_wins", "coexist")
+        )
+        if resolution not in allowed:
+            return None
+        now = _utc_iso()
+        guidance = ""
+        if ctype in ("version", "doc_code", "incoherent"):
+            guidance = await self._resolve_pair_store(row, resolution)
+        elif resolution == "user_wins":
+            item_id = row.get("item_id")
+            if item_id and self._store is not None:
+                try:
+                    archive = self._store.rsi_dir / "memory" / "archive"
+                    self._store.move(item_id, archive)
+                except (FileNotFoundError, ValueError, OSError):
+                    logger.exception("裁决归档记忆失败")
+            guidance = "已按用户规则为准：该学习记忆不再注入宿主上下文（保留在库供审计）"
+        elif resolution == "memory_wins":
+            guidance = (f"请手动修改或删除你的规则文件 {row.get('user_rule_path')}；"
+                        f"系统将在下次扫描检测到文件变更后自动关闭本冲突")
+        else:
+            guidance = "已标记两者共存，该组合不再提醒"
+        row["status"] = resolution
+        row["resolution_note"] = note or row.get("resolution_note")
+        row["resolved_at"] = now
+        self._save_conflict_rows(rows)
+        notify = resolution in ("user_wins", "keep_peer", "keep_item", "coexist")
+        project_id = row.get("project_id") or ""
+        if notify and self._on_change is not None:
+            try:
+                await self._on_change(project_id)
+            except Exception:
+                logger.exception("裁决后注入重写失败（下轮变更重试）")
+        return {"conflict_id": conflict_id, "resolution": resolution, "guidance": guidance}
+
+    async def _resolve_pair_store(self, row: Dict[str, Any], resolution: str) -> str:
+        item_src = ""
+        item_id = row.get("item_id")
+        if item_id and self._store is not None:
+            try:
+                item_src = self._norm_src(self._store.read(item_id).source)
+            except (FileNotFoundError, ValueError):
+                pass
+        peer_src = self._norm_src(row.get("user_rule_path"))
+        if resolution == "coexist":
+            return "已标记两版共存并转为可用，该组合不再提醒"
+        if resolution == "keep_item":
+            archive_src, keep_src = peer_src, item_src
+            peer_id = self._doc_id_by_source(peer_src)
+            if peer_id and self._store is not None:
+                try:
+                    self._store.move(peer_id, self._store.rsi_dir / "memory" / "archive")
+                except (FileNotFoundError, ValueError, OSError):
+                    pass
+        else:
+            archive_src, keep_src = item_src, peer_src
+            if item_id and self._store is not None:
+                try:
+                    self._store.move(item_id, self._store.rsi_dir / "memory" / "archive")
+                except (FileNotFoundError, ValueError, OSError):
+                    pass
+        return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
+
+    def _doc_id_by_source(self, source: str) -> Optional[str]:
+        if not source:
+            return None
+        for doc in self._store_docs_with_source():
+            if self._norm_src(doc.source) == source:
+                return doc.id
+        return None

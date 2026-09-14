@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ...memory.store import MemoryStore
+
 TOOL_NAME = "rsi_conflicts"
 
 TOOL_DESCRIPTION = (
@@ -64,11 +66,18 @@ INPUT_SCHEMA: dict[str, Any] = {
 }
 
 
-async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
-    detector = runtime.conflict_detector
-    from ...project import tool_project_id
+async def handle(
+    runtime: Any, arguments: dict[str, Any], store: MemoryStore | None = None,
+) -> dict[str, Any]:
+    if store is not None:
+        from ...injector.conflict import ConflictDetector
+        detector = ConflictDetector(store=store, project_root=store.rsi_dir.parent)
+        project_id = str(arguments.get("project_id") or "")
+    else:
+        detector = runtime.conflict_detector
+        from ...project import tool_project_id
 
-    project_id = tool_project_id(runtime, arguments)
+        project_id = tool_project_id(runtime, arguments)
     action = str(arguments.get("action") or "list")
 
     if action == "scan":
