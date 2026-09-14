@@ -54,10 +54,9 @@ class BootstrapReport:
     conflicts: List[Dict[str, str]] = field(default_factory=list)
     conflict_counts: Dict[str, int] = field(default_factory=dict)
     judge: str = ""                                             # "host" | "local" | ""（dry-run）
-    judge_candidates: int = 0                                   # 候选组数（gate.conflicts 总数）
-    judge_unresolved: int = 0                                   # host：队列 items 数；local：0
-    judge_queue_path: str = ""                                  # host：.rsi/host_judge_queue.json
-    judge_omitted: int = 0                                      # 超 10000 被截断的候选数
+    pack_count: int = 0
+    pack_omitted_sources: List[str] = field(default_factory=list)
+    harvest_warning: str = ""                                   # 赋值在 Task 7
     dry_run: bool = False
     will_apply: List[str] = field(default_factory=list)
     will_confirm: List[str] = field(default_factory=list)
@@ -68,18 +67,11 @@ class BootstrapReport:
         if not self.judge:
             return ""
         if self.judge == "host":
-            line = (
-                f"判断: judge=host，候选 {self.judge_candidates} 组，"
-                f"未决 {self.judge_unresolved} 组，工作包 {self.judge_queue_path}"
-            )
-        else:
-            line = f"判断: judge=local，候选 {self.judge_candidates} 组"
-        if self.judge_omitted > 0:
-            line += (
-                f"（超上限截断 {self.judge_omitted} 组未入包，"
-                "建议收窄 --include 或分目录再学）"
-            )
-        return line
+            return f"判断: judge=host，阅读包 {self.pack_count} 个"
+        return (
+            f"判断: judge=local，阅读包 {self.pack_count} 个；"
+            "在当前宿主按 rsi-relearn 继续"
+        )
 
     def render_terminal(self) -> str:
         lines = ["", "=== RSI Boot 学习报告 ===", f"项目: {self.project_root}"]
@@ -103,6 +95,8 @@ class BootstrapReport:
             judge_line = self._format_judge_line()
             if judge_line:
                 lines.append(judge_line)
+            if self.harvest_warning:
+                lines.append(self.harvest_warning)
             if self.conflict_counts:
                 total = sum(self.conflict_counts.values())
                 detail = " · ".join(
@@ -213,6 +207,8 @@ class BootstrapReport:
         judge_line = self._format_judge_line()
         if judge_line:
             lines.append(judge_line)
+        if self.harvest_warning:
+            lines.append(self.harvest_warning)
 
         if self.wipe_hint:
             lines.extend(["", "## 清库重学", self.wipe_hint])

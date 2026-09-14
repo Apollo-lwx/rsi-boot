@@ -119,20 +119,15 @@ def _phase_names(plan: Dict[str, bool], dry_run: bool, lang: str) -> List[str]:
     names = ["扫描文件树"]
     if dry_run:
         return names
-    names.append(t("BOOTSTRAP_PHASE_INIT", lang))
     if plan.get("docs"):
-        names.append("文档")
-    if plan.get("config"):
-        names.append("配置")
+        names.append("文档索引")
     if plan.get("code"):
-        names.append("代码")
+        names.append("代码索引")
     if plan.get("git"):
-        names.append("Git")
-    if plan.get("conversation"):
-        names.append("对话")
-    if plan.get("config"):
-        names.append("规则种子")
-    names.extend(["关联", "冲突检测", "写入知识", "收尾"])
+        names.append("Git fix")
+    if plan.get("config") or plan.get("conversation"):
+        names.append("规则与技能")
+    names.append("分包")
     return names
 
 
@@ -888,19 +883,15 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 project_id, gate.conflicts, mapping,
             )
         report.judge = judge
-        report.judge_candidates = len(gate.conflicts)
-        report.judge_omitted = gate.omitted_candidates
         if judge == "host":
             try:
-                queue_path, unresolved = await _write_host_judge_queue(
+                await _write_host_judge_queue(
                     runtime, rsi_dir, project_id, run_id, gate, drafts,
                     source_to_item_id=mapping,
                 )
             except OSError as exc:
                 print(f"写冲突工作包队列失败: {exc}", file=sys.stderr)
                 return 1
-            report.judge_unresolved = unresolved
-            report.judge_queue_path = str(queue_path)
         else:
             _delete_host_judge_queue(rsi_dir)
         progress.tick(1)

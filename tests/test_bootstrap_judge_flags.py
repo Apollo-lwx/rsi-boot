@@ -78,7 +78,11 @@ async def test_host_judge_writes_queue_with_full_content(tmp_path, monkeypatch):
     # host 不裁决 peer：两侧都不应因 peer 被 hold 成 pending_review
     report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
     assert report["judge"] == "host"
-    assert report["judge_queue_path"].endswith("host_judge_queue.json")
+    assert "judge_queue_path" not in report
+    assert "judge_candidates" not in report
+    assert "judge_omitted" not in report
+    assert "judge_unresolved" not in report
+    assert "pack_count" in report
 
 
 async def test_local_judge_deletes_stale_queue(tmp_path, monkeypatch):

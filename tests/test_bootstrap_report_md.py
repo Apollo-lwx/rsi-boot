@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from rsi_boot.cli.bootstrap_command import run_bootstrap
@@ -90,21 +91,69 @@ async def test_bootstrap_writes_markdown_report(tmp_path, monkeypatch, capsys):
 def test_render_terminal_shows_judge_line(tmp_path):
     report = BootstrapReport(
         project_root=str(tmp_path),
-        judge="host", judge_candidates=12, judge_unresolved=12,
-        judge_queue_path=str(tmp_path / ".rsi" / "host_judge_queue.json"),
+        judge="host",
+        pack_count=12,
     )
     text = report.render_terminal()
     assert "judge=host" in text
     assert "12" in text
-    assert "host_judge_queue.json" in text
+    assert "host_judge_queue" not in text
 
 
-def test_render_terminal_shows_omitted_hint(tmp_path):
+def test_render_terminal_shows_local_relearn_line(tmp_path):
     report = BootstrapReport(
-        project_root=str(tmp_path), judge="local", judge_candidates=10000,
-        judge_omitted=320,
+        project_root=str(tmp_path), judge="local", pack_count=3,
     )
     text = report.render_terminal()
     assert "judge=local" in text
-    assert "320" in text
-    assert "--include" in text
+    assert "3" in text
+    assert "rsi-relearn" in text
+    assert "当前宿主" in text
+    assert "Cursor" not in text
+    assert "IDE" not in text
+
+
+def test_render_terminal_shows_harvest_warning(tmp_path):
+    report = BootstrapReport(
+        project_root=str(tmp_path),
+        harvest_warning="库存仍有 2 条旧采集物",
+    )
+    text = report.render_terminal()
+    assert "库存仍有 2 条旧采集物" in text
+
+
+def test_write_json_has_pack_fields_not_judge_star(tmp_path):
+    report = BootstrapReport(
+        project_root=str(tmp_path),
+        judge="host",
+        pack_count=4,
+        pack_omitted_sources=["docs/extra.md"],
+    )
+    out = tmp_path / "bootstrap_report.json"
+    report.write_json(out)
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["pack_count"] == 4
+    assert data["pack_omitted_sources"] == ["docs/extra.md"]
+    assert data["judge"] == "host"
+    assert data["harvest_warning"] == ""
+    assert "judge_candidates" not in data
+    assert "judge_omitted" not in data
+    assert "judge_unresolved" not in data
+    assert "judge_queue_path" not in data
+
+
+def test_phase_names_are_collection_stages_without_conflict():
+    from rsi_boot.cli.bootstrap_command import _phase_names
+
+    names = _phase_names(
+        {"docs": True, "code": True, "git": True, "config": True, "conversation": True},
+        False,
+        "zh",
+    )
+    assert names[0] == "扫描文件树"
+    assert "文档索引" in names
+    assert "代码索引" in names
+    assert "Git fix" in names
+    assert "规则与技能" in names
+    assert "分包" in names
+    assert "冲突检测" not in names
