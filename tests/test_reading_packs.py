@@ -8,6 +8,9 @@ import yaml
 
 from rsi_boot.scanner.reading_packs import (
     PACKS_DIRNAME,
+    MAX_PACKS,
+    MAX_SOURCES_PER_PACK,
+    build_packs,
     load_index,
     load_pack,
     pack_fingerprint,
@@ -139,3 +142,150 @@ def test_write_packs_does_not_accept_omitted_sources_kw(tmp_path: Path):
     sig = inspect.signature(write_packs)
     assert "omitted_sources" not in sig.parameters
     assert "omitted" not in sig.parameters
+
+
+def _build(**overrides):
+    kwargs = {
+        "docs": [],
+        "code": [],
+        "git_fix": [],
+        "rules": [],
+        "skills": [],
+        "conversations": [],
+    }
+    kwargs.update(overrides)
+    return build_packs(**kwargs)
+
+
+def _all_sources(packs: list[dict]) -> list[dict]:
+    return [src for pack in packs for src in pack["sources"]]
+
+
+def test_forty_one_docs_same_dir_split_into_at_least_two_packs():
+    docs = [{"path": f"docs/page-{i:02d}.md", "heading": f"H{i}"} for i in range(41)]
+    packs, omitted = _build(docs=docs)
+    assert omitted == []
+    assert len(packs) >= 2
+    assert all(len(pack["sources"]) <= MAX_SOURCES_PER_PACK for pack in packs)
+    assert sum(len(pack["sources"]) for pack in packs) == 41
+    paths = [src["path"] for src in _all_sources(packs)]
+    assert len(paths) == len(set(paths)) == 41
+
+
+def test_same_path_appears_in_only_one_pack():
+    packs, _ = _build(
+        docs=[
+            {"path": "docs/auth.md", "heading": "认证"},
+            {"path": "docs/auth.md", "heading": "重复"},
+        ],
+        rules=[{"path": "docs/auth.md", "heading": "规则侧"}],
+    )
+    paths = [src.get("path") for src in _all_sources(packs) if src.get("path")]
+    assert paths.count("docs/auth.md") == 1
+
+
+def test_eighty_one_packs_omits_overflow_sources():
+    docs = [{"path": f"dir{i:03d}/doc.md", "heading": f"H{i}"} for i in range(81)]
+    packs, omitted = _build(docs=docs)
+    assert len(packs) == MAX_PACKS
+    assert omitted
+    assert len(omitted) <= 200
+    kept = {src.get("path") for src in _all_sources(packs)}
+    assert set(omitted).isdisjoint(kept)
+    assert len(kept) + len(omitted) == 81
+
+
+def test_git_fix_identity_is_hash_code_path_still_allowed():
+    code_path = "src/auth/Token.java"
+    packs, omitted = _build(
+        code=[{"path": code_path, "heading": "Token"}],
+        git_fix=[{
+            "hash": "abc1234",
+            "message": "fix token refresh NPE",
+            "files": [code_path],
+        }],
+    )
+    assert omitted == []
+    sources = _all_sources(packs)
+    paths = [src.get("path") for src in sources if src.get("path")]
+    hashes = [src.get("hash") for src in sources if src.get("hash")]
+    assert paths.count(code_path) == 1
+    assert hashes.count("abc1234") == 1
+    code_src = next(src for src in sources if src.get("kind") == "code")
+    git_src = next(src for src in sources if src.get("kind") == "git_fix")
+    assert code_src["path"] == code_path
+    assert git_src["hash"] == "abc1234"
+    assert "path" not in git_src or git_src.get("path") in (None, "")
+    code_pack = next(
+        pack for pack in packs
+        if any(src.get("kind") == "code" and src.get("path") == code_path for src in pack["sources"])
+    )
+    assert any(src.get("hash") == "abc1234" for src in code_pack["sources"])
+
+
+def test_git_fix_unmatched_files_use_git_fix_domain():
+    packs, _ = _build(
+        git_fix=[{
+            "hash": "def5678",
+            "message": "fix orphan",
+            "files": ["vendor/legacy.c"],
+        }],
+    )
+    assert any(pack["domain"] == "git-fix" for pack in packs)
+    git_src = next(src for src in _all_sources(packs) if src.get("kind") == "git_fix")
+    assert git_src["hash"] == "def5678"
+    assert git_src.get("files") == ["vendor/legacy.c"]
+
+
+def test_domains_follow_first_level_and_kind_rules():
+    packs, _ = _build(
+        docs=[
+            {"path": "docs/auth.md", "heading": "认证"},
+            {"path": "README.md", "heading": "简介"},
+        ],
+        code=[{"path": "src/auth/Token.java", "heading": "Token"}],
+        rules=[{"path": ".cursor/rules/foo.mdc", "heading": "Foo"}],
+        skills=[{"path": ".cursor/skills/bar/SKILL.md", "name": "bar"}],
+        conversations=[{"path": ".cursor/notes.md"}],
+    )
+    domains = {pack["domain"] for pack in packs}
+    assert "rules" in domains
+    assert "skills" in domains
+    assert "docs" in domains
+    assert any(pack["domain"] == "README" for pack in packs)
+    assert any(pack["domain"] in {"src/auth", "src"} for pack in packs)
+    assert "conversation" in domains
+    kinds = {src["kind"] for src in _all_sources(packs)}
+    assert kinds == {"docs", "code", "rule", "skill", "conversation"}
+
+
+def test_version_hints_set_source_hint():
+    packs, _ = _build(
+        docs=[{"path": "docs/api-v1.md", "heading": "API"}],
+        version_hints={"docs/api-v1.md": "version-family"},
+    )
+    src = _all_sources(packs)[0]
+    assert src["path"] == "docs/api-v1.md"
+    assert src["hint"] == "version-family"
+
+
+def test_pack_ids_are_unique_stable_slug_or_hex():
+    import re
+
+    docs = [{"path": f"docs/page-{i:02d}.md", "heading": f"H{i}"} for i in range(3)]
+    packs_a, _ = _build(docs=docs)
+    packs_b, _ = _build(docs=docs)
+    ids_a = [pack["id"] for pack in packs_a]
+    ids_b = [pack["id"] for pack in packs_b]
+    assert ids_a == ids_b
+    assert len(ids_a) == len(set(ids_a))
+    for pack_id in ids_a:
+        assert len(pack_id) >= 8
+        assert re.fullmatch(r"[A-Za-z0-9._-]+", pack_id)
+
+
+def test_omitted_source_paths_capped_at_200():
+    docs = [{"path": f"d{i:04d}/x.md", "heading": "H"} for i in range(80 + 250)]
+    packs, omitted = _build(docs=docs)
+    assert len(packs) == MAX_PACKS
+    assert len(omitted) == 200
