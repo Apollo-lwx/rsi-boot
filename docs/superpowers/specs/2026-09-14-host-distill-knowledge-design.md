@@ -1,10 +1,11 @@
 # 宿主蒸馏项目知识库 — 设计
 
 > 日期：2026-09-14 | 状态：已定稿，待审阅  
-> 范围：重新学习改为「rsi 采集阅读包 + 宿主蒸馏短知识」；进度与流程串联；废除 host 路径上的原文直通与正文 Jaccard 出门  
-> 取代：`2026-09-12-bootstrap-apply-and-confirm-design.md` 车道 A（仓库原文直通 `active`）；`2026-09-13-host-judge-conflict-design.md` 中 `--host-judge` 的「桶内 Jaccard 出候选 + 原文工作包队列」  
-> 不取代：文件记忆 YAML SoT、`rsi_recall` 混合检索、教学/审计/晋升 DAG、`--host-judge` / `--local-judge` 旗标名、`rsi_conflicts` 工具名  
-> 非目标：rsi 进程内配置或调用任何 LLM API Key；自持 AgentLoop；改召回融合算法；自动提升无 `bootstrap_run_id` 的 archived
+> 范围：重新学习改为「rsi 采集阅读包 + 宿主蒸馏短知识」；进度与流程串联；**删除**原文直通、正文 Jaccard 出门、原文工作包队列及其测试，不留兼容分支  
+> 取代并废止实现：`2026-09-12-bootstrap-apply-and-confirm-design.md` 车道 A；`2026-09-13-host-judge-conflict-design.md` 的 Jaccard 候选与 `host_judge_queue` 循环  
+> 不取代：文件记忆 YAML SoT、`rsi_recall` 混合检索、教学/审计/晋升 DAG、`--host-judge` / `--local-judge` 旗标名、`rsi_conflicts` 工具名（仅服务已落盘短知识）  
+> 非目标：rsi 进程内配置或调用任何 LLM API Key；自持 AgentLoop；改召回融合算法；自动提升无 `bootstrap_run_id` 的 archived  
+> 删除纪律：方向错了的代码、测试、报告字段、注入句**本波删掉**。禁止「先断开调用、函数留着」「仅非 bootstrap 调用方」「另开 P1 兼容票」。旧规格文档可留作历史，实现不得再按它们长出第二条路径。
 
 ---
 
@@ -21,7 +22,7 @@ RSI 是宿主模型的**程序性记忆层**，不是仓库理解器。
 ### 1.2 已锁定的原则
 
 1. **零 Key = 不另开计费通道。** 不配 OpenAI/Anthropic Key，不在 `rsi` 包里打 Chat Completions。宿主 Cursor agent（订阅里的模型）就是蒸馏器。禁止把「零 Key」读成「bootstrap 不能用模型」。
-2. **代码不替代理解。** 禁止用分词、Jaccard、极性词窗口、骨架标识符点名来决定「两条知识是否互相否定」或「这段原文算不算项目知识」。
+2. **代码不替代理解。** 禁止用分词、Jaccard、极性词窗口、骨架标识符点名来决定「两条知识是否互相否定」或「这段原文算不算项目知识」。这类实现按 §10 **删除**，不是降级或后期规划。
 3. **召回只打蒸馏条目。** 原文路径写在 `source` / `refs` 上，不把几百行 md、代码骨架批、git 统计摘要写成 `active` 记忆。
 4. **采集可离开对话，蒸馏不能。** `rsi bootstrap` 可以扫盘、列 fix、写阅读包后退出。写知识必须在同一轮（或紧接着的）宿主对话里完成。
 5. **进度只预估可数工作。** 扫文件、列提交、分包有 ETA。模型读某个域、写几条知识，只报「第几包 / 还剩几包」，不估思考秒数。
@@ -220,16 +221,9 @@ sources:
 
 默认状态：蒸馏条目写 `pending_review`，由现有 `rsi_knowledge_review` / 注入菜谱整批放行本 `bootstrap_run_id`。P0 不把蒸馏条目静默 `active`，避免模型一句话写错就进召回主库。用户说「看着办 / 按推荐」时，agent 按现有 review 工具批准本 run。
 
-### 4.3 采集 CLI 不再写的东西
+### 4.3 采集 CLI 禁止再做的事
 
-`--host-judge` 与 `--local-judge` 都**停止**：
-
-- 文档 chunk 写成 `DraftItem` / `KnowledgeItem`
-- 代码 3000 字骨架批
-- 配置/Git/关联图谱摘要当知识
-- `gate_drafts` / `_detect_incoherent_conflicts` / `_source_to_item_id` 全库扫描
-- 写 `.rsi/host_judge_queue.json`（改为删除若存在）
-- `_load_existing_drafts` 把库存 YAML 拉进 Jaccard
+`--host-judge` 与 `--local-judge` 都不得再走旧写入/出门。对应符号按 §10 **整支删除**，不是改成 no-op。
 
 `--force` 只忽略采集指纹、重写阅读包；**不**把旧 archived 救回 `active`（沿用现网）。
 
@@ -281,12 +275,11 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 ### 4.7 进度文案
 
 采集阶段沿用现网 `Progress`（阶段名、条数、已用、约剩）。文案用中文阶段名，见 §3.2。  
-蒸馏不走这段 CLI 进度。报告 JSON 增加：
+蒸馏不走这段 CLI 进度。报告 JSON：
 
-- `judge`: `host` | `local`
-- `pack_count` / `pack_omitted_sources`
-- `knowledge_written`: 采集阶段恒为 0
-- 删除或置 0：`judge_candidates`、`judge_unresolved`、`judge_queue_path`（兼容字段保留但恒空/0）
+- 保留：`judge`（`host` | `local`）
+- 新增：`pack_count`、`pack_omitted_sources`；采集阶段 `knowledge_written` 恒为 0
+- **删除**字段及一切读写：`judge_candidates`、`judge_omitted`、`judge_unresolved`、`judge_queue_path`。禁止留空字符串 / 恒 0 做兼容。
 
 ---
 
@@ -294,20 +287,21 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 
 **P0（本规格实现波必须交付）**
 
-- 采集只写阅读包；host/local 都不跑 `gate_drafts`、不写原文知识。
+- 采集只写阅读包；按 §10 **删除**旧出门与原文入库，不是断开调用。
 - `rsi_learn` 三个 `pack_*` action。
 - 写入 `rsi-relearn` 技能 + 改注入菜谱。
 - `knowledge_add` 体量硬顶 + 禁止四个历史采集标题。
-- 进度阶段换成 §3.2；报告字段按 §4.7。
-- 删除/忽略 `host_judge_queue.json`。
+- 进度阶段换成 §3.2；报告字段按 §4.7（旧 judge_* 字段删除）。
+- 采集成功时若磁盘上还有 `host_judge_queue.json` 则删除文件；写队列的代码本身已不存在。
 
-**P1（明确不做本波）**
+**P1（增强，不是旧路径复活）**
 
-- 阅读包向量化、自动按语义重切域。
-- 采集期 AST 符号的强制完整率。
-- 蒸馏条目自动 `active`。
+- 阅读包按语义再切域（仍由宿主决定怎么写知识）。
+- 采集期符号列表更完整。
+- 蒸馏条目经用户明确开关才自动 `active`。
 - 新 MCP 工具名。
-- `--local-judge` 再引入任何「本地读懂项目」的启发式冲突。
+
+禁止把「本地启发式冲突 / Jaccard / 原文队列」写成 P1。那是已废方向，实现计划里不得开复活票。
 
 ---
 
@@ -346,15 +340,15 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 
 - 裸 bootstrap（非 dry-run）仍 exit 2；双旗标仍 exit 2。
 - `--host-judge` 后 `memory/` 下不出现「代码骨架摘要」等四类采集标题；`reading-packs/index.yaml` 存在且 `packs` ≥ 1（有信号时）。
-- 采集过程不调用 `gate_drafts`（单测 spy）。
+- 源码与测试中不存在 `gate_drafts`、`_peer_sim`、`_write_host_judge_queue`（禁止只 spy「没调用」）。
 - 文档文件只出现在某个包的 `sources.path`，没有对应 chunk YAML。
 - git 无 fix 类提交时不因此失败，只是没有 `git_fix` 源。
 - `pack_list` 空目录不抛；`pack_open` 未知 id → not_found；`pack_done` 幂等。
 - `knowledge_add` 超过 1500 字 → invalid；标题「代码骨架摘要」→ invalid。
 - `--local-judge` 后无 `host_judge_queue.json`，有阅读包，`memory/` 无本 run 新知识。
 - `--force` 将已 `done` 包改回 `pending`。
-- 注入块含 `pack_list` / `rsi-relearn`，不再要求 agent 读 `host_judge_queue.json`。
-- 存量：`test_conflict_gate` 的 Jaccard 用例可保留函数，但 bootstrap 主路径不再调用；或标明仅服务非 bootstrap 调用方。日常提取若仍走 `conflict_gate`，本波改为：**对已落盘短知识**做标题/source 去重，不做正文 Jaccard（若改动面过大，P0 只断开 bootstrap 调用，日常提取另开 P1 票，须在实现计划里写明）。
+- 注入块含 `pack_list` / `rsi-relearn`，全文不得再出现 `host_judge_queue.json` 或「每批 200 resolve 原文对」。
+- `tests/test_conflict_gate.py`、`tests/test_bootstrap_judge_flags.py` 中依赖 Jaccard / 原文队列的用例**删除或改写成阅读包**，禁止为已删函数保测试。
 
 ---
 
@@ -381,7 +375,32 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 
 ---
 
-## 10. 验收标准
+## 10. 删除清单（实现波必须清掉）
+
+方向错了，留着就是脏代码。本波 PR 合入后，下列符号/文件/字段必须从树里消失（含测试与文案引用），不得 `if False`、不得改成空函数、不得「给日常提取留一条」。
+
+| 删除 | 说明 |
+|------|------|
+| `src/rsi_boot/scanner/conflict_gate.py` 整文件 | `DraftItem` / `gate_drafts` / `_peer_sim` / `_body_jaccard` / `_detect_incoherent_conflicts` / `_detect_doc_code_conflicts` / `_local_peer_conflict` / `_MAX_CANDIDATES` 正文 Jaccard 门。`ConflictDraft` 若 `persist_knowledge_conflicts` 仍需要，**搬到** `injector/conflict.py`（只表示短知识对），不要为搬迁保留 Jaccard。 |
+| bootstrap 里一切 `DraftItem` 组装与 `gate_drafts(...)` | 文档 chunk 入库、代码 3000 字骨架批、配置/Git/关联摘要当知识、`_load_existing_drafts`、`_source_to_item_id` 为队列服务的全库扫描 |
+| `_write_host_judge_queue` / `_delete_host_judge_queue` 以外的队列写入、分页拼原文对 | 采集结束可保留「若文件存在则 unlink」三五行，函数名不要再叫 host_judge_queue 业务 |
+| `BootstrapReport` 的 `judge_candidates` / `judge_omitted` / `judge_unresolved` / `judge_queue_path` | 报告打印与测试断言一并删 |
+| 注入 `_DECISIONS_BODY` 中读队列、200 条 resolve 原文对的句子 | 换成阅读包循环 |
+| `tests/test_conflict_gate.py` | 整文件删，或只留与阅读包无关且不导入已删模块的内容（预期：整文件删） |
+| `tests/test_bootstrap_judge_flags.py` 里队列/Jaccard 对齐用例 | 改成旗标 exit 2 + 阅读包存在；禁止再 import `_write_host_judge_queue` |
+| 其它测试里「骨架摘要入库」「同桶配对进度」 | 改或删，禁止 skip 挂起 |
+
+**明确保留（不是旧门的兼容层）：**
+
+- `injector/conflict.py`：手写规则 vs **已落盘短知识** 的 contradiction/stale/overlap（文件证据）。禁止把已删的 peer Jaccard 抄回这里。
+- `scanner/version_conflict.py`：只给阅读包写 `hint: version-family`（路径/DEPRECATED 链接）。删除任何「标题相同再算正文 Jaccard」的调用点。
+- `rsi_conflicts` MCP：模型对短知识 id 开冲突、list/resolve/explain。
+
+日常提取（对话/反馈里抽句子）若今天调用 `conflict_gate`：本波改为只 `knowledge_search` + 可选手写 `rsi_conflicts`，**不得**再走 Jaccard。没有第三条「旧门给提取用」的路径。
+
+---
+
+## 11. 验收标准
 
 在 `calcite-avatica-gateway` 量级仓库上：
 
