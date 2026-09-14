@@ -59,6 +59,55 @@ def test_read_uses_id_index_without_rescan(tmp_path):
     assert calls["n"] == 0
 
 
+def _seed_two_docs(tmp_path):
+    writer = MemoryStore(tmp_path / ".rsi")
+    id_a, id_b = "a" * 32, "b" * 32
+    writer.write(
+        MemoryDoc(id=id_a, type="prohibition", title="禁止 SELECT *", content="必须列字段"),
+        dest=official_dir(writer.rsi_dir, "prohibition") / "no-star--aaaaaaaa.yaml",
+    )
+    writer.write(
+        MemoryDoc(id=id_b, type="convention", title="约定命名", content="字段用 camelCase"),
+        dest=official_dir(writer.rsi_dir, "convention") / "naming--bbbbbbbb.yaml",
+    )
+    return writer.rsi_dir, id_a, id_b
+
+
+def test_list_all_populates_id_index(tmp_path):
+    rsi_dir, id_a, _id_b = _seed_two_docs(tmp_path)
+    store = MemoryStore(rsi_dir)
+    store.list_all()
+    calls = {"n": 0}
+    real = store._iter_memory_yaml
+
+    def counting():
+        calls["n"] += 1
+        return real()
+
+    store._iter_memory_yaml = counting  # type: ignore[method-assign]
+    got = store.read(id_a)
+    assert got.id == id_a
+    assert calls["n"] == 0
+
+
+def test_read_miss_indexes_every_id_once(tmp_path):
+    rsi_dir, id_a, id_b = _seed_two_docs(tmp_path)
+    store = MemoryStore(rsi_dir)
+    calls = {"n": 0}
+    real = store._iter_memory_yaml
+
+    def counting():
+        calls["n"] += 1
+        return real()
+
+    store._iter_memory_yaml = counting  # type: ignore[method-assign]
+    assert store.read(id_a).id == id_a
+    assert store.read(id_b).id == id_b
+    with pytest.raises(FileNotFoundError):
+        store.read("z" * 32)
+    assert calls["n"] == 1
+
+
 def test_write_then_read(tmp_path):
     store = MemoryStore(tmp_path / ".rsi")
     doc = MemoryDoc(id="a"*32, type="prohibition", title="禁止 SELECT *", content="必须列字段")

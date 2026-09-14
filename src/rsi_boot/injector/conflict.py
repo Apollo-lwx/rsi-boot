@@ -80,6 +80,9 @@ class ConflictDetector:
         self._root = Path(project_root) if project_root else None
         self._on_change = on_change  # user_wins 置 suppressed 后触发注入重写
         self._knowledge = knowledge
+        self._docs_cache: Optional[List[Any]] = None
+        self._docs_by_id: Optional[Dict[str, Any]] = None
+        self._docs_by_source: Optional[Dict[str, List[Any]]] = None
 
     # ---------- 扫描 ----------
 
@@ -319,7 +322,7 @@ class ConflictDetector:
         *, bootstrap_run_id: Optional[str] = None,
         limit: int = 100, offset: int = 0,
     ) -> List[Dict[str, Any]]:
-        rows = [self._row_as_listed(r) for r in self._load_conflict_rows()
+        rows = [r for r in self._load_conflict_rows()
                 if not project_id or not r.get("project_id") or r.get("project_id") == project_id]
         if status != "all":
             rows = [r for r in rows if r.get("status") == status]
@@ -329,20 +332,14 @@ class ConflictDetector:
         rows.sort(key=lambda r: (r.get("detected_at") or "", r.get("id") or ""), reverse=True)
         limit = max(1, min(int(limit), 200))
         offset = max(0, int(offset))
-        return rows[offset:offset + limit]
+        return [self._row_as_listed(r) for r in rows[offset:offset + limit]]
 
     def _in_run(self, row: Dict[str, Any], marker: str) -> bool:
-        item_id = row.get("item_id")
-        if item_id:
-            try:
-                if marker in list(self._store.read(item_id).tags or []):
-                    return True
-            except (FileNotFoundError, ValueError):
-                pass
-        peer = self._peer_doc(row)
-        if peer is not None and marker in list(peer.tags or []):
+        item = self._read_doc(row.get("item_id"))
+        if item is not None and marker in list(item.tags or []):
             return True
-        return False
+        peer = self._peer_doc(row)
+        return peer is not None and marker in list(peer.tags or [])
 
     async def persist_knowledge_conflicts(
         self, project_id: str, drafts: list[ConflictDraft],
@@ -638,22 +635,49 @@ class ConflictDetector:
         extra = getattr(doc, "extra", None) or {}
         return self._norm_src(str(extra.get("source_url") or getattr(doc, "source", None) or ""))
 
+    def _forget_docs_cache(self) -> None:
+        self._docs_cache = None
+        self._docs_by_id = None
+        self._docs_by_source = None
+
+    def _ensure_docs(self) -> None:
+        if self._docs_cache is not None:
+            return
+        docs = list(self._store.list_all())
+        by_src: Dict[str, List[Any]] = {}
+        for doc in docs:
+            src = self._doc_source(doc)
+            if src:
+                by_src.setdefault(src, []).append(doc)
+        self._docs_cache = docs
+        self._docs_by_id = {doc.id: doc for doc in docs}
+        self._docs_by_source = by_src
+
     def _store_docs_with_source(self) -> List[Any]:
-        return list(self._store.list_all())
+        self._ensure_docs()
+        return list(self._docs_cache or [])
 
     def _docs_for_source(self, source: str) -> List[Any]:
         src = self._norm_src(source)
         if not src:
             return []
-        return [d for d in self._store_docs_with_source() if self._doc_source(d) == src]
+        self._ensure_docs()
+        return list((self._docs_by_source or {}).get(src, []))
 
     def _read_doc(self, item_id: str | None) -> Any:
         if not item_id:
             return None
         if isinstance(item_id, dict):
             item_id = item_id.get("id")
+        key = str(item_id or "")
+        if not key:
+            return None
+        self._ensure_docs()
+        cached = (self._docs_by_id or {}).get(key)
+        if cached is not None:
+            return cached
         try:
-            return self._store.read(str(item_id))
+            return self._store.read(key)
         except (FileNotFoundError, ValueError):
             return None
 
@@ -676,6 +700,7 @@ class ConflictDetector:
             from ..memory.paths import official_dir
 
             self._store.move(doc.id, official_dir(self._store.rsi_dir, doc.type))
+            self._forget_docs_cache()
             return True
         except (FileNotFoundError, ValueError, OSError):
             return False
@@ -685,6 +710,7 @@ class ConflictDetector:
             return False
         try:
             self._store.move(doc.id, self._store.rsi_dir / "memory" / "archive")
+            self._forget_docs_cache()
             return True
         except (FileNotFoundError, ValueError, OSError):
             return False
@@ -694,12 +720,10 @@ class ConflictDetector:
         title = ""
         source = ""
         if item_id:
-            try:
-                doc = self._store.read(item_id)
+            doc = self._read_doc(item_id)
+            if doc is not None:
                 title = doc.title
                 source = self._doc_source(doc)
-            except (FileNotFoundError, ValueError):
-                pass
         return {
             "id": row.get("id"),
             "item_id": item_id,

@@ -111,8 +111,9 @@ async def _conflicts_for_run(runtime: Any, run_id: str) -> list[dict[str, Any]]:
     store = getattr(runtime, "store", None)
     out: list[dict[str, Any]] = []
     if store is not None:
-        by_id = {doc.id: doc for doc in store.list_all()}
-        by_src = {_doc_source_url(doc): doc for doc in store.list_all() if _doc_source_url(doc)}
+        docs = list(store.list_all())
+        by_id = {doc.id: doc for doc in docs}
+        by_src = {_doc_source_url(doc): doc for doc in docs if _doc_source_url(doc)}
         for conflict in listed:
             ctype = conflict.get("conflict_type") or conflict.get("type")
             if ctype not in _CONFLICT_TYPES:

@@ -131,7 +131,7 @@ class _QueueFakeDetector:
     async def list_conflicts(
         self, project_id, status="open", *, bootstrap_run_id=None, limit=100, offset=0,
     ):
-        return self._rows
+        return self._rows[offset:offset + limit]
 
 
 class _QueueFakeRuntime:
@@ -191,3 +191,75 @@ async def test_host_judge_queue_same_pair_two_types_not_crossed(tmp_path):
     assert items["c-version"]["recommended"] == "keep_peer"
     assert items["c-incoh"]["conflict_type"] == "incoherent"
     assert items["c-incoh"]["recommended"] == "coexist"
+
+
+async def test_write_host_judge_queue_reuses_source_mapping(tmp_path, monkeypatch):
+    from rsi_boot.cli.bootstrap_command import _write_host_judge_queue
+    from rsi_boot.scanner.conflict_gate import ConflictDraft, DraftItem, GateResult
+
+    calls = {"n": 0}
+
+    async def boom(*_a, **_k):
+        calls["n"] += 1
+        return {"foo-v1.0.md": "item-1"}
+
+    monkeypatch.setattr("rsi_boot.cli.bootstrap_command._source_to_item_id", boom)
+    drafts = [
+        DraftItem(title="Foo", content="旧版", content_type="documentation",
+                  source_url="foo-v1.0.md", tags=["signal:docs"], signal="docs"),
+        DraftItem(title="Foo", content="新版", content_type="documentation",
+                  source_url="foo-v1.1.md", tags=["signal:docs"], signal="docs"),
+    ]
+    gate = GateResult(
+        hold_sources=set(),
+        conflicts=[
+            ConflictDraft(
+                conflict_type="version",
+                left_source="foo-v1.0.md", right_source="foo-v1.1.md",
+                reason="版本家族", hold_sources=["foo-v1.0.md", "foo-v1.1.md"],
+                recommended="keep_peer", recommended_reason="倾向仍有效侧",
+            ),
+        ],
+    )
+    runtime = _QueueFakeRuntime(
+        item_rows=[{"id": "item-1", "source_url": "foo-v1.0.md"}],
+        conflict_rows=[{
+            "id": "c-version", "item_id": "item-1",
+            "user_rule_path": "foo-v1.1.md", "conflict_type": "version",
+            "resolution_note": "recommended:keep_peer",
+        }],
+    )
+    queue_path, unresolved = await _write_host_judge_queue(
+        runtime, tmp_path / ".rsi", "p1", "run1", gate, drafts,
+        source_to_item_id={"foo-v1.0.md": "item-1"},
+    )
+    assert unresolved == 1
+    assert calls["n"] == 0
+    data = json.loads(queue_path.read_text(encoding="utf-8"))
+    assert data["items"][0]["conflict_id"] == "c-version"
+
+
+async def test_write_host_judge_queue_pages_beyond_list_limit(tmp_path):
+    from rsi_boot.cli.bootstrap_command import _write_host_judge_queue
+    from rsi_boot.scanner.conflict_gate import GateResult
+
+    n = 201
+    runtime = _QueueFakeRuntime(
+        item_rows=[{"id": "item-1", "source_url": "foo-v1.0.md"}],
+        conflict_rows=[
+            {
+                "id": f"c{i}", "item_id": "item-1",
+                "user_rule_path": f"peer-{i}.md", "conflict_type": "incoherent",
+                "resolution_note": "recommended:coexist",
+            }
+            for i in range(n)
+        ],
+    )
+    queue_path, unresolved = await _write_host_judge_queue(
+        runtime, tmp_path / ".rsi", "p1", "run1",
+        GateResult(hold_sources=set(), conflicts=[]), [],
+        source_to_item_id={"foo-v1.0.md": "item-1"},
+    )
+    assert unresolved == n
+    data = json.loads(queue_path.read_text(encoding="utf-8"))
+    assert len(data["items"]) == n

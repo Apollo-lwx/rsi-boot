@@ -69,6 +69,7 @@ class MemoryStore:
         self.rsi_dir = Path(rsi_dir)
         self._io = threading.RLock()
         self._id_index: dict[str, list[Path]] = {}
+        self._index_complete = False
 
     def write(self, doc: MemoryDoc, *, dest: Path) -> MemoryDoc:
         """写 dest.tmp → os.replace；回写 status 与 path；返回 doc。"""
@@ -138,21 +139,31 @@ class MemoryStore:
         return masked
 
     def _index_remember(self, doc_id: str, path: Path) -> None:
-        resolved = Path(path)
+        resolved = Path(path).resolve()
         bucket = self._id_index.setdefault(doc_id, [])
-        if not any(existing.resolve() == resolved.resolve() for existing in bucket):
+        if resolved not in bucket:
             bucket.append(resolved)
 
     def _index_forget(self, path: Path) -> None:
         resolved = Path(path).resolve()
         for doc_id, paths in list(self._id_index.items()):
-            kept = [p for p in paths if p.resolve() != resolved]
+            kept = [p for p in paths if p != resolved and p.resolve() != resolved]
             if kept:
                 self._id_index[doc_id] = kept
             else:
                 self._id_index.pop(doc_id, None)
 
+    def _rebuild_id_index(self) -> None:
+        self._id_index.clear()
+        for path in self._iter_memory_yaml():
+            raw = self._safe_load(path)
+            if isinstance(raw, dict) and raw.get("id"):
+                self._index_remember(str(raw["id"]), path)
+        self._index_complete = True
+
     def _read_unlocked(self, id: str) -> MemoryDoc:
+        if id not in self._id_index and not self._index_complete:
+            self._rebuild_id_index()
         indexed = list(self._id_index.get(id) or [])
         if indexed:
             matches, invalid = self._hydrate_paths(indexed, id)
@@ -160,15 +171,6 @@ class MemoryStore:
                 return self._sync_status_to_disk(self._prefer_teaching(matches))
             if invalid:
                 raise ValueError(t("YAML_INVALID", locale_lang(), path=str(invalid[0])))
-        matches, invalid = self._hydrate_paths(self._iter_memory_yaml(), id)
-        for doc in matches:
-            if doc.path:
-                self._index_remember(doc.id, self.rsi_dir / doc.path)
-        if matches:
-            return self._sync_status_to_disk(self._prefer_teaching(matches))
-        if invalid:
-            path = invalid[0]
-            raise ValueError(t("YAML_INVALID", locale_lang(), path=str(path)))
         raise FileNotFoundError(t("NOT_FOUND", locale_lang(), id=id))
 
     def _sync_status_to_disk(self, doc: MemoryDoc) -> MemoryDoc:
@@ -209,7 +211,10 @@ class MemoryStore:
 
     def _load_tree(self, root: Path) -> list[MemoryDoc]:
         docs: list[MemoryDoc] = []
+        memory_root = (self.rsi_dir / "memory").resolve()
         if not root.exists():
+            if root.resolve() == memory_root:
+                self._index_complete = True
             return docs
         for path in self._iter_yaml(root):
             raw = self._safe_load(path)
@@ -218,9 +223,14 @@ class MemoryStore:
                     self._log_invalid(path)
                 continue
             try:
-                docs.append(self._hydrate(raw, path))
+                doc = self._hydrate(raw, path)
             except ValidationError as exc:
                 self._log_invalid(path, exc)
+                continue
+            docs.append(doc)
+            self._index_remember(doc.id, path)
+        if root.resolve() == memory_root:
+            self._index_complete = True
         return docs
 
     def _hydrate(self, raw: dict, path: Path) -> MemoryDoc:

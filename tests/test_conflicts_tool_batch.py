@@ -69,6 +69,31 @@ def _runtime(store: MemoryStore, tmp_path: Path):
     )
 
 
+async def test_list_conflicts_run_filter_does_not_rescan_per_row(tmp_path):
+    """冷启动 MemoryStore 过滤本 run 冲突时，不得按行全量扫 YAML。"""
+    writer = _store(tmp_path)
+    run_id = uuid.uuid4().hex
+    for i in range(12):
+        item = _item(
+            writer, f"甲{i}", f"docs/a{i}.md",
+            ["signal:docs", f"bootstrap_run_id:{run_id}"],
+        )
+        _conflict(writer, item, f"docs/peer{i}.md")
+    store = MemoryStore(writer.rsi_dir)
+    calls = {"n": 0}
+    real = store._iter_memory_yaml
+
+    def counting():
+        calls["n"] += 1
+        return real()
+
+    store._iter_memory_yaml = counting  # type: ignore[method-assign]
+    det = ConflictDetector(store=store, project_root=tmp_path)
+    rows = await det.list_conflicts("p1", "open", bootstrap_run_id=run_id, limit=200)
+    assert len(rows) == 12
+    assert calls["n"] <= 1
+
+
 async def test_list_filters_by_bootstrap_run_id(tmp_path):
     store = _store(tmp_path)
     run_a, run_b = uuid.uuid4().hex, uuid.uuid4().hex

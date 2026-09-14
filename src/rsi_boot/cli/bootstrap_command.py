@@ -278,20 +278,34 @@ def _conflict_sides(
 async def _write_host_judge_queue(
     runtime: Any, rsi_dir: Path, project_id: str, run_id: str,
     gate: GateResult, drafts: List[DraftItem],
+    source_to_item_id: Optional[Dict[str, str]] = None,
 ) -> tuple[Path, int]:
     """持久化冲突后，把本 run 全部 open 冲突（含 conflict_id）写成队列文件。
     返回 (队列路径, 未决组数)。写失败抛 OSError（调用方转 exit 1）。"""
     drafts_by_source = {_norm_src(d.source_url): d for d in drafts if d.source_url}
     sides = _conflict_sides(gate, drafts_by_source)
-    mapping = await _source_to_item_id(runtime, project_id)
+    mapping = (
+        source_to_item_id
+        if source_to_item_id is not None
+        else await _source_to_item_id(runtime, project_id)
+    )
     item_to_source = {item_id: src for src, item_id in mapping.items()}
     gate_by_pair = {
         (c.conflict_type, _norm_src(c.left_source), _norm_src(c.right_source)): c
         for c in gate.conflicts
     }
-    rows = await runtime.conflict_detector.list_conflicts(
-        project_id, "open", bootstrap_run_id=run_id,
-    )
+    rows: List[Dict[str, Any]] = []
+    offset = 0
+    page_size = 200
+    while True:
+        page = await runtime.conflict_detector.list_conflicts(
+            project_id, "open", bootstrap_run_id=run_id,
+            limit=page_size, offset=offset,
+        )
+        rows.extend(page)
+        if len(page) < page_size:
+            break
+        offset += page_size
     items: List[Dict[str, Any]] = []
     for row in rows:
         left = _norm_src(item_to_source.get(row.get("item_id") or "", ""))
@@ -866,8 +880,10 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             progress.tick(write_done)
 
         progress.phase("收尾", total=5)
-        if gate.conflicts:
+        mapping: Dict[str, str] = {}
+        if gate.conflicts or judge == "host":
             mapping = await _source_to_item_id(runtime, project_id)
+        if gate.conflicts:
             await runtime.conflict_detector.persist_knowledge_conflicts(
                 project_id, gate.conflicts, mapping,
             )
@@ -878,6 +894,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             try:
                 queue_path, unresolved = await _write_host_judge_queue(
                     runtime, rsi_dir, project_id, run_id, gate, drafts,
+                    source_to_item_id=mapping,
                 )
             except OSError as exc:
                 print(f"写冲突工作包队列失败: {exc}", file=sys.stderr)
