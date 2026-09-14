@@ -101,5 +101,5 @@ def render_mermaid(rsi_dir: Path, store: MemoryStore | None = None) -> str:
         if key in seen:
             continue
         seen.add(key)
-        lines.append(f"  {frm} -->|{rel}| {to}")
+        lines.append(f'  "{frm}" -->|{rel}| "{to}"')
     return "\n".join(lines) + "\n"

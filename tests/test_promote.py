@@ -132,6 +132,63 @@ async def test_three_successes_writes_pending_not_patterns_no_inject(tmp_path, m
 
 
 @pytest.mark.asyncio
+async def test_two_exact_key_successes_write_nothing(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+
+    store = MemoryStore(tmp_path / ".rsi")
+    _pattern(store, "d" * 32, "select-star", "sql")
+    _feedback_successes(store.rsi_dir, "select-star", "sql", 2)
+
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        out = await handle(rt, {"action": "promote"})
+        assert out["status"] == "success"
+        assert _pending_yaml(tmp_path) == []
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
+async def test_mismatched_failure_type_does_not_count_toward_three(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+
+    store = MemoryStore(tmp_path / ".rsi")
+    _pattern(store, "e" * 32, "select-star", "sql")
+    logs = store.rsi_dir / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    lines = [
+        json.dumps({
+            "id": f"{i:032x}",
+            "kind": "feedback",
+            "action": "accepted",
+            "error_signature": "select-star",
+            "failure_type": "sql",
+        }, ensure_ascii=False)
+        for i in range(2)
+    ]
+    lines.append(json.dumps({
+        "id": f"{2:032x}",
+        "kind": "feedback",
+        "action": "accepted",
+        "error_signature": "select-star",
+        "failure_type": "timeout",
+    }, ensure_ascii=False))
+    (logs / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        out = await handle(rt, {"action": "promote"})
+        assert out["status"] == "success"
+        assert _pending_yaml(tmp_path) == []
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
 async def test_teaching_promote_to_pattern_writes_pending(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_LANG", "zh")
     from rsi_boot.api.tools.learn_tool import handle

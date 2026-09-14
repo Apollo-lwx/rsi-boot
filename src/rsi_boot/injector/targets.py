@@ -213,13 +213,14 @@ class AgentsMdTarget:
                 lines.append(f"- **{r.title}**：{r.content}（{path}）")
             lines.append("")
         closeout = _CLOSEOUT_BODY[:MAX_CLOSEOUT_CHARS].rstrip()
-        lines.append(closeout)
-        lines.append("")
-        lines.append(self.END)
-        block = "\n".join(lines)
-        if len(block) > MAX_TOTAL_CHARS:
-            block = block[:MAX_TOTAL_CHARS] + "\n\n<!-- 超出上限，已裁剪 -->\n" + self.END
-        return block
+        tail = f"{closeout}\n\n{self.END}"
+        body = "\n".join(lines)
+        if len(body) + 1 + len(tail) > MAX_TOTAL_CHARS:
+            notice = "\n\n<!-- 超出上限，已裁剪 -->"
+            max_body = MAX_TOTAL_CHARS - len(notice) - 1 - len(tail)
+            body = body[: max(0, max_body)].rstrip()
+            return f"{body}{notice}\n{tail}"
+        return f"{body}\n{tail}"
 
     def write(self, bundle: MemoryBundle) -> List[Artifact]:
         block = self._render_block(bundle)

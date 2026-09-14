@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from rsi_boot.injector.targets import AgentsMdTarget, MemoryBundle
+from rsi_boot.injector.targets import AgentsMdTarget, MemoryBundle, MemoryRow, MAX_TOTAL_CHARS
 
 
 def _hosted_block(text: str) -> str:
@@ -32,6 +32,29 @@ def test_closeout_strings_in_agents_hosted_block(tmp_path):
     assert "最终总结照抄 closeout" in block
     subsection = _closeout_subsection(block)
     assert len(subsection) <= 800
+
+
+def test_closeout_survives_oversized_prohibition_list(tmp_path):
+    target = AgentsMdTarget(tmp_path)
+    huge = "X" * (MAX_TOTAL_CHARS + 4096)
+    target.write(
+        MemoryBundle(
+            prohibitions=[
+                MemoryRow(
+                    id="p" * 32,
+                    title="超长禁止项",
+                    content=huge,
+                    content_type="prohibition",
+                )
+            ]
+        )
+    )
+    text = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    block = _hosted_block(text)
+    assert "teach_catch" in block
+    assert "teach_record" in block
+    assert "audit_finish" in block
+    assert "最终总结照抄 closeout" in block
 
 
 @pytest.mark.asyncio

@@ -55,3 +55,15 @@ async def test_graph_returns_mermaid_with_ids_no_md(tmp_path, monkeypatch):
         assert md_after == md_before
     finally:
         await rt.close()
+
+
+def test_render_mermaid_quotes_digit_starting_ids(tmp_path):
+    from rsi_boot.memory.graph import add_edge, render_mermaid
+
+    from_id = "0" + "a" * 31
+    to_id = "1" + "b" * 31
+    rsi_dir = tmp_path / ".rsi"
+    add_edge(rsi_dir, from_id, to_id, "cites")
+    mermaid = render_mermaid(rsi_dir)
+    assert f'"{from_id}" -->|cites| "{to_id}"' in mermaid
+    assert f"  {from_id} -->|cites| {to_id}" not in mermaid
