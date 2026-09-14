@@ -27,6 +27,8 @@ from ..data.sqlite import SQLiteClient
 from ..injector.conflict import ConflictDetector
 from ..knowledge.embedding import EmbeddingService, deserialize_embedding
 from ..scanner.conflict_gate import DraftItem, gate_drafts
+from .pipeline import extract_draft_rule as extract_draft_rule_fn
+from .pipeline import extract_from_feedback as extract_from_feedback_fn
 
 logger = logging.getLogger(__name__)
 
@@ -58,14 +60,25 @@ def _utc_iso() -> str:
 class KnowledgeExtractor:
     def __init__(
         self,
-        db: SQLiteClient,
+        db: Optional[SQLiteClient] = None,
         embedding: Optional[EmbeddingService] = None,
         adapter: Optional[Any] = None,
         config: Optional[Dict[str, Any]] = None,
+        store: Optional[Any] = None,
+        rsi_dir: Optional[Path] = None,
     ):
+        if db is None and store is None and rsi_dir is None:
+            raise TypeError("db is required when store and rsi_dir are omitted")
         self._db = db
         self._embedding = embedding
         self._adapter = adapter
+        self._store = store
+        if rsi_dir is not None:
+            self._rsi_dir = Path(rsi_dir)
+        elif store is not None:
+            self._rsi_dir = Path(store.rsi_dir)
+        else:
+            self._rsi_dir = None
         config = config or {}
         enhance = config.get("enhance", {})
         # 零 Key 默认：规则式提取；LLM 提取需 enhance.extract_llm + adapter 可用
@@ -104,38 +117,30 @@ class KnowledgeExtractor:
     @staticmethod
     def _summarize(text: str, limit: int) -> str:
         """取首行/首句作为标题摘要，超长截断"""
-        summary = text.strip().splitlines()[0] if text.strip() else ""
-        return summary[:limit]
+        from .pipeline import summarize_title
+        return summarize_title(text, limit)
 
     def extract_draft_rule(self, candidate_type: str, question: str, answer: str) -> Optional[Dict[str, Any]]:
         """三类候选的规则式草稿生成；无提取价值（内容为空）返回 None"""
-        answer = (answer or "").strip()
-        if not answer:
-            return None
-        if candidate_type == "rejected":
-            # rejected + comment → 禁止项：comment 全文，标题前缀规范化「禁止：」
-            title = self._summarize(answer, 27)
-            return {
-                "title": f"禁止：{title}" if not title.startswith("禁止") else title[:30],
-                "content": answer[:2000],
-                "content_type": "prohibition",
-                "tags": [], "domain": None, "roles": [],
-            }
-        if candidate_type == "modified":
-            # modified → 经验约定：修改稿全文为答案，raw_input 摘要为题
-            return {
-                "title": f"经验：{self._summarize(question, 24)}",
-                "content": f"任务背景：{question[:200]}\n\n验证有效的做法：\n{answer[:1800]}",
-                "content_type": "convention",
-                "tags": [], "domain": None, "roles": [],
-            }
-        # high_rated → 问答对直接沉淀
-        return {
-            "title": self._summarize(question, 30),
-            "content": f"Q: {question[:200]}\nA: {answer[:1800]}",
-            "content_type": "convention",
-            "tags": [], "domain": None, "roles": [],
-        }
+        return extract_draft_rule_fn(candidate_type, question, answer)
+
+    def extract_from_feedback(
+        self,
+        action: str,
+        comment: str | None = None,
+        retrieved: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> List[Path]:
+        """有 store/rsi_dir 时委托 pipeline 只写 pending YAML；否则返回空。"""
+        if self._rsi_dir is None:
+            return []
+        return extract_from_feedback_fn(
+            self._rsi_dir,
+            action=action,
+            comment=comment,
+            retrieved=retrieved,
+            **kwargs,
+        )
 
     async def find_title_duplicate(self, project_id: str, title: str) -> Optional[str]:
         """规则式去重（§4.4）：标题完全匹配 active/pending_review 条目 → 返回已有条目 id"""
