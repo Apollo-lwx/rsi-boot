@@ -83,6 +83,16 @@ graph TD
 蒸馏产出的是 `convention` / `prohibition` / `documentation`（短）/ 必要时 `architecture` 要点。  
 收工学习、教学、晋升仍按 `2026-09-13-readable-memory-rag-dag-design.md`：宿主写、RSI 落盘。输入必须是这些短条目，不是阅读包原文。
 
+**修 bug 是对话中学习的一等写入，成功也要记。** 不是只在「修失败多次 / 用户纠正」时才 `teach_record`。本轮若修复了用户可见的缺陷（含一次就修好），宿主必须写下：
+
+- **如何产生**（`wrong_action` / 触发条件：怎样写才会出这个 bug）
+- **如何修复**（`correct_fix`：改了什么、为何这样就好）
+- **下次规避**（`applies_to` + `error_signature`：哪些实现要躲开）
+
+RSI 只收 lesson，不代写。写成 `teaching_case` + `gene-map/manual`。下一次同类任务 `rsi_recall` **必须**能带回这些案例（禁止项之后插 teaching/gene），不能再把「口语能打中 teaching」留到遥远 P1 才做——否则记了也规避不了。
+
+禁止把整段 diff 或完整文件当 `content`；`content`/`correct_fix` 仍是短判断，路径放 `refs`。
+
 ---
 
 ## 3. 业务流程
@@ -116,6 +126,21 @@ sequenceDiagram
 ```
 
 漏旗标仍 exit 2：`必须指定 --host-judge 或 --local-judge`。对话路径只加 `--host-judge`，不加 `--local-judge`。
+
+### 3.5 对话中学习（含修 bug）
+
+不跑全库 bootstrap。任务开头 `rsi_recall`，然后按触发写入：
+
+| 触发 | 宿主必做 | 落盘 |
+|------|----------|------|
+| **修了用户可见的 bug**（成功或失败都算） | `teach_catch`（现场）→ 写清如何产生 + 如何修复 → `teach_record` | teaching-case + gene-map/manual |
+| 用户纠正做法 / 低置信 / 将改公共规则 | 同上 | 同上；`author=user` 时 weight=10 |
+| 召回不准（反馈） | `rsi_feedback` | 过门槛才进 pending 禁止项/约定 |
+| 用户要「记下来」的新约定 | `search` 后 `knowledge_add` | 短条 pending，再 review |
+
+修 bug 的 lesson 缺 `wrong_action`（如何产生）或 `correct_fix`（如何修复）时，`teach_record` 必须 `invalid`，不得只交一句「已修好」。
+
+收工仍走 audit → extract；extract **不能代替** 修 bug 当时的 `teach_record`。当场不记，收工再补容易丢「怎么写成的」。
 
 ### 3.2 采集阶段（有进度 / 有 ETA）
 
@@ -293,6 +318,7 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 - `knowledge_add` 体量硬顶 + 禁止四个历史采集标题。
 - 进度阶段换成 §3.2；报告字段按 §4.7（旧 judge_* 字段删除）。
 - 采集成功时若磁盘上还有 `host_judge_queue.json` 则删除文件；写队列的代码本身已不存在。
+- 修 bug 成功也 `teach_record`；强制 `wrong_action` + `correct_fix`；召回带回 teaching/gene。
 
 **P1（增强，不是旧路径复活）**
 
@@ -348,6 +374,9 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 - `--local-judge` 后无 `host_judge_queue.json`，有阅读包，`memory/` 无本 run 新知识。
 - `--force` 将已 `done` 包改回 `pending`。
 - 注入块含 `pack_list` / `rsi-relearn`，全文不得再出现 `host_judge_queue.json` 或「每批 200 resolve 原文对」。
+- 注入收工纪律写明：修完用户可见 bug（成功也算）必须 `teach_record`，lesson 含如何产生与如何修复。
+- `teach_record` 缺 `wrong_action` 或 `correct_fix` → invalid（实现时改现网「只强制 correct_fix」）。
+- 召回在禁止项之后能带回刚写入的 teaching/gene（口语/同类实现描述可命中）。
 - `tests/test_conflict_gate.py`、`tests/test_bootstrap_judge_flags.py` 中依赖 Jaccard / 原文队列的用例**删除或改写成阅读包**，禁止为已删函数保测试。
 
 ---
