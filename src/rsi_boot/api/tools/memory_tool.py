@@ -1,10 +1,11 @@
-"""rsi_memory: index / open / reindex. graph is not in this phase."""
+"""rsi_memory: index / open / reindex / graph (mermaid text)."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from rsi_boot.learning.teaching import resolve_lang
+from rsi_boot.memory.graph import render_mermaid
 from rsi_boot.ux.messages import TOOL_DESC, t
 
 TOOL_NAME = "rsi_memory"
@@ -15,7 +16,7 @@ INPUT_SCHEMA: dict[str, Any] = {
     "properties": {
         "action": {
             "type": "string",
-            "description": "index / open / reindex (graph returns not_in_phase)",
+            "description": "index / open / reindex / graph",
         },
         "id": {"type": "string", "description": "exact 32-hex document id for open"},
         "lang": {"type": "string", "enum": ["zh", "en"], "description": "explicit locale override"},
@@ -27,7 +28,12 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     lang = resolve_lang(arguments)
     action = str(arguments.get("action") or "").strip()
     if action == "graph":
-        return {"status": "error", "code": "not_in_phase", "message": t("PHASE_GRAPH", lang)}
+        mermaid = render_mermaid(runtime.store.rsi_dir, runtime.store)
+        return {
+            "status": "success",
+            "message": t("MEMORY_GRAPH", lang),
+            "data": {"mermaid": mermaid},
+        }
     if action == "open":
         doc_id = str(arguments.get("id") or "").strip().lower()
         try:

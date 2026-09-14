@@ -45,7 +45,7 @@ async def test_memory_open_missing(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_graph_not_in_phase(tmp_path, monkeypatch):
+async def test_graph_is_in_phase(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_LANG", "zh")
     from rsi_boot.api.tools.memory_tool import handle
     from rsi_boot.bootstrap import build_runtime
@@ -53,8 +53,10 @@ async def test_graph_not_in_phase(tmp_path, monkeypatch):
     rt = await build_runtime(project_root=tmp_path)
     try:
         out = await handle(rt, {"action": "graph"})
-        assert out["code"] == "not_in_phase"
-        assert out["message"] == t("PHASE_GRAPH", "zh")
+        assert out.get("code") != "not_in_phase"
+        assert out["status"] == "success"
+        mermaid = (out.get("data") or {}).get("mermaid") or ""
+        assert "graph" in mermaid.lower() or mermaid.strip() == "" or "-->" in mermaid
         empty = await handle(rt, {})
         assert empty["status"] == "error"
         assert empty["code"] == "invalid"

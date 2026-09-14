@@ -11,6 +11,7 @@ from rsi_boot.learning.audit_store import (
     audit_start,
 )
 from rsi_boot.learning.gene_map import extract_items
+from rsi_boot.learning.promote import promote_items
 from rsi_boot.learning.teaching import (
     RUBRIC_TEXT,
     resolve_lang,
@@ -30,8 +31,7 @@ INPUT_SCHEMA: dict[str, Any] = {
             "type": "string",
             "description": (
                 "teach_catch / teach_record / skip / rubric / "
-                "audit_start / audit_probes / audit_report / audit_finish / extract "
-                "(promote returns not_in_phase)"
+                "audit_start / audit_probes / audit_report / audit_finish / extract / promote"
             ),
         },
         "lang": {"type": "string", "enum": ["zh", "en"], "description": "explicit locale override"},
@@ -64,7 +64,7 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     if not action:
         return {"status": "error", "code": "invalid", "message": t("LEARN_NEED_ACTION", lang)}
     if action == "promote":
-        return {"status": "error", "code": "not_in_phase", "message": t("PHASE_PROMOTE", lang)}
+        return promote_items(runtime.store, arguments, lang)
     if action == "audit_start":
         return audit_start(runtime.store, arguments, lang)
     if action == "audit_probes":

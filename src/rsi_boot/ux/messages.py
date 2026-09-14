@@ -39,8 +39,8 @@ STRINGS = {
         "en": "Specify a subcommand: migrate / reindex / index / open / graph",
     },
     "LEARN_NEED_ACTION": {
-        "zh": "请指定动作：teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract",
-        "en": "Specify an action: teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract",
+        "zh": "请指定动作：teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote",
+        "en": "Specify an action: teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote",
     },
     "TEACH_RECORDED": {"zh": "已写入教学案例 {path}", "en": "Wrote teaching case {path}"},
     "TEACH_CATCH_SAVED": {
@@ -111,6 +111,18 @@ STRINGS = {
         "zh": "extract 需要已分类条目 items",
         "en": "extract needs classified items",
     },
+    "PROMOTE_DONE": {
+        "zh": "已写入 {n} 条 pending 规范，转正请用 rsi_knowledge_review",
+        "en": "Wrote {n} pending norm(s). Approve with rsi_knowledge_review.",
+    },
+    "PROMOTE_NONE": {
+        "zh": "没有达到晋升门槛的案例",
+        "en": "No case met the promote threshold.",
+    },
+    "MEMORY_GRAPH": {
+        "zh": "关系图如下（mermaid 文本，未写入知识文件）",
+        "en": "Relationship graph as mermaid text. No knowledge file was written.",
+    },
     "HINT_TEACH": {
         "zh": "若本轮修失败或用户纠正，先 rsi_learn teach_catch",
         "en": "If this repair fails or the user corrects you, call rsi_learn teach_catch first.",
@@ -152,9 +164,9 @@ TOOL_DESC = {
         "不要让 RSI 代写 lesson。未开放的 action 返回 not_in_phase，按 message 改用其它工具。"
     ),
     "memory": (
-        "Open or search memory files. index lists entries, open reads one id, reindex rebuilds cache. "
-        "graph comes later. "
-        "打开或检索记忆文件。index 列目录，open 按 id 读全文，reindex 重建缓存。graph 下一期才开放。"
+        "Open or search memory files. index lists entries, open reads one id, reindex rebuilds cache, "
+        "graph returns mermaid text. "
+        "打开或检索记忆文件。index 列目录，open 按 id 读全文，reindex 重建缓存，graph 返回 mermaid 文本。"
     ),
     "review": (
         "Approve pending norms: approve moves to official dirs and injects prohibitions; "

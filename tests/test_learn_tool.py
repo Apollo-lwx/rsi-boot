@@ -3,16 +3,15 @@ import yaml
 
 
 @pytest.mark.asyncio
-async def test_promote_not_in_phase(tmp_path, monkeypatch):
+async def test_promote_is_in_phase(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_LANG", "zh")
     from rsi_boot.api.tools import learn_tool
     from rsi_boot.bootstrap import build_runtime
-    from rsi_boot.ux.messages import t
     rt = await build_runtime(project_root=tmp_path)
     try:
         out = await learn_tool.handle(rt, {"action": "promote"})
-        assert out["code"] == "not_in_phase"
-        assert out["message"] == t("PHASE_PROMOTE", "zh")
+        assert out.get("code") != "not_in_phase"
+        assert out["status"] == "success"
     finally:
         await rt.close()
 

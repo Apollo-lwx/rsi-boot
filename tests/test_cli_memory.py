@@ -197,14 +197,36 @@ def test_cli_memory_reindex_cache_stable(tmp_path, capsys, monkeypatch):
     assert overlap >= 0.8
 
 
-def test_cli_memory_graph_not_in_phase(tmp_path, capsys, monkeypatch):
+def test_cli_memory_graph_prints_mermaid(tmp_path, capsys, monkeypatch):
     from rsi_boot.cli.memory_command import run_memory
-    from rsi_boot.ux.messages import t
+    from rsi_boot.memory.paths import official_dir
+    from rsi_boot.memory.store import MemoryStore, memory_filename
+    from rsi_boot.memory.types import MemoryDoc
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("RSI_LANG", "zh")
-    assert run_memory(["graph"]) == 2
-    assert capsys.readouterr().err.strip() == t("PHASE_GRAPH", "zh")
+    store = MemoryStore(tmp_path / ".rsi")
+    a_id, b_id = "a" * 32, "b" * 32
+    store.write(
+        MemoryDoc(id=a_id, type="convention", title="约定甲", content="写法甲"),
+        dest=official_dir(store.rsi_dir, "convention") / memory_filename("约定甲", a_id),
+    )
+    store.write(
+        MemoryDoc(id=b_id, type="convention", title="约定乙", content="写法乙"),
+        dest=official_dir(store.rsi_dir, "convention") / memory_filename("约定乙", b_id),
+    )
+    catalog = tmp_path / ".rsi" / "state" / "catalog.yaml"
+    catalog.parent.mkdir(parents=True, exist_ok=True)
+    catalog.write_text(
+        "edges:\n  - {from: '" + a_id + "', to: '" + b_id + "', rel: cites}\n",
+        encoding="utf-8",
+    )
+    assert run_memory(["graph"]) == 0
+    out = capsys.readouterr().out
+    assert a_id in out
+    assert b_id in out
+    assert "graph" in out.lower() or "-->" in out
+    assert list((tmp_path / ".rsi" / "memory").rglob("*.md")) == []
 
 
 def test_cli_memory_help_avoids_db_words(monkeypatch):

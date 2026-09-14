@@ -19,6 +19,19 @@ logger = logging.getLogger(__name__)
 MAX_FILE_CHARS = 4000
 MAX_TOTAL_CHARS = 32 * 1024
 MAX_DECISIONS_CHARS = 800
+MAX_CLOSEOUT_CHARS = 800
+
+#: 收工纪律（teach / audit / closeout），托管块内独立小节，≤800 字
+_CLOSEOUT_BODY = (
+    "## 收工纪律\n"
+    "\n"
+    "teach_catch：修失败多次、低置信、改公共规则、或用户纠正执行方式时先记现场；"
+    "写好 lesson 后 teach_record。\n"
+    "未 audit_finish 前不得改业务代码。\n"
+    "最终总结照抄 closeout 路径，或写跳过原因。\n"
+    "Catch then record. Do not edit product code before the audit is finished. "
+    "Copy closeout paths into the final summary.\n"
+)
 
 #: 常驻抉择纪律（不注入冲突条目正文）
 _DECISIONS_BODY = (
@@ -199,6 +212,9 @@ class AgentsMdTarget:
                 path = r.domain or ""
                 lines.append(f"- **{r.title}**：{r.content}（{path}）")
             lines.append("")
+        closeout = _CLOSEOUT_BODY[:MAX_CLOSEOUT_CHARS].rstrip()
+        lines.append(closeout)
+        lines.append("")
         lines.append(self.END)
         block = "\n".join(lines)
         if len(block) > MAX_TOTAL_CHARS:

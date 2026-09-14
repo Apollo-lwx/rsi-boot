@@ -69,14 +69,15 @@ def test_cli_learn_teach_record_needs_fix(tmp_path, capsys, monkeypatch):
     assert capsys.readouterr().err.strip() == t("TEACH_NEED_FIX", "zh")
 
 
-def test_cli_learn_promote_not_in_phase(tmp_path, capsys, monkeypatch):
+def test_cli_learn_promote_is_in_phase(tmp_path, capsys, monkeypatch):
     from rsi_boot.cli.learn_command import run_learn
-    from rsi_boot.ux.messages import t
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("RSI_LANG", "zh")
-    assert run_learn(["promote"]) == 2
-    assert capsys.readouterr().err.strip() == t("PHASE_PROMOTE", "zh")
+    assert run_learn(["promote"]) == 0
+    captured = capsys.readouterr()
+    assert "not_in_phase" not in captured.err
+    assert captured.out.strip()
 
 
 def test_cli_learn_help_avoids_db_words():

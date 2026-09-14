@@ -1,4 +1,4 @@
-"""rsi memory: migrate / index / open / reindex. graph is not in this phase."""
+"""rsi memory: migrate / index / open / reindex / graph."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 
 from rsi_boot.cli.progress import Progress
+from rsi_boot.memory.graph import render_mermaid
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.project import resolve_project_root
 from rsi_boot.rag.index import build_index
@@ -48,6 +49,7 @@ def _parser() -> argparse.ArgumentParser:
 
     p_graph = sub.add_parser("graph")
     p_graph.add_argument("--lang", choices=["zh", "en"], default=None)
+    p_graph.add_argument("--project-root", default=None)
     return parser
 
 
@@ -146,6 +148,13 @@ def _cmd_reindex(args: argparse.Namespace, lang: str) -> int:
     return 0
 
 
+def _cmd_graph(args: argparse.Namespace) -> int:
+    store = _store(_root(args))
+    mermaid = render_mermaid(store.rsi_dir, store)
+    print(mermaid, end="" if mermaid.endswith("\n") else "\n")
+    return 0
+
+
 def _cmd_migrate(args: argparse.Namespace, lang: str) -> int:
     root = _root(args)
     db_path = root / ".rsi" / "rsi.db"
@@ -194,8 +203,7 @@ def run_memory(argv: list[str] | None = None) -> int:
         print(t("MEMORY_NEED_SUB", lang), file=sys.stderr)
         return 2
     if args.action == "graph":
-        print(t("PHASE_GRAPH", lang), file=sys.stderr)
-        return 2
+        return _cmd_graph(args)
     if args.action == "migrate":
         return _cmd_migrate(args, lang)
     if args.action == "index":
