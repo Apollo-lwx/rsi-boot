@@ -1,4 +1,4 @@
-"""Whole-doc inverted index with CJK bigram tokenize and IDF scoring."""
+"""Chunked inverted index with CJK bigram tokenize and IDF scoring."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import re
 from collections import defaultdict
 
 from rsi_boot.memory.types import MemoryDoc
+from rsi_boot.rag.chunker import chunk_text
 
 # Pulled from knowledge/retriever.py — in-memory invert, not SQLite FTS.
 _CJK_RUN = re.compile(r"[一-鿿　-〿＀-￯]+")
@@ -26,14 +27,42 @@ def tokenize(text: str) -> list[str]:
     return terms
 
 
+def _flatten_payload(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return " ".join(_flatten_payload(v) for v in value.values())
+    if isinstance(value, list):
+        return " ".join(_flatten_payload(v) for v in value)
+    if value is None:
+        return ""
+    return str(value)
+
+
+def index_text(doc: MemoryDoc) -> str:
+    parts = [doc.title or "", doc.content or ""]
+    if doc.payload:
+        parts.append(_flatten_payload(doc.payload))
+    return "\n\n".join(p for p in parts if p)
+
+
 def build_index(docs: list[MemoryDoc]) -> dict:
-    """Invert title+content as one bag. P0: no chunker."""
+    """Invert chunked title+content+payload. Search keys stay document ids."""
     postings: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     doc_type: dict[str, str] = {}
+    chunks: list[dict] = []
     for doc in docs:
         doc_type[doc.id] = doc.type
-        for term in tokenize(f"{doc.title}\n{doc.content}"):
-            postings[term][doc.id] += 1
+        pieces = chunk_text(index_text(doc))
+        if not pieces:
+            continue
+        for piece in pieces:
+            bag = f"{piece.heading}\n{piece.text}" if piece.heading else piece.text
+            tf: dict[str, int] = defaultdict(int)
+            for term in tokenize(bag):
+                postings[term][doc.id] += 1
+                tf[term] += 1
+            chunks.append({"doc_id": doc.id, "heading": piece.heading, "tf": dict(tf)})
     n = len(docs)
     idf = {
         term: math.log((n + 1) / (len(df) + 1)) + 1.0
@@ -44,6 +73,7 @@ def build_index(docs: list[MemoryDoc]) -> dict:
         "idf": idf,
         "doc_type": doc_type,
         "n": n,
+        "chunks": chunks,
     }
 
 
@@ -73,3 +103,29 @@ def search(
             scores[doc_id] = scores.get(doc_id, 0.0) + weight * tf
     ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
     return ranked[:top_n]
+
+
+def best_heading(index: dict, doc_id: str, query: str) -> str:
+    """Heading of the best-scoring ## section chunk for this document."""
+    chunks = index.get("chunks") or []
+    if not chunks:
+        return ""
+    idf: dict[str, float] = index.get("idf") or {}
+    qtf: dict[str, int] = defaultdict(int)
+    for term in tokenize(query):
+        qtf[term] += 1
+    best = -1.0
+    heading = ""
+    for chunk in chunks:
+        if chunk.get("doc_id") != doc_id:
+            continue
+        score = 0.0
+        tfmap = chunk.get("tf") or {}
+        for term, q_count in qtf.items():
+            tf = tfmap.get(term, 0)
+            if tf:
+                score += idf.get(term, 1.0) * q_count * tf
+        if score > best:
+            best = score
+            heading = str(chunk.get("heading") or "")
+    return heading

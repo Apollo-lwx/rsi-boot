@@ -20,8 +20,11 @@ async def test_recall_logs_document_ids(tmp_path):
     )
     svc = RecallService(store=store, feedback_secret="test")
     payload = await svc.recall(task="列名", project_id="local")
-    assert set(payload) >= {"prohibitions", "items", "skills", "feedback_token", "recall_arm"}
-    assert "gene_cases" not in payload
+    assert set(payload) >= {
+        "prohibitions", "items", "skills", "feedback_token", "recall_arm",
+        "gene_cases", "teaching_cases", "episodes",
+    }
+    assert "hint" in payload
     row = list(iter_events(tmp_path / ".rsi"))[-1]
     assert row["retrieved"] and all(len(x) == 32 and int(x, 16) >= 0 for x in row["retrieved"])
     assert isinstance(payload["skills"], list)

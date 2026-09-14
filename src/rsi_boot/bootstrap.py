@@ -102,8 +102,16 @@ class Runtime:
 
     def invert_index(self) -> dict[str, Any]:
         if self._index is None:
+            import json
+
             docs = [d for d in self.store.list_official() if d.status == "active"]
             self._index = build_index(docs)
+            cache = self.store.rsi_dir / "cache"
+            cache.mkdir(parents=True, exist_ok=True)
+            (cache / "inverted.json").write_text(
+                json.dumps(self._index, ensure_ascii=False),
+                encoding="utf-8",
+            )
         return self._index
 
     def _apply_config(self, config: dict[str, Any]) -> None:

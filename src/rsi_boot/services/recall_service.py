@@ -32,7 +32,11 @@ _STORE_DEFAULT_ARM = "recall-balanced"
 _STORE_DEFAULT_TOP_N = 5
 _STORE_DEFAULT_THRESHOLD = 0.6
 _ITEM_TYPES = frozenset({"convention", "documentation"})
-_SEARCH_TYPES = frozenset({"prohibition", "convention", "documentation"})
+_SEARCH_TYPES = frozenset({
+    "prohibition", "convention", "documentation",
+    "gene_case", "teaching_case", "episode",
+})
+_CASE_ORDER = ("prohibition", "convention", "documentation", "teaching_case", "gene_case", "episode")
 
 
 class RecallService:
@@ -142,6 +146,10 @@ class RecallService:
         expanded, intent, _confidence = expand_query(task, role=role)
         index = build_index(docs)
 
+        from ..rag.index import best_heading
+        from ..ux.lang import detect_lang
+        from ..ux.messages import t
+
         prohibitions = [
             by_id[doc_id]
             for doc_id, _score in search(index, expanded, types={"prohibition"}, top_n=_RECALL_SCAN_LIMIT)
@@ -152,13 +160,35 @@ class RecallService:
             for doc_id, score in search(index, expanded, types=_ITEM_TYPES, top_n=limit)
             if doc_id in by_id and score >= _STORE_DEFAULT_THRESHOLD
         ]
+        teaching = [
+            by_id[doc_id]
+            for doc_id, _score in search(index, expanded, types={"teaching_case"}, top_n=limit)
+            if doc_id in by_id
+        ]
+        teach_ids = {doc.id for doc in teaching}
+        genes = [
+            by_id[doc_id]
+            for doc_id, _score in search(index, expanded, types={"gene_case"}, top_n=limit)
+            if doc_id in by_id and doc_id not in teach_ids
+        ]
+        yaml_episodes = [
+            by_id[doc_id]
+            for doc_id, _score in search(index, expanded, types={"episode"}, top_n=limit)
+            if doc_id in by_id
+        ]
+        event_episodes = self._episodes_from_events(store, task, expanded)
+        episodes = self._merge_episodes(yaml_episodes, event_episodes)
         skills = self._store_skill_catalog(store)
-        hits = prohibitions + items
+        hits = prohibitions + items + genes + teaching
         latency_ms = int((time.monotonic() - started) * 1000)
 
         request = RSIRequest(user_id=user_id, project_id=project_id, role=role, raw_input=task)
         token = generate_feedback_token(request.request_id, user_id, self._secret)
         retrieved = [doc.id for doc in hits]
+        for row in episodes:
+            eid = row.get("id")
+            if isinstance(eid, str) and eid not in retrieved:
+                retrieved.append(eid)
         event: Dict[str, Any] = {
             "id": uuid.uuid4().hex,
             "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -191,8 +221,21 @@ class RecallService:
 
         return {
             "prohibitions": [self._prohibition_payload(doc) for doc in prohibitions],
-            "items": [self._item_payload(doc) for doc in items],
+            "items": [
+                self._item_payload(doc, heading=best_heading(index, doc.id, expanded))
+                for doc in items
+            ],
+            "gene_cases": [
+                self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
+                for doc in genes
+            ],
+            "teaching_cases": [
+                self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
+                for doc in teaching
+            ],
+            "episodes": episodes,
             "skills": skills,
+            "hint": t("HINT_TEACH", detect_lang(task)),
             "feedback_token": token,
             "recall_arm": _STORE_DEFAULT_ARM,
             "decisions": decisions,
@@ -200,11 +243,16 @@ class RecallService:
 
     def _store_search_docs(self, store: MemoryStore, role: Optional[str]) -> List[MemoryDoc]:
         docs: List[MemoryDoc] = []
-        for typ in ("prohibition", "convention", "documentation"):
+        teaching_ids: set[str] = set()
+        for typ in _CASE_ORDER:
             for doc in store.list_official(typ):
                 if doc.status != "active" or doc.type not in _SEARCH_TYPES:
                     continue
                 if doc.roles and role and role not in doc.roles:
+                    continue
+                if typ == "teaching_case":
+                    teaching_ids.add(doc.id)
+                if typ == "gene_case" and doc.id in teaching_ids:
                     continue
                 docs.append(doc)
         return docs
@@ -232,14 +280,14 @@ class RecallService:
         }
 
     @staticmethod
-    def _item_payload(doc: MemoryDoc) -> Dict[str, Any]:
+    def _item_payload(doc: MemoryDoc, heading: str = "") -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "id": doc.id,
             "title": doc.title,
             "content": doc.content,
             "content_type": doc.type,
             "source_path": doc.path,
-            "heading": "",
+            "heading": heading,
         }
         extra = doc.extra or {}
         nested = doc.payload or {}
@@ -249,6 +297,125 @@ class RecallService:
             elif key in nested:
                 payload[key] = nested[key]
         return payload
+
+    @staticmethod
+    def _case_payload(doc: MemoryDoc, heading: str = "") -> Dict[str, Any]:
+        return {
+            "id": doc.id,
+            "title": doc.title,
+            "content": doc.content,
+            "source_path": doc.path,
+            "heading": heading,
+        }
+
+    def _episodes_from_events(
+        self, store: MemoryStore, task: str, expanded: str,
+    ) -> List[Dict[str, Any]]:
+        from ..memory.logstore import iter_events
+        from ..rag.index import tokenize
+        from ..rag.query import expand_query
+
+        def _fp_terms(text: str) -> set[str]:
+            ev_exp, ev_intent, _ = expand_query(text)
+            return set(tokenize(ev_exp)) - set(tokenize(ev_intent))
+
+        q_terms = _fp_terms(task)
+        if not q_terms:
+            q_terms = set(tokenize(expanded))
+        events = list(iter_events(store.rsi_dir))
+        recalls = [
+            ev for ev in events
+            if ev.get("kind") == "recall" and ev.get("task") and ev.get("id")
+        ]
+        feedbacks = [ev for ev in events if ev.get("kind") == "feedback"]
+        matched: List[Dict[str, Any]] = []
+        for ev in recalls:
+            ev_task = str(ev["task"])
+            if _fp_terms(ev_task) & q_terms:
+                matched.append(ev)
+        if not matched:
+            return []
+
+        groups: Dict[str, List[Dict[str, Any]]] = {}
+        for ev in matched:
+            key = " ".join(sorted(_fp_terms(str(ev["task"]))))
+            groups.setdefault(key, []).append(ev)
+
+        out: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for key, group in groups.items():
+            tokens = {ev.get("token") for ev in group if ev.get("token")}
+            fbs = [fb for fb in feedbacks if fb.get("token") in tokens]
+            should_write = (
+                len(fbs) >= 2
+                or any(int(fb.get("rating") or 0) >= 4 for fb in fbs)
+                or any(fb.get("action") == "rejected" and fb.get("comment") for fb in fbs)
+            )
+            representative = group[0]
+            eid = str(representative["id"])
+            path = self._materialize_episode(store, representative, key) if should_write else ""
+            if eid in seen:
+                continue
+            seen.add(eid)
+            out.append({
+                "id": eid,
+                "title": str(representative.get("task") or "")[:120],
+                "task": representative.get("task"),
+                "content": representative.get("excerpt") or representative.get("task") or "",
+                "source_path": path,
+            })
+        return out
+
+    def _materialize_episode(
+        self, store: MemoryStore, ev: Dict[str, Any], fingerprint: str,
+    ) -> str:
+        from ..memory.paths import official_dir
+        from ..memory.store import memory_filename
+
+        eid = str(ev["id"])
+        try:
+            existing = store.read(eid)
+            if existing.type == "episode" and existing.path:
+                return existing.path
+        except FileNotFoundError:
+            pass
+        title = str(ev.get("task") or "episode")[:120]
+        dest = official_dir(store.rsi_dir, "episode") / memory_filename(title, eid)
+        written = store.write(
+            MemoryDoc(
+                id=eid,
+                type="episode",
+                title=title,
+                content=str(ev.get("excerpt") or ev.get("task") or "")[:20000],
+                payload={"fingerprint": fingerprint},
+            ),
+            dest=dest,
+        )
+        return written.path or ""
+
+    @staticmethod
+    def _merge_episodes(
+        yaml_docs: List[MemoryDoc], event_rows: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        by_id: Dict[str, Dict[str, Any]] = {}
+        for doc in yaml_docs:
+            by_id[doc.id] = {
+                "id": doc.id,
+                "title": doc.title,
+                "content": doc.content,
+                "source_path": doc.path,
+                "task": doc.title,
+            }
+        for row in event_rows:
+            eid = str(row.get("id") or "")
+            if not eid:
+                continue
+            if eid in by_id:
+                if row.get("source_path") and not by_id[eid].get("source_path"):
+                    by_id[eid]["source_path"] = row["source_path"]
+            else:
+                by_id[eid] = row
+        return list(by_id.values())
 
     async def _match_prohibitions(
         self, task: str, project_id: str, role: Optional[str]

@@ -39,8 +39,8 @@ STRINGS = {
         "en": "Specify a subcommand: migrate / reindex / index / open / graph",
     },
     "LEARN_NEED_ACTION": {
-        "zh": "请指定动作：teach_catch / teach_record / skip / rubric（其余动作按期开放）",
-        "en": "Specify an action: teach_catch / teach_record / skip / rubric (other actions come later)",
+        "zh": "请指定动作：teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract",
+        "en": "Specify an action: teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract",
     },
     "TEACH_RECORDED": {"zh": "已写入教学案例 {path}", "en": "Wrote teaching case {path}"},
     "TEACH_CATCH_SAVED": {
@@ -74,6 +74,42 @@ STRINGS = {
     "PHASE_AUDIT": {
         "zh": "审计动作下一期才开放。本轮请用 teach_record 记录可复用修法。",
         "en": "Audit actions are not available yet. Use teach_record for reusable fixes this wave.",
+    },
+    "AUDIT_STARTED": {
+        "zh": "已打开审计会话 {scope}",
+        "en": "Opened audit session {scope}",
+    },
+    "AUDIT_PROBES_SAVED": {
+        "zh": "已收下探针结果 {n} 条",
+        "en": "Stored {n} probe result(s)",
+    },
+    "AUDIT_REPORTED": {
+        "zh": "已写入审计报告 {path}",
+        "en": "Wrote audit report {path}",
+    },
+    "AUDIT_FINISHED": {
+        "zh": "审计会话已关闭",
+        "en": "Audit session closed",
+    },
+    "AUDIT_NEED_SCOPE_ID": {
+        "zh": "full 审计必须带 scope_id",
+        "en": "full audit requires scope_id",
+    },
+    "AUDIT_NEED_PROBES": {
+        "zh": "请上传 probe_results，RSI 不会代跑探针",
+        "en": "Upload probe_results. RSI does not run probes.",
+    },
+    "AUDIT_NEED_OVERALL": {
+        "zh": "audit_report 需要 overall",
+        "en": "audit_report needs overall",
+    },
+    "AUDIT_INVALID_SCOPE": {
+        "zh": "scope 只能是 session 或 full",
+        "en": "scope must be session or full",
+    },
+    "EXTRACT_NEED_ITEMS": {
+        "zh": "extract 需要已分类条目 items",
+        "en": "extract needs classified items",
     },
     "HINT_TEACH": {
         "zh": "若本轮修失败或用户纠正，先 rsi_learn teach_catch",

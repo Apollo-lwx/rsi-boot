@@ -118,17 +118,27 @@ async def test_missing_action_uses_locked_copy(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_audit_and_extract_not_in_phase(tmp_path, monkeypatch):
+async def test_audit_and_extract_are_in_phase(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_LANG", "zh")
     from rsi_boot.api.tools.learn_tool import handle
     from rsi_boot.bootstrap import build_runtime
-    from rsi_boot.ux.messages import t
     rt = await build_runtime(project_root=tmp_path)
     try:
-        for action in ("audit_start", "audit_probes", "audit_report", "audit_finish", "extract"):
-            out = await handle(rt, {"action": action})
-            assert out["code"] == "not_in_phase"
-            assert out["message"] == t("PHASE_AUDIT", "zh")
+        started = await handle(rt, {"action": "audit_start", "scope": "session"})
+        assert started.get("code") != "not_in_phase"
+        assert started["status"] == "success"
+        extracted = await handle(rt, {
+            "action": "extract",
+            "scope": "session",
+            "items": [{
+                "kind": "pattern",
+                "title": "列出列名",
+                "content": "必须写列名",
+                "one_liner": "列出列名",
+            }],
+        })
+        assert extracted.get("code") != "not_in_phase"
+        assert extracted["status"] == "success"
     finally:
         await rt.close()
 
