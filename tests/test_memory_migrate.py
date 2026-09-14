@@ -208,3 +208,64 @@ async def test_progress_eight_phases_use_exact_t_strings(tmp_path):
         t("MIGRATE_PHASE_INJECT", lang),
     ]
     assert names == expected
+
+
+async def _seed_and_migrate(tmp_path, content_type: str, status: str, kid: str):
+    from rsi_boot.data.migrate import migrate
+    from rsi_boot.data.sqlite import SQLiteClient
+    from rsi_boot.services.memory_migrate import migrate_workspace
+
+    rsi = tmp_path / ".rsi"
+    rsi.mkdir()
+    db = SQLiteClient(rsi / "rsi.db")
+    await migrate(db)
+    now = "2026-09-13T00:00:00+00:00"
+    await db.execute(
+        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, status,"
+        " created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
+        (kid, "local", "待审条目", "内容", content_type, status, now, now),
+    )
+    await db.commit()
+    await db.close()
+    await migrate_workspace(tmp_path, lang="zh")
+    return rsi
+
+
+@pytest.mark.asyncio
+async def test_pending_review_prohibition_stays_under_pending(tmp_path):
+    rsi = await _seed_and_migrate(tmp_path, "prohibition", "pending_review", "d" * 32)
+    pending = list((rsi / "memory" / "pending" / "prohibitions").glob("*.yaml"))
+    official = list((rsi / "memory" / "prohibitions").glob("*.yaml"))
+    assert pending
+    assert official == []
+    dumped = yaml.safe_load(pending[0].read_text(encoding="utf-8"))
+    assert dumped["status"] == "pending_review"
+
+
+@pytest.mark.asyncio
+async def test_pending_review_faq_stays_under_pending_not_official_docs(tmp_path):
+    rsi = await _seed_and_migrate(tmp_path, "faq", "pending_review", "e" * 32)
+    pending = list((rsi / "memory" / "pending").rglob("*.yaml"))
+    official_docs = list((rsi / "memory" / "documentation").glob("*.yaml"))
+    assert pending
+    assert official_docs == []
+    dumped = yaml.safe_load(pending[0].read_text(encoding="utf-8"))
+    assert dumped["status"] == "pending_review"
+    assert dumped["type"] == "documentation"
+    assert dumped["extra"]["legacy_type"] == "faq"
+    rel = pending[0].relative_to(rsi).as_posix()
+    assert rel.startswith("memory/pending/")
+    assert "memory/documentation/" not in rel
+
+
+@pytest.mark.asyncio
+async def test_archived_knowledge_goes_to_archive(tmp_path):
+    rsi = await _seed_and_migrate(tmp_path, "convention", "archived", "f" * 32)
+    archived = list((rsi / "memory" / "archive").glob("*.yaml"))
+    official = list((rsi / "memory" / "conventions").glob("*.yaml"))
+    pending = list((rsi / "memory" / "pending").rglob("*.yaml")) if (rsi / "memory" / "pending").exists() else []
+    assert archived
+    assert official == []
+    assert pending == []
+    dumped = yaml.safe_load(archived[0].read_text(encoding="utf-8"))
+    assert dumped["status"] == "archived"

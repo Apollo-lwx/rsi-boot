@@ -91,9 +91,10 @@ def _dest_for(rsi_dir: Path, typ: str, status: str, title: str, doc_id: str) -> 
             return pending_dir(rsi_dir, typ) / name
         except ValueError:
             try:
-                return official_dir(rsi_dir, typ) / name
+                folder = official_dir(rsi_dir, typ).name
             except ValueError:
                 return rsi_dir / "memory" / "pending" / name
+            return rsi_dir / "memory" / "pending" / folder / name
     if status == "active":
         try:
             return official_dir(rsi_dir, typ) / name
