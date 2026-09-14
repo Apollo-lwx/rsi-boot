@@ -121,6 +121,10 @@ async def cmd_migrate(args: argparse.Namespace) -> int:
                 "dest_db": str(runtime.db.db_path),
                 "rows": rows,
             })
+            from .ux.lang import locale_lang
+            from .ux.messages import t
+
+            print(t("MIGRATE_ADOPT_DEPRECATED", locale_lang()), file=sys.stderr)
             return 0
         finally:
             await runtime.close()
@@ -263,10 +267,17 @@ def build_parser() -> argparse.ArgumentParser:
     _add_verbose(p_mig)
     mig_sub = p_mig.add_subparsers(dest="migrate_action", required=True)
     mig_sub.add_parser("status", help="列出遗留共享库中的 project_id 命名空间")
-    p_adopt = mig_sub.add_parser("adopt", help="把指定命名空间拷入当前项目库")
+    p_adopt = mig_sub.add_parser(
+        "adopt",
+        help="把指定命名空间拷入当前项目库（请改用 rsi memory migrate）",
+    )
     p_adopt.add_argument("namespace", help="旧库中的 project_id，如 default 或目录名")
     p_adopt.add_argument("--project-root", default=".", help="目标项目根，默认当前目录")
     _add_verbose(p_adopt)
+
+    p_mem = sub.add_parser("memory", help="迁出旧库 / 重建索引 / 打开记忆文件")
+    _add_verbose(p_mem)
+    p_mem.add_argument("argv", nargs=argparse.REMAINDER)
     return parser
 
 
@@ -285,6 +296,15 @@ def main() -> None:
         setup_cli_logging(getattr(args, "verbose", False))
         try:
             sys.exit(run_wipe(args))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "memory":
+        from .cli.memory_command import run_memory
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_memory(list(getattr(args, "argv", []) or [])))
         except KeyboardInterrupt:
             sys.exit(130)
 

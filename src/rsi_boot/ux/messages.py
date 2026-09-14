@@ -26,6 +26,10 @@ STRINGS = {
         "zh": "知识 {knowledge} 条，日志 {logs} 行，臂 {arms} 条，未映射 retrieved {unmapped} 条。旧库已改名为 {bak}",
         "en": "{knowledge} knowledge files, {logs} log lines, {arms} arms, {unmapped} unmapped retrieved. Legacy DB renamed to {bak}",
     },
+    "MIGRATE_ADOPT_DEPRECATED": {
+        "zh": "请改用 rsi memory migrate",
+        "en": "Use rsi memory migrate instead",
+    },
     "REINDEX_TITLE": {"zh": "重建索引：{root}", "en": "Rebuilding index: {root}"},
     "REINDEX_DONE": {"zh": "索引已重建", "en": "Index rebuilt"},
     "BOOTSTRAP_DONE": {"zh": "学习完成", "en": "Learning complete"},
