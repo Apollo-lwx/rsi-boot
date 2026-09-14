@@ -49,6 +49,14 @@ def _args(tmp_path: Path, **overrides) -> argparse.Namespace:
     return argparse.Namespace(**{**defaults, **overrides})
 
 
+def test_bootstrap_source_has_no_init_db_phrase():
+    src = Path(__file__).resolve().parents[1] / "src" / "rsi_boot" / "cli" / "bootstrap_command.py"
+    text = src.read_text(encoding="utf-8")
+    assert "初始化数据库" not in text
+    assert "数据库" not in text
+    assert 't("BOOTSTRAP_PHASE_INIT"' in text
+
+
 def test_signal_discovery(tmp_path):
     root = _make_project(tmp_path)
     signals = discover_signals(root)

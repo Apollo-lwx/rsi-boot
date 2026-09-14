@@ -1,9 +1,10 @@
-"""rsi wipe：一键清掉本项目库文件与指纹，保留 identity.json。"""
+"""rsi wipe：清掉本项目文件记忆树与指纹，保留 identity.json。"""
 
 from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -11,8 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from ..project import project_rsi_dir, resolve_project_root
+from ..ux.lang import locale_lang
+from ..ux.messages import t
 
-WIPE_NAMES = ("rsi.db", "rsi.db-wal", "rsi.db-shm", "manifest.json")
+WIPE_TREES = ("memory", "logs", "cache", "audit", "state")
+WIPE_LEFTOVER = ("rsi.db", "rsi.db-wal", "rsi.db-shm", "manifest.json")
 KEEP_NAMES = ("identity.json",)
 
 # 只认 rsi 可执行文件 / rsi serve / 包模块，避免误杀路径里带 rsi-boot 的 Cursor/pytest
@@ -21,10 +25,7 @@ _HOLDER_RE = re.compile(
     re.IGNORECASE,
 )
 
-_YES_HINT = (
-    "清库会删除本项目 .rsi/rsi.db* 与 manifest.json，保留 identity.json。"
-    "确认请加 --yes。"
-)
+_YES_HINT = lambda lang: t("WIPE_HINT", lang)
 
 
 def _norm(path: Path | str) -> str:
@@ -132,23 +133,46 @@ def _unlink(path: Path) -> str | None:
         return f"{path.name} 无法删除（{exc}）"
 
 
+def _rmtree(path: Path) -> str | None:
+    try:
+        shutil.rmtree(path)
+        return None
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        return f"{path.name} 无法删除（{exc}）"
+
+
+def _remove_path(path: Path) -> str | None:
+    if path.is_dir() and not path.is_symlink():
+        return _rmtree(path)
+    return _unlink(path)
+
+
+def _wipe_targets(rsi_dir: Path) -> list[Path]:
+    return [rsi_dir / name for name in (*WIPE_TREES, *WIPE_LEFTOVER)]
+
+
 def wipe_project_memory(
     project_root: Path,
     *,
     yes: bool,
     stop_holders: bool = True,
+    lang: str | None = None,
 ) -> dict[str, Any]:
-    """删除库与指纹。yes=False 时不改文件。"""
+    """删除文件记忆树与残留库文件。yes=False 时不改文件。"""
+    loc = lang or locale_lang()
     root = Path(project_root)
     rsi_dir = project_rsi_dir(root)
+    hint = _YES_HINT(loc)
     if not yes:
         return {
             "ok": False,
             "removed": [],
             "kept": [n for n in KEEP_NAMES if (rsi_dir / n).is_file()],
             "stopped": [],
-            "errors": [_YES_HINT],
-            "message": _YES_HINT,
+            "errors": [hint],
+            "message": hint,
         }
 
     stopped: list[int] = []
@@ -159,14 +183,14 @@ def wipe_project_memory(
 
     removed: list[str] = []
     errors: list[str] = []
-    targets = [rsi_dir / name for name in WIPE_NAMES]
+    targets = _wipe_targets(rsi_dir)
     for attempt in range(5):
         errors = []
-        pending = [p for p in targets if p.exists()]
+        pending = [p for p in targets if p.exists() and p.name not in KEEP_NAMES]
         if not pending:
             break
         for path in pending:
-            err = _unlink(path)
+            err = _remove_path(path)
             if err:
                 errors.append(err)
             elif not path.exists():
@@ -177,21 +201,18 @@ def wipe_project_memory(
         if attempt < 4:
             time.sleep(0.3)
 
-    leftover = [p.name for p in targets if p.exists()]
+    leftover = [p.name for p in targets if p.exists() and p.name not in KEEP_NAMES]
     locked = leftover and errors
     if locked:
         errors.append(
-            "库文件仍被占用。请在 Cursor Settings → MCP 里暂时关掉 rsi-boot，再执行 rsi wipe --yes。"
+            "记忆文件仍被占用。请在 Cursor Settings → MCP 里暂时关掉 rsi-boot，再执行 rsi wipe --yes。"
         )
-    message = (
-        "已清除本项目记忆库（保留 identity.json）。"
-        if removed and not leftover
-        else (
-            "没有需要删除的库文件。"
-            if not leftover and not removed
-            else "清库未完成。"
-        )
-    )
+    if leftover:
+        message = "清库未完成。"
+    elif removed:
+        message = t("WIPE_DONE", loc)
+    else:
+        message = t("WIPE_DONE", loc)
     return {
         "ok": not leftover,
         "removed": removed,
@@ -203,9 +224,12 @@ def wipe_project_memory(
 
 
 def run_wipe(args: Any) -> int:
+    loc = getattr(args, "lang", None) or locale_lang()
     explicit = Path(args.project_root) if getattr(args, "project_root", None) else None
     root = resolve_project_root(explicit=explicit)
-    result = wipe_project_memory(root, yes=bool(getattr(args, "yes", False)))
+    result = wipe_project_memory(
+        root, yes=bool(getattr(args, "yes", False)), lang=loc,
+    )
     if not result["ok"]:
         for err in result["errors"]:
             print(err, file=sys.stderr)
@@ -213,9 +237,9 @@ def run_wipe(args: Any) -> int:
     if result["stopped"]:
         print("已停止占用进程: " + ", ".join(str(p) for p in result["stopped"]))
     if result["removed"]:
-        print("已删除: " + ", ".join(result["removed"]))
+        print(t("WIPE_DONE", loc) + " " + ", ".join(result["removed"]))
     else:
         print(result["message"])
     if result["kept"]:
-        print("已保留: " + ", ".join(result["kept"]))
+        print(t("WIPE_KEPT", loc, path="identity.json"))
     return 0

@@ -28,7 +28,7 @@ _DECISIONS_BODY = (
     "不要让用户自己去终端跑 rsi。"
     "用户说重新学习时你执行 rsi bootstrap --consent --host-judge（要清文件记忆先 rsi wipe --yes），"
     "看到「必须指定 --host-judge 或 --local-judge」就加 --host-judge 重跑，不要改用 --local-judge。"
-    "学完读 .rsi/host_judge_queue.json 或 rsi_conflicts list（带 bootstrap_run_id），"
+    "学完用 rsi_conflicts（可选带 bootstrap_run_id）处理未决冲突，"
     "每批最多 200 条 resolve，直到未决为 0；只有你不确定的才留给以后的 recall 卡。"
 )
 

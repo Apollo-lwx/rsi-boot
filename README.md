@@ -31,15 +31,19 @@ rsi bootstrap --local-judge      # 正式学习（幂等，未改文件会跳过
 rsi bootstrap --local-judge --force   # 忽略 manifest 指纹，按当前文件全量再扫
 rsi bootstrap --include .auto-learn   # 默认不扫 .worktrees/.auto-learn/.superpowers/任意 artifacts/，按需加回
 
-# 5. 启动 MCP stdio server（接入 Cursor 等客户端）
+# 5. 若工作区仍有旧版 rsi.db，先迁到文件记忆
+rsi memory migrate
+
+# 6. 启动 MCP stdio server（接入 Cursor 等客户端）
 rsi serve
 ```
 
 在 Cursor 对话里由 agent 重新学习时走 `--host-judge`（冲突工作包由宿主模型当场裁决）；你自己敲终端用 `--local-judge`（本地整条比对，宁缺毋滥）。两者必须且只能给一个，`--dry-run` 除外。
 
 无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。
+约定（convention）获准后只进召回，**不会**写成 `rsi-convention-*.mdc` 规则文件。
 
-**重新学习：** `--force` 只忽略指纹，**不会**把旧版溢出归档（无 `bootstrap_run_id`）救回 `active`。曾用旧逻辑学过、库里几乎全是 `archived` 时，先清库再学（必须同时清 `rsi.db*` 与 `manifest.json`，`identity.json` 会保留）：
+**重新学习：** `--force` 只忽略指纹，**不会**把旧版溢出归档（无 `bootstrap_run_id`）救回 `active`。曾用旧逻辑学过、记忆几乎全是归档时，先清文件记忆再学（删除 `.rsi` 下 `memory/` `logs/` `cache/` `audit/` `state/` 与 `manifest.json`，残留 `rsi.db*` 也会删；`identity.json` 会保留）：
 
 ```bash
 # 在该项目根目录。若 Cursor 会立刻把 MCP 拉回来，先在 Settings → MCP 关掉 rsi-boot
@@ -79,7 +83,7 @@ rsi bootstrap --local-judge
 ## 配置链
 
 包内 `default.yaml` → `~/.rsi/config.yaml` → 项目根 `rsi-boot.yaml` → 请求参数（受保护路径除外）。
-`RSI_HOME` 只覆盖**用户配置**目录（默认 `~/.rsi`：`config.yaml`、可选 skills）。项目记忆、画像、归档都在工作目录 `.rsi/`（`rsi.db` / `identity.json` / `archive/`），打开另一个仓库就是另一份，不会串。若 MCP 不是从仓库根启动，设环境变量 `RSI_PROJECT_ROOT`，或把 server 配在项目 `.cursor/mcp.json` 里以保证 cwd 为工作区。旧版 `~/.rsi/rsi.db` 可用 `rsi migrate status` / `rsi migrate adopt <namespace>` 认领进当前 `.rsi/`（`default` 不会自动灌入）。`rsi serve` 运行期间配置文件变更自动热加载（last-good-wins）。
+`RSI_HOME` 只覆盖**用户配置**目录（默认 `~/.rsi`：`config.yaml`、可选 skills）。项目记忆、画像、归档都在工作目录 `.rsi/`（`memory/` / `identity.json` / `state/`），打开另一个仓库就是另一份，不会串。若 MCP 不是从仓库根启动，设环境变量 `RSI_PROJECT_ROOT`，或把 server 配在项目 `.cursor/mcp.json` 里以保证 cwd 为工作区。旧版 `.rsi/rsi.db` 先跑 `rsi memory migrate` 再 `rsi serve`。`rsi serve` 运行期间配置文件变更自动热加载（last-good-wins）。
 
 主链路零配置可用。可选增强（`enhance.*`，需自配模型 Key）见 `~/.rsi/config.yaml` 示例：
 `enhance.embedding`（向量检索）、`enhance.extract_llm`（LLM 知识提取）、`enhance.proposal_llm`、

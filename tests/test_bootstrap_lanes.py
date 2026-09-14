@@ -358,14 +358,14 @@ async def test_force_does_not_stamp_manifest_for_untagged_archive(tmp_path, monk
     stamped = {r["source_url"] for r in docs if r["source_url"] in manifest}
     assert not stamped
     assert "manifest.json" in out
-    assert "rsi.db" in out
+    assert "rsi wipe --yes" in out
 
 
 def test_readme_wipe_mentions_manifest():
     readme = Path(__file__).resolve().parents[1] / "README.md"
     text = readme.read_text(encoding="utf-8")
     assert "manifest.json" in text
-    assert "rsi.db" in text
+    assert "rsi memory migrate" in text
 
 
 async def test_bootstrap_does_not_demote_active_auto_extract(tmp_path, monkeypatch):

@@ -49,6 +49,8 @@ from ..scanner.signal_discovery import (
     source_path_excluded,
 )
 from ..scanner.validator import DedupSet, ErrorCollector, content_hash, read_text_tolerant, validate_chunk
+from ..ux.lang import locale_lang
+from ..ux.messages import t
 from .progress import Progress
 
 _LANE_B = frozenset({"conversation", "rules"})
@@ -113,11 +115,11 @@ def _save_bootstrap_run(rsi_dir: Path, run_id: str) -> None:
 logger = logging.getLogger(__name__)
 
 
-def _phase_names(plan: Dict[str, bool], dry_run: bool) -> List[str]:
+def _phase_names(plan: Dict[str, bool], dry_run: bool, lang: str) -> List[str]:
     names = ["扫描文件树"]
     if dry_run:
         return names
-    names.append("初始化数据库")
+    names.append(t("BOOTSTRAP_PHASE_INIT", lang))
     if plan.get("docs"):
         names.append("文档")
     if plan.get("config"):
@@ -468,6 +470,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
     project_id = load_or_create_identity(project_root).project_id
     max_file_size = _parse_size(args.max_file_size)
     rsi_dir = project_root / ".rsi"
+    lang = getattr(args, "lang", None) or locale_lang()
     progress = Progress()
     mode = "（预览）" if args.dry_run else ""
     progress.start(10, title=f"开始学习{mode}：{project_root}")
@@ -479,7 +482,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         project_root, max_file_size, on_progress=progress.tick, include=include,
     )
     plan = plan_scopes(signals, args.scope or "", consent=args.consent)
-    progress.total_phases = len(_phase_names(plan, args.dry_run))
+    progress.total_phases = len(_phase_names(plan, args.dry_run, lang))
     progress.writeln(f"发现信号：{_signal_summary(signals)}")
     if include:
         progress.writeln("加回目录：" + ", ".join(include))
@@ -501,7 +504,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         return 0
 
     collector = ErrorCollector(strict=args.strict)
-    progress.phase("初始化数据库")
+    progress.phase(t("BOOTSTRAP_PHASE_INIT", lang))
     runtime = await build_runtime(project_root=project_root)
     try:
         manifest = {} if args.force else _load_manifest(rsi_dir)
@@ -922,7 +925,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         if args.force and report.blocked_untagged_archive:
             report.wipe_hint = (
                 "未复活无 bootstrap_run_id 的归档。"
-                "清库重学请执行 rsi wipe --yes（删除 .rsi/rsi.db* 与 manifest.json），再跑 rsi bootstrap。"
+                "清库重学请执行 rsi wipe --yes（删除 .rsi 下记忆文件与 manifest.json），再跑 rsi bootstrap。"
             )
 
         _save_manifest(rsi_dir, new_manifest)

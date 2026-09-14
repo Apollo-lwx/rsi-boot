@@ -270,10 +270,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_acc.add_argument("--run", default=None, help="bootstrap run id；缺省读 .rsi/bootstrap_run.json")
     _add_verbose(p_acc)
 
-    p_wipe = sub.add_parser("wipe", help="一键清除本项目记忆库（rsi.db* + manifest.json，保留 identity）")
+    p_wipe = sub.add_parser("wipe", help="一键清除本项目记忆文件（保留 identity.json）")
     p_wipe.add_argument(
         "--yes", action="store_true",
-        help="确认删除本项目 .rsi/rsi.db* 与 manifest.json（保留 identity.json）",
+        help="确认删除 .rsi 下记忆文件与缓存（保留 identity.json）",
     )
     p_wipe.add_argument(
         "--project-root", default=None,

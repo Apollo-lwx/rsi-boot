@@ -380,6 +380,17 @@ def test_decisions_mdc_covers_host_judge_recipe(tmp_path):
     assert len(body) <= 800
     assert "--host-judge" in text
     assert "rsi wipe --yes" in text
-    assert "host_judge_queue.json" in text
+    assert "rsi_conflicts" in text
+    assert "唯一入口" not in text
+    assert "学完读 .rsi/host_judge_queue.json" not in text
     assert "200" in text
     assert "不要让用户自己去终端" in text
+
+
+def test_decisions_body_mentions_rsi_conflicts_not_queue_as_only_entry():
+    from rsi_boot.injector.targets import _DECISIONS_BODY
+
+    assert "rsi_conflicts" in _DECISIONS_BODY
+    assert "bootstrap_run_id" in _DECISIONS_BODY
+    assert "唯一入口" not in _DECISIONS_BODY
+    assert "学完读 .rsi/host_judge_queue.json" not in _DECISIONS_BODY
