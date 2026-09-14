@@ -99,11 +99,13 @@ async def test_recall_more_waiting_counts_remaining(db, base_config):
 
 
 def test_recall_tool_description_forbids_user_cli():
-    assert "不要让用户自己去终端" in recall_tool.TOOL_DESCRIPTION
+    from rsi_boot.ux.messages import TOOL_DESC
+
+    assert recall_tool.TOOL_DESCRIPTION == TOOL_DESC["recall"]
     assert "rsi_conflicts" in recall_tool.TOOL_DESCRIPTION
     assert "rsi_knowledge_review" in recall_tool.TOOL_DESCRIPTION
-    assert "recommended" in recall_tool.TOOL_DESCRIPTION
-    assert "explain" in recall_tool.TOOL_DESCRIPTION
+    assert "不要让用户去终端跑 rsi" in recall_tool.TOOL_DESCRIPTION
+    assert "do not ask the user to run rsi in a terminal" in recall_tool.TOOL_DESCRIPTION
 
 
 def test_cursor_write_always_emits_decisions_mdc(tmp_path):
