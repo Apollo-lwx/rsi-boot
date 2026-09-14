@@ -118,7 +118,8 @@ def write_memory_conflict(
     item_id: str,
     peer_source: str,
     conflict_type: str = "incoherent",
-    resolution_note: str = "recommended:keep_item",
+    resolution_note: str | None = "recommended:keep_item",
+    excerpt: str = "excerpt",
 ) -> str:
     path = store.rsi_dir / "state" / "conflicts.yaml"
     rows: list[dict] = []
@@ -137,8 +138,8 @@ def write_memory_conflict(
         "conflict_type": conflict_type,
         "status": "open",
         "resolution_note": resolution_note,
-        "excerpt": "excerpt",
-        "user_rule_excerpt": "excerpt",
+        "excerpt": excerpt,
+        "user_rule_excerpt": excerpt,
     })
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

@@ -26,9 +26,12 @@ from ..core.models import (
     RSIResponse,
     generate_feedback_token,
 )
+from pathlib import Path
+
 from ..data.sqlite import SQLiteClient
 from ..knowledge.retriever import KnowledgeRetriever
 from ..learning.skill_loader import SkillLoader
+from ..memory.store import MemoryStore
 from ..model.adapter import ModelAdapter
 from ..model.providers.base import ModelResult
 from ..preprocessor.intent_classifier import detect_intent_llm
@@ -51,6 +54,7 @@ class Pipeline:
         profiles: Optional[ProfileService] = None,
         quality: Optional[QualityAssessor] = None,
         skill_loader: Optional[SkillLoader] = None,
+        store: MemoryStore | None = None,
     ):
         self._db = db
         self._config = config
@@ -61,7 +65,8 @@ class Pipeline:
         self._skills = skill_loader
         self._strategy = StrategyEngine(db, config)
         self._renderer = PromptRenderer()
-        self._logs = LogService(db)
+        log_store = store or MemoryStore(Path(db.db_path).parent / ".rsi")
+        self._logs = LogService(log_store)
         # 响应缓存（§2.4：maxsize=500, ttl=300s；默认关闭——个人工具重复提问少，
         # 开启后相同请求特征直接复用响应文本，命中行零 token 落库不污染用量统计）
         rc_cfg = config.get("response_cache", {})

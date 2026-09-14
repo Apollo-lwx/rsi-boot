@@ -13,12 +13,10 @@ import os
 
 import pytest
 
-from rsi_boot.core.models import KnowledgeItem
 from rsi_boot.data.vec import BruteBackend
 from rsi_boot.knowledge.embedding import EmbeddingService
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
 from rsi_boot.preprocessor.intent_classifier import detect_intent
-from rsi_boot.services.knowledge_service import KnowledgeService
 
 from .harness import (
     check_against_baseline,
@@ -142,15 +140,22 @@ async def test_retrieval_baseline(db, base_config):
     embedding = EmbeddingService({"embedding": {"provider": "mock"}})
     brute = BruteBackend(db)
     retriever = KnowledgeRetriever(db, base_config, embedding=embedding, vec=brute)
-    service = KnowledgeService(db, retriever, embedding=embedding, vec=brute)
+
+    import uuid
+    from datetime import datetime, timezone
 
     id_by_title: dict[str, str] = {}
+    conn = await db.connect()
+    now = datetime.now(timezone.utc).isoformat()
     for doc in corpus:
-        item = KnowledgeItem(
-            project_id=doc["project_type"], title=doc["title"], content=doc["content"],
+        item_id = uuid.uuid4().hex
+        await conn.execute(
+            "INSERT INTO knowledge_items (id, project_id, title, content, content_type, status, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, 'documentation', 'active', ?, ?)",
+            (item_id, doc["project_type"], doc["title"], doc["content"], now, now),
         )
-        await service.add(item)
         id_by_title[doc["title"]] = doc["id"]
+    await conn.commit()
 
     results = []
     for q in queries:

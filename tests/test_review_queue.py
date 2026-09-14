@@ -7,14 +7,14 @@ rsi_knowledge_review 支持 ids 数组 / all_pending 批量操作。
 
 import argparse
 import json
+import uuid
 from pathlib import Path
-
-import pytest
 
 from rsi_boot.api.tools import knowledge_review_tool
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.knowledge.retriever import KnowledgeRetriever
+from rsi_boot.memory.store import MemoryStore, memory_filename
+from rsi_boot.memory.types import MemoryDoc, type_from_legacy
 from rsi_boot.services.knowledge_service import KnowledgeService
 
 from memory_helpers import memory_item_rows
@@ -88,37 +88,53 @@ async def test_bootstrap_force_rerun_does_not_requeue_archived(tmp_path, monkeyp
 # ---------- KnowledgeService：archived 可审批 + 批量审批 ----------
 
 
-def _service(db, base_config) -> KnowledgeService:
-    return KnowledgeService(db, KnowledgeRetriever(db, base_config))
+def _service(store: MemoryStore, tmp_path) -> KnowledgeService:
+    return KnowledgeService(store=store, project_root=tmp_path)
 
 
-async def _add(knowledge: KnowledgeService, status: str, content_type: str = "documentation",
-               title: str = "条目", tags: list | None = None) -> str:
+async def _add(
+    knowledge: KnowledgeService,
+    status: str,
+    content_type: str = "documentation",
+    title: str = "条目",
+    tags: list | None = None,
+    store: MemoryStore | None = None,
+) -> str:
+    if status == "archived":
+        mem = store or knowledge._store
+        item_id = uuid.uuid4().hex
+        typ, extra_update = type_from_legacy(content_type)
+        dest = mem.rsi_dir / "memory" / "archive" / memory_filename(title, item_id)
+        mem.write(
+            MemoryDoc(
+                id=item_id, type=typ, title=title[:120],
+                content=f"{title} 的足够长内容 " * 5,
+                tags=list(tags or []),
+                extra=dict(extra_update),
+            ),
+            dest=dest,
+        )
+        return item_id
     return await knowledge.add(KnowledgeItem(
         project_id="p1", title=title, content=f"{title} 的足够长内容 " * 5,
         status=status, content_type=content_type, domain="bootstrap", tags=tags or [],
     ))
 
 
-async def _status_of(db, item_id: str) -> str:
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT status FROM knowledge_items WHERE id = ?", (item_id,)
-    ) as cur:
-        row = await cur.fetchone()
-    return row["status"]
+def _status_of(store: MemoryStore, item_id: str) -> str:
+    return store.read(item_id).status
 
 
-async def test_review_approves_archived_item(db, base_config):
+async def test_review_approves_archived_item(store, tmp_path):
     """archived（限量溢出）条目可被单个审批恢复为 active"""
-    knowledge = _service(db, base_config)
-    item_id = await _add(knowledge, "archived")
+    knowledge = _service(store, tmp_path)
+    item_id = await _add(knowledge, "archived", store=store)
     assert await knowledge.review(item_id, "p1", approve=True) == "active"
-    assert await _status_of(db, item_id) == "active"
+    assert _status_of(store, item_id) == "active"
 
 
-async def test_review_batch_approves_all_pending(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_review_batch_approves_all_pending(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     ids = [await _add(knowledge, "pending_review", title=f"草稿{i}") for i in range(3)]
     active_id = await _add(knowledge, "active", title="已激活")
 
@@ -126,49 +142,49 @@ async def test_review_batch_approves_all_pending(db, base_config):
     assert result["processed"] == 3
     assert result["new_status"] == "active"
     for item_id in ids:
-        assert await _status_of(db, item_id) == "active"
-    assert await _status_of(db, active_id) == "active"  # 原本 active 不受影响
+        assert _status_of(store, item_id) == "active"
+    assert _status_of(store, active_id) == "active"  # 原本 active 不受影响
 
 
-async def test_review_batch_content_type_filter(db, base_config):
-    knowledge = _service(db, base_config)
-    faq_id = await _add(knowledge, "pending_review", content_type="faq", title="问答")
-    doc_id = await _add(knowledge, "pending_review", content_type="documentation", title="文档")
+async def test_review_batch_content_type_filter(store, tmp_path):
+    knowledge = _service(store, tmp_path)
+    faq_id = await _add(knowledge, "pending_review", content_type="documentation", title="问答")
+    doc_id = await _add(knowledge, "pending_review", content_type="convention", title="文档")
 
-    result = await knowledge.review_batch("p1", approve=True, content_type="faq")
+    result = await knowledge.review_batch("p1", approve=True, content_type="documentation")
     assert result["processed"] == 1
-    assert await _status_of(db, faq_id) == "active"
-    assert await _status_of(db, doc_id) == "pending_review"  # 未命中过滤条件
+    assert _status_of(store, faq_id) == "active"
+    assert _status_of(store, doc_id) == "pending_review"  # 未命中过滤条件
 
 
-async def test_review_batch_reject(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_review_batch_reject(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     ids = [await _add(knowledge, "pending_review", title=f"草稿{i}") for i in range(2)]
     result = await knowledge.review_batch("p1", approve=False)
     assert result["processed"] == 2
-    assert result["new_status"] == "rejected"
+    assert result["new_status"] == "archived"
     for item_id in ids:
-        assert await _status_of(db, item_id) == "rejected"
+        assert _status_of(store, item_id) == "archived"
 
 
-async def test_review_batch_include_archived(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_review_batch_include_archived(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     archived_id = await _add(
         knowledge, "archived", title="溢出",
-        tags=["bootstrap_run_id:run-overflow"],
+        tags=["bootstrap_run_id:run-overflow"], store=store,
     )
     result = await knowledge.review_batch("p1", approve=True)
     assert result["processed"] == 0  # 默认不含 archived
     result = await knowledge.review_batch("p1", approve=True, include_archived=True)
     assert result["processed"] == 1
-    assert await _status_of(db, archived_id) == "active"
+    assert _status_of(store, archived_id) == "active"
 
 
 # ---------- rsi_knowledge_review 工具：批量参数 ----------
 
 
-async def test_tool_all_pending(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_tool_all_pending(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     for i in range(3):
         await _add(knowledge, "pending_review", title=f"草稿{i}")
     result = await knowledge_review_tool.handle(
@@ -178,8 +194,8 @@ async def test_tool_all_pending(db, base_config):
     assert result["processed"] == 3
 
 
-async def test_tool_ids_batch(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_tool_ids_batch(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     ids = [await _add(knowledge, "pending_review", title=f"草稿{i}") for i in range(2)]
     other = await _add(knowledge, "pending_review", title="不在列表")
     result = await knowledge_review_tool.handle(
@@ -187,11 +203,11 @@ async def test_tool_ids_batch(db, base_config):
     )
     assert result["status"] == "success"
     assert result["processed"] == 2
-    assert await _status_of(db, other) == "pending_review"
+    assert _status_of(store, other) == "pending_review"
 
 
-async def test_tool_single_id_still_works(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_tool_single_id_still_works(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     item_id = await _add(knowledge, "pending_review")
     result = await knowledge_review_tool.handle(
         knowledge, {"id": item_id, "action": "approve", "project_id": "p1"}
@@ -200,8 +216,8 @@ async def test_tool_single_id_still_works(db, base_config):
     assert result["new_status"] == "active"
 
 
-async def test_tool_missing_target_is_error(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_tool_missing_target_is_error(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     result = await knowledge_review_tool.handle(
         knowledge, {"action": "approve", "project_id": "p1"}
     )

@@ -1,33 +1,48 @@
 """用户规则冲突检测测试（Spec v3.1 §4.9，A7）：三类启发式（contradiction/stale/overlap）、
 三选一裁决流转、memory_wins 自动关闭、rsi_conflicts 工具。"""
 
-import json
 import os
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
-
-import pytest
 
 from rsi_boot.api.tools import conflicts_tool
 from rsi_boot.injector.conflict import ConflictDetector
 from rsi_boot.injector.targets import AgentsMdTarget
+from rsi_boot.memory.logstore import append_event
+from rsi_boot.memory.paths import official_dir
+from rsi_boot.memory.store import MemoryStore, memory_filename
+from rsi_boot.memory.types import MemoryDoc
+
+from memory_helpers import memory_conflict_rows
 
 
-async def _add_memory(db, project_id="p1", title="禁止：使用裸 SQL", content="必须参数化查询",
-                      content_type="prohibition", domain="database", tags=None):
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat()
+def _store(tmp_path: Path) -> MemoryStore:
+    return MemoryStore(tmp_path / ".rsi")
+
+
+def _detector(store: MemoryStore, tmp_path: Path, on_change=None) -> ConflictDetector:
+    return ConflictDetector(store=store, project_root=tmp_path, on_change=on_change)
+
+
+def _add_memory(
+    store: MemoryStore,
+    title="禁止：使用裸 SQL",
+    content="必须参数化查询",
+    type="prohibition",
+    domain="database",
+    tags=None,
+) -> str:
     item_id = uuid.uuid4().hex
-    await conn.execute(
-        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, domain, tags,"
-        " status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)",
-        (item_id, project_id, title, content, content_type, domain,
-         json.dumps(tags or [], ensure_ascii=False), now, now),
+    dest = official_dir(store.rsi_dir, type) / memory_filename(title, item_id)
+    store.write(
+        MemoryDoc(
+            id=item_id, type=type, title=title, content=content,
+            domain=domain, tags=list(tags or []),
+        ),
+        dest=dest,
     )
-    await conn.commit()
     return item_id
 
 
@@ -42,202 +57,190 @@ def _write_user_rule(root: Path, name: str, text: str, mtime_days_ago: int = 0) 
     return path
 
 
-async def _seed_recall_hits(db, project_id="p1", marker="database", n=3):
-    """近 30 天 recall 命中标签含 marker 的日志 n 条（stale 判定的采纳近似值）"""
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat()
-    for _ in range(n):
-        lid = uuid.uuid4().hex
-        await conn.execute(
-            "INSERT INTO interaction_logs (id, request_id, user_id, project_id, raw_input,"
-            " intent, latency_ms, status, feedback_token, retrieved_tags, created_at)"
-            " VALUES (?, ?, 'u', ?, 'q', 'recall', 10, 'success', ?, ?, ?)",
-            (lid, uuid.uuid4().hex, project_id, f"tok-{lid[:8]}",
-             json.dumps([marker], ensure_ascii=False), now),
-        )
-    await conn.commit()
+def _seed_recall_hits(store: MemoryStore, doc_id: str, n: int = 3) -> None:
+    for i in range(n):
+        append_event(store.rsi_dir, {
+            "id": f"e{i}-{uuid.uuid4().hex[:8]}",
+            "kind": "recall",
+            "retrieved": [doc_id],
+            "task": "SQL",
+        })
 
 
-async def _open_conflicts(db, project_id="p1"):
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT * FROM rule_conflicts WHERE project_id = ? AND status = 'open'", (project_id,)
-    ) as cur:
-        return [dict(r) for r in await cur.fetchall()]
+def _open_conflicts(tmp_path: Path) -> list[dict]:
+    return [r for r in memory_conflict_rows(tmp_path) if r.get("status", "open") == "open"]
 
 
 # ---------- 三类启发式 ----------
 
 
-async def test_contradiction_prohibition_vs_permissive_rule(db, tmp_path):
+async def test_contradiction_prohibition_vs_permissive_rule(tmp_path):
     """学习禁止项 vs 用户规则许可式表述 → contradiction"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     _write_user_rule(tmp_path, "my-rule.mdc", "数据库查询允许使用裸 SQL，方便快捷。")
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["detected"] == 1
-    conflicts = await _open_conflicts(db)
+    conflicts = _open_conflicts(tmp_path)
     assert conflicts[0]["conflict_type"] == "contradiction"
     assert conflicts[0]["user_rule_path"] == ".cursor/rules/my-rule.mdc"
     assert "使用裸 SQL" in conflicts[0]["user_rule_excerpt"]
 
 
-async def test_contradiction_detected_in_claude_md(db, tmp_path):
+async def test_contradiction_detected_in_claude_md(tmp_path):
     """CLAUDE.md 作为用户规则文件参与冲突检测（此前只扫 .cursor/rules 等）"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     (tmp_path / "CLAUDE.md").write_text("数据库查询允许使用裸 SQL，方便快捷。", encoding="utf-8")
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["scanned"] == 1
     assert stats["detected"] == 1
-    conflicts = await _open_conflicts(db)
+    conflicts = _open_conflicts(tmp_path)
     assert conflicts[0]["conflict_type"] == "contradiction"
     assert conflicts[0]["user_rule_path"] == "CLAUDE.md"
 
 
-async def test_no_conflict_when_user_rule_also_prohibitive(db, tmp_path):
+async def test_no_conflict_when_user_rule_also_prohibitive(tmp_path):
     """用户规则同为禁止式表述 = 与学习禁止项一致，不报冲突"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     _write_user_rule(tmp_path, "my-rule.mdc", "禁止使用裸 SQL，一律参数化。")
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["detected"] == 0
 
 
-async def test_overlap_convention_duplicated(db, tmp_path):
+async def test_overlap_convention_duplicated(tmp_path):
     """convention 记忆在用户规则中出现（非禁止语境）→ overlap（建议删手写副本）"""
-    await _add_memory(db, title="提交信息规范", content="feat/fix 前缀",
-                      content_type="convention", domain=None)
+    store = _store(tmp_path)
+    _add_memory(store, title="提交信息规范", content="feat/fix 前缀",
+                type="convention", domain=None)
     _write_user_rule(tmp_path, "git.mdc", "提交信息规范：使用 feat/fix 前缀。")
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["detected"] == 1
-    assert (await _open_conflicts(db))[0]["conflict_type"] == "overlap"
+    assert _open_conflicts(tmp_path)[0]["conflict_type"] == "overlap"
 
 
-async def test_stale_rule_with_active_adoption(db, tmp_path):
+async def test_stale_rule_with_active_adoption(tmp_path):
     """用户规则 90 天未更新 + 同主题记忆近 30 天采纳 ≥3 → stale"""
-    await _add_memory(db, title="禁止：使用裸 SQL", domain="database")
+    store = _store(tmp_path)
+    doc_id = _add_memory(store, title="禁止：使用裸 SQL", domain="database")
     _write_user_rule(tmp_path, "old.mdc", "禁止使用裸 SQL（旧规）。", mtime_days_ago=120)
-    await _seed_recall_hits(db, marker="database", n=3)
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    _seed_recall_hits(store, doc_id, n=3)
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["detected"] == 1
-    assert (await _open_conflicts(db))[0]["conflict_type"] == "stale"
+    assert _open_conflicts(tmp_path)[0]["conflict_type"] == "stale"
 
 
-async def test_stale_requires_adoption_threshold(db, tmp_path):
+async def test_stale_requires_adoption_threshold(tmp_path):
     """陈旧文件但记忆近期零采纳 → 不报 stale（避免打扰）"""
-    await _add_memory(db, title="禁止：使用裸 SQL", domain="database")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL", domain="database")
     _write_user_rule(tmp_path, "old.mdc", "禁止使用裸 SQL（旧规）。", mtime_days_ago=120)
-    detector = ConflictDetector(db, tmp_path)
-    assert (await detector.scan("p1"))["detected"] == 0
+    assert (await _detector(store, tmp_path).scan("p1"))["detected"] == 0
 
 
-async def test_scan_scope_excludes_rsi_files_and_managed_block(db, tmp_path):
+async def test_scan_scope_excludes_rsi_files_and_managed_block(tmp_path):
     """rsi-*.mdc（自产）与 AGENTS.md 托管块内内容不参与冲突判定"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     _write_user_rule(tmp_path, "rsi-prohibition-abcd1234.mdc", "允许使用裸 SQL")  # 自产文件
     agents = tmp_path / "AGENTS.md"
     agents.write_text(
         f"{AgentsMdTarget.BEGIN}\n允许使用裸 SQL\n{AgentsMdTarget.END}\n", encoding="utf-8"
     )
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["scanned"] == 0 and stats["detected"] == 0
 
 
-async def test_scan_idempotent_no_duplicates(db, tmp_path):
-    """重复扫描不产生重复冲突行（INSERT OR IGNORE）"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+async def test_scan_idempotent_no_duplicates(tmp_path):
+    """重复扫描不产生重复冲突行（conflicts.yaml 去重）"""
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     _write_user_rule(tmp_path, "my-rule.mdc", "允许使用裸 SQL。")
-    detector = ConflictDetector(db, tmp_path)
+    detector = _detector(store, tmp_path)
     await detector.scan("p1")
     stats = await detector.scan("p1")
     assert stats["detected"] == 0
-    assert len(await _open_conflicts(db)) == 1
+    assert len(_open_conflicts(tmp_path)) == 1
 
 
 # ---------- ISSUE-4：词边界 / 极性窗口 / overlap 优先级 ----------
 
 
-async def test_word_boundary_no_substring_false_positive(db, tmp_path):
+async def test_word_boundary_no_substring_false_positive(tmp_path):
     """英文短语按词边界匹配：Executor 不命中 ThreadPoolExecutor 内部子串"""
-    await _add_memory(db, title="禁止：Executor", content="禁止直接创建线程池")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：Executor", content="禁止直接创建线程池")
     _write_user_rule(tmp_path, "threading.mdc", "请使用 ThreadPoolExecutor 管理线程池。")
-    detector = ConflictDetector(db, tmp_path)
-    assert (await detector.scan("p1"))["detected"] == 0
+    assert (await _detector(store, tmp_path).scan("p1"))["detected"] == 0
 
 
-async def test_word_boundary_still_matches_exact(db, tmp_path):
+async def test_word_boundary_still_matches_exact(tmp_path):
     """词边界不误伤正常命中：独立出现的 Executor 仍触发检测"""
-    await _add_memory(db, title="Executor", content="工厂方法", content_type="convention",
-                      domain=None)
+    store = _store(tmp_path)
+    _add_memory(store, title="Executor", content="工厂方法", type="convention", domain=None)
     _write_user_rule(tmp_path, "threading.mdc", "请使用 Executor 工厂方法创建线程池。")
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["detected"] == 1
-    assert (await _open_conflicts(db))[0]["conflict_type"] == "overlap"
+    assert _open_conflicts(tmp_path)[0]["conflict_type"] == "overlap"
 
 
-async def test_contradiction_requires_permissive_window(db, tmp_path):
+async def test_contradiction_requires_permissive_window(tmp_path):
     """方向一致（而非/统一）的中性窗口不报 contradiction：许可词存在才报"""
-    await _add_memory(db, title="禁止：ResponseEntity", content="统一响应包装")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：ResponseEntity", content="统一响应包装")
     _write_user_rule(tmp_path, "resp.mdc", "统一 ApiDataResponse<T> 而非 ResponseEntity。")
-    detector = ConflictDetector(db, tmp_path)
-    assert (await detector.scan("p1"))["detected"] == 0
+    assert (await _detector(store, tmp_path).scan("p1"))["detected"] == 0
 
 
-async def test_overlap_priority_over_stale(db, tmp_path):
+async def test_overlap_priority_over_stale(tmp_path):
     """convention 命中即 overlap——即使窗口含禁止词、文件陈旧，也不落入 stale"""
-    await _add_memory(db, title="ApiDataResponse", content="统一响应包装",
-                      content_type="convention", domain="api")
+    store = _store(tmp_path)
+    doc_id = _add_memory(store, title="ApiDataResponse", content="统一响应包装",
+                         type="convention", domain="api")
     _write_user_rule(tmp_path, "resp.mdc", "禁止直接返回 ResponseEntity，统一 ApiDataResponse。",
                      mtime_days_ago=120)
-    await _seed_recall_hits(db, marker="api", n=3)
-    detector = ConflictDetector(db, tmp_path)
-    stats = await detector.scan("p1")
+    _seed_recall_hits(store, doc_id, n=3)
+    stats = await _detector(store, tmp_path).scan("p1")
     assert stats["detected"] == 1
-    assert (await _open_conflicts(db))[0]["conflict_type"] == "overlap"
+    assert _open_conflicts(tmp_path)[0]["conflict_type"] == "overlap"
 
 
 # ---------- 裁决流转 ----------
 
 
-async def test_resolve_user_wins_suppresses_memory(db, tmp_path):
-    """user_wins：学习记忆置 suppressed（不再注入），冲突关闭"""
-    item_id = await _add_memory(db, title="禁止：使用裸 SQL")
+async def test_resolve_user_wins_suppresses_memory(tmp_path):
+    """user_wins：学习记忆归档（不再注入），冲突关闭"""
+    store = _store(tmp_path)
+    item_id = _add_memory(store, title="禁止：使用裸 SQL")
     _write_user_rule(tmp_path, "my-rule.mdc", "允许使用裸 SQL。")
     on_change_calls = []
 
     async def on_change(project_id):
         on_change_calls.append(project_id)
 
-    detector = ConflictDetector(db, tmp_path, on_change=on_change)
+    detector = _detector(store, tmp_path, on_change=on_change)
     await detector.scan("p1")
-    conflict_id = (await _open_conflicts(db))[0]["id"]
+    conflict_id = _open_conflicts(tmp_path)[0]["id"]
 
     result = await detector.resolve(conflict_id, "user_wins", note="团队规约优先")
     assert result is not None and "不再注入" in result["guidance"]
     assert on_change_calls == ["p1"]  # 触发注入重写
 
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT status FROM knowledge_items WHERE id = ?", (item_id,)
-    ) as cur:
-        assert (await cur.fetchone())["status"] == "suppressed"
-    assert await _open_conflicts(db) == []
+    assert store.read(item_id).status == "archived"
+    assert _open_conflicts(tmp_path) == []
     # 已裁决冲突不可二次裁决
     assert await detector.resolve(conflict_id, "coexist") is None
 
 
-async def test_resolve_memory_wins_auto_close_on_file_change(db, tmp_path):
+async def test_resolve_memory_wins_auto_close_on_file_change(tmp_path):
     """memory_wins：指引用户手动改文件；下次扫描检测到 hash 变更 → 自动关闭"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     rule_path = _write_user_rule(tmp_path, "my-rule.mdc", "允许使用裸 SQL。")
-    detector = ConflictDetector(db, tmp_path)
+    detector = _detector(store, tmp_path)
     await detector.scan("p1")
-    conflict_id = (await _open_conflicts(db))[0]["id"]
+    conflict_id = _open_conflicts(tmp_path)[0]["id"]
 
     result = await detector.resolve(conflict_id, "memory_wins")
     assert "my-rule.mdc" in result["guidance"]  # 返回用户文件路径待手动改
@@ -250,26 +253,28 @@ async def test_resolve_memory_wins_auto_close_on_file_change(db, tmp_path):
     assert len(closed) == 1 and closed[0]["status"] == "closed"
 
 
-async def test_resolve_memory_wins_auto_close_on_file_delete(db, tmp_path):
+async def test_resolve_memory_wins_auto_close_on_file_delete(tmp_path):
     """memory_wins 后用户直接删除规则文件 → 同样自动关闭"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     rule_path = _write_user_rule(tmp_path, "my-rule.mdc", "允许使用裸 SQL。")
-    detector = ConflictDetector(db, tmp_path)
+    detector = _detector(store, tmp_path)
     await detector.scan("p1")
-    conflict_id = (await _open_conflicts(db))[0]["id"]
+    conflict_id = _open_conflicts(tmp_path)[0]["id"]
     await detector.resolve(conflict_id, "memory_wins")
 
     rule_path.unlink()
     assert (await detector.scan("p1"))["closed"] == 1
 
 
-async def test_resolve_coexist(db, tmp_path):
+async def test_resolve_coexist(tmp_path):
     """coexist：标记共存，该组合不再提醒"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     _write_user_rule(tmp_path, "my-rule.mdc", "允许使用裸 SQL。")
-    detector = ConflictDetector(db, tmp_path)
+    detector = _detector(store, tmp_path)
     await detector.scan("p1")
-    conflict_id = (await _open_conflicts(db))[0]["id"]
+    conflict_id = _open_conflicts(tmp_path)[0]["id"]
 
     result = await detector.resolve(conflict_id, "coexist")
     assert "共存" in result["guidance"]
@@ -284,11 +289,12 @@ def _runtime(detector):
     return SimpleNamespace(conflict_detector=detector)
 
 
-async def test_conflicts_tool_flow(db, tmp_path):
+async def test_conflicts_tool_flow(tmp_path):
     """工具层：scan → list → resolve 全链路"""
-    await _add_memory(db, title="禁止：使用裸 SQL")
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：使用裸 SQL")
     _write_user_rule(tmp_path, "my-rule.mdc", "允许使用裸 SQL。")
-    runtime = _runtime(ConflictDetector(db, tmp_path))
+    runtime = _runtime(_detector(store, tmp_path))
 
     scan = await conflicts_tool.handle(runtime, {"action": "scan", "project_id": "p1"})
     assert scan["status"] == "success" and scan["data"]["detected"] == 1

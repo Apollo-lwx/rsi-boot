@@ -10,7 +10,7 @@
 - 快照可导出为目录型 bundle（genome.json 清单 + 各槽位文件）
 
 槽位载体：prompt_template/skill/intent_rule 为 ~/.rsi 下文件；strategy/knowledge/profile
-为 DB 行。knowledge 快照不存 embedding BLOB（体积大且可由嵌入服务重建），恢复时重新生成。
+为 YAML / MemoryStore。knowledge 快照不存 embedding，恢复时重新生成。
 """
 
 from __future__ import annotations
@@ -25,7 +25,6 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from ..data.sqlite import SQLiteClient
 from ..memory.store import MemoryStore
 
 logger = logging.getLogger(__name__)
@@ -40,15 +39,11 @@ def _utc_iso() -> str:
 class SnapshotStore:
     def __init__(
         self,
-        db: Optional[SQLiteClient] = None,
+        store: MemoryStore,
         rsi_home: Optional[Path] = None,
-        store: MemoryStore | None = None,
     ):
-        if store is None and db is None:
-            raise TypeError("db is required when store is omitted")
-        self._db = db
         self._store = store
-        self._home = rsi_home if rsi_home is not None else (store.rsi_dir if store is not None else Path("."))
+        self._home = rsi_home if rsi_home is not None else store.rsi_dir
 
     # ---------- 槽位采集与重建 ----------
 
@@ -93,7 +88,6 @@ class SnapshotStore:
         }
 
     def _gather_slots_store(self, project_id: str) -> Dict[str, Any]:
-        assert self._store is not None
         overlays = self._file_overlays()
         strategy = self._load_yaml_file(self._home / "state" / "arms.yaml", "arms")
         knowledge = []
@@ -147,7 +141,6 @@ class SnapshotStore:
             overlay_path.unlink()
 
     def _restore_slots_store(self, project_id: str, slots: Dict[str, Any]) -> None:
-        assert self._store is not None
         self._restore_file_overlays(slots)
         arms_path = self._home / "state" / "arms.yaml"
         arms_path.parent.mkdir(parents=True, exist_ok=True)
@@ -214,232 +207,33 @@ class SnapshotStore:
         return resolved
 
     async def _gather_slots(self, project_id: str) -> Dict[str, Any]:
-        """导出 6 槽位当前内容（文件槽读 ~/.rsi 覆写层；DB 槽读项目行）"""
-        if self._store is not None:
-            return self._gather_slots_store(project_id)
-        conn = await self._db.connect()
-
-        templates: Dict[str, str] = {}
-        tpl_dir = self._home / "templates"
-        if tpl_dir.is_dir():
-            for p in sorted(tpl_dir.glob("*.jinja2")):
-                templates[p.name] = p.read_text(encoding="utf-8")
-
-        skills: Dict[str, str] = {}
-        skill_root = self._home / "skills"
-        if skill_root.is_dir():
-            for p in sorted(skill_root.glob("*/SKILL.md")):
-                skills[p.parent.name] = p.read_text(encoding="utf-8")
-
-        intent_overlay = ""
-        overlay_path = self._home / "intent_rules.yaml"
-        if overlay_path.is_file():
-            intent_overlay = overlay_path.read_text(encoding="utf-8")
-
-        async with conn.execute(
-            "SELECT id, intent, role, strategy_name, model_name, template_ref, weight,"
-            " alpha, beta, exposure_count, is_active FROM strategy_configs WHERE project_id = ?",
-            (project_id,),
-        ) as cur:
-            strategies = [dict(r) for r in await cur.fetchall()]
-
-        async with conn.execute(
-            "SELECT id, title, content, content_type, roles, domain, tags, source_url, status"
-            " FROM knowledge_items WHERE project_id = ?",
-            (project_id,),
-        ) as cur:
-            knowledge = [dict(r) for r in await cur.fetchall()]
-
-        async with conn.execute("SELECT user_id, profile_data FROM user_profiles WHERE project_id = ?",
-                                (project_id,)) as cur:
-            profiles = [dict(r) for r in await cur.fetchall()]
-
-        return {
-            "prompt_template": templates,
-            "skill": skills,
-            "strategy": strategies,
-            "intent_rule": {"overlay_yaml": intent_overlay},
-            "knowledge": knowledge,
-            "profile": profiles,
-        }
+        """导出 6 槽位当前内容（文件槽读 ~/.rsi 覆写层；YAML / MemoryStore 读项目行）"""
+        return self._gather_slots_store(project_id)
 
     async def _restore_slots(self, project_id: str, slots: Dict[str, Any]) -> None:
         """以解析后的槽位内容重建（回滚 = 切换快照，非逆向重放 diff）"""
-        if self._store is not None:
-            self._restore_slots_store(project_id, slots)
-            return
-        conn = await self._db.connect()
-        now = _utc_iso()
-
-        tpl_dir = self._home / "templates"
-        tpl_dir.mkdir(parents=True, exist_ok=True)
-        for p in tpl_dir.glob("*.jinja2"):
-            p.unlink()
-        for name, content in (slots.get("prompt_template") or {}).items():
-            (tpl_dir / name).write_text(content, encoding="utf-8")
-
-        skill_root = self._home / "skills"
-        skill_root.mkdir(parents=True, exist_ok=True)
-        for d in skill_root.iterdir():
-            if d.is_dir() and (d / "SKILL.md").is_file():
-                (d / "SKILL.md").unlink()
-                d.rmdir()
-        for name, content in (slots.get("skill") or {}).items():
-            d = skill_root / name
-            d.mkdir(exist_ok=True)
-            (d / "SKILL.md").write_text(content, encoding="utf-8")
-
-        overlay = (slots.get("intent_rule") or {}).get("overlay_yaml", "")
-        overlay_path = self._home / "intent_rules.yaml"
-        if overlay:
-            overlay_path.write_text(overlay, encoding="utf-8")
-        elif overlay_path.is_file():
-            overlay_path.unlink()
-
-        await conn.execute("DELETE FROM strategy_configs WHERE project_id = ?", (project_id,))
-        for row in slots.get("strategy") or []:
-            await conn.execute(
-                "INSERT INTO strategy_configs (id, project_id, intent, role, strategy_name, model_name,"
-                " template_ref, weight, alpha, beta, exposure_count, is_active, created_at, updated_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    row["id"], project_id, row["intent"], row.get("role"), row["strategy_name"],
-                    row["model_name"], row.get("template_ref"), row.get("weight", 1.0),
-                    row.get("alpha", 1.0), row.get("beta", 1.0), row.get("exposure_count", 0),
-                    row.get("is_active", 1), now, now,
-                ),
-            )
-
-        # knowledge 恢复不带回 embedding（快照未存 BLOB）：active 条目需重新嵌入才可向量检索，
-        # 由调用方触发嵌入重建；FTS 由触发器同步，立即可检索
-        await conn.execute("DELETE FROM knowledge_items WHERE project_id = ?", (project_id,))
-        for row in slots.get("knowledge") or []:
-            await conn.execute(
-                "INSERT INTO knowledge_items (id, project_id, title, content, content_type, roles,"
-                " domain, tags, source_url, status, embedding, created_at, updated_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)",
-                (
-                    row["id"], project_id, row["title"], row["content"],
-                    row.get("content_type", "documentation"), row.get("roles", "[]"),
-                    row.get("domain"), row.get("tags", "[]"), row.get("source_url"),
-                    row.get("status", "active"), now, now,
-                ),
-            )
-
-        for row in slots.get("profile") or []:
-            await conn.execute(
-                "INSERT INTO user_profiles (user_id, project_id, profile_data, created_at, updated_at)"
-                " VALUES (?, ?, ?, ?, ?)"
-                " ON CONFLICT(user_id, project_id) DO UPDATE SET profile_data = excluded.profile_data,"
-                " updated_at = excluded.updated_at",
-                (row["user_id"], project_id, row["profile_data"], now, now),
-            )
-        await conn.commit()
+        self._restore_slots_store(project_id, slots)
 
     # ---------- 版本管理 ----------
 
     async def _latest_version(self, project_id: str) -> int:
-        if self._store is not None:
-            versions = [v["version"] for v in self._list_store(project_id)]
-            return max(versions) if versions else 0
-        conn = await self._db.connect()
-        async with conn.execute(
-            "SELECT MAX(version) FROM config_snapshots WHERE project_id = ?", (project_id,)
-        ) as cur:
-            row = await cur.fetchone()
-        return int(row[0]) if row and row[0] is not None else 0
+        versions = [v["version"] for v in self._list_store(project_id)]
+        return max(versions) if versions else 0
 
     async def _resolve(self, project_id: str, version: int) -> Dict[str, Any]:
         """按合并语义解析指定版本的完整槽位内容（沿版本链回放 inherit/reset/value）"""
-        if self._store is not None:
-            return self._resolve_store(project_id, version)
-        conn = await self._db.connect()
-        async with conn.execute(
-            "SELECT version, slots FROM config_snapshots WHERE project_id = ? AND version <= ?"
-            " ORDER BY version",
-            (project_id, version),
-        ) as cur:
-            rows = await cur.fetchall()
-        resolved: Dict[str, Any] = {}
-        for row in rows:
-            slots = json.loads(row["slots"])
-            for slot, entry in slots.items():
-                if not isinstance(entry, dict):
-                    resolved[slot] = entry
-                    continue
-                if entry.get("inherit"):
-                    continue  # 缺省 = 继承上一版本
-                if entry.get("reset"):
-                    resolved[slot] = {} if slot != "intent_rule" else {"overlay_yaml": ""}
-                elif "value" in entry:
-                    resolved[slot] = entry["value"]
-        return resolved
+        return self._resolve_store(project_id, version)
 
     async def capture(self, project_id: str, trigger_proposal: Optional[str] = None) -> int:
         """晋升时整体快照：与上一版本解析结果一致的槽位存 inherit 标记。返回新版本号"""
-        if self._store is not None:
-            return self._capture_store(project_id, trigger_proposal)
-        current = await self._gather_slots(project_id)
-        prev_version = await self._latest_version(project_id)
-        previous = await self._resolve(project_id, prev_version) if prev_version else {}
-
-        slots: Dict[str, Any] = {}
-        for slot, content in current.items():
-            if previous.get(slot) == content:
-                slots[slot] = {"inherit": True}
-            else:
-                slots[slot] = {"value": content}
-
-        version = prev_version + 1
-        conn = await self._db.connect()
-        # 原 active 快照转 superseded（同一时刻仅一个 active 版本）
-        await conn.execute(
-            "UPDATE config_snapshots SET status = 'superseded' WHERE project_id = ? AND status = 'active'",
-            (project_id,),
-        )
-        await conn.execute(
-            "INSERT INTO config_snapshots (id, project_id, version, trigger_proposal, slots, status, created_at)"
-            " VALUES (?, ?, ?, ?, ?, 'active', ?)",
-            (uuid.uuid4().hex, project_id, version, trigger_proposal,
-             json.dumps(slots, ensure_ascii=False), _utc_iso()),
-        )
-        await conn.commit()
-        logger.info("配置快照 v%d 已捕获（项目 %s，触发提案 %s）", version, project_id, trigger_proposal)
-        return version
+        return self._capture_store(project_id, trigger_proposal)
 
     async def list(self, project_id: str) -> List[Dict[str, Any]]:
-        if self._store is not None:
-            return self._list_store(project_id)
-        conn = await self._db.connect()
-        async with conn.execute(
-            "SELECT version, trigger_proposal, status, created_at FROM config_snapshots"
-            " WHERE project_id = ? ORDER BY version DESC",
-            (project_id,),
-        ) as cur:
-            return [dict(r) for r in await cur.fetchall()]
+        return self._list_store(project_id)
 
     async def switch(self, project_id: str, version: int) -> bool:
         """回滚/切换：解析目标版本内容重建槽位；目标标记 rolled_back_to，原 active 转 superseded"""
-        if self._store is not None:
-            return self._switch_store(project_id, version)
-        versions = {v["version"] for v in await self.list(project_id)}
-        if version not in versions:
-            return False
-        resolved = await self._resolve(project_id, version)
-        await self._restore_slots(project_id, resolved)
-
-        conn = await self._db.connect()
-        await conn.execute(
-            "UPDATE config_snapshots SET status = 'superseded' WHERE project_id = ? AND status = 'active'",
-            (project_id,),
-        )
-        await conn.execute(
-            "UPDATE config_snapshots SET status = 'rolled_back_to' WHERE project_id = ? AND version = ?",
-            (project_id, version),
-        )
-        await conn.commit()
-        logger.info("已切换到快照 v%d（项目 %s）", version, project_id)
-        return True
+        return self._switch_store(project_id, version)
 
     async def export_bundle(self, project_id: str, version: int, out_dir: Path) -> Optional[Path]:
         """导出目录型 bundle：genome.json 清单 + 各槽位文件（跨项目迁移/备份）"""
@@ -480,7 +274,6 @@ class SnapshotStore:
         return out_dir
 
     def _snapshots_root(self) -> Path:
-        assert self._store is not None
         return self._store.rsi_dir / "state" / "snapshots"
 
     def _list_store(self, project_id: str) -> List[Dict[str, Any]]:

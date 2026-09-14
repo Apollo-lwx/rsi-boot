@@ -1,9 +1,11 @@
-from rsi_boot.core.models import KnowledgeItem, RSIRequest
+import uuid
+from datetime import datetime, timezone
+
+from rsi_boot.core.models import RSIRequest
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
 from rsi_boot.model.adapter import ModelAdapter
 from rsi_boot.model.registry import ModelRegistry
 from rsi_boot.orchestrator.pipeline import Pipeline
-from rsi_boot.services.knowledge_service import KnowledgeService
 from rsi_boot.services.log_service import LogService
 
 
@@ -21,18 +23,24 @@ async def test_end_to_end_with_mock(db, base_config):
     assert resp.feedback_token
     assert resp.cost_info.model == "mock"
 
-    # 两段式日志：终态已落库
-    logs = LogService(db)
+    # 两段式日志：终态已落文件事件
+    from rsi_boot.memory.store import MemoryStore
+
+    logs = LogService(MemoryStore(db.db_path.parent / ".rsi"))
     ctx = await logs.get_token_context(resp.feedback_token)
     assert ctx is not None and ctx[1] == "u1"
 
 
 async def test_knowledge_injection_in_prompt(db, base_config):
     retriever = KnowledgeRetriever(db, base_config)
-    service = KnowledgeService(db, retriever)
-    await service.add(
-        KnowledgeItem(project_id="default", title="约定", content="统一使用 snake_case 命名")
+    conn = await db.connect()
+    now = datetime.now(timezone.utc).isoformat()
+    await conn.execute(
+        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, status, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, 'documentation', 'active', ?, ?)",
+        (uuid.uuid4().hex, "default", "约定", "统一使用 snake_case 命名", now, now),
     )
+    await conn.commit()
     pipeline = _pipeline(db, base_config)
     resp = await pipeline.run(RSIRequest(user_id="u1", raw_input="本项目的命名约定"))
     assert "含注入知识" in resp.content[0].body

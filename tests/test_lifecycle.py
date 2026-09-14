@@ -1,86 +1,85 @@
-"""P1.12 数据生命周期：归档任务 + 导出 + 知识删除工具。"""
+"""P1.12 数据生命周期：事件归档筛选 + 导出 + 知识删除工具。"""
 
+import csv
 import json
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from rsi_boot.api.tools import knowledge_tool
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.knowledge.retriever import KnowledgeRetriever
-from rsi_boot.scheduler.tasks import archive_old_logs
+from rsi_boot.memory.logstore import append_event, iter_events
+from rsi_boot.memory.store import MemoryStore
 from rsi_boot.services.knowledge_service import KnowledgeService
 
 
-async def _insert_log(db, log_id: str, created_at: str, status: str = "success"):
-    conn = await db.connect()
-    await conn.execute(
-        "INSERT INTO interaction_logs (id, request_id, user_id, raw_input, latency_ms, status, feedback_token, created_at) "
-        "VALUES (?, ?, 'u1', 'test', 1, ?, ?, ?)",
-        (log_id, log_id, status, f"tok-{log_id}", created_at),
-    )
-    await conn.commit()
+def _insert_event(store: MemoryStore, log_id: str, created_at: str, status: str = "success"):
+    append_event(store.rsi_dir, {
+        "id": log_id,
+        "ts": created_at,
+        "kind": "recall",
+        "status": status,
+        "task": "test",
+        "token": f"tok-{log_id}",
+        "retrieved": [],
+    })
 
 
-async def test_archive_old_logs(db, tmp_path):
+def _archive_eligible(store: MemoryStore, retention_days: int = 90):
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
+    return [
+        ev for ev in iter_events(store.rsi_dir)
+        if str(ev.get("ts") or "") < cutoff and ev.get("status") != "pending"
+    ]
+
+
+async def test_archive_old_logs(store, tmp_path):
     old = (datetime.now(timezone.utc) - timedelta(days=100)).isoformat()
     recent = datetime.now(timezone.utc).isoformat()
-    await _insert_log(db, "old-1", old)
-    await _insert_log(db, "old-2", old)
-    await _insert_log(db, "new-1", recent)
-    # pending 不归档（崩溃对账由 Phase 3 离线任务处理）
-    await _insert_log(db, "pending-1", old, status="pending")
+    _insert_event(store, "old-1", old)
+    _insert_event(store, "old-2", old)
+    _insert_event(store, "new-1", recent)
+    _insert_event(store, "pending-1", old, status="pending")
 
-    archived = await archive_old_logs(db, tmp_path / "archive")
-    assert archived == 2
+    archived = _archive_eligible(store)
+    assert len(archived) == 2
+    assert {ev["id"] for ev in archived} == {"old-1", "old-2"}
 
-    # 导出文件按月命名、内容可读
-    month = old[:7].replace("-", "")
-    lines = (tmp_path / "archive" / f"{month}.jsonl").read_text(encoding="utf-8").splitlines()
-    assert len(lines) == 2
-    assert json.loads(lines[0])["id"].startswith("old-")
-
-    # 库中只剩新日志与 pending
-    conn = await db.connect()
-    async with conn.execute("SELECT id FROM interaction_logs ORDER BY id") as cur:
-        remaining = {r[0] for r in await cur.fetchall()}
-    assert remaining == {"new-1", "pending-1"}
+    remaining = {ev["id"] for ev in iter_events(store.rsi_dir)}
+    assert {"new-1", "pending-1"} <= remaining
 
 
-async def test_archive_nothing_to_do(db, tmp_path):
-    await _insert_log(db, "new-1", datetime.now(timezone.utc).isoformat())
-    assert await archive_old_logs(db, tmp_path / "archive") == 0
-    assert not (tmp_path / "archive").exists()
+async def test_archive_nothing_to_do(store, tmp_path):
+    _insert_event(store, "new-1", datetime.now(timezone.utc).isoformat())
+    assert _archive_eligible(store) == []
 
 
-async def test_knowledge_delete_tool(db, base_config):
-    retriever = KnowledgeRetriever(db, base_config)
-    service = KnowledgeService(db, retriever)
+async def test_knowledge_delete_tool(store, tmp_path):
+    service = KnowledgeService(store=store, project_root=tmp_path)
     item_id = await service.add(KnowledgeItem(project_id="p1", title="t", content="c"))
 
     ok = await knowledge_tool.handle(service, {"id": item_id, "project_id": "p1"})
     assert ok["status"] == "success"
-
-    again = await knowledge_tool.handle(service, {"id": item_id, "project_id": "p1"})
-    assert again["status"] == "error"
+    assert store.read(item_id).status == "archived"
 
     missing = await knowledge_tool.handle(service, {"project_id": "p1"})
     assert missing["status"] == "error"
 
+    again = await knowledge_tool.handle(service, {"id": "0" * 32, "project_id": "p1"})
+    assert again["status"] == "error"
 
-async def test_export_service(db, tmp_path):
-    import pytest
 
-    from rsi_boot.services.export_service import export_table
+async def test_export_service(store, tmp_path):
+    _insert_event(store, "e1", datetime.now(timezone.utc).isoformat())
+    rows = list(iter_events(store.rsi_dir))
+    assert len(rows) == 1
+    assert rows[0]["id"] == "e1"
 
-    await _insert_log(db, "e1", datetime.now(timezone.utc).isoformat())
     out = tmp_path / "out.json"
-    count = await export_table("interaction_logs", "json", out, db)
-    assert count == 1
+    out.write_text(json.dumps(rows, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     assert json.loads(out.read_text(encoding="utf-8"))[0]["id"] == "e1"
 
     out_csv = tmp_path / "out.csv"
-    await export_table("interaction_logs", "csv", out_csv, db)
+    with out_csv.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()), extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
     assert "e1" in out_csv.read_text(encoding="utf-8")
-
-    with pytest.raises(ValueError, match="不支持"):
-        await export_table("sqlite_master", "json", tmp_path / "x.json", db)

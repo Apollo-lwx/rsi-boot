@@ -144,8 +144,6 @@ class Runtime:
         self.injector = RuleInjector(store=self.store, project_root=self._project_root)
         self.knowledge = KnowledgeService(
             store=self.store,
-            retriever=self.retriever,
-            embedding=embedding,
             bound_project_id=self.project_id,
             project_root=self._project_root,
         )

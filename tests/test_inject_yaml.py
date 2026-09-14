@@ -61,5 +61,5 @@ def test_store_bundle_disables_convention_inject(tmp_path):
         MemoryDoc(id="b" * 32, type="convention", title="约定用命名参数", content="不用位置参数"),
         dest=official_dir(store.rsi_dir, "convention") / "named--bbbbbbbb.yaml",
     )
-    bundle = RuleInjector(store=store, project_root=tmp_path)._load_bundle_from_store()
+    bundle = RuleInjector(store=store, project_root=tmp_path)._load_bundle()
     assert bundle.inject_conventions is False

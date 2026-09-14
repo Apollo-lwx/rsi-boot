@@ -288,13 +288,13 @@ async def test_resolve_keep_item_invalidates_retriever_cache(tmp_path, monkeypat
     hits = {"n": 0}
     try:
         _, _, conflict = await _seed_incoherent_pair(rt)
-        orig = rt.retriever.invalidate_cache
+        orig = rt.invalidate_index
 
         def _spy() -> None:
             hits["n"] += 1
             orig()
 
-        rt.retriever.invalidate_cache = _spy
+        rt.invalidate_index = _spy
         result = await rt.conflict_detector.resolve(conflict["id"], "keep_item")
         assert result is not None
         assert hits["n"] >= 1

@@ -84,19 +84,3 @@ async def test_stale_adoption_uses_retrieved_ids(tmp_path):
     items = payload["conflicts"] if isinstance(payload, dict) else payload
     assert items[0]["type"] == "stale"
     assert items[0]["item_id"] == doc_id
-
-
-@pytest.mark.asyncio
-async def test_sqlite_conflict_helpers_refuse_file_store(tmp_path):
-    store = MemoryStore(tmp_path / ".rsi")
-    det = ConflictDetector(store=store, project_root=tmp_path)
-    with pytest.raises(TypeError, match="file store"):
-        await det._close_resolved("p1", [])
-    with pytest.raises(TypeError, match="file store"):
-        await det._resolve_version({"item_id": "a" * 32, "project_id": "p1"}, "coexist", "now")
-    with pytest.raises(TypeError, match="file store"):
-        await det._resolve_knowledge_pair(
-            {"item_id": "a" * 32, "project_id": "p1", "user_rule_path": "x", "user_rule_excerpt": ""},
-            "coexist",
-            "now",
-        )

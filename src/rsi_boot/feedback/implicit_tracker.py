@@ -16,9 +16,7 @@ modified 且 diff > 20% 的知识提取候选队列在 Phase 3 接入（§4.3）
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
-import uuid
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from typing import Dict, Optional
@@ -27,7 +25,6 @@ import yaml
 from pydantic import BaseModel, Field
 
 from ..core.models import FeedbackAction
-from ..data.sqlite import SQLiteClient
 from ..learning.pipeline import extract_from_feedback
 from ..memory.logstore import iter_events
 from ..memory.store import MemoryStore
@@ -97,19 +94,15 @@ class FeedbackWorker:
 
     def __init__(
         self,
-        db: Optional[SQLiteClient] = None,
+        store: MemoryStore,
         maxsize: int = 1000,
         quality: Optional[QualityAssessor] = None,
         profiles: Optional[ProfileService] = None,
-        store: MemoryStore | None = None,
     ):
-        if store is None and db is None:
-            raise TypeError("db is required when store is omitted")
-        self._db = db
         self._store = store
         self._quality = quality
         self._profiles = profiles
-        self._logs = LogService(store=store) if store is not None else LogService(db)
+        self._logs = LogService(store=store)
         self.queue: asyncio.Queue[ImplicitEvent] = asyncio.Queue(maxsize=maxsize)
         self._task: Optional[asyncio.Task] = None
 
@@ -146,76 +139,9 @@ class FeedbackWorker:
                 self.queue.task_done()
 
     async def _process(self, event: ImplicitEvent) -> None:
-        if self._store is not None:
-            await self._process_store(event)
-            return
-        conn = await self._db.connect()
-        async with conn.execute(
-            "SELECT id, user_id, project_id, intent, strategy_name, raw_input, retrieved_tags "
-            "FROM interaction_logs WHERE feedback_token = ?",
-            (event.feedback_token,),
-        ) as cur:
-            row = await cur.fetchone()
-        if row is None:
-            logger.warning("反馈事件 token 无对应日志，跳过")
-            return
-
-        # copied/referenced：该次检索命中标签 +1（§4.2 画像更新列）
-        if event.action in ("copied", "referenced") and self._profiles is not None:
-            tags = json.loads(row["retrieved_tags"]) if row["retrieved_tags"] else []
-            if tags:
-                await self._profiles.record_interest_boost(
-                    row["user_id"], row["project_id"] or "default", tags,
-                )
-
-        # Thompson 更新：action 与 rating reward 叠加（§4.2「分别生效」数值等价）
-        reward = ACTION_REWARD.get(event.action, 0.0) + rating_reward(event.rating)
-        if reward != 0.0 and row["strategy_name"]:
-            await self._apply_reward(row["project_id"] or "default", row["intent"], row["strategy_name"], reward)
-
-        # modified diff > 20% → 知识提取候选入库（§4.4 规则式提取，每日任务汇集）
-        if event.action == "modified" and event.modified_content:
-            ratio = diff_ratio(row["raw_input"] or "", event.modified_content)
-            if ratio > DIFF_CANDIDATE_THRESHOLD:
-                await self._enqueue_candidate(row, "modified", event.modified_content)
-                logger.info("知识提取候选已入队：diff_ratio=%.2f", ratio)
-
-        # rejected + comment → 禁止项提取候选（§4.4：comment 全文前缀规范化「禁止：」）
-        if event.action == "rejected" and event.comment:
-            await self._enqueue_candidate(row, "rejected", event.comment)
-            logger.info("禁止项提取候选已入队（rejected+comment）")
-
-        # 差评必查（§3.5）：rating ≤ 2 补做 accuracy 评判并回写 quality_score
-        if event.rating is not None and event.rating <= 2 and self._quality is not None:
-            qresult = await self._quality.judge_negative_feedback(event.feedback_token)
-            if qresult is not None:
-                await self._logs.refresh_quality_score(event.feedback_token, qresult.quality_score)
-                logger.info(
-                    "差评 accuracy 必查完成：score=%.2f reason=%s",
-                    qresult.accuracy or 0.0, qresult.judge_reason or "",
-                )
-
-    async def _enqueue_candidate(self, log_row: dict, candidate_type: str, answer: str) -> None:
-        """候选写入 extraction_candidates（UNIQUE 约束幂等，重复反馈不重复入队）"""
-        conn = await self._db.connect()
-        await conn.execute(
-            "INSERT OR IGNORE INTO extraction_candidates"
-            " (id, project_id, source_log_id, candidate_type, question, answer, status, created_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)",
-            (
-                uuid.uuid4().hex,
-                log_row["project_id"] or "default",
-                log_row["id"],
-                candidate_type,
-                log_row["raw_input"] or "",
-                answer[:8000],
-                datetime.now(timezone.utc).isoformat(),
-            ),
-        )
-        await conn.commit()
+        await self._process_store(event)
 
     async def _process_store(self, event: ImplicitEvent) -> None:
-        assert self._store is not None
         row = None
         for ev in iter_events(self._store.rsi_dir):
             if ev.get("token") == event.feedback_token and ev.get("kind") != "feedback":
@@ -257,7 +183,6 @@ class FeedbackWorker:
                 await self._logs.refresh_quality_score(event.feedback_token, qresult.quality_score)
 
     async def _apply_reward_store(self, project_id: str, strategy_name: str, reward: float) -> None:
-        assert self._store is not None
         path = self._store.rsi_dir / "state" / "arms.yaml"
         if not path.is_file():
             return
@@ -288,23 +213,4 @@ class FeedbackWorker:
             tmp.write_text(yaml.safe_dump(rows if isinstance(data, list) else {"arms": rows},
                                           allow_unicode=True, sort_keys=False), encoding="utf-8")
             tmp.replace(dest)
-            logger.info("策略 %s reward %+.1f 已应用", strategy_name, reward)
-
-    async def _apply_reward(self, project_id: str, intent: Optional[str], strategy_name: str, reward: float) -> None:
-        """§3.3：reward > 0 → alpha += reward；< 0 → beta += |reward|；兜底策略（未落库）跳过"""
-        if self._store is not None:
-            await self._apply_reward_store(project_id, strategy_name, reward)
-            return
-        conn = await self._db.connect()
-        now = datetime.now(timezone.utc).isoformat()
-        if reward > 0:
-            sql = "UPDATE strategy_configs SET alpha = alpha + ?, updated_at = ?"
-        else:
-            sql = "UPDATE strategy_configs SET beta = beta + ?, updated_at = ?"
-        cur = await conn.execute(
-            sql + " WHERE project_id = ? AND intent = ? AND strategy_name = ? AND is_active = 1",
-            (abs(reward), now, project_id, intent or "", strategy_name),
-        )
-        await conn.commit()
-        if cur.rowcount:
             logger.info("策略 %s reward %+.1f 已应用", strategy_name, reward)

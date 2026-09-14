@@ -23,7 +23,6 @@ from rsi_boot.scanner.correlation_engine import (
 from rsi_boot.scanner.git_analyzer import analyze_git
 from rsi_boot.scanner.incremental import archive_missing_signals
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.knowledge.retriever import KnowledgeRetriever
 from rsi_boot.services.knowledge_service import KnowledgeService
 
 
@@ -190,23 +189,19 @@ def test_correlate_commit_files(git_repo):
 # ---------- incremental ----------
 
 
-async def test_archive_missing_signals(db, base_config):
-    service = KnowledgeService(db, KnowledgeRetriever(db, base_config))
+async def test_archive_missing_signals(store, tmp_path):
+    service = KnowledgeService(store=store, project_root=tmp_path)
     item = KnowledgeItem(project_id="p1", title="旧文档", content="x" * 300, source_url="docs/old.md")
-    await service.add(item)
+    item_id = await service.add(item)
 
     class _Rt:
         pass
 
     rt = _Rt()
-    rt.db = db
+    rt.store = store
     archived = await archive_missing_signals(rt, "p1", {"docs/old.md": "abc"}, current_files=set())
     assert archived == 1
-
-    conn = await db.connect()
-    async with conn.execute("SELECT status FROM knowledge_items WHERE source_url = 'docs/old.md'") as cur:
-        row = await cur.fetchone()
-    assert row["status"] == "archived"
+    assert store.read(item_id).status == "archived"
 
     # 文件仍存在时不归档
     archived = await archive_missing_signals(rt, "p1", {"docs/old.md": "abc"}, current_files={"docs/old.md"})

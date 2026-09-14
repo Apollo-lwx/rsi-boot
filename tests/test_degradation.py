@@ -1,9 +1,7 @@
-"""§5.2/§5.3/§5.4 降级链路：sqlite/embedding 熔断器（3/30s）、Level 1/2 降级、
-LLM full-jitter 重试、SQLite 提交 BUSY 重试（测试计划 CIR-01/02、CHA-01/02）。"""
+"""§5.2/§5.3/§5.4 降级链路：embedding 熔断器、Level 1 降级、
+LLM full-jitter 重试、SQLite 提交 BUSY 重试。LogService 不再走 sqlite fail-soft。"""
 
 import asyncio
-import uuid
-from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import aiosqlite
@@ -11,31 +9,14 @@ import pytest
 
 from rsi_boot.common.circuit_breaker import State
 from rsi_boot.core.exceptions import ModelTimeoutError
-from rsi_boot.core.models import RSIRequest
-from rsi_boot.data.sqlite import SQLiteClient
 from rsi_boot.knowledge.embedding import EmbeddingService
-from rsi_boot.knowledge.retriever import KnowledgeRetriever
 from rsi_boot.model.adapter import ModelAdapter
 from rsi_boot.model.providers.mock import MockProvider
-from rsi_boot.orchestrator.pipeline import Pipeline
 from rsi_boot.services.log_service import LogService
 from rsi_boot.services.profile_service import ProfileService
 
 
-def _broken_connect(db, monkeypatch, exc=None):
-    """让 db.connect 持续抛运行态错误，返回调用计数器"""
-    calls = {"n": 0}
-    original = db.connect
-
-    async def _raising():
-        calls["n"] += 1
-        raise (exc or aiosqlite.OperationalError("disk I/O error"))
-
-    monkeypatch.setattr(db, "connect", _raising)
-    return calls, original
-
-
-# ---------- sqlite 熔断器（§5.2：阈值 3 / 恢复 30s） ----------
+# ---------- sqlite 熔断器参数（客户端本身仍保留） ----------
 
 
 def test_sqlite_breaker_params(db):
@@ -44,62 +25,16 @@ def test_sqlite_breaker_params(db):
     assert db.breaker.state is State.CLOSED  # 进程内冷启动（CIR-07）
 
 
-async def test_log_insert_failsoft_and_breaker_trips(db, monkeypatch):
-    logs = LogService(db)
-    calls, _ = _broken_connect(db, monkeypatch)
-    req = RSIRequest(user_id="u", raw_input="q")
-
-    for _ in range(3):
-        assert await logs.insert_pending(req, "tok") == ""  # 降级跳过持久化，不抛异常
-    assert db.breaker.state is State.OPEN  # 连续 3 次运行态失败 → OPEN（CIR-01）
-
-    assert await logs.insert_pending(req, "tok") == ""
-    assert calls["n"] == 3  # OPEN 后 fail-fast，不再实际连接（CIR-05）
+async def test_finalize_noop_on_empty_log_id(store):
+    await LogService(store).finalize("", status="success")  # pending 已降级 → 直接跳过
 
 
-async def test_non_operational_error_not_counted(db, monkeypatch):
-    logs = LogService(db)
-    _broken_connect(db, monkeypatch, exc=aiosqlite.IntegrityError("UNIQUE constraint"))
-    for _ in range(3):
-        await logs.insert_pending(RSIRequest(user_id="u", raw_input="q"), "tok")
-    assert db.breaker.state is State.CLOSED  # 业务/约束错误不计入（§5.1 口径）
-
-
-async def test_finalize_noop_on_empty_log_id(db):
-    await LogService(db).finalize("", status="success")  # pending 已降级 → 直接跳过
-
-
-async def test_profile_get_degrades_to_default(db, monkeypatch):
-    profiles = ProfileService(db)
-    calls, _ = _broken_connect(db, monkeypatch)
-
+async def test_profile_get_on_missing_returns_default(store):
+    """无画像文件时 get 返回默认画像，不依赖 sqlite"""
+    profiles = ProfileService(store)
     profile = await profiles.get("u", "p1")
-    assert profile.user_id == "u" and not profile.expertise  # 默认画像，不阻塞（§3.8）
-    for _ in range(2):
-        profiles._cache.clear()
-        await profiles.get("u", "p1")
-    assert db.breaker.state is State.OPEN
-    profiles._cache.clear()
-    await profiles.get("u", "p1")
-    assert calls["n"] == 3  # OPEN 后 fail-fast
-
-
-async def test_pipeline_level2_response_still_returned(db, base_config, monkeypatch):
-    """CHA-01：sqlite 不可用 → 日志/画像跳过持久化，响应照常返回（§5.4 Level 2）"""
-    adapter = ModelAdapter(ModelRegistryStub(), base_config)
-    pipeline = Pipeline(db, base_config, KnowledgeRetriever(db, base_config), adapter,
-                        profiles=ProfileService(db))
-    req = lambda: RSIRequest(user_id="u", project_id="p1", raw_input="如何配置超时", intent="howto")
-
-    warm = await pipeline.run(req())  # 预热策略臂/画像缓存
-    assert warm.status == "success"
-    await pipeline.drain()
-
-    _broken_connect(db, monkeypatch)
-    degraded = await pipeline.run(req())
-    await pipeline.drain()
-    assert degraded.status == "success"  # 响应照常返回
-    assert degraded.content[0].body == warm.content[0].body
+    assert profile.user_id == "u" and not profile.expertise
+    assert profile.frequently_used_intents == {}
 
 
 class ModelRegistryStub:

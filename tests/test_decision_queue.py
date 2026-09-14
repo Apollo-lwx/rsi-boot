@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import json
-import uuid
-from datetime import datetime, timezone
 
+from memory_helpers import write_memory_conflict, write_memory_item
 from rsi_boot.services.decision_queue import (
     DecisionCard,
     DecisionQueue,
@@ -74,65 +73,33 @@ def test_pick_empty_returns_none():
     assert DecisionQueue().pick([]) is None
 
 
-async def _insert_item(db, *, project_id, title, source_url, tags, status="pending_review"):
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat()
-    item_id = uuid.uuid4().hex
-    await conn.execute(
-        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, domain, tags,"
-        " source_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'convention', NULL, ?, ?, ?, ?, ?)",
-        (item_id, project_id, title, f"{title} body", json.dumps(tags, ensure_ascii=False),
-         source_url, status, now, now),
-    )
-    await conn.commit()
-    return item_id
-
-
-async def _insert_conflict(
-    db, *, project_id, item_id, peer_source, conflict_type="incoherent", excerpt="excerpt",
-    resolution_note="recommended:keep_item",
-):
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat()
-    cid = uuid.uuid4().hex
-    await conn.execute(
-        "INSERT INTO rule_conflicts (id, project_id, item_id, user_rule_path, user_rule_excerpt,"
-        " user_rule_hash, conflict_type, status, resolution_note, detected_at)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)",
-        (cid, project_id, item_id, peer_source, excerpt, uuid.uuid4().hex, conflict_type,
-         resolution_note, now),
-    )
-    await conn.commit()
-    return cid
-
-
-async def test_collect_classifies_daily_and_bootstrap_and_extract(db, tmp_path):
+async def test_collect_classifies_daily_and_bootstrap_and_extract(store):
     pid = "p1"
-    daily_item = await _insert_item(
-        db, project_id=pid, title="禁止：pydantic",
+    daily_item = write_memory_item(
+        store, title="禁止：pydantic",
         source_url="auto-extract", tags=["signal:conversation"],
     )
-    daily_id = await _insert_conflict(db, project_id=pid, item_id=daily_item, peer_source="docs/api.md")
+    daily_id = write_memory_conflict(store, item_id=daily_item, peer_source="docs/api.md")
 
-    boot_item = await _insert_item(
-        db, project_id=pid, title="文档 v2",
+    boot_item = write_memory_item(
+        store, title="文档 v2",
         source_url="docs/v2.md", tags=["signal:docs", "bootstrap_run_id:run-x"],
     )
-    boot_id = await _insert_conflict(
-        db, project_id=pid, item_id=boot_item, peer_source="docs/v1.md", conflict_type="version",
+    boot_id = write_memory_conflict(
+        store, item_id=boot_item, peer_source="docs/v1.md", conflict_type="version",
     )
 
     run_id = "run-x"
-    await _insert_item(
-        db, project_id=pid, title="抽取决策",
+    write_memory_item(
+        store, title="抽取决策",
         source_url="cursor/chat.md",
         tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
     )
-    (tmp_path / "bootstrap_run.json").write_text(
+    (store.rsi_dir / "bootstrap_run.json").write_text(
         json.dumps({"latest": run_id}), encoding="utf-8",
     )
 
-    cards = await collect_decision_cards(db, pid, project_root=None)
+    cards = await collect_decision_cards(store, pid)
     by_kind = {c.kind: c for c in cards}
     assert set(by_kind) == {"daily_conflict", "bootstrap_conflict", "bootstrap_extract"}
     assert by_kind["daily_conflict"].id == daily_id
@@ -154,63 +121,63 @@ async def test_collect_classifies_daily_and_bootstrap_and_extract(db, tmp_path):
     assert all(extract_ids)
 
 
-async def test_collect_item_peer_path_uses_real_old_title(db):
+async def test_collect_item_peer_path_uses_real_old_title(store):
     pid = "p1"
-    old_id = await _insert_item(
-        db, project_id=pid, title="API 用 pydantic",
+    old_id = write_memory_item(
+        store, title="API 用 pydantic",
         source_url="", tags=["signal:conversation"], status="active",
     )
-    new_id = await _insert_item(
-        db, project_id=pid, title="禁止：pydantic",
+    new_id = write_memory_item(
+        store, title="禁止：pydantic",
         source_url="auto-extract", tags=["signal:conversation"],
     )
-    await _insert_conflict(
-        db, project_id=pid, item_id=new_id, peer_source=f"item:{old_id}",
+    write_memory_conflict(
+        store, item_id=new_id, peer_source=f"item:{old_id}",
         excerpt=f"极性相反 historical_id={old_id}",
     )
-    cards = await collect_decision_cards(db, pid, project_root=None)
+    cards = await collect_decision_cards(store, pid)
     daily = next(c for c in cards if c.kind == "daily_conflict")
     old_side = next(s for s in daily.sides if s["role"] == "old")
     assert old_side["title"] == "API 用 pydantic"
     assert not old_side["title"].startswith("item:")
 
 
-async def test_collect_hash_peer_path_uses_real_old_title(db):
+async def test_collect_hash_peer_path_uses_real_old_title(store):
     pid = "p1"
-    old_id = await _insert_item(
-        db, project_id=pid, title="共享文档旧稿",
+    old_id = write_memory_item(
+        store, title="共享文档旧稿",
         source_url="docs/shared.md", tags=["signal:docs"], status="active",
     )
-    new_id = await _insert_item(
-        db, project_id=pid, title="共享文档新稿",
+    new_id = write_memory_item(
+        store, title="共享文档新稿",
         source_url="auto-extract", tags=["signal:conversation"],
     )
-    await _insert_conflict(
-        db, project_id=pid, item_id=new_id,
+    write_memory_conflict(
+        store, item_id=new_id,
         peer_source=f"docs/shared.md#{old_id}",
     )
-    cards = await collect_decision_cards(db, pid, project_root=None)
+    cards = await collect_decision_cards(store, pid)
     daily = next(c for c in cards if c.kind == "daily_conflict")
     old_side = next(s for s in daily.sides if s["role"] == "old")
     assert old_side["title"] == "共享文档旧稿"
 
 
-async def test_collect_historical_id_excerpt_fallback(db):
+async def test_collect_historical_id_excerpt_fallback(store):
     pid = "p1"
-    old_id = await _insert_item(
-        db, project_id=pid, title="历史约定",
+    old_id = write_memory_item(
+        store, title="历史约定",
         source_url="", tags=["signal:conversation"], status="active",
     )
-    new_id = await _insert_item(
-        db, project_id=pid, title="新约定",
+    new_id = write_memory_item(
+        store, title="新约定",
         source_url="auto-extract", tags=["signal:conversation"],
     )
-    await _insert_conflict(
-        db, project_id=pid, item_id=new_id,
+    write_memory_conflict(
+        store, item_id=new_id,
         peer_source="unresolvable-path",
         excerpt=f"极性相反 historical_id={old_id}",
     )
-    cards = await collect_decision_cards(db, pid, project_root=None)
+    cards = await collect_decision_cards(store, pid)
     daily = next(c for c in cards if c.kind == "daily_conflict")
     old_side = next(s for s in daily.sides if s["role"] == "old")
     assert old_side["title"] == "历史约定"
@@ -238,7 +205,7 @@ async def test_collect_store_extract_card_includes_conversation_faq(tmp_path):
             source_url="cursor/chat.md",
         ))
         cards = await collect_decision_cards(
-            None, rt.project_id, project_root=root, store=rt.store,
+            rt.store, rt.project_id, project_root=root,
         )
         extract = next(c for c in cards if c.kind == "bootstrap_extract")
         extract_ids = [s.get("item_id") for s in extract.sides if s.get("role") == "extract"]
@@ -247,21 +214,21 @@ async def test_collect_store_extract_card_includes_conversation_faq(tmp_path):
         await rt.close()
 
 
-async def test_version_card_defaults_recommended_keep_peer_without_prefix(db):
+async def test_version_card_defaults_recommended_keep_peer_without_prefix(store):
     pid = "p1"
-    item_id = await _insert_item(
-        db, project_id=pid, title="Foo v1.0",
+    item_id = write_memory_item(
+        store, title="Foo v1.0",
         source_url="foo-v1.0.md", tags=["signal:docs", "bootstrap_run_id:run-v"],
     )
-    await _insert_item(
-        db, project_id=pid, title="Foo v1.1",
+    write_memory_item(
+        store, title="Foo v1.1",
         source_url="foo-v1.1.md", tags=["signal:docs", "bootstrap_run_id:run-v"],
         status="pending_review",
     )
-    await _insert_conflict(
-        db, project_id=pid, item_id=item_id, peer_source="foo-v1.1.md",
+    write_memory_conflict(
+        store, item_id=item_id, peer_source="foo-v1.1.md",
         conflict_type="version", resolution_note=None,
     )
-    cards = await collect_decision_cards(db, pid, project_root=None)
+    cards = await collect_decision_cards(store, pid)
     version = next(c for c in cards if c.kind == "bootstrap_conflict")
     assert version.recommended == "keep_peer"

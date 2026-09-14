@@ -3,75 +3,35 @@
 from __future__ import annotations
 
 import json
-import uuid
-from datetime import datetime, timezone
-from pathlib import Path
 
 from rsi_boot.api.tools import conflicts_tool, knowledge_review_tool, recall_tool
 from rsi_boot.bootstrap import build_runtime
 
 from memory_helpers import write_memory_conflict, write_memory_item
 from rsi_boot.injector.targets import CursorRuleTarget, MemoryBundle, MemoryRow
-from rsi_boot.knowledge.retriever import KnowledgeRetriever
-from rsi_boot.services.knowledge_service import KnowledgeService
 from rsi_boot.services.recall_service import RecallService
-from rsi_boot.strategy.recall import RecallArmSelector
 
 SECRET = "test-secret"
 
 
-def _services(db, config, decisions=None):
-    retriever = KnowledgeRetriever(db, config)
-    arms = RecallArmSelector(db)
-    knowledge = KnowledgeService(db, retriever)
-    recall = RecallService(db, retriever, arms, SECRET, decisions=decisions)
-    return recall, knowledge
+def _recall(store, decisions=None):
+    return RecallService(store=store, feedback_secret=SECRET, decisions=decisions)
 
 
-async def _insert_item(db, *, project_id, title, source_url, tags, status="pending_review"):
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat()
-    item_id = uuid.uuid4().hex
-    await conn.execute(
-        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, domain, tags,"
-        " source_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'convention', NULL, ?, ?, ?, ?, ?)",
-        (item_id, project_id, title, f"{title} 内容足够长 " * 4,
-         json.dumps(tags, ensure_ascii=False), source_url, status, now, now),
-    )
-    await conn.commit()
-    return item_id
-
-
-async def _insert_conflict(db, *, project_id, item_id, peer_source, conflict_type="incoherent"):
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat()
-    cid = uuid.uuid4().hex
-    await conn.execute(
-        "INSERT INTO rule_conflicts (id, project_id, item_id, user_rule_path, user_rule_excerpt,"
-        " user_rule_hash, conflict_type, status, resolution_note, detected_at)"
-        " VALUES (?, ?, ?, ?, 'excerpt', ?, ?, 'open', 'recommended:keep_item', ?)",
-        (cid, project_id, item_id, peer_source, uuid.uuid4().hex, conflict_type, now),
-    )
-    await conn.commit()
-    return cid
-
-
-async def test_recall_default_decisions_empty(db, base_config):
-    recall, _ = _services(db, base_config)
-    result = await recall.recall("随便问问缓存", "p1")
+async def test_recall_default_decisions_empty(store):
+    result = await _recall(store).recall("随便问问缓存", "p1")
     assert result["decisions"] == []
 
 
-async def test_recall_open_daily_conflict_returns_decision_card(db, base_config):
-    item_id = await _insert_item(
-        db, project_id="p1", title="禁止：pydantic",
+async def test_recall_open_daily_conflict_returns_decision_card(store):
+    item_id = write_memory_item(
+        store, title="禁止：pydantic",
         source_url="auto-extract", tags=["signal:conversation"],
     )
-    conflict_id = await _insert_conflict(
-        db, project_id="p1", item_id=item_id, peer_source="docs/api.md",
+    conflict_id = write_memory_conflict(
+        store, item_id=item_id, peer_source="docs/api.md",
     )
-    recall, _ = _services(db, base_config)
-    result = await recall.recall("API 校验怎么写", "p1")
+    result = await _recall(store).recall("API 校验怎么写", "p1")
     assert len(result["decisions"]) == 1
     card = result["decisions"][0]
     assert card["kind"] == "daily_conflict"
@@ -81,19 +41,18 @@ async def test_recall_open_daily_conflict_returns_decision_card(db, base_config)
     assert card["more_waiting"] == 0
 
 
-async def test_recall_more_waiting_counts_remaining(db, base_config):
-    a = await _insert_item(
-        db, project_id="p1", title="禁止 A",
+async def test_recall_more_waiting_counts_remaining(store):
+    a = write_memory_item(
+        store, title="禁止 A",
         source_url="auto-extract", tags=["signal:conversation"],
     )
-    b = await _insert_item(
-        db, project_id="p1", title="禁止 B",
+    b = write_memory_item(
+        store, title="禁止 B",
         source_url="auto-extract", tags=["signal:conversation"],
     )
-    await _insert_conflict(db, project_id="p1", item_id=a, peer_source="docs/a.md")
-    await _insert_conflict(db, project_id="p1", item_id=b, peer_source="docs/b.md")
-    recall, _ = _services(db, base_config)
-    result = await recall.recall("冲突怎么处理", "p1")
+    write_memory_conflict(store, item_id=a, peer_source="docs/a.md")
+    write_memory_conflict(store, item_id=b, peer_source="docs/b.md")
+    result = await _recall(store).recall("冲突怎么处理", "p1")
     assert result["decisions"][0]["kind"] == "daily_conflict"
     assert result["decisions"][0]["more_waiting"] == 1
 

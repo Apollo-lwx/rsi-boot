@@ -10,11 +10,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ..cli.knowledge_accept import iter_run_extracts, load_latest_run_id
-from ..data.sqlite import SQLiteClient
+from ..memory.store import MemoryStore
 
 _HISTORICAL_ID_RE = re.compile(r"historical_id=([^\s]+)")
 
-_EXTRACT_SIGNALS = frozenset({"signal:conversation", "signal:rules"})
 _KIND_PRIORITY = {
     "daily_conflict": 0,
     "bootstrap_conflict": 1,
@@ -134,57 +133,6 @@ def _historical_id_from_excerpt(excerpt: str) -> Optional[str]:
     return match.group(1) if match else None
 
 
-async def _item_by_id(conn: Any, project_id: str, item_id: str) -> Optional[dict[str, Any]]:
-    if not item_id:
-        return None
-    async with conn.execute(
-        "SELECT id, title, content, source_url, status, tags FROM knowledge_items "
-        "WHERE project_id = ? AND id = ?",
-        (project_id, item_id),
-    ) as cur:
-        row = await cur.fetchone()
-    return dict(row) if row else None
-
-
-async def _item_by_source_url(conn: Any, project_id: str, source_url: str) -> Optional[dict[str, Any]]:
-    if not source_url:
-        return None
-    async with conn.execute(
-        "SELECT id, title, content, source_url, status, tags FROM knowledge_items "
-        "WHERE project_id = ? AND REPLACE(IFNULL(source_url, ''), '\\', '/') = ?",
-        (project_id, source_url),
-    ) as cur:
-        row = await cur.fetchone()
-    return dict(row) if row else None
-
-
-async def _peer_row(
-    conn: Any, project_id: str, source: str, excerpt: str = "",
-) -> Optional[dict[str, Any]]:
-    """Resolve Task 8 synthetic keys: item:<id>, {url}#{id}, or historical_id= in excerpt."""
-    norm = (source or "").replace("\\", "/")
-    if norm.startswith("item:"):
-        found = await _item_by_id(conn, project_id, norm[5:])
-        if found:
-            return found
-    elif "#" in norm:
-        url, suffix = norm.rsplit("#", 1)
-        found = await _item_by_id(conn, project_id, suffix)
-        if found:
-            return found
-        found = await _item_by_source_url(conn, project_id, url)
-        if found:
-            return found
-    elif norm:
-        found = await _item_by_source_url(conn, project_id, norm)
-        if found:
-            return found
-    hist_id = _historical_id_from_excerpt(excerpt)
-    if hist_id:
-        return await _item_by_id(conn, project_id, hist_id)
-    return None
-
-
 def _conflict_card(
     *,
     conflict_id: str,
@@ -268,82 +216,13 @@ def _extract_card(run_id: str, pending_items: list[dict[str, Any]]) -> DecisionC
 
 
 async def collect_decision_cards(
-    db: Optional[SQLiteClient],
+    store: MemoryStore,
     project_id: str,
     *,
     project_root: Optional[Path] = None,
-    store: Any = None,
 ) -> list[DecisionCard]:
     """收集当前可问的抉择卡（未 pick、未算 more_waiting）。"""
-    if store is not None:
-        return await _collect_decision_cards_store(store, project_id, project_root=project_root)
-    assert db is not None
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT c.id, c.item_id, c.user_rule_path, c.user_rule_excerpt, c.conflict_type,"
-        " c.resolution_note, k.title AS item_title, k.content AS item_content,"
-        " k.source_url AS item_source, k.tags AS item_tags, k.status AS item_status"
-        " FROM rule_conflicts c LEFT JOIN knowledge_items k ON k.id = c.item_id"
-        " WHERE c.project_id = ? AND c.status = 'open'"
-        " AND c.conflict_type IN ('incoherent', 'version', 'doc_code')",
-        (project_id,),
-    ) as cur:
-        rows = await cur.fetchall()
-
-    cards: list[DecisionCard] = []
-    for row in rows:
-        item = {
-            "id": row["item_id"],
-            "title": row["item_title"] or "",
-            "content": row["item_content"] or "",
-            "source_url": row["item_source"] or "",
-            "status": row["item_status"] or "",
-            "tags": row["item_tags"],
-        }
-        tags = _parse_tags(item["tags"])
-        source = item["source_url"]
-        if source == "auto-extract" or not _has_bootstrap_run_tag(tags):
-            kind = "daily_conflict"
-        else:
-            kind = "bootstrap_conflict"
-        peer_source = (row["user_rule_path"] or "").replace("\\", "/")
-        peer = await _peer_row(
-            conn, project_id, peer_source, row["user_rule_excerpt"] or "",
-        )
-        cards.append(_conflict_card(
-            conflict_id=row["id"],
-            kind=kind,
-            ctype=row["conflict_type"],
-            item=item,
-            peer=peer,
-            peer_source=peer_source,
-            excerpt=row["user_rule_excerpt"] or "",
-            recommended=_recommended_of(row["resolution_note"], row["conflict_type"]),
-            recommended_reason=row["user_rule_excerpt"] or "",
-        ))
-
-    run_id = load_latest_run_id(project_root, getattr(db, "db_path", None))
-    if run_id:
-        marker = f"bootstrap_run_id:{run_id}"
-        async with conn.execute(
-            "SELECT id, title, content, tags, source_url FROM knowledge_items "
-            "WHERE project_id = ? AND status = 'pending_review'",
-            (project_id,),
-        ) as cur:
-            pending = await cur.fetchall()
-        extracts: list[dict[str, Any]] = []
-        for prow in pending:
-            if (prow["source_url"] or "") == "auto-extract":
-                continue
-            ptags = _parse_tags(prow["tags"])
-            if marker not in ptags:
-                continue
-            if not _EXTRACT_SIGNALS.intersection(ptags):
-                continue
-            extracts.append(dict(prow))
-        if extracts:
-            cards.append(_extract_card(run_id, extracts))
-    return cards
+    return await _collect_decision_cards_store(store, project_id, project_root=project_root)
 
 
 def _doc_source_url(doc: Any) -> str:
@@ -436,7 +315,7 @@ async def _collect_decision_cards_store(
             recommended_reason=excerpt,
         ))
 
-    run_id = load_latest_run_id(project_root, store.rsi_dir / "rsi.db")
+    run_id = load_latest_run_id(project_root, store.rsi_dir / "bootstrap_run.json")
     if run_id:
         extracts = [_doc_as_item(doc) for doc in iter_run_extracts(store, run_id)]
         if extracts:
@@ -444,37 +323,15 @@ async def _collect_decision_cards_store(
     return cards
 
 
-async def _pending_extract_count(db: SQLiteClient, project_id: str, run_id: str) -> int:
-    marker = f"bootstrap_run_id:{run_id}"
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT tags, source_url FROM knowledge_items "
-        "WHERE project_id = ? AND status = 'pending_review'",
-        (project_id,),
-    ) as cur:
-        pending = await cur.fetchall()
-    n = 0
-    for prow in pending:
-        if (prow["source_url"] or "") == "auto-extract":
-            continue
-        ptags = _parse_tags(prow["tags"])
-        if marker not in ptags:
-            continue
-        if not _EXTRACT_SIGNALS.intersection(ptags):
-            continue
-        n += 1
-    return n
-
-
 async def close_extract_runs(
     decisions: Optional[DecisionQueue],
     tags_rows: list[Any],
     *,
-    db: Optional[SQLiteClient] = None,
     store: Any = None,
-    project_id: str,
+    project_id: str = "",
 ) -> None:
     """知识审批成功后，仅当该 run 无剩余 pending 抽取时关闭 extract:<run_id>。"""
+    del project_id
     if decisions is None:
         return
     run_ids: set[str] = set()
@@ -483,12 +340,7 @@ async def close_extract_runs(
             if tag.startswith("bootstrap_run_id:"):
                 run_ids.add(tag.split(":", 1)[1])
     for run_id in run_ids:
-        if store is not None:
-            remaining = _pending_extract_count_store(store, run_id)
-        elif db is not None:
-            remaining = await _pending_extract_count(db, project_id, run_id)
-        else:
-            remaining = 0
+        remaining = _pending_extract_count_store(store, run_id) if store is not None else 0
         if remaining == 0:
             decisions.close(f"extract:{run_id}")
 

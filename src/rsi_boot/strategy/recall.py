@@ -20,7 +20,6 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from ..data.sqlite import SQLiteClient
 from ..memory.store import MemoryStore
 
 logger = logging.getLogger(__name__)
@@ -49,10 +48,7 @@ class RecallArm:
 class RecallArmSelector:
     """召回臂的播种、Thompson 选择、曝光计数；运行时读取走 60s 内存缓存"""
 
-    def __init__(self, db: Optional[SQLiteClient] = None, store: MemoryStore | None = None):
-        if store is None and db is None:
-            raise TypeError("db is required when store is omitted")
-        self._db = db
+    def __init__(self, store: MemoryStore):
         self._store = store
         self._cache: Dict[str, tuple[float, List[RecallArm]]] = {}
 
@@ -69,56 +65,12 @@ class RecallArmSelector:
         if cached and time.monotonic() - cached[0] < _CACHE_TTL_S:
             return cached[1]
 
-        if self._store is not None:
-            rows = self._load_arms_store(project_id)
-            arms = [self._to_arm_row(r) for r in rows]
-            self._cache[project_id] = (time.monotonic(), arms)
-            return arms
-
-        conn = await self._db.connect()
-        async with conn.execute(
-            "SELECT id, strategy_name, params, alpha, beta FROM strategy_configs "
-            "WHERE project_id = ? AND intent = ? AND is_active = 1",
-            (project_id, RECALL_INTENT),
-        ) as cur:
-            rows = await cur.fetchall()
-        if not rows:
-            await self._seed(project_id)
-            async with conn.execute(
-                "SELECT id, strategy_name, params, alpha, beta FROM strategy_configs "
-                "WHERE project_id = ? AND intent = ? AND is_active = 1",
-                (project_id, RECALL_INTENT),
-            ) as cur:
-                rows = await cur.fetchall()
-
-        arms = [self._to_arm(r) for r in rows]
+        rows = self._load_arms_store(project_id)
+        arms = [self._to_arm_row(r) for r in rows]
         self._cache[project_id] = (time.monotonic(), arms)
         return arms
 
-    async def _seed(self, project_id: str) -> None:
-        conn = await self._db.connect()
-        now = datetime.now(timezone.utc).isoformat()
-        for name, params in DEFAULT_ARMS:
-            await conn.execute(
-                "INSERT INTO strategy_configs (id, project_id, intent, role, strategy_name,"
-                " model_name, template_ref, weight, params, is_active, created_at, updated_at)"
-                " VALUES (?, ?, ?, NULL, ?, 'none', NULL, 1.0, ?, 1, ?, ?)",
-                (uuid.uuid4().hex, project_id, RECALL_INTENT, name, json.dumps(params), now, now),
-            )
-        await conn.commit()
-        logger.info("项目 %s 召回臂已播种（%d 个）", project_id, len(DEFAULT_ARMS))
-
-    @staticmethod
-    def _to_arm(row: Any) -> RecallArm:
-        params = json.loads(row["params"] or "{}")
-        return RecallArm(
-            id=row["id"], name=row["strategy_name"],
-            top_n=int(params.get("top_n", 5)), threshold=float(params.get("threshold", 0.6)),
-            alpha=float(row["alpha"]), beta=float(row["beta"]),
-        )
-
     def _arms_path(self) -> Path:
-        assert self._store is not None
         return self._store.rsi_dir / "state" / "arms.yaml"
 
     def _read_all_arm_rows(self) -> List[Dict[str, Any]]:
@@ -199,22 +151,14 @@ class RecallArmSelector:
 
     def _spawn_exposure(self, arm_id: str) -> None:
         async def _incr() -> None:
-            if self._store is not None:
-                rows = self._read_all_arm_rows()
-                now = datetime.now(timezone.utc).isoformat()
-                for row in rows:
-                    if row.get("id") == arm_id:
-                        row["exposure"] = int(row.get("exposure") or row.get("exposure_count") or 0) + 1
-                        row["updated_at"] = now
-                        break
-                self._write_all_arm_rows(rows)
-                return
-            conn = await self._db.connect()
-            await conn.execute(
-                "UPDATE strategy_configs SET exposure_count = exposure_count + 1, updated_at = ? WHERE id = ?",
-                (datetime.now(timezone.utc).isoformat(), arm_id),
-            )
-            await conn.commit()
+            rows = self._read_all_arm_rows()
+            now = datetime.now(timezone.utc).isoformat()
+            for row in rows:
+                if row.get("id") == arm_id:
+                    row["exposure"] = int(row.get("exposure") or row.get("exposure_count") or 0) + 1
+                    row["updated_at"] = now
+                    break
+            self._write_all_arm_rows(rows)
 
         task = asyncio.create_task(_incr())
         task.add_done_callback(self._on_bg_done)

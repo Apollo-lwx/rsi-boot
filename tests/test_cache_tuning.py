@@ -1,25 +1,34 @@
 """P4.4：进程内缓存调优（§2.4）——检索结果缓存、embedding 缓存、响应缓存（默认关闭）。"""
 
-import json
 import uuid
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from rsi_boot.core.models import KnowledgeItem, RSIRequest
+from rsi_boot.core.models import RSIRequest
 from rsi_boot.knowledge.embedding import EmbeddingService
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
+from rsi_boot.memory.logstore import iter_events
+from rsi_boot.memory.store import MemoryStore
 from rsi_boot.model.adapter import ModelAdapter
 from rsi_boot.model.providers.mock import MockProvider
 from rsi_boot.orchestrator.pipeline import Pipeline
-from rsi_boot.services.knowledge_service import KnowledgeService
 
 
 def _retriever(db, config):
     return KnowledgeRetriever(db, config)  # 无 embedding/vec → 纯 FTS 通道
 
 
-async def _add_item(service, title, content, project_id="p1"):
-    return await service.add(KnowledgeItem(project_id=project_id, title=title, content=content))
+async def _add_item(db, title, content, project_id="p1"):
+    conn = await db.connect()
+    now = datetime.now(timezone.utc).isoformat()
+    item_id = uuid.uuid4().hex
+    await conn.execute(
+        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, roles, tags, status, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, 'documentation', '[]', '[]', 'active', ?, ?)",
+        (item_id, project_id, title, content, now, now),
+    )
+    await conn.commit()
+    return item_id
 
 
 # ---------- 检索结果缓存 ----------
@@ -27,13 +36,12 @@ async def _add_item(service, title, content, project_id="p1"):
 
 async def test_retrieval_cache_hit_and_invalidate_on_write(db, base_config):
     retriever = _retriever(db, base_config)
-    service = KnowledgeService(db, retriever)
-    await _add_item(service, "timeout guide", "configure timeout properly")
+    await _add_item(db, "timeout guide", "configure timeout properly")
 
     first = await retriever.search("timeout", "p1")
     assert len(first) == 1
 
-    # 绕过 service 直接插库（不失效缓存）→ 命中旧缓存，看不到新条目
+    # 直接插库（不失效缓存）→ 命中旧缓存，看不到新条目
     conn = await db.connect()
     now = datetime.now(timezone.utc).isoformat()
     await conn.execute(
@@ -44,26 +52,28 @@ async def test_retrieval_cache_hit_and_invalidate_on_write(db, base_config):
     await conn.commit()
     assert len(await retriever.search("timeout", "p1")) == 1  # 缓存命中
 
-    # 经 service 写入 → invalidate_cache → 立即可见
-    await _add_item(service, "timeout more", "timeout retry backoff")
+    # 写入后 invalidate_cache → 立即可见
+    await _add_item(db, "timeout more", "timeout retry backoff")
+    retriever.invalidate_cache()
     assert len(await retriever.search("timeout", "p1")) == 3
 
 
 async def test_retrieval_cache_invalidate_on_delete(db, base_config):
     retriever = _retriever(db, base_config)
-    service = KnowledgeService(db, retriever)
-    item_id = await _add_item(service, "timeout guide", "configure timeout properly")
+    item_id = await _add_item(db, "timeout guide", "configure timeout properly")
     assert len(await retriever.search("timeout", "p1")) == 1
 
-    await service.delete(item_id, "p1")
+    conn = await db.connect()
+    await conn.execute("DELETE FROM knowledge_items WHERE id = ?", (item_id,))
+    await conn.commit()
+    retriever.invalidate_cache()
     assert await retriever.search("timeout", "p1") == []  # 删除后缓存已失效
 
 
 async def test_retrieval_cache_disabled(db, base_config):
     cfg = {**base_config, "retrieval": {**base_config["retrieval"], "cache_ttl_s": 0}}
     retriever = _retriever(db, cfg)
-    service = KnowledgeService(db, retriever)
-    await _add_item(service, "timeout guide", "configure timeout properly")
+    await _add_item(db, "timeout guide", "configure timeout properly")
     assert len(await retriever.search("timeout", "p1")) == 1
 
     conn = await db.connect()
@@ -174,12 +184,11 @@ async def test_response_cache_hit(db, base_config):
     assert resp2.content[0].structured_data == {"cache_hit": True}
     assert resp1.feedback_token != resp2.feedback_token  # 各自可独立反馈
 
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT total_tokens FROM interaction_logs ORDER BY created_at"
-    ) as cur:
-        rows = await cur.fetchall()
-    assert [r["total_tokens"] for r in rows][1] == 0  # 命中行零 token，不污染用量统计
+    store = MemoryStore(db.db_path.parent / ".rsi")
+    rows = [e for e in iter_events(store.rsi_dir) if e.get("status") in ("success", "error", "pending")]
+    finalized = [e for e in rows if e.get("status") != "pending"]
+    assert len(finalized) >= 2
+    assert int(finalized[-1].get("total_tokens") or 0) == 0  # 命中行零 token，不污染用量统计
 
 
 async def test_response_cache_disabled_by_default(db, base_config):

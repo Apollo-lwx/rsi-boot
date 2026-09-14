@@ -8,9 +8,9 @@ from rsi_boot.knowledge.embedding import EmbeddingService
 from rsi_boot.model.adapter import ModelAdapter
 from rsi_boot.model.providers.base import ModelResult
 from rsi_boot.model.registry import ModelRegistry
+from rsi_boot.memory.logstore import iter_events
 from rsi_boot.orchestrator.pipeline import Pipeline
 from rsi_boot.quality.assessor import QualityAssessor, _rescale_cosine, actionability_score
-from rsi_boot.services.knowledge_service import KnowledgeService
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
 
 
@@ -139,13 +139,13 @@ async def test_negative_feedback_mandatory_check(monkeypatch):
 # ---------- 管线集成 ----------
 
 
-async def test_pipeline_returns_quality_score(db):
+async def test_pipeline_returns_quality_score(db, store):
     config = _config()
     embedding = EmbeddingService(config)
     adapter = ModelAdapter(ModelRegistry(config), config)
     quality = QualityAssessor(embedding, adapter, config)
     retriever = KnowledgeRetriever(db, config, embedding=embedding)
-    pipeline = Pipeline(db, config, retriever, adapter, quality=quality)
+    pipeline = Pipeline(db, config, retriever, adapter, quality=quality, store=store)
 
     resp = await pipeline.run(RSIRequest(user_id="u1", raw_input="如何使用本工具？"))
     assert resp.status == "success"
@@ -153,22 +153,20 @@ async def test_pipeline_returns_quality_score(db):
     assert 0.0 <= resp.quality_score <= 1.0
 
     # 日志终态已写入 quality_score
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT quality_score FROM interaction_logs WHERE feedback_token = ?", (resp.feedback_token,)
-    ) as cur:
-        row = await cur.fetchone()
-    assert row["quality_score"] == pytest.approx(resp.quality_score)
+    rows = [e for e in iter_events(store.rsi_dir) if e.get("token") == resp.feedback_token]
+    scores = [e.get("quality_score") for e in rows if e.get("quality_score") is not None]
+    assert scores
+    assert scores[-1] == pytest.approx(resp.quality_score)
 
 
-async def test_feedback_worker_negative_rating_rechecks(db, monkeypatch):
+async def test_feedback_worker_negative_rating_rechecks(db, store, monkeypatch):
     """端到端：rating ≤ 2 反馈触发 accuracy 必查并回写日志 quality_score"""
     config = _config()
     embedding = EmbeddingService(config)
     adapter = ModelAdapter(ModelRegistry(config), config)
     quality = QualityAssessor(embedding, adapter, config)
     retriever = KnowledgeRetriever(db, config, embedding=embedding)
-    pipeline = Pipeline(db, config, retriever, adapter, quality=quality)
+    pipeline = Pipeline(db, config, retriever, adapter, quality=quality, store=store)
 
     resp = await pipeline.run(RSIRequest(user_id="u1", raw_input="解释架构设计"))
     old_score = resp.quality_score
@@ -179,12 +177,12 @@ async def test_feedback_worker_negative_rating_rechecks(db, monkeypatch):
 
     monkeypatch.setattr(adapter, "complete", fake_complete)
 
-    worker = FeedbackWorker(db, quality=quality)
+    worker = FeedbackWorker(store, quality=quality)
     await worker._process(ImplicitEvent(feedback_token=resp.feedback_token, action="rejected", rating=1))
 
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT quality_score FROM interaction_logs WHERE feedback_token = ?", (resp.feedback_token,)
-    ) as cur:
-        row = await cur.fetchone()
-    assert row["quality_score"] != pytest.approx(old_score)  # 含 accuracy=0.1 后分数变化
+    rows = [
+        e for e in iter_events(store.rsi_dir)
+        if e.get("token") == resp.feedback_token and e.get("quality_score") is not None
+    ]
+    assert rows
+    assert rows[-1]["quality_score"] != pytest.approx(old_score)  # 含 accuracy=0.1 后分数变化

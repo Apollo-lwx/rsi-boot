@@ -5,9 +5,10 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
+import yaml
 
 from rsi_boot.api.tools import feedback_tool
-from rsi_boot.core.models import generate_feedback_token
+from rsi_boot.core.models import RSIRequest, generate_feedback_token
 from rsi_boot.feedback.implicit_tracker import (
     ACTION_REWARD,
     FeedbackWorker,
@@ -15,42 +16,56 @@ from rsi_boot.feedback.implicit_tracker import (
     diff_ratio,
     rating_reward,
 )
+from rsi_boot.memory.logstore import append_event, iter_events
+from rsi_boot.memory.store import MemoryStore
 from rsi_boot.services.log_service import LogService
 
 SECRET = "test-secret"
 
 
-async def _make_log(db, user_id="u1", project_id="p1", intent="debug", strategy="s1"):
-    """插入一条 success 日志并返回 (feedback_token, request_id)"""
-    from rsi_boot.core.models import RSIRequest
-
-    request = RSIRequest(user_id=user_id, project_id=project_id, raw_input="帮我 debug")
-    token = generate_feedback_token(request.request_id, user_id, SECRET)
-    logs = LogService(db)
-    log_id = await logs.insert_pending(request, token)
-    await logs.finalize(log_id, status="success", intent=intent, intent_confidence=0.9,
-                        strategy_name=strategy, model_name="mock", latency_ms=5)
-    return token, str(request.request_id)
-
-
-async def _add_strategy(db, project_id="p1", intent="debug", name="s1"):
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat()
+def _write_arm(store: MemoryStore, name="s1", alpha=1.0, beta=1.0) -> str:
     sid = uuid.uuid4().hex
-    await conn.execute(
-        "INSERT INTO strategy_configs (id, project_id, intent, strategy_name, model_name, created_at, updated_at)"
-        " VALUES (?, ?, ?, ?, 'mock', ?, ?)",
-        (sid, project_id, intent, name, now, now),
-    )
-    await conn.commit()
+    dest = store.rsi_dir / "state" / "arms.yaml"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    rows = [{
+        "id": sid,
+        "name": name,
+        "intent": "debug",
+        "alpha": alpha,
+        "beta": beta,
+        "active": True,
+    }]
+    dest.write_text(yaml.safe_dump(rows, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return sid
 
 
-async def _get_alpha_beta(db, sid):
-    conn = await db.connect()
-    async with conn.execute("SELECT alpha, beta FROM strategy_configs WHERE id = ?", (sid,)) as cur:
-        row = await cur.fetchone()
-    return row["alpha"], row["beta"]
+def _arm_alpha_beta(store: MemoryStore, sid: str) -> tuple[float, float]:
+    payload = yaml.safe_load((store.rsi_dir / "state" / "arms.yaml").read_text(encoding="utf-8"))
+    rows = payload if isinstance(payload, list) else list((payload or {}).get("arms") or [])
+    row = next(r for r in rows if r.get("id") == sid)
+    return float(row["alpha"]), float(row["beta"])
+
+
+async def _make_log(store, user_id="u1", project_id="p1", intent="debug", strategy="s1"):
+    """写入一条 success 召回事件并返回 (feedback_token, request_id)"""
+    request = RSIRequest(user_id=user_id, project_id=project_id, raw_input="帮我 debug")
+    token = generate_feedback_token(request.request_id, user_id, SECRET)
+    log_id = uuid.uuid4().hex
+    append_event(store.rsi_dir, {
+        "id": log_id,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "kind": "recall",
+        "task": request.raw_input,
+        "token": token,
+        "status": "success",
+        "project_id": project_id,
+        "user_id": user_id,
+        "request_id": str(request.request_id),
+        "intent": intent,
+        "arm": strategy,
+        "retrieved": [],
+    })
+    return token, str(request.request_id)
 
 
 async def _drain(worker: FeedbackWorker):
@@ -83,25 +98,25 @@ def test_reward_mapping():
 # ---------- FeedbackWorker ----------
 
 
-async def test_worker_applies_positive_reward(db):
-    sid = await _add_strategy(db)
-    token, _ = await _make_log(db)
-    worker = FeedbackWorker(db)
+async def test_worker_applies_positive_reward(store):
+    sid = _write_arm(store)
+    token, _ = await _make_log(store)
+    worker = FeedbackWorker(store=store)
     worker.start()
     try:
         worker.submit(ImplicitEvent(feedback_token=token, action="accepted"))
         await _drain(worker)
     finally:
         await worker.stop()
-    alpha, beta = await _get_alpha_beta(db, sid)
+    alpha, beta = _arm_alpha_beta(store, sid)
     assert alpha == pytest.approx(3.0)  # 先验 1 + reward 2
     assert beta == pytest.approx(1.0)
 
 
-async def test_worker_applies_negative_reward_with_rating(db):
-    sid = await _add_strategy(db)
-    token, _ = await _make_log(db)
-    worker = FeedbackWorker(db)
+async def test_worker_applies_negative_reward_with_rating(store):
+    sid = _write_arm(store)
+    token, _ = await _make_log(store)
+    worker = FeedbackWorker(store=store)
     worker.start()
     try:
         # rejected(-1) + rating 1(-1) = -2 → beta += 2
@@ -109,26 +124,26 @@ async def test_worker_applies_negative_reward_with_rating(db):
         await _drain(worker)
     finally:
         await worker.stop()
-    alpha, beta = await _get_alpha_beta(db, sid)
+    alpha, beta = _arm_alpha_beta(store, sid)
     assert alpha == pytest.approx(1.0)
     assert beta == pytest.approx(3.0)
 
 
-async def test_worker_ignored_zero_reward_no_update(db):
-    sid = await _add_strategy(db)
-    token, _ = await _make_log(db)
-    worker = FeedbackWorker(db)
+async def test_worker_ignored_zero_reward_no_update(store):
+    sid = _write_arm(store)
+    token, _ = await _make_log(store)
+    worker = FeedbackWorker(store=store)
     worker.start()
     try:
         worker.submit(ImplicitEvent(feedback_token=token, action="ignored"))
         await _drain(worker)
     finally:
         await worker.stop()
-    assert await _get_alpha_beta(db, sid) == (1.0, 1.0)
+    assert _arm_alpha_beta(store, sid) == (1.0, 1.0)
 
 
-async def test_worker_unknown_token_skipped(db):
-    worker = FeedbackWorker(db)
+async def test_worker_unknown_token_skipped(store):
+    worker = FeedbackWorker(store=store)
     worker.start()
     try:
         worker.submit(ImplicitEvent(feedback_token="no-such-token", action="accepted"))
@@ -137,8 +152,8 @@ async def test_worker_unknown_token_skipped(db):
         await worker.stop()
 
 
-async def test_queue_full_drops_event(db):
-    worker = FeedbackWorker(db, maxsize=1)
+async def test_queue_full_drops_event(store):
+    worker = FeedbackWorker(store=store, maxsize=1)
     assert worker.submit(ImplicitEvent(feedback_token="t1", action="accepted")) is True
     assert worker.submit(ImplicitEvent(feedback_token="t2", action="accepted")) is False
 
@@ -146,10 +161,10 @@ async def test_queue_full_drops_event(db):
 # ---------- 工具层（隐式上报协议） ----------
 
 
-async def test_tool_accepts_implicit_actions(db):
-    token, _ = await _make_log(db)
-    logs = LogService(db)
-    worker = FeedbackWorker(db)
+async def test_tool_accepts_implicit_actions(store):
+    token, _ = await _make_log(store)
+    logs = LogService(store)
+    worker = FeedbackWorker(store=store)
     worker.start()
     try:
         result = await feedback_tool.handle(
@@ -161,31 +176,29 @@ async def test_tool_accepts_implicit_actions(db):
     finally:
         await worker.stop()
 
-    conn = await db.connect()
-    async with conn.execute("SELECT feedback_action FROM interaction_logs WHERE feedback_token = ?", (token,)) as cur:
-        row = await cur.fetchone()
-    assert row["feedback_action"] == "copied"
+    fb = [e for e in iter_events(store.rsi_dir) if e.get("kind") == "feedback" and e.get("token") == token]
+    assert fb and fb[-1]["action"] == "copied"
 
 
-async def test_tool_rejects_unknown_action(db):
-    token, _ = await _make_log(db)
-    result = await feedback_tool.handle(LogService(db), SECRET, {"feedback_token": token, "action": "liked"})
+async def test_tool_rejects_unknown_action(store):
+    token, _ = await _make_log(store)
+    result = await feedback_tool.handle(LogService(store), SECRET, {"feedback_token": token, "action": "liked"})
     assert result["status"] == "error"
     assert result.get("code") == "invalid"
 
 
-async def test_tool_missing_token_has_not_found_code(db):
+async def test_tool_missing_token_has_not_found_code(store):
     result = await feedback_tool.handle(
-        LogService(db), SECRET, {"feedback_token": "no-such-token", "action": "accepted"},
+        LogService(store), SECRET, {"feedback_token": "no-such-token", "action": "accepted"},
     )
     assert result["status"] == "error"
     assert result.get("code") == "not_found"
 
 
-async def test_tool_modified_with_content(db):
-    token, _ = await _make_log(db)
+async def test_tool_modified_with_content(store):
+    token, _ = await _make_log(store)
     result = await feedback_tool.handle(
-        LogService(db), SECRET,
+        LogService(store), SECRET,
         {"feedback_token": token, "action": "modified", "modified_content": "改后的内容"},
     )
     assert result["status"] == "success"
@@ -193,9 +206,6 @@ async def test_tool_modified_with_content(db):
 
 async def test_file_runtime_rejected_comment_writes_pending_prohibition(tmp_path):
     """File-runtime FeedbackWorker rejected+comment must extract pending YAML (not candidates-only)."""
-    from rsi_boot.core.models import RSIRequest
-    from rsi_boot.memory.store import MemoryStore
-
     store = MemoryStore(tmp_path / ".rsi")
     logs = LogService(store=store)
     request = RSIRequest(user_id="u1", project_id="p1", raw_input="写查询")
@@ -231,9 +241,6 @@ async def test_file_runtime_rejected_comment_writes_pending_prohibition(tmp_path
 
 
 async def test_file_runtime_modified_below_threshold_does_not_extract(tmp_path):
-    from rsi_boot.core.models import RSIRequest
-    from rsi_boot.memory.store import MemoryStore
-
     store = MemoryStore(tmp_path / ".rsi")
     logs = LogService(store=store)
     request = RSIRequest(user_id="u1", project_id="p1", raw_input="hello world")
@@ -260,9 +267,6 @@ async def test_file_runtime_modified_below_threshold_does_not_extract(tmp_path):
 
 
 async def test_file_runtime_rejected_without_comment_does_not_extract(tmp_path):
-    from rsi_boot.core.models import RSIRequest
-    from rsi_boot.memory.store import MemoryStore
-
     store = MemoryStore(tmp_path / ".rsi")
     logs = LogService(store=store)
     request = RSIRequest(user_id="u1", project_id="p1", raw_input="写查询")

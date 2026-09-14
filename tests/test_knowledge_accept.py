@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 
 from rsi_boot.api.tools import knowledge_review_tool
 from rsi_boot.bootstrap import build_runtime
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.knowledge.retriever import KnowledgeRetriever
+from rsi_boot.memory.store import MemoryStore, memory_filename
+from rsi_boot.memory.types import MemoryDoc, type_from_legacy
 from rsi_boot.scanner.conflict_gate import ConflictDraft
 from rsi_boot.services.knowledge_service import KnowledgeService
 
 
-def _service(db, base_config) -> KnowledgeService:
-    return KnowledgeService(db, KnowledgeRetriever(db, base_config))
+def _service(store: MemoryStore, tmp_path) -> KnowledgeService:
+    return KnowledgeService(store=store, project_root=tmp_path)
 
 
 async def _add(
@@ -26,7 +28,27 @@ async def _add(
     tags: list[str] | None = None,
     source_url: str | None = None,
     project_id: str = "p1",
+    store: MemoryStore | None = None,
 ) -> str:
+    if status == "archived":
+        mem = store or knowledge._store
+        item_id = uuid.uuid4().hex
+        typ, extra_update = type_from_legacy(content_type)
+        extra = dict(extra_update)
+        if source_url:
+            extra["source_url"] = source_url
+        dest = mem.rsi_dir / "memory" / "archive" / memory_filename(title, item_id)
+        mem.write(
+            MemoryDoc(
+                id=item_id, type=typ, title=title[:120],
+                content=f"{title} 的足够长内容 " * 5,
+                tags=list(tags or []),
+                source=source_url or None,
+                extra=extra,
+            ),
+            dest=dest,
+        )
+        return item_id
     added = await knowledge.add(KnowledgeItem(
         project_id=project_id, title=title, content=f"{title} 的足够长内容 " * 5,
         status=status, content_type=content_type, tags=tags or [], source_url=source_url,
@@ -34,22 +56,13 @@ async def _add(
     return added["id"] if isinstance(added, dict) else added
 
 
-async def _status_of(db, item_id: str) -> str:
-    store = getattr(db, "store", None) or getattr(db, "read", None)
-    if store is not None and hasattr(db, "store"):
-        return db.store.read(item_id).status
-    if hasattr(db, "read"):
-        return db.read(item_id).status
-    conn = await db.connect()
-    async with conn.execute(
-        "SELECT status FROM knowledge_items WHERE id = ?", (item_id,)
-    ) as cur:
-        row = await cur.fetchone()
-    return row["status"]
+def _status_of(holder, item_id: str) -> str:
+    store = getattr(holder, "store", holder)
+    return store.read(item_id).status
 
 
-async def test_review_batch_filters_bootstrap_run_id(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_review_batch_filters_bootstrap_run_id(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     keep = await _add(
         knowledge, title="本轮", tags=["signal:conversation", "bootstrap_run_id:run-a"],
     )
@@ -58,55 +71,55 @@ async def test_review_batch_filters_bootstrap_run_id(db, base_config):
     )
     result = await knowledge.review_batch("p1", approve=True, bootstrap_run_id="run-a")
     assert result["processed"] == 1
-    assert await _status_of(db, keep) == "active"
-    assert await _status_of(db, other) == "pending_review"
+    assert _status_of(store, keep) == "active"
+    assert _status_of(store, other) == "pending_review"
 
 
-async def test_review_batch_exclude_bootstrap(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_review_batch_exclude_bootstrap(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     daily = await _add(knowledge, title="日常", source_url="auto-extract")
     boot = await _add(
         knowledge, title="抽取", tags=["signal:rules", "bootstrap_run_id:run-a"],
     )
     result = await knowledge.review_batch("p1", approve=True, exclude_bootstrap=True)
     assert result["processed"] == 1
-    assert await _status_of(db, daily) == "active"
-    assert await _status_of(db, boot) == "pending_review"
+    assert _status_of(store, daily) == "active"
+    assert _status_of(store, boot) == "pending_review"
 
 
-async def test_review_batch_source_url_filter(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_review_batch_source_url_filter(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     hit = await _add(knowledge, title="命中", source_url="auto-extract")
     miss = await _add(knowledge, title="其它", source_url="docs/a.md")
     result = await knowledge.review_batch("p1", approve=True, source_url="auto-extract")
     assert result["processed"] == 1
-    assert await _status_of(db, hit) == "active"
-    assert await _status_of(db, miss) == "pending_review"
+    assert _status_of(store, hit) == "active"
+    assert _status_of(store, miss) == "pending_review"
 
 
-async def test_include_archived_skips_untagged_overflow(db, base_config):
-    knowledge = _service(db, base_config)
-    overflow = await _add(knowledge, title="旧溢出", status="archived", tags=[])
+async def test_include_archived_skips_untagged_overflow(store, tmp_path):
+    knowledge = _service(store, tmp_path)
+    overflow = await _add(knowledge, title="旧溢出", status="archived", tags=[], store=store)
     tagged = await _add(
         knowledge, title="本轮溢出", status="archived",
-        tags=["signal:docs", "bootstrap_run_id:run-a"],
+        tags=["signal:docs", "bootstrap_run_id:run-a"], store=store,
     )
     result = await knowledge.review_batch(
         "p1", approve=True, include_archived=True, exclude_bootstrap=True,
     )
-    assert await _status_of(db, overflow) == "archived"
+    assert _status_of(store, overflow) == "archived"
     assert result["processed"] == 0
     result = await knowledge.review_batch(
         "p1", approve=True, include_archived=True, bootstrap_run_id="run-a",
     )
     assert result["processed"] == 1
-    assert await _status_of(db, tagged) == "active"
-    assert await _status_of(db, overflow) == "archived"
+    assert _status_of(store, tagged) == "active"
+    assert _status_of(store, overflow) == "archived"
 
 
-async def test_review_batch_run_id_skips_auto_extract(db, base_config):
+async def test_review_batch_run_id_skips_auto_extract(store, tmp_path):
     """带 bootstrap_run_id 的批量审批不得放行 source_url=auto-extract。"""
-    knowledge = _service(db, base_config)
+    knowledge = _service(store, tmp_path)
     leaked = await _add(
         knowledge, title="误标日常",
         source_url="auto-extract",
@@ -119,12 +132,12 @@ async def test_review_batch_run_id_skips_auto_extract(db, base_config):
     )
     result = await knowledge.review_batch("p1", approve=True, bootstrap_run_id="run-a")
     assert result["processed"] == 1
-    assert await _status_of(db, extract) == "active"
-    assert await _status_of(db, leaked) == "pending_review"
+    assert _status_of(store, extract) == "active"
+    assert _status_of(store, leaked) == "pending_review"
 
 
-async def test_all_pending_does_not_approve_bootstrap_run_items(db, base_config):
-    knowledge = _service(db, base_config)
+async def test_all_pending_does_not_approve_bootstrap_run_items(store, tmp_path):
+    knowledge = _service(store, tmp_path)
     daily = await _add(knowledge, title="日常草稿", source_url="auto-extract")
     boot = await _add(
         knowledge, title="bootstrap 抽取",
@@ -136,8 +149,8 @@ async def test_all_pending_does_not_approve_bootstrap_run_items(db, base_config)
     )
     assert result["status"] == "success"
     assert result["processed"] == 1
-    assert await _status_of(db, daily) == "active"
-    assert await _status_of(db, boot) == "pending_review"
+    assert _status_of(store, daily) == "active"
+    assert _status_of(store, boot) == "pending_review"
 
 
 def _write_run(root: Path, run_id: str) -> None:
@@ -166,7 +179,7 @@ async def test_accept_releases_conversation_faq_documentation(tmp_path):
             rt, run_id=None, reject=False, conflicts=None,
         )
         assert result["processed"] == 1
-        assert await _status_of(rt, faq_id) == "active"
+        assert _status_of(rt, faq_id) == "active"
     finally:
         await rt.close()
 
@@ -189,7 +202,7 @@ async def test_review_bootstrap_run_id_includes_faq(tmp_path):
         })
         assert result["status"] == "success"
         assert result["processed"] == 1
-        assert await _status_of(rt, faq_id) == "active"
+        assert _status_of(rt, faq_id) == "active"
     finally:
         await rt.close()
 
@@ -227,10 +240,10 @@ async def test_accept_only_releases_this_run_extracts_not_auto_extract(tmp_path)
             rt, run_id=None, reject=False, conflicts=None,
         )
         assert result["processed"] == 1
-        assert await _status_of(rt, extract_id) == "active"
-        assert await _status_of(rt, auto_id) == "pending_review"
-        assert await _status_of(rt, docs_id) == "pending_review"
-        assert await _status_of(rt, other_run) == "pending_review"
+        assert _status_of(rt, extract_id) == "active"
+        assert _status_of(rt, auto_id) == "pending_review"
+        assert _status_of(rt, docs_id) == "pending_review"
+        assert _status_of(rt, other_run) == "pending_review"
     finally:
         await rt.close()
 
@@ -286,8 +299,8 @@ async def test_accept_conflicts_tend_uses_recommended(tmp_path):
             rt, run_id=run_id, reject=False, conflicts="tend",
         )
         assert result["conflicts_resolved"] == 1
-        assert await _status_of(rt, left_id) == "active"
-        assert await _status_of(rt, right_id) == "archived"
+        assert _status_of(rt, left_id) == "active"
+        assert _status_of(rt, right_id) == "archived"
         from memory_helpers import memory_conflict_rows
 
         rows = memory_conflict_rows(root)

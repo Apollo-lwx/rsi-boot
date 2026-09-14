@@ -10,12 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from ..data.sqlite import SQLiteClient
 from .blocklist import is_blocked
 from .targets import (
     MAX_FILE_CHARS,
@@ -35,13 +32,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-#: 参与注入的记忆类型（legacy 'experience' 按 convention 处理）
-_INJECT_TYPES = ("prohibition", "convention", "experience")
 _ADOPTION_ACTIONS = frozenset({"accepted", "applied", "copied", "referenced"})
-
-
-def _utc_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def _prohibition_mdc_len(title: str, content: str) -> int:
@@ -51,11 +42,11 @@ def _prohibition_mdc_len(title: str, content: str) -> int:
 class RuleInjector:
     def __init__(
         self,
-        db: Optional[SQLiteClient] = None,
+        store: MemoryStore,
         project_root: Optional[Path] = None,
-        store: MemoryStore | None = None,
     ):
-        self._db = db
+        if store is None:
+            raise TypeError("store is required")
         self._store = store
         self._targets: List[RuleTarget] = []
         if project_root is not None:
@@ -70,10 +61,10 @@ class RuleInjector:
         """全量重写该项目全部载体的规则产物并同步台账。无载体（无项目根）时静默跳过"""
         if not self._targets:
             return {"written": 0, "removed": 0}
-        lock_key = project_id or (str(self._store.rsi_dir) if self._store is not None else "")
+        lock_key = project_id or str(self._store.rsi_dir)
         lock = self._locks.setdefault(lock_key, asyncio.Lock())
         async with lock:
-            bundle = await self._load_bundle(project_id)
+            bundle = self._load_bundle()
             written: List[Artifact] = []
             for target in self._targets:
                 try:
@@ -81,46 +72,13 @@ class RuleInjector:
                 except OSError as exc:
                     # §8 韧性：规则文件不可写不阻塞主链路，下轮事件重试
                     logger.error("载体 %s 写入失败（下轮变更重试）: %s", target.name, exc)
-            if self._store is not None or self._db is None:
-                removed = 0
-            else:
-                removed = await self._sync_ledger(project_id, written)
+            removed = 0
             logger.info("规则注入完成（项目 %s）：%d 个文件，移除 %d 个", project_id, len(written), removed)
             return {"written": len(written), "removed": removed}
 
-    async def _load_bundle(self, project_id: str) -> MemoryBundle:
-        if self._store is not None:
-            return self._load_bundle_from_store()
-        return await self._load_bundle_from_db(project_id)
-
-    async def _load_bundle_from_db(self, project_id: str) -> MemoryBundle:
-        conn = await self._db.connect()
-        placeholders = ",".join("?" for _ in _INJECT_TYPES)
-        async with conn.execute(
-            f"SELECT id, title, content, content_type, domain FROM knowledge_items "
-            f"WHERE project_id = ? AND status = 'active' AND content_type IN ({placeholders}) "
-            f"ORDER BY updated_at DESC",
-            (project_id, *_INJECT_TYPES),
-        ) as cur:
-            rows = await cur.fetchall()
-        bundle = MemoryBundle()
-        for r in rows:
-            # 第三道闸：黑名单内容拒绝注入（不脱库——库中保留供审计，仅不进入宿主上下文）
-            if is_blocked(f"{r['title']}\n{r['content']}"):
-                logger.warning("记忆 %s 命中注入黑名单，跳过注入", r["id"][:8])
-                continue
-            row = MemoryRow(id=r["id"], title=r["title"], content=r["content"],
-                            content_type=r["content_type"], domain=r["domain"])
-            if r["content_type"] == "prohibition":
-                bundle.prohibitions.append(row)
-            else:
-                bundle.conventions.append(row)
-        return bundle
-
-    def _load_bundle_from_store(self) -> MemoryBundle:
+    def _load_bundle(self) -> MemoryBundle:
         """正式 prohibitions/ + skills/*/skill.yaml 的 name/description；不注入 convention。"""
         store = self._store
-        assert store is not None
         docs = [d for d in store.list_official("prohibition") if d.status == "active"]
         kept = self._trim_prohibitions(docs)
         bundle = MemoryBundle(inject_conventions=False)
@@ -195,45 +153,6 @@ class RuleInjector:
             total += size
         return kept
 
-    async def _sync_ledger(self, project_id: str, written: List[Artifact]) -> int:
-        """rule_artifacts 台账同步：产出 upsert 为 active；台账有而本次未产出 → removed"""
-        conn = await self._db.connect()
-        now = _utc_iso()
-        seen = set()
-        for art in written:
-            seen.add((art.target, art.rel_path))
-            await conn.execute(
-                "INSERT INTO rule_artifacts (id, project_id, target, target_path, source_item_id,"
-                " content_hash, status, created_at, updated_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)"
-                " ON CONFLICT(project_id, target, target_path) DO UPDATE SET"
-                " source_item_id = excluded.source_item_id, content_hash = excluded.content_hash,"
-                " status = 'active', updated_at = excluded.updated_at",
-                (uuid.uuid4().hex, project_id, art.target, art.rel_path,
-                 art.source_item_id, art.content_hash, now, now),
-            )
-        async with conn.execute(
-            "SELECT id, target, target_path FROM rule_artifacts WHERE project_id = ? AND status = 'active'",
-            (project_id,),
-        ) as cur:
-            existing = await cur.fetchall()
-        removed = 0
-        for row in existing:
-            if (row["target"], row["target_path"]) not in seen:
-                await conn.execute(
-                    "UPDATE rule_artifacts SET status = 'removed', updated_at = ? WHERE id = ?",
-                    (now, row["id"]),
-                )
-                removed += 1
-        await conn.commit()
-        return removed
-
     async def current_rules(self, project_id: str) -> List[Dict[str, Any]]:
-        """审计查询：宿主上下文中当前有哪些记忆（台账 active 行）"""
-        conn = await self._db.connect()
-        async with conn.execute(
-            "SELECT target, target_path, source_item_id, content_hash, updated_at"
-            " FROM rule_artifacts WHERE project_id = ? AND status = 'active' ORDER BY target, target_path",
-            (project_id,),
-        ) as cur:
-            return [dict(r) for r in await cur.fetchall()]
+        """审计查询：宿主上下文中当前有哪些记忆（文件后端无 sqlite 台账）"""
+        return []
