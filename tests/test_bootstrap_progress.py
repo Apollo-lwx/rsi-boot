@@ -19,6 +19,7 @@ from rsi_boot.cli.progress import (
     format_duration,
     format_remaining,
 )
+from rsi_boot.common.stdio import ensure_utf8_stdio
 
 
 def test_format_duration():
@@ -54,6 +55,8 @@ class _TtyBuf(io.StringIO):
 
 
 def test_progress_tty_narrow_terminal_does_not_wrap(monkeypatch):
+    monkeypatch.delenv("CURSOR_AGENT", raising=False)
+    monkeypatch.delenv("RSI_PROGRESS_PLAIN", raising=False)
     buf = _TtyBuf()
     monkeypatch.setattr("rsi_boot.cli.progress.terminal_columns", lambda _stream=None: 72)
     p = Progress(stream=buf, min_interval=0)
@@ -67,6 +70,40 @@ def test_progress_tty_narrow_terminal_does_not_wrap(monkeypatch):
     assert "约剩[9/11]" not in buf.getvalue()
     assert "89903/89988" in last
     assert "[" in last and "]" in last and "%" in last
+
+
+def test_progress_agent_ui_keeps_chinese_and_avoids_cr(monkeypatch):
+    """Cursor agent PTY 报 isatty，但对话日志不处理 \\r，且常按 UTF-8 读 GBK 字节。"""
+    monkeypatch.setenv("CURSOR_AGENT", "1")
+    buf = _TtyBuf()
+    p = Progress(stream=buf, min_interval=0)
+    p.start(total_phases=12, title="开始学习")
+    p.phase("冲突检测", total=100)
+    p._elapsed_override = 30.0
+    p.tick(8)
+    text = buf.getvalue()
+    assert "\r" not in text
+    assert "开始学习" in text
+    assert "冲突检测" in text
+    assert "已用" in text
+    assert "约剩" in text
+
+
+def test_progress_plain_env_disables_cr(monkeypatch):
+    monkeypatch.delenv("CURSOR_AGENT", raising=False)
+    monkeypatch.setenv("RSI_PROGRESS_PLAIN", "1")
+    buf = _TtyBuf()
+    p = Progress(stream=buf, min_interval=0)
+    p.start(1)
+    p.phase("文档", total=2)
+    p.tick(1)
+    assert "\r" not in buf.getvalue()
+    assert "文档" in buf.getvalue()
+
+
+def test_ensure_utf8_stdio_idempotent():
+    ensure_utf8_stdio()
+    ensure_utf8_stdio()
 
 
 def test_format_bar():

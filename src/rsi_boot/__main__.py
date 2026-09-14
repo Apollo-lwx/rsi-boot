@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .bootstrap import build_runtime, detect_user_id, rsi_home
 from .common.logger import setup_cli_logging, setup_logging
+from .common.stdio import ensure_utf8_stdio
 from .core.models import KnowledgeItem
 from .project import resolve_project_root
 from .ux.lang import locale_lang
@@ -317,6 +318,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    ensure_utf8_stdio()
     args = build_parser().parse_args()
     if getattr(args, "lang", None) in ("zh", "en"):
         os.environ["RSI_LANG"] = args.lang

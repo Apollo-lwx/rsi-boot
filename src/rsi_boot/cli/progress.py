@@ -9,6 +9,8 @@ import time
 import unicodedata
 from typing import Optional, TextIO
 
+from rsi_boot.common.stdio import captured_progress_ui, ensure_utf8_stdio
+
 
 def format_duration(seconds: float, lang: str | None = None) -> str:
     from rsi_boot.ux.messages import t
@@ -83,8 +85,14 @@ def estimate_remaining(done: int, total: int, elapsed: float) -> Optional[float]
 class Progress:
     """终端进度。TTY 用 \\r 原地刷新；管道/测试打完整行。"""
 
-    def __init__(self, stream: Optional[TextIO] = None, min_interval: float = 0.4) -> None:
-        self.stream = sys.stdout if stream is None else stream
+    def __init__(self, stream: Optional[TextIO] = None, min_interval: float | None = None) -> None:
+        if stream is None:
+            ensure_utf8_stdio()
+            self.stream = sys.stdout
+        else:
+            self.stream = stream
+        if min_interval is None:
+            min_interval = 2.0 if captured_progress_ui() else 0.4
         self.min_interval = min_interval
         self.total_phases = 0
         self.phase_index = 0
@@ -164,7 +172,10 @@ class Progress:
         self._render(force=True, done=True)
         self._break_cr()
 
-    def _isatty(self) -> bool:
+    def _live_refresh(self) -> bool:
+        """\\r overwrite only when the terminal actually redraws the same line."""
+        if captured_progress_ui():
+            return False
         return bool(getattr(self.stream, "isatty", lambda: False)())
 
     def _render(self, force: bool = False, done: bool = False) -> None:
@@ -172,8 +183,8 @@ class Progress:
         if not force and not done and (now - self._last_render) < self.min_interval:
             return
         self._last_render = now
-        line = self._format_line(done=done, fit=self._isatty())
-        if self._isatty() and not done:
+        line = self._format_line(done=done, fit=self._live_refresh())
+        if self._live_refresh() and not done:
             cols = terminal_columns(self.stream)
             line = self._fit(line, cols - 1)
             pad = max(0, self._last_len - display_width(line))
@@ -184,7 +195,7 @@ class Progress:
         self._writeln(line)
 
     def _break_cr(self) -> None:
-        if self._isatty() and self._last_len:
+        if self._live_refresh() and self._last_len:
             self.stream.write("\n")
             self.stream.flush()
             self._last_len = 0
