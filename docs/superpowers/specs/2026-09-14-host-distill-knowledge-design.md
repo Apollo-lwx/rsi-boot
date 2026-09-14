@@ -23,7 +23,7 @@ RSI 是宿主模型的**程序性记忆层**，不是仓库理解器。
 
 1. **零 Key = 不另开计费通道。** 不配 OpenAI/Anthropic Key，不在 `rsi` 包里打 Chat Completions。宿主 Cursor agent（订阅里的模型）就是蒸馏器。禁止把「零 Key」读成「bootstrap 不能用模型」。
 2. **代码不替代理解。** 禁止用分词、Jaccard、极性词窗口、骨架标识符点名来决定「两条知识是否互相否定」或「这段原文算不算项目知识」。这类实现按 §10 **删除**，不是降级或后期规划。
-3. **召回只打蒸馏条目。** 原文路径写在 `source` / `refs` 上，不把几百行 md、代码骨架批、git 统计摘要写成 `active` 记忆。
+3. **知识点自包含。** 落盘的是一条已经说完的判断，读 `title`+`content` 即可用，不依赖再打开仓库文件或 git。`source` / `refs` 只是**出处快照**（当时从哪蒸馏的），不是正文的一部分，也**不随外部文件变更而改写**。禁止「refs 变了就同步更新知识」——那会把改文档的代价绑到整库记忆上。外部变了：旧知识保持有效；增量学习可以**另写**新条或由宿主**显式**修订/归档旧条。
 4. **采集可离开对话，蒸馏不能。** `rsi bootstrap` 可以扫盘、列 fix、写阅读包后退出。写知识必须在同一轮（或紧接着的）宿主对话里完成。
 5. **进度只预估可数工作。** 扫文件、列提交、分包有 ETA。模型读某个域、写几条知识，只报「第几包 / 还剩几包」，不估思考秒数。
 
@@ -91,7 +91,7 @@ graph TD
 
 RSI 只收 lesson，不代写。写成 `teaching_case` + `gene-map/manual`。下一次同类任务 `rsi_recall` **必须**能带回这些案例（禁止项之后插 teaching/gene），不能再把「口语能打中 teaching」留到遥远 P1 才做——否则记了也规避不了。
 
-禁止把整段 diff 或完整文件当 `content`；`content`/`correct_fix` 仍是短判断，路径放 `refs`。
+禁止把整段 diff 或完整文件当 `content`；`content`/`correct_fix` 必须自包含。路径只进 `refs` 做出处，召回不打开它们。
 
 ---
 
@@ -119,7 +119,7 @@ sequenceDiagram
         Agent->>Learn: pack_list
         Agent->>Learn: pack_open
         Agent->>Agent: 读源、git show、总结
-        Agent->>Know: 短知识（source/refs 指回）
+        Agent->>Know: 自包含短知识（refs 仅出处）
         Agent->>Learn: pack_done
     end
     Note over Agent: 写前 rsi_knowledge_search；口径冲突当场并或开 rsi_conflicts
@@ -237,12 +237,13 @@ sources:
 蒸馏写入必须同时满足：
 
 - `title` 是判断或职责，不是文件名本身（「认证失败重试三次」可以；「代码骨架摘要」不可以）。
-- `content` 目标 **80～800 字**；硬顶 **1500 字**。超出由模型自己再拆条，RSI 超顶拒绝并返回 `invalid`。
-- `extra.source_url` 或 `refs` 至少指向一个阅读包里的 `path` 或 git `hash`。
+- `content` 目标 **80～800 字**；硬顶 **1500 字**。必须把结论写进正文：读完就能执行，不必再去打开 `refs`。超出由模型自己再拆条，RSI 超顶拒绝并返回 `invalid`。禁止 `content` 写成「详见 docs/foo.md」。
+- `extra.source_url` 或 `refs` 可选但蒸馏条建议带：**仅出处**（path / git hash / 当时指纹）。召回、注入、冲突比较都**只读本条 YAML**，不解析、不拉取 ref 正文。
+- RSI **不**监听仓库文件去改已落盘知识。阅读包指纹变了只让**新包**变 `pending`，已写入的记忆不动。
 - `tags` 含 `bootstrap_run_id:<uuid>` 与 `signal:distilled`。
 - 类型：`prohibition` | `convention` | `documentation` | `architecture`。本波蒸馏**禁止**再写「代码骨架摘要 / 项目配置与规范摘要 / Git 历史分析 / 跨信号关联图谱」这类采集物标题。
 
-`rsi_knowledge_add`（含 CLI `knowledge add`）一律执行 1500 字硬顶，并拒绝上述四个历史采集标题（精确匹配）。`signal:distilled` 条目还必须带 `source`/`refs` 与 `bootstrap_run_id:` 标签，否则 `invalid`。无该标签的手工条目不强制 `refs`。
+`rsi_knowledge_add`（含 CLI `knowledge add`）一律执行 1500 字硬顶，并拒绝上述四个历史采集标题（精确匹配）。`signal:distilled` 必须带 `bootstrap_run_id:`；`refs` 不再作为合法性条件（有则当出处，无也可以）。禁止实现「打开 ref 文件把内容拼进召回」。
 
 默认状态：蒸馏条目写 `pending_review`，由现有 `rsi_knowledge_review` / 注入菜谱整批放行本 `bootstrap_run_id`。P0 不把蒸馏条目静默 `active`，避免模型一句话写错就进召回主库。用户说「看着办 / 按推荐」时，agent 按现有 review 工具批准本 run。
 
@@ -371,6 +372,8 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 - git 无 fix 类提交时不因此失败，只是没有 `git_fix` 源。
 - `pack_list` 空目录不抛；`pack_open` 未知 id → not_found；`pack_done` 幂等。
 - `knowledge_add` 超过 1500 字 → invalid；标题「代码骨架摘要」→ invalid。
+- 召回与冲突检测的实现不读取 `refs`/`source_url` 指向的仓库文件（单测或导入约束）。
+- 改磁盘上的源 md 后不调用任何「按 ref 回写 knowledge」API（此类 API 不得存在）。
 - `--local-judge` 后无 `host_judge_queue.json`，有阅读包，`memory/` 无本 run 新知识。
 - `--force` 将已 `done` 包改回 `pending`。
 - 注入块含 `pack_list` / `rsi-relearn`，全文不得再出现 `host_judge_queue.json` 或「每批 200 resolve 原文对」。
@@ -435,5 +438,6 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 
 1. `--host-judge` 采集在约两分钟内结束（同机器、杀毒例外），进度阶段无「同桶配对」。
 2. 采集结束后 `memory/` 不新增原文切片；存在阅读包。
-3. 宿主按技能逐包写出短知识后，`rsi_recall` 能用口语问到约定/禁止项，而不是某 md 第 N 节原文。
-4. 全程不要求用户配置 API Key。
+3. 宿主按技能逐包写出短知识后，`rsi_recall` 能用口语问到约定/禁止项；命中正文自包含，不打开 `refs` 指向的仓库文件。
+4. 改仓库里已被 ref 的 md 后，不重跑蒸馏则旧知识 YAML 内容不变。
+5. 全程不要求用户配置 API Key。
