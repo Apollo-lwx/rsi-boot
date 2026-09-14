@@ -339,8 +339,13 @@ class ConflictDetector:
         cutoff = datetime.now(timezone.utc).timestamp() - _STALE_MTIME_DAYS * 86400
         return f.mtime < cutoff
 
+    def _require_sqlite(self) -> None:
+        if self._store is not None:
+            raise TypeError("sqlite conflict path cannot run with a file store")
+
     async def _close_resolved(self, project_id: str, files: List[UserRuleFile]) -> int:
         """memory_wins 裁决后，用户文件 hash 变化（用户已手动修改）→ 冲突关闭"""
+        self._require_sqlite()
         by_path = {f.rel_path: f for f in files}
         conn = await self._db.connect()
         async with conn.execute(
@@ -652,6 +657,7 @@ class ConflictDetector:
 
     async def _resolve_version(self, row: Any, resolution: str, now: str) -> tuple[str, List[str]]:
         """版本冲突裁决：归档落败来源全部条目，保留侧 pending→active；coexist 两侧激活。"""
+        self._require_sqlite()
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT id, source_url, status FROM knowledge_items WHERE id = ?",
@@ -701,6 +707,7 @@ class ConflictDetector:
         self, row: Any, resolution: str, now: str,
     ) -> tuple[str, List[str]]:
         """doc_code/incoherent：按合成对侧键定位单条；保留侧 pending→active；coexist 两侧激活。"""
+        self._require_sqlite()
         conn = await self._db.connect()
         item = await self._load_item(conn, row["item_id"])
         peer = await _peer_row(

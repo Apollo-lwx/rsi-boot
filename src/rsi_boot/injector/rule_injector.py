@@ -123,7 +123,7 @@ class RuleInjector:
         assert store is not None
         docs = [d for d in store.list_official("prohibition") if d.status == "active"]
         kept = self._trim_prohibitions(docs)
-        bundle = MemoryBundle()
+        bundle = MemoryBundle(inject_conventions=False)
         for doc in kept:
             if is_blocked(f"{doc.title}\n{doc.content}"):
                 logger.warning("记忆 %s 命中注入黑名单，跳过注入", doc.id[:8])

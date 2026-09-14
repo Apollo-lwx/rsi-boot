@@ -1,4 +1,3 @@
-import asyncio
 import json
 import os
 import re
@@ -217,6 +216,8 @@ def test_read_missing_raises(tmp_path):
         store.read("a" * 32)
 
 
-def test_store_lock_is_asyncio_lock(tmp_path):
+def test_store_io_uses_thread_rlock_not_asyncio_lock(tmp_path):
     store = MemoryStore(tmp_path / ".rsi")
-    assert isinstance(store._lock, asyncio.Lock)
+    store._io.acquire()
+    store._io.release()
+    assert not hasattr(store, "_lock")

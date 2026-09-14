@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import threading
@@ -68,7 +67,6 @@ def _atomic_replace(dest: Path, text: str) -> None:
 class MemoryStore:
     def __init__(self, rsi_dir: Path):
         self.rsi_dir = Path(rsi_dir)
-        self._lock = asyncio.Lock()
         self._io = threading.RLock()
         self._id_index: dict[str, list[Path]] = {}
 

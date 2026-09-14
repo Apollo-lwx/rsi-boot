@@ -70,6 +70,7 @@ class MemoryBundle:
     prohibitions: List[MemoryRow] = field(default_factory=list)
     conventions: List[MemoryRow] = field(default_factory=list)  # 含 legacy 'experience'
     skills: List[MemoryRow] = field(default_factory=list)  # name/description/path only
+    inject_conventions: bool = True
 
 
 @dataclass
@@ -128,7 +129,7 @@ class CursorRuleTarget:
             total += len(content)
 
         by_domain: Dict[str, List[MemoryRow]] = {}
-        for row in bundle.conventions:
+        for row in bundle.conventions if bundle.inject_conventions else []:
             by_domain.setdefault(row.domain or "general", []).append(row)
         for domain, rows in sorted(by_domain.items()):
             titles = "、".join(r.title for r in rows)[:120]
@@ -202,7 +203,7 @@ class AgentsMdTarget:
             lines.append("## 禁止项（必须遵守）")
             lines += [f"- **{r.title}**：{r.content}" for r in bundle.prohibitions]
             lines.append("")
-        if bundle.conventions:
+        if bundle.inject_conventions and bundle.conventions:
             lines.append("## 经验约定")
             lines += [f"- **{r.title}**：{r.content}" for r in bundle.conventions]
             lines.append("")

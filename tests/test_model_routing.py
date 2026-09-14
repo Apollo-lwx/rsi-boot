@@ -210,12 +210,12 @@ def test_breaker_non_countable_failure_ignored():
 
 
 def test_breaker_half_open_probe_success():
-    breaker = CircuitBreaker("t", threshold=1, recovery_timeout_s=0.01)
+    breaker = CircuitBreaker("t", threshold=1, recovery_timeout_s=60)
     breaker.on_failure()
     assert breaker.state is State.OPEN
     import time
 
-    time.sleep(0.02)
+    breaker._opened_at = time.monotonic() - 61
     breaker.allow_request()  # 超过恢复时间 → HALF_OPEN 放行探测
     assert breaker.state is State.HALF_OPEN
     with pytest.raises(CircuitOpenError):
@@ -225,11 +225,11 @@ def test_breaker_half_open_probe_success():
 
 
 def test_breaker_half_open_probe_failure_reopens():
-    breaker = CircuitBreaker("t", threshold=1, recovery_timeout_s=0.01)
+    breaker = CircuitBreaker("t", threshold=1, recovery_timeout_s=60)
     breaker.on_failure()
     import time
 
-    time.sleep(0.02)
+    breaker._opened_at = time.monotonic() - 61
     breaker.allow_request()
     breaker.on_failure()  # 探测失败 → 回 OPEN 重新计时
     assert breaker.state is State.OPEN

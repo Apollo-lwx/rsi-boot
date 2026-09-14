@@ -18,7 +18,18 @@ async def test_build_runtime_does_not_construct_sqlite(monkeypatch, tmp_path):
     rt = await build_runtime(project_root=tmp_path)
     assert hits["n"] == 0
     assert not hasattr(rt, "db")
-    await rt.recall.recall("别把所有列一次查出来", rt.project_id)
+    recalled = await rt.recall.recall("别把所有列一次查出来", rt.project_id)
     await rt.injector.rewrite(rt.project_id)
+    from rsi_boot.api.tools.feedback_tool import handle as feedback_handle
+
+    await feedback_handle(
+        rt.logs,
+        rt.feedback_secret,
+        {"feedback_token": recalled["feedback_token"], "action": "accepted"},
+        worker=rt.feedback_worker,
+    )
+    await rt.conflict_detector.scan(rt.project_id)
+    await rt.knowledge.list(rt.project_id)
+    await rt.extractor.run_daily()
     assert hits["n"] == 0
     await rt.close()
