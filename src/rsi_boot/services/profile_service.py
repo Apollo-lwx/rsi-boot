@@ -16,14 +16,21 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+import yaml
 from cachetools import TTLCache
 
 from ..core.exceptions import CircuitOpenError
 from ..core.models import KnowledgeItem, UserPreferences, UserProfile
 from ..data.sqlite import SQLiteClient, is_operational_error
+from ..memory.logstore import iter_events
+
+if TYPE_CHECKING:
+    from ..memory.store import MemoryStore
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +48,51 @@ def _decay(days_since: float) -> float:
 
 
 class ProfileService:
-    def __init__(self, db: SQLiteClient, global_db: Optional[SQLiteClient] = None):
+    def __init__(
+        self,
+        db: Optional[SQLiteClient] = None,
+        global_db: Optional[SQLiteClient] = None,
+        store: "MemoryStore | None" = None,
+    ):
+        if store is None and db is None:
+            raise TypeError("db is required when store is omitted")
         self._db = db
         self._global_db = global_db or db
+        self._file_store = store
         self._cache: TTLCache = TTLCache(maxsize=50, ttl=600)
 
     def _store_for(self, project_id: Optional[str]) -> SQLiteClient:
         """project_id 为空 = 全局画像，落 global.db；否则落项目库"""
+        assert self._db is not None
         if not project_id:
-            return self._global_db
+            return self._global_db or self._db
         return self._db
+
+    def _profile_path(self) -> Path:
+        assert self._file_store is not None
+        return self._file_store.rsi_dir / "state" / "profile.yaml"
+
+    def _load_file_rows(self) -> Dict[str, dict[str, Any]]:
+        path = self._profile_path()
+        if not path.is_file():
+            return {}
+        try:
+            raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return {}
+        if isinstance(raw, dict) and isinstance(raw.get("profiles"), dict):
+            return {str(k): dict(v) for k, v in raw["profiles"].items() if isinstance(v, dict)}
+        if isinstance(raw, dict) and "user_id" in raw:
+            return {self._key(str(raw.get("user_id") or ""), raw.get("project_id")): raw}
+        return {}
+
+    def _write_file_rows(self, rows: Dict[str, dict[str, Any]]) -> None:
+        path = self._profile_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(path) + ".tmp")
+        text = yaml.safe_dump({"profiles": rows}, allow_unicode=True, sort_keys=False)
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)
 
     @staticmethod
     def _key(user_id: str, project_id: Optional[str]) -> str:
@@ -68,17 +110,27 @@ class ProfileService:
 
         profiles: List[UserProfile] = []
         try:
-            self._db.breaker.allow_request()
-            global_row = await self._load_row(user_id, "")
-            if global_row:
-                profiles.append(UserProfile(**json.loads(global_row)))
-            if project_id:
-                project_row = await self._load_row(user_id, project_id)
-                if project_row:
-                    profiles.append(UserProfile(**json.loads(project_row)))
-            self._db.breaker.on_success()
+            if self._file_store is not None:
+                global_row = await self._load_row(user_id, "")
+                if global_row:
+                    profiles.append(UserProfile(**json.loads(global_row)))
+                if project_id:
+                    project_row = await self._load_row(user_id, project_id)
+                    if project_row:
+                        profiles.append(UserProfile(**json.loads(project_row)))
+            else:
+                assert self._db is not None
+                self._db.breaker.allow_request()
+                global_row = await self._load_row(user_id, "")
+                if global_row:
+                    profiles.append(UserProfile(**json.loads(global_row)))
+                if project_id:
+                    project_row = await self._load_row(user_id, project_id)
+                    if project_row:
+                        profiles.append(UserProfile(**json.loads(project_row)))
+                self._db.breaker.on_success()
         except Exception as exc:
-            if not isinstance(exc, CircuitOpenError):
+            if self._db is not None and not isinstance(exc, CircuitOpenError):
                 self._db.breaker.on_failure(countable=is_operational_error(exc))
             logger.error("画像读取失败（降级默认画像）: %s", exc)
             return UserProfile(user_id=user_id, project_id=project_id)
@@ -93,6 +145,11 @@ class ProfileService:
         return profile
 
     async def _load_row(self, user_id: str, project_id: str) -> Optional[str]:
+        if self._file_store is not None:
+            data = self._load_file_rows().get(self._key(user_id, project_id or None))
+            if not data:
+                return None
+            return json.dumps(data, ensure_ascii=False, default=str)
         store = self._store_for(project_id)
         conn = await store.connect()
         async with conn.execute(
@@ -134,6 +191,14 @@ class ProfileService:
 
     async def upsert(self, profile: UserProfile) -> None:
         profile.updated_at = datetime.now(timezone.utc)
+        if self._file_store is not None:
+            rows = self._load_file_rows()
+            rows[self._key(profile.user_id, profile.project_id)] = json.loads(
+                profile.model_dump_json()
+            )
+            self._write_file_rows(rows)
+            self._cache.pop(self._key(profile.user_id, profile.project_id), None)
+            return
         store = self._store_for(profile.project_id)
         conn = await store.connect()
         now = _utc_iso()
@@ -154,6 +219,17 @@ class ProfileService:
         )
         await conn.commit()
         self._cache.pop(self._key(profile.user_id, profile.project_id), None)
+
+    def list_owners(self) -> List[tuple[str, Optional[str]]]:
+        """(user_id, project_id) pairs present on the file backend."""
+        if self._file_store is None:
+            return []
+        owners: List[tuple[str, Optional[str]]] = []
+        for key, data in self._load_file_rows().items():
+            user_id = str(data.get("user_id") or key.split(":", 1)[0])
+            project_id = data.get("project_id") or None
+            owners.append((user_id, project_id))
+        return owners
 
     # ---------- 运行时增量（§3.8 字段级规则） ----------
 
@@ -196,21 +272,40 @@ class ProfileService:
 
     async def rebuild(self, user_id: str, project_id: Optional[str] = None) -> UserProfile:
         """近 90 天日志衰减重算：意图频率 / 偏好模型（曝光≥20）/ 知识兴趣 Top20"""
-        conn = await self._db.connect()
         now = datetime.now(timezone.utc)
-        # created_at 为 ISO8601 TEXT：截止时间在 Python 侧计算，同格式字典序可比
         cutoff = (now - timedelta(days=90)).isoformat()
-        sql = """
-            SELECT intent, model_name, feedback_action, created_at
-            FROM interaction_logs
-            WHERE user_id = ? AND status = 'success' AND created_at >= ?
-        """
-        params: list[Any] = [user_id, cutoff]
-        if project_id:
-            sql += " AND project_id = ?"
-            params.append(project_id)
-        async with conn.execute(sql, params) as cur:
-            logs = await cur.fetchall()
+        if self._file_store is not None:
+            logs = []
+            for event in iter_events(self._file_store.rsi_dir):
+                ts = str(event.get("ts") or event.get("created_at") or "")
+                if ts < cutoff:
+                    continue
+                if event.get("user_id") not in (None, user_id):
+                    continue
+                if project_id and event.get("project_id") not in (None, "", project_id):
+                    continue
+                if event.get("status") not in (None, "success"):
+                    continue
+                logs.append({
+                    "intent": event.get("intent"),
+                    "model_name": event.get("model") or event.get("model_name"),
+                    "feedback_action": event.get("action") or event.get("feedback_action"),
+                    "created_at": ts,
+                })
+        else:
+            assert self._db is not None
+            conn = await self._db.connect()
+            sql = """
+                SELECT intent, model_name, feedback_action, created_at
+                FROM interaction_logs
+                WHERE user_id = ? AND status = 'success' AND created_at >= ?
+            """
+            params: list[Any] = [user_id, cutoff]
+            if project_id:
+                sql += " AND project_id = ?"
+                params.append(project_id)
+            async with conn.execute(sql, params) as cur:
+                logs = await cur.fetchall()
 
         profile = await self.get(user_id, project_id)
 

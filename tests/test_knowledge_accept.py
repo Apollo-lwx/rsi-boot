@@ -27,13 +27,19 @@ async def _add(
     source_url: str | None = None,
     project_id: str = "p1",
 ) -> str:
-    return await knowledge.add(KnowledgeItem(
+    added = await knowledge.add(KnowledgeItem(
         project_id=project_id, title=title, content=f"{title} 的足够长内容 " * 5,
         status=status, content_type=content_type, tags=tags or [], source_url=source_url,
     ))
+    return added["id"] if isinstance(added, dict) else added
 
 
 async def _status_of(db, item_id: str) -> str:
+    store = getattr(db, "store", None) or getattr(db, "read", None)
+    if store is not None and hasattr(db, "store"):
+        return db.store.read(item_id).status
+    if hasattr(db, "read"):
+        return db.read(item_id).status
     conn = await db.connect()
     async with conn.execute(
         "SELECT status FROM knowledge_items WHERE id = ?", (item_id,)
@@ -175,10 +181,10 @@ async def test_accept_only_releases_this_run_extracts_not_auto_extract(tmp_path)
             rt, run_id=None, reject=False, conflicts=None,
         )
         assert result["processed"] == 1
-        assert await _status_of(rt.db, extract_id) == "active"
-        assert await _status_of(rt.db, auto_id) == "pending_review"
-        assert await _status_of(rt.db, docs_id) == "pending_review"
-        assert await _status_of(rt.db, other_run) == "pending_review"
+        assert await _status_of(rt, extract_id) == "active"
+        assert await _status_of(rt, auto_id) == "pending_review"
+        assert await _status_of(rt, docs_id) == "pending_review"
+        assert await _status_of(rt, other_run) == "pending_review"
     finally:
         await rt.close()
 
@@ -234,14 +240,12 @@ async def test_accept_conflicts_tend_uses_recommended(tmp_path):
             rt, run_id=run_id, reject=False, conflicts="tend",
         )
         assert result["conflicts_resolved"] == 1
-        assert await _status_of(rt.db, left_id) == "active"
-        assert await _status_of(rt.db, right_id) == "archived"
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT status FROM rule_conflicts WHERE project_id = ?", (pid,),
-        ) as cur:
-            row = await cur.fetchone()
-        assert row["status"] != "open"
+        assert await _status_of(rt, left_id) == "active"
+        assert await _status_of(rt, right_id) == "archived"
+        from memory_helpers import memory_conflict_rows
+
+        rows = memory_conflict_rows(root)
+        assert rows and all(r.get("status") != "open" for r in rows)
     finally:
         await rt.close()
 

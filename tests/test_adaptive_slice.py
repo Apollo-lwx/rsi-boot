@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from rsi_boot.bootstrap import build_runtime
@@ -135,12 +136,7 @@ async def test_ingest_honors_chunk_config_and_tags_index(tmp_path, monkeypatch):
             rt, root, rt.project_id, root / "guide.md", DedupSet(),
             status="active", tags=["signal:docs"],
         )
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT tags FROM knowledge_items WHERE project_id = ?",
-            (rt.project_id,),
-        ) as cur:
-            tags = [r["tags"] or "" for r in await cur.fetchall()]
+        tags = [json.dumps(d.tags, ensure_ascii=False) for d in rt.store.list_all()]
     finally:
         await rt.close()
     assert seen.get("target_tokens") == 200

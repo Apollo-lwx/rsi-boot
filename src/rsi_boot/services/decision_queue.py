@@ -268,12 +268,16 @@ def _extract_card(run_id: str, pending_items: list[dict[str, Any]]) -> DecisionC
 
 
 async def collect_decision_cards(
-    db: SQLiteClient,
+    db: Optional[SQLiteClient],
     project_id: str,
     *,
     project_root: Optional[Path] = None,
+    store: Any = None,
 ) -> list[DecisionCard]:
     """收集当前可问的抉择卡（未 pick、未算 more_waiting）。"""
+    if store is not None:
+        return await _collect_decision_cards_store(store, project_id, project_root=project_root)
+    assert db is not None
     conn = await db.connect()
     async with conn.execute(
         "SELECT c.id, c.item_id, c.user_rule_path, c.user_rule_excerpt, c.conflict_type,"
@@ -342,6 +346,115 @@ async def collect_decision_cards(
     return cards
 
 
+def _doc_source_url(doc: Any) -> str:
+    extra = getattr(doc, "extra", None) or {}
+    return str(extra.get("source_url") or getattr(doc, "source", None) or "")
+
+
+def _doc_as_item(doc: Any) -> dict[str, Any]:
+    return {
+        "id": doc.id,
+        "title": doc.title,
+        "content": doc.content,
+        "source_url": _doc_source_url(doc),
+        "status": doc.status,
+        "tags": list(doc.tags or []),
+    }
+
+
+def _peer_from_store(store: Any, source: str, excerpt: str = "") -> Optional[dict[str, Any]]:
+    docs = {doc.id: doc for doc in store.list_all()}
+    norm = (source or "").replace("\\", "/")
+    if norm.startswith("item:") and norm[5:] in docs:
+        return _doc_as_item(docs[norm[5:]])
+    if "#" in norm:
+        url, suffix = norm.rsplit("#", 1)
+        if suffix in docs:
+            return _doc_as_item(docs[suffix])
+        for doc in docs.values():
+            if _doc_source_url(doc).replace("\\", "/") == url:
+                return _doc_as_item(doc)
+    elif norm:
+        for doc in docs.values():
+            if _doc_source_url(doc).replace("\\", "/") == norm:
+                return _doc_as_item(doc)
+    hist_id = _historical_id_from_excerpt(excerpt)
+    if hist_id and hist_id in docs:
+        return _doc_as_item(docs[hist_id])
+    return None
+
+
+async def _collect_decision_cards_store(
+    store: Any, project_id: str, *, project_root: Optional[Path] = None,
+) -> list[DecisionCard]:
+    path = store.rsi_dir / "state" / "conflicts.yaml"
+    rows: list[dict[str, Any]] = []
+    if path.is_file():
+        try:
+            import yaml
+
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, Exception):
+            data = None
+        if isinstance(data, list):
+            rows = [r for r in data if isinstance(r, dict)]
+        elif isinstance(data, dict):
+            rows = [r for r in (data.get("conflicts") or []) if isinstance(r, dict)]
+
+    by_id = {doc.id: doc for doc in store.list_all()}
+    cards: list[DecisionCard] = []
+    for row in rows:
+        if row.get("status", "open") != "open":
+            continue
+        ctype = row.get("conflict_type") or row.get("type") or ""
+        if ctype not in ("incoherent", "version", "doc_code"):
+            continue
+        item_id = row.get("item_id") or ""
+        doc = by_id.get(item_id)
+        item = _doc_as_item(doc) if doc is not None else {
+            "id": item_id, "title": "", "content": "", "source_url": "",
+            "status": "", "tags": [],
+        }
+        tags = _parse_tags(item["tags"])
+        source = item["source_url"]
+        if source == "auto-extract" or not _has_bootstrap_run_tag(tags):
+            kind = "daily_conflict"
+        else:
+            kind = "bootstrap_conflict"
+        peer_source = (row.get("user_rule_path") or "").replace("\\", "/")
+        excerpt = row.get("user_rule_excerpt") or row.get("excerpt") or ""
+        peer = _peer_from_store(store, peer_source, excerpt)
+        cards.append(_conflict_card(
+            conflict_id=row.get("id") or "",
+            kind=kind,
+            ctype=ctype,
+            item=item,
+            peer=peer,
+            peer_source=peer_source,
+            excerpt=excerpt,
+            recommended=_recommended_of(row.get("resolution_note"), ctype),
+            recommended_reason=excerpt,
+        ))
+
+    run_id = load_latest_run_id(project_root, store.rsi_dir / "rsi.db")
+    if run_id:
+        marker = f"bootstrap_run_id:{run_id}"
+        extracts: list[dict[str, Any]] = []
+        for doc in store.list_pending():
+            src = _doc_source_url(doc)
+            if src == "auto-extract":
+                continue
+            ptags = list(doc.tags or [])
+            if marker not in ptags:
+                continue
+            if not _EXTRACT_SIGNALS.intersection(ptags):
+                continue
+            extracts.append(_doc_as_item(doc))
+        if extracts:
+            cards.append(_extract_card(run_id, extracts))
+    return cards
+
+
 async def _pending_extract_count(db: SQLiteClient, project_id: str, run_id: str) -> int:
     marker = f"bootstrap_run_id:{run_id}"
     conn = await db.connect()
@@ -368,7 +481,8 @@ async def close_extract_runs(
     decisions: Optional[DecisionQueue],
     tags_rows: list[Any],
     *,
-    db: SQLiteClient,
+    db: Optional[SQLiteClient] = None,
+    store: Any = None,
     project_id: str,
 ) -> None:
     """知识审批成功后，仅当该 run 无剩余 pending 抽取时关闭 extract:<run_id>。"""
@@ -380,5 +494,27 @@ async def close_extract_runs(
             if tag.startswith("bootstrap_run_id:"):
                 run_ids.add(tag.split(":", 1)[1])
     for run_id in run_ids:
-        if await _pending_extract_count(db, project_id, run_id) == 0:
+        if store is not None:
+            remaining = _pending_extract_count_store(store, run_id)
+        elif db is not None:
+            remaining = await _pending_extract_count(db, project_id, run_id)
+        else:
+            remaining = 0
+        if remaining == 0:
             decisions.close(f"extract:{run_id}")
+
+
+def _pending_extract_count_store(store: Any, run_id: str) -> int:
+    marker = f"bootstrap_run_id:{run_id}"
+    n = 0
+    for doc in store.list_pending():
+        src = _doc_source_url(doc)
+        if src == "auto-extract":
+            continue
+        ptags = list(doc.tags or [])
+        if marker not in ptags:
+            continue
+        if not _EXTRACT_SIGNALS.intersection(ptags):
+            continue
+        n += 1
+    return n

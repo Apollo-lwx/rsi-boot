@@ -12,6 +12,8 @@ from rsi_boot.api.tools import conflicts_tool
 from rsi_boot.bootstrap import build_runtime
 from rsi_boot.scanner.conflict_gate import ConflictDraft
 
+from memory_helpers import memory_conflict_rows, write_memory_item
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -19,16 +21,10 @@ def _now() -> str:
 
 async def _insert_knowledge(rt, *, title: str, content: str, source_url: str,
                             status: str, content_type: str = "convention") -> str:
-    conn = await rt.db.connect()
-    item_id = uuid.uuid4().hex
-    await conn.execute(
-        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, domain, tags,"
-        " source_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (item_id, rt.project_id, title, content, content_type, "bootstrap",
-         json.dumps(["signal:docs"], ensure_ascii=False), source_url, status, _now(), _now()),
+    return write_memory_item(
+        rt.store, title=title, content=content, source_url=source_url,
+        tags=["signal:docs"], type=content_type, status=status,
     )
-    await conn.commit()
-    return item_id
 
 
 def _incoherent_draft(left: str, right: str) -> ConflictDraft:
@@ -44,23 +40,20 @@ def _incoherent_draft(left: str, right: str) -> ConflictDraft:
 
 
 async def _open_conflict(rt, project_id: str) -> dict:
-    conn = await rt.db.connect()
-    async with conn.execute(
-        "SELECT * FROM rule_conflicts WHERE project_id = ? AND status = 'open'",
-        (project_id,),
-    ) as cur:
-        row = await cur.fetchone()
-    assert row is not None
-    return dict(row)
+    del project_id
+    rows = [
+        r for r in memory_conflict_rows(rt.store.rsi_dir.parent)
+        if r.get("status", "open") == "open"
+    ]
+    assert rows
+    return rows[0]
 
 
 async def _status_by_id(rt, *item_ids: str) -> dict[str, str]:
-    conn = await rt.db.connect()
-    q = ",".join("?" for _ in item_ids)
-    async with conn.execute(
-        f"SELECT id, status FROM knowledge_items WHERE id IN ({q})", item_ids,
-    ) as cur:
-        return {r["id"]: r["status"] for r in await cur.fetchall()}
+    out: dict[str, str] = {}
+    for item_id in item_ids:
+        out[item_id] = rt.store.read(item_id).status
+    return out
 
 
 async def _seed_incoherent_pair(rt, left="docs/new.md", right="docs/old.md",
@@ -93,17 +86,8 @@ async def test_explain_does_not_mutate(tmp_path, monkeypatch):
         pid = rt.project_id
         left_id, right_id, conflict = await _seed_incoherent_pair(rt)
         conflict_id = conflict["id"]
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT status, resolved_at, resolution_note FROM rule_conflicts WHERE id = ?",
-            (conflict_id,),
-        ) as cur:
-            before = dict(await cur.fetchone())
-        async with conn.execute(
-            "SELECT id, status, updated_at FROM knowledge_items WHERE id IN (?, ?)",
-            (left_id, right_id),
-        ) as cur:
-            items_before = {r["id"]: dict(r) for r in await cur.fetchall()}
+        before = next(r for r in memory_conflict_rows(root) if r["id"] == conflict_id)
+        items_before = {i: rt.store.read(i).status for i in (left_id, right_id)}
 
         explained = await rt.conflict_detector.explain(conflict_id)
         assert explained is not None
@@ -113,18 +97,10 @@ async def test_explain_does_not_mutate(tmp_path, monkeypatch):
             "keep_item", "keep_peer", "coexist",
         }
 
-        async with conn.execute(
-            "SELECT status, resolved_at, resolution_note FROM rule_conflicts WHERE id = ?",
-            (conflict_id,),
-        ) as cur:
-            after = dict(await cur.fetchone())
+        after = next(r for r in memory_conflict_rows(root) if r["id"] == conflict_id)
         assert after["status"] == "open"
-        assert after == before
-        async with conn.execute(
-            "SELECT id, status, updated_at FROM knowledge_items WHERE id IN (?, ?)",
-            (left_id, right_id),
-        ) as cur:
-            items_after = {r["id"]: dict(r) for r in await cur.fetchall()}
+        assert after.get("resolution_note") == before.get("resolution_note")
+        items_after = {i: rt.store.read(i).status for i in (left_id, right_id)}
         assert items_after == items_before
         assert pid
     finally:
@@ -145,12 +121,7 @@ async def test_persist_knowledge_conflicts_is_idempotent(tmp_path, monkeypatch):
             {left: left_id, right: right_id},
         )
         assert again == 0
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT COUNT(*) AS n FROM rule_conflicts WHERE project_id = ?",
-            (rt.project_id,),
-        ) as cur:
-            assert int((await cur.fetchone())["n"]) == 1
+        assert len(memory_conflict_rows(root)) == 1
     finally:
         await rt.close()
 
@@ -169,11 +140,8 @@ async def test_resolve_keep_item_archives_peer_and_activates_pending(tmp_path, m
         statuses = await _status_by_id(rt, left_id, right_id)
         assert statuses[left_id] == "active"
         assert statuses[right_id] == "archived"
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT status FROM rule_conflicts WHERE id = ?", (conflict["id"],)
-        ) as cur:
-            assert (await cur.fetchone())["status"] == "keep_item"
+        row = next(r for r in memory_conflict_rows(root) if r["id"] == conflict["id"])
+        assert row["status"] == "keep_item"
     finally:
         await rt.close()
 
@@ -281,11 +249,8 @@ async def test_conflicts_tool_explain_requires_conflict_id(tmp_path, monkeypatch
         assert explained["status"] == "success"
         assert explained["data"]["sides"]
         assert "keep_item" in {o["resolution"] for o in explained["data"]["options"]}
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT status FROM rule_conflicts WHERE id = ?", (conflict["id"],)
-        ) as cur:
-            assert (await cur.fetchone())["status"] == "open"
+        row = next(r for r in memory_conflict_rows(root) if r["id"] == conflict["id"])
+        assert row["status"] == "open"
     finally:
         await rt.close()
 

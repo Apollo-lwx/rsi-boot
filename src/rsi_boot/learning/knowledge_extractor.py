@@ -89,6 +89,8 @@ class KnowledgeExtractor:
 
     async def collect_high_rated(self, since_hours: int = _HIGH_RATED_WINDOW_HOURS) -> int:
         """rating ≥ 4 且有响应摘录的交互汇入候选队列（幂等），返回新增数"""
+        if self._db is None:
+            return 0
         conn = await self._db.connect()
         since = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
         async with conn.execute(
@@ -208,6 +210,8 @@ class KnowledgeExtractor:
     async def run_daily(self) -> Dict[str, int]:
         """汇集 → 提取（规则式默认 / LLM 增强）→ 去重 → pending_review 入库；返回各环节计数"""
         stats = {"collected": 0, "extracted": 0, "merged": 0, "skipped": 0, "cleaned": 0}
+        if self._db is None:
+            return stats
         stats["collected"] = await self.collect_high_rated()
 
         conn = await self._db.connect()

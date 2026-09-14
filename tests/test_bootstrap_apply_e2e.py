@@ -11,9 +11,9 @@ from rsi_boot.bootstrap import build_runtime
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.cli.knowledge_accept import accept_bootstrap_extracts
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.data.sqlite import SQLiteClient
-from rsi_boot.project import project_scope
 from rsi_boot.scanner.conflict_gate import ConflictDraft
+
+from memory_helpers import memory_conflict_rows, memory_item_rows, memory_rows_from_sql
 
 
 def _args(root: Path, **overrides) -> argparse.Namespace:
@@ -62,14 +62,7 @@ def _is_extract(row: dict) -> bool:
 
 
 async def _rows(root: Path, sql: str, params: tuple = ()):
-    db_path, pid = project_scope(root)
-    db = SQLiteClient(db_path)
-    try:
-        conn = await db.connect()
-        async with conn.execute(sql, (pid, *params)) as cur:
-            return [dict(r) for r in await cur.fetchall()]
-    finally:
-        await db.close()
+    return await memory_rows_from_sql(root, sql, params)
 
 
 async def _preinsert_auto_extract(root: Path, n: int = 10) -> list[str]:
@@ -77,7 +70,7 @@ async def _preinsert_auto_extract(root: Path, n: int = 10) -> list[str]:
     try:
         ids: list[str] = []
         for i in range(n):
-            ids.append(await rt.knowledge.add(KnowledgeItem(
+            added = await rt.knowledge.add(KnowledgeItem(
                 project_id=rt.project_id,
                 title=f"日常提取 {i}",
                 content=_long(f"从对话抽出的经验 {i}"),
@@ -86,26 +79,23 @@ async def _preinsert_auto_extract(root: Path, n: int = 10) -> list[str]:
                 domain="daily",
                 tags=["signal:auto-extract"],
                 source_url="auto-extract",
-            )))
+            ))
+            ids.append(added["id"] if isinstance(added, dict) else added)
         return ids
     finally:
         await rt.close()
 
 
 async def _snapshot_kb(rt) -> dict:
-    conn = await rt.db.connect()
-    async with conn.execute(
-        "SELECT id, status, updated_at, source_url FROM knowledge_items "
-        "WHERE project_id = ? ORDER BY id",
-        (rt.project_id,),
-    ) as cur:
-        items = [tuple(dict(r).values()) for r in await cur.fetchall()]
-    async with conn.execute(
-        "SELECT id, status, resolved_at, resolution_note FROM rule_conflicts "
-        "WHERE project_id = ? ORDER BY id",
-        (rt.project_id,),
-    ) as cur:
-        conflicts = [tuple(dict(r).values()) for r in await cur.fetchall()]
+    root = rt.store.rsi_dir.parent
+    items = [
+        (r["id"], r["status"], r.get("source_url"))
+        for r in memory_item_rows(root)
+    ]
+    conflicts = [
+        (r.get("id"), r.get("status"), r.get("resolution_note"))
+        for r in memory_conflict_rows(root)
+    ]
     return {"items": items, "conflicts": conflicts}
 
 

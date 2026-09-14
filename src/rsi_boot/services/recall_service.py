@@ -167,6 +167,9 @@ class RecallService:
             "retrieved": retrieved,
             "arm": _STORE_DEFAULT_ARM,
             "token": token,
+            "request_id": str(request.request_id),
+            "user_id": user_id,
+            "project_id": project_id,
             "intent": intent,
             "latency_ms": latency_ms,
         }
@@ -174,12 +177,25 @@ class RecallService:
             event["excerpt"] = "\n".join(doc.title for doc in hits)
         append_event(store.rsi_dir, event)
 
+        from .decision_queue import collect_decision_cards
+
+        cards = await collect_decision_cards(
+            None, project_id, project_root=self._project_root, store=store,
+        )
+        picked = self._decisions.pick(cards)
+        decisions: list[dict[str, Any]] = []
+        if picked is not None:
+            picked.more_waiting = self._decisions.remaining_after(cards, picked)
+            self._decisions.mark_presented(picked.id)
+            decisions = [picked.asdict()]
+
         return {
             "prohibitions": [self._prohibition_payload(doc) for doc in prohibitions],
             "items": [self._item_payload(doc) for doc in items],
             "skills": skills,
             "feedback_token": token,
             "recall_arm": _STORE_DEFAULT_ARM,
+            "decisions": decisions,
         }
 
     def _store_search_docs(self, store: MemoryStore, role: Optional[str]) -> List[MemoryDoc]:

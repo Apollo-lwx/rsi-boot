@@ -131,8 +131,8 @@ async def test_two_projects_do_not_share_knowledge(tmp_path, monkeypatch):
     rt_b = await build_runtime(project_root=proj_b)
     try:
         assert rt_a.project_id == rt_b.project_id == WORKSPACE_PROJECT_ID
-        assert Path(rt_a.db.db_path) == proj_a / ".rsi" / "rsi.db"
-        assert Path(rt_b.db.db_path) == proj_b / ".rsi" / "rsi.db"
+        assert rt_a.store.rsi_dir == proj_a / ".rsi"
+        assert rt_b.store.rsi_dir == proj_b / ".rsi"
 
         await _add_active(
             rt_a, "AlphaLedger 约定",
@@ -215,9 +215,10 @@ async def test_profiles_stay_inside_workspace_rsi(tmp_path, monkeypatch):
         merged_b = await rt_b.profiles.get("u1", rt_b.project_id)
         assert "alpha-only" in merged_a.expertise
         assert "alpha-only" not in merged_b.expertise
-        assert Path(rt_a.db.db_path) == proj_a / ".rsi" / "rsi.db"
-        assert Path(rt_a.global_db.db_path) == Path(rt_a.db.db_path)
+        assert rt_a.store.rsi_dir == proj_a / ".rsi"
+        assert not hasattr(rt_a, "db")
         assert not (tmp_path / "home" / "global.db").exists()
+        assert (proj_a / ".rsi" / "state" / "profile.yaml").is_file()
     finally:
         await rt_a.close()
         await rt_b.close()
@@ -266,7 +267,8 @@ async def test_legacy_named_namespace_migrates_default_does_not_leak(tmp_path, m
     try:
         titles_a = [r["title"] for r in await rt_a.knowledge.list(rt_a.project_id, limit=50)]
         titles_b = [r["title"] for r in await rt_b.knowledge.list(rt_b.project_id, limit=50)]
-        assert "旧 Alpha 记忆" in titles_a
+        # Runtime 不再自动 connect/迁出 sqlite；隔离靠目录，默认命名空间不得泄漏
+        assert "旧 Alpha 记忆" not in titles_a
         assert "串库水槽" not in titles_a
         assert "别人的项目" not in titles_a
         assert titles_b == []
@@ -292,8 +294,16 @@ async def test_migrate_adopt_default_into_current_project_only(tmp_path, monkeyp
         assert await rt.knowledge.list(rt.project_id) == []
         ns = await list_legacy_namespaces(home / "rsi.db")
         assert "default" in ns
-        result = await adopt_namespaces(home / "rsi.db", rt.db, ["default"], rt.project_id)
+        dest = SQLiteClient(project_db_path(proj))
+        await migrate(dest)
+        try:
+            result = await adopt_namespaces(home / "rsi.db", dest, ["default"], rt.project_id)
+        finally:
+            await dest.close()
         assert result["knowledge_items"] >= 1
+        from rsi_boot.services.memory_migrate import migrate_workspace
+
+        await migrate_workspace(proj)
         titles = [r["title"] for r in await rt.knowledge.list(rt.project_id)]
         assert "认领的水槽" in titles
     finally:

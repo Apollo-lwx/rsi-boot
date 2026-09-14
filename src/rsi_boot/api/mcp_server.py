@@ -96,7 +96,7 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
             elif name == conflicts_tool.TOOL_NAME:
                 payload = await conflicts_tool.handle(runtime, arguments)
             elif name == stats_tool.TOOL_NAME:
-                stats = StatsService(runtime.db)
+                stats = StatsService(store=runtime.store)
                 stats.bound_project_id = runtime.project_id
                 payload = await stats_tool.handle(stats, arguments)
             else:

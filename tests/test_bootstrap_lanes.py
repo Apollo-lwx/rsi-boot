@@ -9,8 +9,8 @@ from pathlib import Path
 from rsi_boot.bootstrap import build_runtime
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.data.sqlite import SQLiteClient
-from rsi_boot.project import project_scope
+
+from memory_helpers import archive_memory_docs, memory_conflict_rows, memory_rows_from_sql
 
 
 def _args(root: Path, **overrides) -> argparse.Namespace:
@@ -40,14 +40,7 @@ def _clean_repo(root: Path) -> Path:
 
 
 async def _rows(root: Path, sql: str, params: tuple = ()):
-    db_path, pid = project_scope(root)
-    db = SQLiteClient(db_path)
-    try:
-        conn = await db.connect()
-        async with conn.execute(sql, (pid, *params)) as cur:
-            return [dict(r) for r in await cur.fetchall()]
-    finally:
-        await db.close()
+    return await memory_rows_from_sql(root, sql, params)
 
 
 async def test_clean_repo_docs_and_config_are_active(tmp_path, monkeypatch):
@@ -237,13 +230,11 @@ async def test_bootstrap_version_keep_peer_activates_kept(tmp_path, monkeypatch)
 
     rt = await build_runtime(project_root=root)
     try:
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT id FROM rule_conflicts "
-            "WHERE project_id = ? AND conflict_type = 'version' AND status = 'open'",
-            (rt.project_id,),
-        ) as cur:
-            rows = await cur.fetchall()
+        rows = [
+            r for r in memory_conflict_rows(root)
+            if (r.get("conflict_type") or r.get("type")) == "version"
+            and r.get("status", "open") == "open"
+        ]
         assert len(rows) == 1
         result = await rt.conflict_detector.resolve(rows[0]["id"], "keep_peer")
         assert result is not None
@@ -275,13 +266,11 @@ async def test_bootstrap_version_coexist_activates_both(tmp_path, monkeypatch):
 
     rt = await build_runtime(project_root=root)
     try:
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT id FROM rule_conflicts "
-            "WHERE project_id = ? AND conflict_type = 'version' AND status = 'open'",
-            (rt.project_id,),
-        ) as cur:
-            rows = await cur.fetchall()
+        rows = [
+            r for r in memory_conflict_rows(root)
+            if (r.get("conflict_type") or r.get("type")) == "version"
+            and r.get("status", "open") == "open"
+        ]
         assert len(rows) == 1
         result = await rt.conflict_detector.resolve(rows[0]["id"], "coexist")
         assert result is not None
@@ -336,18 +325,7 @@ async def test_force_does_not_revive_untagged_overflow_archive(tmp_path, monkeyp
         "WHERE project_id = ? AND tags LIKE '%signal:docs%'",
     )
     assert docs
-    db_path, pid = project_scope(root)
-    db = SQLiteClient(db_path)
-    try:
-        conn = await db.connect()
-        for row in docs:
-            await conn.execute(
-                "UPDATE knowledge_items SET status = 'archived', tags = '[]' WHERE id = ?",
-                (row["id"],),
-            )
-        await conn.commit()
-    finally:
-        await db.close()
+    archive_memory_docs(root, [r["id"] for r in docs], clear_tags=True)
 
     assert await run_bootstrap(_args(root, force=True)) == 0
     leftover = await _rows(
@@ -371,18 +349,7 @@ async def test_force_does_not_stamp_manifest_for_untagged_archive(tmp_path, monk
         "WHERE project_id = ? AND tags LIKE '%signal:docs%'",
     )
     assert docs
-    db_path, _pid = project_scope(root)
-    db = SQLiteClient(db_path)
-    try:
-        conn = await db.connect()
-        for row in docs:
-            await conn.execute(
-                "UPDATE knowledge_items SET status = 'archived', tags = '[]' WHERE id = ?",
-                (row["id"],),
-            )
-        await conn.commit()
-    finally:
-        await db.close()
+    archive_memory_docs(root, [r["id"] for r in docs], clear_tags=True)
 
     capsys.readouterr()
     assert await run_bootstrap(_args(root, force=True)) == 0

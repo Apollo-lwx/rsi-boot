@@ -12,7 +12,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 from uuid import UUID
 
 from ..core.masking import mask_text
@@ -23,7 +23,7 @@ from ..injector.rule_injector import RuleInjector
 from ..injector.slug import slugify
 from ..knowledge.embedding import EmbeddingService, serialize_embedding
 from ..knowledge.retriever import KnowledgeRetriever
-from ..memory.paths import official_dir, pending_dir
+from ..memory.paths import official_dir, pending_dir, review_dir
 from ..memory.store import MemoryStore, memory_filename
 from ..memory.types import MEMORY_TYPES, MemoryDoc, type_from_legacy
 from ..ux.lang import locale_lang
@@ -81,18 +81,18 @@ class KnowledgeService:
             self._retriever.invalidate_cache()
 
     async def _notify_change(self, project_id: str) -> None:
-        if self._injector is not None:
+        if self.on_change is not None:
             try:
-                await self._injector.rewrite(project_id)
+                await self.on_change(project_id)
             except Exception:
-                logger.exception("注入重写失败（下轮变更重试）")
+                logger.exception("注入重写回调失败（下轮变更重试）")
             return
-        if self.on_change is None:
+        if self._injector is None:
             return
         try:
-            await self.on_change(project_id)
+            await self._injector.rewrite(project_id)
         except Exception:
-            logger.exception("注入重写回调失败（下轮变更重试）")
+            logger.exception("注入重写失败（下轮变更重试）")
 
     async def notify_changed(self, project_id: str) -> None:
         """裸 SQL 状态变更（收敛/归档/复活）后触发注入重写与缓存失效"""
@@ -101,11 +101,13 @@ class KnowledgeService:
 
     async def add(
         self, item: KnowledgeItem, api_key: Optional[str] = None
-    ) -> Union[str, dict[str, Any]]:
+    ) -> str:
         """写入知识条目。item.status 缺省 active；bootstrap 等批量来源传 pending_review
         走审批流（PRD v3.0 M2）——pending 条目不生成 embedding、不入检索/注入"""
         if self._store is not None:
-            return self._add_to_store(item)
+            item_id = self._add_to_store(item)
+            await self._notify_change(item.project_id or self.bound_project_id or "")
+            return item_id
         conn = await self._db.connect()
         item_id = uuid.uuid4().hex
         now = _utc_iso()
@@ -158,7 +160,7 @@ class KnowledgeService:
         await self._notify_change(item.project_id)
         return item_id
 
-    def _add_to_store(self, item: KnowledgeItem) -> dict[str, Any]:
+    def _add_to_store(self, item: KnowledgeItem) -> str:
         store = self._store
         assert store is not None
         typ, extra_update = type_from_legacy(item.content_type or "documentation")
@@ -176,18 +178,28 @@ class KnowledgeService:
             domain=item.domain,
             tags=list(item.tags),
             roles=list(item.roles),
+            source=item.source_url or None,
             extra=extra,
         )
+        src = item.source_url or ""
+        lane_b = bool({"signal:conversation", "signal:rules"} & set(item.tags or []))
+        lane_a_signal = src.startswith("signal:") and src not in (
+            "signal:conversation", "signal:rules",
+        )
+        explicit_active = (item.status or "active") == "active"
         if typ in _PENDING_TYPES:
-            dest = pending_dir(store.rsi_dir, typ) / memory_filename(doc.title, item_id)
+            # MCP add: default active + empty source → pending. Bootstrap lane-A
+            # (signal:config/code/git) and explicit active with a source → official.
+            if explicit_active and (lane_a_signal or (src and not lane_b)):
+                dest = official_dir(store.rsi_dir, typ) / memory_filename(doc.title, item_id)
+            else:
+                dest = pending_dir(store.rsi_dir, typ) / memory_filename(doc.title, item_id)
+        elif (item.status or "active") == "pending_review":
+            dest = review_dir(store.rsi_dir, typ) / memory_filename(doc.title, item_id)
         else:
             dest = official_dir(store.rsi_dir, typ) / memory_filename(doc.title, item_id)
         written = store.write(doc, dest=dest)
-        return {
-            "id": written.id,
-            "path": written.path,
-            "message": written.path or "",
-        }
+        return written.id
 
     async def list(self, project_id: str, limit: int = 50) -> List[dict[str, Any]]:
         if self._store is not None:
@@ -380,6 +392,11 @@ class KnowledgeService:
     async def finalize_active(self, project_id: str, item_ids: List[str]) -> None:
         """冲突裁决后：给刚转 active 的条目补 embedding，失效检索缓存并重写注入。"""
         project_id = self._scope(project_id)
+        if self._store is not None:
+            del item_ids
+            self._invalidate()
+            await self._notify_change(project_id)
+            return
         conn = await self._db.connect()
         now = _utc_iso()
         for item_id in item_ids:
@@ -409,6 +426,50 @@ class KnowledgeService:
         self._invalidate()
         await self._notify_change(project_id)
 
+    def _doc_source_url(self, doc: MemoryDoc) -> str:
+        return str(doc.extra.get("source_url") or doc.source or "")
+
+    async def _review_batch_store(
+        self,
+        approve: bool,
+        *,
+        ids: Optional[List[str]] = None,
+        content_type: Optional[str] = None,
+        include_archived: bool = False,
+        bootstrap_run_id: Optional[str] = None,
+        exclude_bootstrap: bool = False,
+        source_url: Optional[str] = None,
+    ) -> dict[str, Any]:
+        allowed = ("pending_review", "archived") if include_archived else ("pending_review",)
+        id_set = set(ids) if ids else None
+        marker = f"bootstrap_run_id:{bootstrap_run_id}" if bootstrap_run_id else None
+        processed = 0
+        for doc in list(self._store.list_all()):
+            if doc.status not in allowed:
+                continue
+            if include_archived and doc.status == "archived":
+                if not any(str(t).startswith("bootstrap_run_id") for t in (doc.tags or [])):
+                    continue
+            if id_set is not None and doc.id not in id_set:
+                continue
+            if content_type and doc.type != content_type:
+                continue
+            tags = list(doc.tags or [])
+            if marker and marker not in tags:
+                continue
+            if bootstrap_run_id and self._doc_source_url(doc) == "auto-extract":
+                continue
+            if exclude_bootstrap and any(str(t).startswith("bootstrap_run_id") for t in tags):
+                continue
+            if source_url is not None and self._doc_source_url(doc) != source_url:
+                continue
+            if approve:
+                await self.review_approve(doc.id)
+            else:
+                await self.review_reject(doc.id)
+            processed += 1
+        return {"processed": processed, "new_status": "active" if approve else "archived"}
+
     async def review_batch(
         self,
         project_id: str,
@@ -425,6 +486,12 @@ class KnowledgeService:
         ids 给定时只处理这些条目；content_type 过滤；include_archived 含限量溢出条目。
         bootstrap_run_id / exclude_bootstrap / source_url 隔离日常 auto-extract 与本轮抽取。
         单次提交 + 单次缓存失效 + 单次注入重写，返回 {processed, new_status}"""
+        if self._store is not None:
+            return await self._review_batch_store(
+                approve, ids=ids, content_type=content_type,
+                include_archived=include_archived, bootstrap_run_id=bootstrap_run_id,
+                exclude_bootstrap=exclude_bootstrap, source_url=source_url,
+            )
         project_id = self._scope(project_id)
         conn = await self._db.connect()
         allowed = ("pending_review", "archived") if include_archived else ("pending_review",)

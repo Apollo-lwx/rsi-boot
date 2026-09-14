@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+from ..memory.paths import official_dir, pending_dir, review_dir
 from .document_scanner import chunk_kwargs_from_config, slice_document
 from .signal_discovery import should_skip_dir
 from .validator import MIN_TOKENS, DedupSet, content_hash, read_text_tolerant, validate_chunk
@@ -29,6 +30,15 @@ _DEBOUNCE_S = 2.0
 _DECIDED_STATUSES = ("rejected", "suppressed")
 
 
+def _doc_source(doc: Any) -> str:
+    extra = getattr(doc, "extra", None) or {}
+    return str(extra.get("source_url") or getattr(doc, "source", None) or "")
+
+
+def _archive_dir(store: Any) -> Path:
+    return store.rsi_dir / "memory" / "archive"
+
+
 async def archive_missing_signals(
     runtime: Any,
     project_id: str,
@@ -40,6 +50,20 @@ async def archive_missing_signals(
     missing = [rel for rel in manifest if rel not in current_files]
     if not missing:
         return 0
+    store = getattr(runtime, "store", None)
+    if store is not None:
+        missing_set = set(missing)
+        archived = 0
+        for doc in store.list_all():
+            if doc.status not in ("active", "pending_review"):
+                continue
+            if _doc_source(doc) not in missing_set:
+                continue
+            store.move(doc.id, _archive_dir(store))
+            archived += 1
+        if archived:
+            logger.info("信号源删除归档：%d 条知识标记 archived", archived)
+        return archived
     conn = await runtime.db.connect()
     archived = 0
     for rel in missing:
@@ -67,6 +91,31 @@ async def reconcile_scope(
     供聚合类生成知识（signal:code/config/git/correlation/rules）按标签收敛：
     内容随开发演进而变化时，旧版本不留滞（用户已裁决的 rejected/suppressed 不动）。
     """
+    store = getattr(runtime, "store", None)
+    if store is not None:
+        sql_l = " ".join((scope_sql or "").lower().split())
+        raw = scope_params[0] if scope_params else ""
+
+        def _in_scope(doc: Any) -> bool:
+            if "source_url" in sql_l:
+                return _doc_source(doc) == str(raw)
+            if "tags like" in sql_l:
+                needle = str(raw).replace("%", "").replace('"', "")
+                return bool(needle) and needle in list(doc.tags or [])
+            return True
+
+        stale = [
+            doc.id for doc in store.list_all()
+            if doc.status in ("active", "pending_review")
+            and _in_scope(doc)
+            and content_hash(doc.content) not in kept_hashes
+        ]
+        if not stale:
+            return 0
+        for item_id in stale:
+            store.move(item_id, _archive_dir(store))
+        logger.info("变更收敛：%d 条旧版本知识标记 archived", len(stale))
+        return len(stale)
     conn = await runtime.db.connect()
     async with conn.execute(
         f"SELECT id, content FROM knowledge_items "
@@ -125,6 +174,13 @@ async def ingest_document(
 
     root = Path(project_root)
     rel = str(path.relative_to(root))
+    store = getattr(runtime, "store", None)
+    if store is not None:
+        return await _ingest_document_store(
+            runtime, store, project_id, path, rel, dedup,
+            status=status, tags=tags, allow_sensitive=allow_sensitive,
+            require_run_tag_to_revive=require_run_tag_to_revive, stats=stats,
+        )
     conn = await runtime.db.connect()
     async with conn.execute(
         "SELECT id, content, status, tags FROM knowledge_items "
@@ -179,6 +235,75 @@ async def ingest_document(
         ))
         stats["written"] += 1
     await conn.commit()
+    stats["superseded"] = await reconcile_scope(
+        runtime, project_id, "source_url = ?", [rel], kept_hashes
+    )
+    return stats
+
+
+async def _ingest_document_store(
+    runtime: Any,
+    store: Any,
+    project_id: str,
+    path: Path,
+    rel: str,
+    dedup: DedupSet,
+    *,
+    status: str,
+    tags: Optional[List[str]],
+    allow_sensitive: bool,
+    require_run_tag_to_revive: bool,
+    stats: Dict[str, Any],
+) -> Dict[str, Any]:
+    from ..core.models import KnowledgeItem
+
+    source_docs = [d for d in store.list_all() if _doc_source(d) == rel]
+    by_hash = {content_hash(d.content): d for d in source_docs}
+    kept_hashes: Set[str] = set()
+    for chunk in slice_document(path, **chunk_kwargs_from_config(getattr(runtime, "config", None))):
+        if stats["title"] is None:
+            stats["title"] = chunk.title
+        result = validate_chunk(
+            chunk.content,
+            allow_sensitive=allow_sensitive,
+            min_tokens=0 if chunk.kind == "index" else MIN_TOKENS,
+        )
+        if not result.ok:
+            stats["skipped"] += 1
+            continue
+        kept_hashes.add(content_hash(result.content))
+        existing = by_hash.get(content_hash(result.content))
+        if existing is not None:
+            if existing.status in ("active", "pending_review"):
+                continue
+            if existing.status == "archived":
+                tag_blob = " ".join(existing.tags or [])
+                if require_run_tag_to_revive and "bootstrap_run_id:" not in tag_blob:
+                    stats["blocked_untagged_archive"] += 1
+                    continue
+                if status == "pending_review":
+                    dest = review_dir(store.rsi_dir, existing.type)
+                elif existing.type in ("prohibition", "convention", "skill"):
+                    dest = pending_dir(store.rsi_dir, existing.type)
+                else:
+                    dest = official_dir(store.rsi_dir, existing.type)
+                store.move(existing.id, dest)
+                stats["revived"] += 1
+                continue
+            if existing.status in _DECIDED_STATUSES:
+                continue
+        if dedup.is_duplicate(result.content):
+            stats["duplicates"] += 1
+            continue
+        item_tags = list(tags or []) + (["risk"] if result.risk else [])
+        if chunk.kind == "index" and "signal:doc-index" not in item_tags:
+            item_tags.append("signal:doc-index")
+        await runtime.knowledge.add(KnowledgeItem(
+            project_id=project_id, title=f"{path.name}# {chunk.title}",
+            content=result.content, status=status, content_type="documentation",
+            domain="bootstrap", tags=item_tags, source_url=rel,
+        ))
+        stats["written"] += 1
     stats["superseded"] = await reconcile_scope(
         runtime, project_id, "source_url = ?", [rel], kept_hashes
     )

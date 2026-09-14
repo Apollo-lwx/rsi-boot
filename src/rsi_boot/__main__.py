@@ -43,41 +43,48 @@ async def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
-async def cmd_serve(args: argparse.Namespace) -> int:
-    setup_logging()
+async def run_serve(project_root: Path, *, watch: bool = False) -> int:
+    """File-only serve: startup inject, optional YAML watch, no sqlite."""
     from .api.mcp_server import serve
+    from .memory.watch import YamlWatcher
     from .scheduler.manager import SchedulerManager
-    from .scanner.incremental import IncrementalLearner
 
-    explicit = Path(args.project_root) if getattr(args, "project_root", None) else None
-    project_root = resolve_project_root(explicit=explicit)
-    logging.getLogger(__name__).info("工作区 %s → %s", project_root, project_root / ".rsi" / "rsi.db")
+    logging.getLogger(__name__).info("工作区 %s → %s", project_root, project_root / ".rsi")
     runtime = await build_runtime(project_root=project_root)
+    await runtime.injector.rewrite(runtime.project_id or "")
     archive_dir = project_root / ".rsi" / "archive"
-    # 配置热加载（P1.14）与离线任务调度（P1.12）：与 MCP server 并行的后台任务
     scheduler = SchedulerManager(
-        runtime.db, archive_dir, profiles=runtime.profiles,
+        archive_dir, store=runtime.store, profiles=runtime.profiles,
         extractor_provider=lambda: runtime.extractor,
         proposal_engine_provider=lambda: runtime.proposal_engine,
         conflict_detector_provider=lambda: runtime.conflict_detector,
         project_ids=[runtime.project_id] if runtime.project_id else [],
     )
     scheduler.start()
-    watch_task = asyncio.create_task(runtime.watcher.watch_loop())
-    # --watch：静默学习（§10.9.5 文件监听模式，P2.6）
-    learner = None
-    if getattr(args, "watch", False):
-        learner = IncrementalLearner(runtime, project_root, runtime.project_id or project_root.name)
-        learner.start()
+    config_watch = asyncio.create_task(runtime.watcher.watch_loop())
+    yaml_task = None
+    if watch:
+        watcher = YamlWatcher(
+            project_root / ".rsi" / "memory",
+            on_change=lambda _p: runtime.invalidate_index(),
+        )
+        yaml_task = asyncio.create_task(watcher.watch_loop())
     try:
         await serve(runtime, runtime.logs, runtime.feedback_secret)
     finally:
-        watch_task.cancel()
-        if learner is not None:
-            await learner.stop()
+        config_watch.cancel()
+        if yaml_task is not None:
+            yaml_task.cancel()
         await scheduler.stop()
         await runtime.close()
     return 0
+
+
+async def cmd_serve(args: argparse.Namespace) -> int:
+    setup_logging()
+    explicit = Path(args.project_root) if getattr(args, "project_root", None) else None
+    project_root = resolve_project_root(explicit=explicit)
+    return await run_serve(project_root, watch=bool(getattr(args, "watch", False)))
 
 
 async def cmd_recall(args: argparse.Namespace) -> int:
@@ -106,19 +113,25 @@ async def cmd_migrate(args: argparse.Namespace) -> int:
         _print_json({"legacy_db": str(legacy_shared_db_path()), "namespaces": ns})
         return 0
     if args.migrate_action == "adopt":
+        from .data.migrate import migrate
+        from .data.sqlite import SQLiteClient
+        from .project import load_or_create_identity, project_db_path
+
         root = resolve_project_root(explicit=Path(args.project_root))
-        runtime = await build_runtime(project_root=root)
+        identity = load_or_create_identity(root)
+        if not identity.project_id:
+            print("无法解析当前项目身份", file=sys.stderr)
+            return 2
+        db = SQLiteClient(project_db_path(root))
+        await migrate(db)
         try:
-            if not runtime.project_id:
-                print("无法解析当前项目身份", file=sys.stderr)
-                return 2
             rows = await adopt_namespaces(
-                legacy_shared_db_path(), runtime.db, [args.namespace], runtime.project_id,
+                legacy_shared_db_path(), db, [args.namespace], identity.project_id,
             )
             _print_json({
                 "adopted": args.namespace,
-                "dest_project_id": runtime.project_id,
-                "dest_db": str(runtime.db.db_path),
+                "dest_project_id": identity.project_id,
+                "dest_db": str(db.db_path),
                 "rows": rows,
             })
             from .ux.lang import locale_lang
@@ -127,7 +140,7 @@ async def cmd_migrate(args: argparse.Namespace) -> int:
             print(t("MIGRATE_ADOPT_DEPRECATED", locale_lang()), file=sys.stderr)
             return 0
         finally:
-            await runtime.close()
+            await db.close()
     print("未知 migrate 子命令", file=sys.stderr)
     return 2
 

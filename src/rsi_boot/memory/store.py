@@ -99,6 +99,11 @@ class MemoryStore:
                 docs.extend(self._load_tree(pending_dir(self.rsi_dir, typ)))
             return docs
 
+    def list_all(self) -> list[MemoryDoc]:
+        """Official + pending + archive (and any other memory/**/*.yaml)."""
+        with self._io:
+            return self._load_tree(self.rsi_dir / "memory")
+
     def _write_unlocked(self, doc: MemoryDoc, dest: Path) -> MemoryDoc:
         dest = Path(dest)
         now = _utc_now()

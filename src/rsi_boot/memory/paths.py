@@ -28,3 +28,11 @@ def pending_dir(rsi_dir: Path, type: str) -> Path:
     if type not in _PENDING_TYPES:
         raise ValueError(f"pending is only for prohibition/convention/skill, not {type}")
     return rsi_dir / "memory" / "pending" / _OFFICIAL_DIR_NAMES[type]
+
+
+def review_dir(rsi_dir: Path, type: str) -> Path:
+    """pending_review location for any type (bootstrap hold / lane B)."""
+    name = _OFFICIAL_DIR_NAMES.get(type)
+    if name is None:
+        raise ValueError(f"unknown memory type: {type}")
+    return rsi_dir / "memory" / "pending" / name

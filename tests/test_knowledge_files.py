@@ -57,11 +57,12 @@ async def test_add_norm_goes_pending_doc_goes_official(tmp_path):
     doc = await svc.add(KnowledgeItem(
         project_id="p", title="接口说明", content="文档正文", content_type="documentation",
     ))
-    assert set(prohibition) >= {"id", "path", "message"}
-    assert str(prohibition["path"]).replace("\\", "/").startswith("memory/pending/prohibitions")
-    assert str(doc["path"]).replace("\\", "/").startswith("memory/documentation")
-    assert store.read(prohibition["id"]).status == "pending_review"
-    assert store.read(doc["id"]).status == "active"
+    proh = store.read(prohibition)
+    written = store.read(doc)
+    assert (proh.path or "").replace("\\", "/").startswith("memory/pending/prohibitions")
+    assert (written.path or "").replace("\\", "/").startswith("memory/documentation")
+    assert proh.status == "pending_review"
+    assert written.status == "active"
 
 
 @pytest.mark.asyncio

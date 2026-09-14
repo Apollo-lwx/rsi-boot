@@ -1,11 +1,11 @@
-"""组装运行时（v3.0：零 Key 主链路）：配置 → SQLite → 检索 → 召回/注入/学习闭环。
+"""组装运行时（v3.0：零 Key 主链路）：配置 → MemoryStore → 召回/注入/学习闭环。
 
 主链路不装配任何 LLM 组件：生成全部透传宿主模型。v2.6 模型调用层（Pipeline /
 ModelAdapter / 质量评判 / 回放门禁）归档为附录 C 可选增强——仅当 enhance.* 对应
 开关启用时装配（Spec v3.0 §10）。
 
 配置热加载（P1.14）：Runtime 持有 ConfigWatcher；reload 时以新配置重建
-检索/召回/学习组件（缓存了配置值的组件随重建生效），DB 连接与日志服务复用。
+检索/召回/学习组件。MemoryStore 与日志服务复用。热路径不构造 SQLite。
 """
 
 from __future__ import annotations
@@ -19,25 +19,22 @@ from typing import Any, Optional
 
 from .config.loader import ConfigWatcher
 from .core import masking
-from .data.migrate import migrate
-from .data.sqlite import SQLiteClient
-from .data.vec import VectorBackend
 from .feedback.implicit_tracker import FeedbackWorker
 from .injector.conflict import ConflictDetector
 from .injector.rule_injector import RuleInjector
-from .knowledge.retriever import KnowledgeRetriever
 from .learning.knowledge_extractor import KnowledgeExtractor
 from .learning.proposal_engine import ProposalEngine
 from .learning.skill_loader import SkillLoader
 from .learning.snapshot_store import SnapshotStore
 from .learning.static_gate import StaticGate
+from .memory.store import MemoryStore
 from .project import (
-    WORKSPACE_PROJECT_ID,
     load_or_create_identity,
     project_db_path,
     resolve_project_root,
     rsi_home,
 )
+from .rag.index import build_index
 from .services.decision_queue import DecisionQueue
 from .services.knowledge_service import KnowledgeService
 from .services.log_service import LogService
@@ -46,6 +43,16 @@ from .services.recall_service import RecallService
 from .strategy.recall import RecallArmSelector
 
 logger = logging.getLogger(__name__)
+
+
+class _IndexInvalidator:
+    """File-runtime stand-in for KnowledgeRetriever.invalidate_cache."""
+
+    def __init__(self, invalidate) -> None:
+        self._invalidate = invalidate
+
+    def invalidate_cache(self) -> None:
+        self._invalidate()
 
 #: 增强层开关 → 是否需要 LLM 适配器（附录 C）
 _LLM_SWITCHES = ("extract_llm", "proposal_llm", "gate_replay", "quality_judge", "conflict_llm")
@@ -68,27 +75,21 @@ class Runtime:
     def __init__(
         self,
         watcher: ConfigWatcher,
-        db: SQLiteClient,
-        vec: Optional[VectorBackend] = None,
+        store: MemoryStore,
         project_root: Optional[Path] = None,
         project_id: Optional[str] = None,
-        global_db: Optional[SQLiteClient] = None,
     ):
         self.watcher = watcher
-        self.db = db
-        self.global_db = global_db or db
+        self.store = store
         self.project_id = project_id
-        self.logs = LogService(db)
-        self.profiles = ProfileService(db, global_db=self.global_db)
-        # §4.2 异步反馈队列，serve 时 start；profiles 用于 copied/referenced 兴趣加权
-        self.feedback_worker = FeedbackWorker(db, profiles=self.profiles)
-        # Genome 快照仅依赖 DB 与 ~/.rsi，热加载不重建
-        self.snapshots = SnapshotStore(db, rsi_home())
+        self.logs = LogService(store=store)
+        self.profiles = ProfileService(store=store)
+        self.feedback_worker = FeedbackWorker(store=store, profiles=self.profiles)
+        self.snapshots = SnapshotStore(store=store, rsi_home=rsi_home())
         self._project_root = project_root
-        # 向量后端仅增强层使用（enhance.embedding）；启动时创建一次，热加载不重建
-        self.vec = vec
-        # 抉择队列进程内单例：必须在 _apply_config 之前创建，热加载不得重建 sticky
+        self.vec = None
         self.decisions = DecisionQueue()
+        self._index: Optional[dict[str, Any]] = None
         self._apply_config(watcher.config)
         watcher.subscribe(self._apply_config)
 
@@ -96,13 +97,21 @@ class Runtime:
     def config(self) -> dict[str, Any]:
         return self.watcher.config
 
+    def invalidate_index(self) -> None:
+        self._index = None
+
+    def invert_index(self) -> dict[str, Any]:
+        if self._index is None:
+            docs = [d for d in self.store.list_official() if d.status == "active"]
+            self._index = build_index(docs)
+        return self._index
+
     def _apply_config(self, config: dict[str, Any]) -> None:
         """配置生效点：脱敏规则 + 依赖配置的组件全部重建（热加载回调）"""
         masking.configure(config)
         enhance = config.get("enhance", {})
         view = _enhance_view(config)
 
-        # ---- 可选增强层（附录 C）：默认全部不装配 ----
         embedding = None
         if enhance.get("embedding"):
             from .knowledge.embedding import EmbeddingService
@@ -120,47 +129,52 @@ class Runtime:
 
             quality = QualityAssessor(embedding, adapter, view)
 
-        # ---- 主链路：检索 / 召回 / 注入 / 学习闭环（零 LLM） ----
-        self.retriever = KnowledgeRetriever(
-            self.db, config, embedding=embedding, vec=self.vec if embedding else None,
-        )
-        self.injector = RuleInjector(self.db, project_root=self._project_root)
+        self.retriever = _IndexInvalidator(self.invalidate_index)
+        self.injector = RuleInjector(store=self.store, project_root=self._project_root)
         self.knowledge = KnowledgeService(
-            self.db, self.retriever, embedding=embedding, vec=self.vec if embedding else None,
+            store=self.store,
+            retriever=self.retriever,
+            embedding=embedding,
             bound_project_id=self.project_id,
+            project_root=self._project_root,
         )
-        self.knowledge.on_change = self.injector.rewrite  # 记忆变更 → 规则文件重写（§4.2）
-        self.recall_arms = RecallArmSelector(self.db)
+
+        async def _on_knowledge_change(project_id: str) -> None:
+            self.invalidate_index()
+            await self.injector.rewrite(project_id)
+
+        self.knowledge.on_change = _on_knowledge_change
+        self.recall_arms = RecallArmSelector(store=self.store)
         self.recall = RecallService(
-            self.db, self.retriever, self.recall_arms, self.feedback_secret, profiles=self.profiles,
+            store=self.store,
+            feedback_secret=self.feedback_secret,
+            profiles=self.profiles,
             bound_project_id=self.project_id,
             decisions=self.decisions,
             project_root=self._project_root,
         )
-        self.extractor = KnowledgeExtractor(self.db, embedding=embedding, adapter=adapter, config=config)
+        self.extractor = KnowledgeExtractor(
+            store=self.store, embedding=embedding, adapter=adapter, config=config,
+        )
         gate: Any = StaticGate()
         if enhance.get("gate_replay"):
-            if adapter is not None and embedding is not None:
-                from .learning.regression_gate import RegressionGate
-
-                gate = RegressionGate(self.db, adapter, embedding, view)
-            else:
-                logger.warning("enhance.gate_replay 已开启但增强层模型/embedding 未配 Key，回落静态门禁")
+            logger.warning("enhance.gate_replay 已开启但 Runtime 不再装配 sqlite 回放门禁，回落静态门禁")
         self.proposal_engine = ProposalEngine(
-            self.db, adapter, config, gate, self.snapshots, rsi_home(),
+            store=self.store, adapter=adapter, config=config, gate=gate,
+            snapshots=self.snapshots, rsi_home=rsi_home(),
             on_change=self.injector.rewrite,
         )
         self.conflict_detector = ConflictDetector(
-            self.db, self._project_root, on_change=self.injector.rewrite,
+            store=self.store, project_root=self._project_root,
+            on_change=self.injector.rewrite,
             knowledge=self.knowledge,
         )
-        # 技能槽（§3.9）：包内内置 → ~/.rsi/skills → 项目 .rsi/skills，后者覆盖同名
         skill_dirs = [Path(str(resources.files("rsi_boot") / "config" / "skills")), rsi_home() / "skills"]
         if self._project_root:
             skill_dirs.append(Path(self._project_root) / ".rsi" / "skills")
         self.skill_loader = SkillLoader(skill_dirs)
-        # worker 跨热加载存活（保队列），仅替换其质量评估器引用
         self.feedback_worker._quality = quality
+        self.invalidate_index()
 
     @property
     def feedback_secret(self) -> str:
@@ -168,44 +182,28 @@ class Runtime:
 
     async def close(self) -> None:
         try:
-            await self.recall.drain()  # 先收敛画像后台任务，再关库
+            await self.recall.drain()
         except Exception:
             pass
         await self.feedback_worker.stop()
-        await self.db.close()
-        if self.global_db is not self.db:
-            await self.global_db.close()
 
 
 def default_db_path(project_root: Optional[Path] = None) -> Path:
-    """当前项目库路径。无参时按 cwd 解析项目根（不再回落 ~/.rsi/rsi.db）。"""
+    """当前项目库路径（仅 migrate 命令使用）。无参时按 cwd 解析项目根。"""
     root = resolve_project_root(explicit=project_root)
     return project_db_path(root)
 
 
 async def build_runtime(db_path: Optional[Path] = None, project_root: Optional[Path] = None) -> Runtime:
-    root = Path(project_root).resolve() if project_root is not None else None
-    identity = load_or_create_identity(root) if root is not None else None
-    project_id = identity.project_id if identity is not None else None
-    resolved_db = Path(db_path) if db_path is not None else (
-        project_db_path(root) if root is not None else default_db_path()
-    )
+    del db_path  # file runtime ignores sqlite path
+    root = Path(project_root).resolve() if project_root is not None else resolve_project_root()
+    identity = load_or_create_identity(root)
+    project_id = identity.project_id
+    rsi_dir = root / ".rsi"
+    rsi_dir.mkdir(parents=True, exist_ok=True)
     watcher = ConfigWatcher(project_root=root)
-    db = SQLiteClient(resolved_db)
-    await migrate(db)
-    if root is not None and project_id is not None:
-        from .services.legacy_migrate import maybe_auto_migrate, remap_to_workspace_id
-
-        await remap_to_workspace_id(db, WORKSPACE_PROJECT_ID)
-        await maybe_auto_migrate(root, project_id, db)
-    vec = None
-    if watcher.config.get("enhance", {}).get("embedding"):
-        from .data.vec import create_vector_backend
-
-        vec = await create_vector_backend(db, watcher.config)
-    return Runtime(
-        watcher, db, vec=vec, project_root=root, project_id=project_id, global_db=db,
-    )
+    store = MemoryStore(rsi_dir)
+    return Runtime(watcher, store, project_root=root, project_id=project_id)
 
 
 def detect_user_id() -> str:

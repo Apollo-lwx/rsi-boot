@@ -9,6 +9,8 @@ from pathlib import Path
 
 from rsi_boot.api.tools import conflicts_tool, knowledge_review_tool, recall_tool
 from rsi_boot.bootstrap import build_runtime
+
+from memory_helpers import write_memory_conflict, write_memory_item
 from rsi_boot.injector.targets import CursorRuleTarget, MemoryBundle, MemoryRow
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
 from rsi_boot.services.knowledge_service import KnowledgeService
@@ -140,12 +142,12 @@ async def test_resolve_closes_decision_card(tmp_path, monkeypatch):
     root.mkdir()
     rt = await build_runtime(project_root=root)
     try:
-        item_id = await _insert_item(
-            rt.db, project_id=rt.project_id, title="禁止：pydantic",
+        item_id = write_memory_item(
+            rt.store, title="禁止：pydantic",
             source_url="auto-extract", tags=["signal:conversation"],
         )
-        conflict_id = await _insert_conflict(
-            rt.db, project_id=rt.project_id, item_id=item_id, peer_source="docs/api.md",
+        conflict_id = write_memory_conflict(
+            rt.store, item_id=item_id, peer_source="docs/api.md",
         )
         first = await rt.recall.recall("怎么校验", rt.project_id)
         assert first["decisions"][0]["id"] == conflict_id
@@ -174,13 +176,13 @@ async def test_knowledge_review_keeps_extract_card_while_pending_remain(tmp_path
     )
     rt = await build_runtime(project_root=root)
     try:
-        item_a = await _insert_item(
-            rt.db, project_id=rt.project_id, title="抽取 A",
+        item_a = write_memory_item(
+            rt.store, title="抽取 A",
             source_url="cursor/chat-a.md",
             tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
         )
-        item_b = await _insert_item(
-            rt.db, project_id=rt.project_id, title="抽取 B",
+        item_b = write_memory_item(
+            rt.store, title="抽取 B",
             source_url="cursor/chat-b.md",
             tags=["signal:rules", f"bootstrap_run_id:{run_id}"],
         )
@@ -220,8 +222,8 @@ async def test_knowledge_review_closes_extract_card(tmp_path, monkeypatch):
     )
     rt = await build_runtime(project_root=root)
     try:
-        item_id = await _insert_item(
-            rt.db, project_id=rt.project_id, title="对话抽取",
+        item_id = write_memory_item(
+            rt.store, title="对话抽取",
             source_url="cursor/chat.md",
             tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
         )
@@ -251,13 +253,13 @@ async def test_extract_card_approve_via_bootstrap_run_id(tmp_path, monkeypatch):
     )
     rt = await build_runtime(project_root=root)
     try:
-        item_id = await _insert_item(
-            rt.db, project_id=rt.project_id, title="对话抽取",
+        item_id = write_memory_item(
+            rt.store, title="对话抽取",
             source_url="cursor/chat.md",
             tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
         )
-        daily_id = await _insert_item(
-            rt.db, project_id=rt.project_id, title="日常草稿",
+        daily_id = write_memory_item(
+            rt.store, title="日常草稿",
             source_url="auto-extract", tags=["signal:conversation"],
         )
         first = await rt.recall.recall("开始任务", rt.project_id)
@@ -274,15 +276,8 @@ async def test_extract_card_approve_via_bootstrap_run_id(tmp_path, monkeypatch):
         })
         assert result["status"] == "ok"
         assert result.get("processed", 0) >= 1
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT status FROM knowledge_items WHERE id = ?", (item_id,),
-        ) as cur:
-            assert (await cur.fetchone())["status"] == "active"
-        async with conn.execute(
-            "SELECT status FROM knowledge_items WHERE id = ?", (daily_id,),
-        ) as cur:
-            assert (await cur.fetchone())["status"] == "pending_review"
+        assert rt.store.read(item_id).status == "active"
+        assert rt.store.read(daily_id).status == "pending_review"
         second = await rt.recall.recall("开始任务", rt.project_id)
         assert second["decisions"] == [] or second["decisions"][0]["id"] != f"extract:{run_id}"
     finally:
@@ -302,13 +297,13 @@ async def test_bootstrap_run_id_all_pending_skips_docs_lane(tmp_path, monkeypatc
     )
     rt = await build_runtime(project_root=root)
     try:
-        conv_id = await _insert_item(
-            rt.db, project_id=rt.project_id, title="对话抽取",
+        conv_id = write_memory_item(
+            rt.store, title="对话抽取",
             source_url="cursor/chat.md",
             tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
         )
-        docs_id = await _insert_item(
-            rt.db, project_id=rt.project_id, title="冲突文档",
+        docs_id = write_memory_item(
+            rt.store, title="冲突文档", type="documentation",
             source_url="docs/foo.md",
             tags=["signal:docs", f"bootstrap_run_id:{run_id}"],
         )
@@ -320,15 +315,8 @@ async def test_bootstrap_run_id_all_pending_skips_docs_lane(tmp_path, monkeypatc
         })
         assert result["status"] == "ok"
         assert result["processed"] == 1
-        conn = await rt.db.connect()
-        async with conn.execute(
-            "SELECT status FROM knowledge_items WHERE id = ?", (conv_id,),
-        ) as cur:
-            assert (await cur.fetchone())["status"] == "active"
-        async with conn.execute(
-            "SELECT status FROM knowledge_items WHERE id = ?", (docs_id,),
-        ) as cur:
-            assert (await cur.fetchone())["status"] == "pending_review"
+        assert rt.store.read(conv_id).status == "active"
+        assert rt.store.read(docs_id).status == "pending_review"
     finally:
         await rt.close()
 
@@ -345,8 +333,8 @@ async def test_knowledge_review_skip_suppresses_extract_card(tmp_path, monkeypat
     )
     rt = await build_runtime(project_root=root)
     try:
-        await _insert_item(
-            rt.db, project_id=rt.project_id, title="对话抽取",
+        write_memory_item(
+            rt.store, title="对话抽取",
             source_url="cursor/chat.md",
             tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
         )

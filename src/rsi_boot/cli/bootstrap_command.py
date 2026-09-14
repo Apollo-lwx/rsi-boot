@@ -38,7 +38,6 @@ from ..scanner.profile_generator import (
     assess_doc_quality,
     assess_test_culture,
     build_profile,
-    upsert_profile,
 )
 from ..injector.targets import discover_user_rule_files
 from ..scanner.report import BootstrapReport
@@ -66,6 +65,18 @@ _SIGNAL_SOURCE = {
 
 def _norm_src(path: str) -> str:
     return (path or "").replace("\\", "/")
+
+
+def _doc_source(doc: Any) -> str:
+    extra = getattr(doc, "extra", None) or {}
+    return _norm_src(str(extra.get("source_url") or getattr(doc, "source", None) or ""))
+
+
+def _store_docs(runtime: Any) -> List[Any]:
+    store = getattr(runtime, "store", None)
+    if store is None:
+        return []
+    return list(store.list_all())
 
 
 def _record_applied(report: BootstrapReport, kind: str, title: str, active: bool) -> None:
@@ -233,18 +244,12 @@ async def _write_code_batch(
 
 
 async def _source_to_item_id(runtime: Any, project_id: str) -> Dict[str, str]:
-    conn = await runtime.db.connect()
-    async with conn.execute(
-        "SELECT id, source_url FROM knowledge_items "
-        "WHERE project_id = ? AND source_url IS NOT NULL AND source_url != '' "
-        "ORDER BY created_at",
-        (project_id,),
-    ) as cur:
-        rows = await cur.fetchall()
+    del project_id
     mapping: Dict[str, str] = {}
-    for row in rows:
-        key = _norm_src(row["source_url"])
-        mapping.setdefault(key, row["id"])
+    for doc in _store_docs(runtime):
+        key = _doc_source(doc)
+        if key:
+            mapping.setdefault(key, doc.id)
     return mapping
 
 
@@ -337,14 +342,12 @@ def _delete_host_judge_queue(rsi_dir: Path) -> None:
 
 
 async def _existing_hashes(runtime: Any, project_id: str) -> Set[str]:
-    # archived 参与去重：收敛/归档条目在 force/内容微调重跑时不得重新入队
-    conn = await runtime.db.connect()
-    async with conn.execute(
-        "SELECT content FROM knowledge_items WHERE project_id = ? AND status IN ('active', 'pending_review', 'archived')",
-        (project_id,),
-    ) as cur:
-        rows = await cur.fetchall()
-    return {content_hash(r["content"]) for r in rows}
+    del project_id
+    return {
+        content_hash(doc.content)
+        for doc in _store_docs(runtime)
+        if doc.status in ("active", "pending_review", "archived")
+    }
 
 
 def _signal_from_tags(tags_raw: Any) -> str:
@@ -374,35 +377,25 @@ async def _load_existing_drafts(
     include: Sequence[str] | None = None,
 ) -> List[DraftItem]:
     """把库中 active/pending 行当成本轮 DraftItem 同伴，供 gate 看到指纹跳过的版本对。"""
-    conn = await runtime.db.connect()
-    async with conn.execute(
-        "SELECT title, content, content_type, source_url, tags FROM knowledge_items "
-        "WHERE project_id = ? AND status IN ('active', 'pending_review') "
-        "AND source_url IS NOT NULL AND source_url != ''",
-        (project_id,),
-    ) as cur:
-        rows = await cur.fetchall()
+    del project_id
     allowed = parse_include_dirs(include)
     peers: List[DraftItem] = []
-    for row in rows:
-        src = _norm_src(row["source_url"] or "")
+    for doc in _store_docs(runtime):
+        if doc.status not in ("active", "pending_review"):
+            continue
+        src = _doc_source(doc)
         if not src or src in already:
             continue
         if src == "auto-extract" or src.startswith("item:"):
             continue
         if source_path_excluded(src, allowed):
             continue
-        try:
-            tags = json.loads(row["tags"]) if row["tags"] else []
-        except (TypeError, ValueError):
-            tags = []
-        if not isinstance(tags, list):
-            tags = []
-        signal = _signal_from_tags(row["tags"])
+        tags = list(doc.tags or [])
+        signal = _signal_from_tags(tags)
         peers.append(DraftItem(
-            title=_peer_title(row["title"] or "", src),
-            content=row["content"] or "",
-            content_type=row["content_type"] or "documentation",
+            title=_peer_title(doc.title or "", src),
+            content=doc.content or "",
+            content_type=doc.type or "documentation",
             source_url=src,
             tags=tags or [f"signal:{signal}"],
             signal=signal,
@@ -414,48 +407,35 @@ async def _demote_held_active(
     runtime: Any, project_id: str, hold_sources: Set[str],
 ) -> int:
     """hold 命中且已是 active 的存量条目 → pending_review（scan 不会改状态）。"""
+    del project_id
     hold = {_norm_src(s) for s in hold_sources if s}
     if not hold:
         return 0
-    conn = await runtime.db.connect()
-    async with conn.execute(
-        "SELECT id, source_url FROM knowledge_items "
-        "WHERE project_id = ? AND status = 'active' "
-        "AND source_url IS NOT NULL AND source_url != ''",
-        (project_id,),
-    ) as cur:
-        rows = await cur.fetchall()
-    ids = [
-        r["id"] for r in rows
-        if _norm_src(r["source_url"]) in hold
-        and _norm_src(r["source_url"]) != "auto-extract"
-        and not _norm_src(r["source_url"]).startswith("item:")
-    ]
-    if not ids:
-        return 0
-    now = datetime.now(timezone.utc).isoformat()
-    cur = await conn.execute(
-        f"UPDATE knowledge_items SET status = 'pending_review', updated_at = ? "
-        f"WHERE id IN ({','.join('?' for _ in ids)})",
-        (now, *ids),
-    )
-    await conn.commit()
-    return cur.rowcount
+    from ..memory.paths import review_dir
+
+    moved = 0
+    store = runtime.store
+    for doc in _store_docs(runtime):
+        if doc.status != "active":
+            continue
+        src = _doc_source(doc)
+        if src not in hold or src == "auto-extract" or src.startswith("item:"):
+            continue
+        store.move(doc.id, review_dir(store.rsi_dir, doc.type))
+        moved += 1
+    return moved
 
 
 async def _enforce_review_cap(
     runtime: Any, project_id: str, cap: int, report: BootstrapReport
 ) -> None:
     """只统计 tags 含 bootstrap_run_id 的 pending；超过 500 打 warning，不 archived。"""
-    del cap
-    conn = await runtime.db.connect()
-    async with conn.execute(
-        "SELECT id FROM knowledge_items "
-        "WHERE project_id = ? AND status = 'pending_review' "
-        "AND tags LIKE '%bootstrap_run_id%'",
-        (project_id,),
-    ) as cur:
-        rows = await cur.fetchall()
+    del cap, project_id
+    rows = [
+        doc for doc in _store_docs(runtime)
+        if doc.status == "pending_review"
+        and any(str(t).startswith("bootstrap_run_id") for t in (doc.tags or []))
+    ]
     if len(rows) > _REVIEW_CAP_WARN:
         report.review_queue_warning = (
             f"本轮待审 {len(rows)} 条，超过 {_REVIEW_CAP_WARN}（未归档）"
@@ -917,7 +897,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             detect_user_id(), project_id, insights, doc_quality, test_culture,
             git=git_insights, import_counter=aggregate_imports(skeletons),
         )
-        await upsert_profile(runtime.db, profile)
+        await runtime.profiles.upsert(profile)
         report.profile_summary = {
             "language": insights.language or "", "framework": insights.framework or "",
             "test_framework": insights.test_framework or "", "doc_quality": doc_quality,
@@ -960,12 +940,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         await runtime.close()
 
     if args.then_start:
-        from ..api.mcp_server import serve
-        import asyncio
+        from ..__main__ import run_serve
 
-        runtime = await build_runtime(project_root=project_root)
-        try:
-            await serve(runtime, runtime.logs, runtime.feedback_secret)
-        finally:
-            await runtime.close()
+        return await run_serve(project_root, watch=False)
     return 0

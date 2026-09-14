@@ -3,6 +3,7 @@ import pytest_asyncio
 
 from rsi_boot.data.migrate import migrate
 from rsi_boot.data.sqlite import SQLiteClient
+from rsi_boot.memory.store import MemoryStore
 
 
 @pytest.fixture(autouse=True)
@@ -16,8 +17,15 @@ def _isolate_rsi_home(tmp_path, monkeypatch):
         monkeypatch.delenv(key, raising=False)
 
 
+@pytest.fixture
+def store(tmp_path):
+    """Default product fixture: file MemoryStore under tmp .rsi/."""
+    return MemoryStore(tmp_path / ".rsi")
+
+
 @pytest_asyncio.fixture
 async def db(tmp_path):
+    """SQLite fixture for migrate / sqlite-retry / vec / remaining db-branch tests."""
     client = SQLiteClient(tmp_path / "test.db")
     await migrate(client)
     yield client

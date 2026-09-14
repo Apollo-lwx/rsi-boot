@@ -773,11 +773,16 @@ class ConflictDetector:
         _dump_yaml(self._conflicts_path(), {"conflicts": rows})
 
     def _conflict_key(self, row: Dict[str, Any]) -> tuple:
-        return (
-            row.get("item_id"),
-            self._norm_src(row.get("user_rule_path")),
-            row.get("type") or row.get("conflict_type"),
-        )
+        path = row.get("user_rule_path")
+        if not isinstance(path, str):
+            path = ""
+        kind = row.get("type") or row.get("conflict_type") or ""
+        if not isinstance(kind, str):
+            kind = str(kind)
+        item_id = row.get("item_id")
+        if isinstance(item_id, dict):
+            item_id = item_id.get("id")
+        return (str(item_id or ""), self._norm_src(path), kind)
 
     def _recent_adoption_store(self, item_id: str, markers: List[str]) -> int:
         since = (datetime.now(timezone.utc) - timedelta(days=_ADOPTION_WINDOW_DAYS)).isoformat()
@@ -820,16 +825,61 @@ class ConflictDetector:
             docs.extend(self._store.list_official(typ))
         return [d for d in docs if d.status == "active"]
 
+    def _doc_source(self, doc: Any) -> str:
+        extra = getattr(doc, "extra", None) or {}
+        return self._norm_src(str(extra.get("source_url") or getattr(doc, "source", None) or ""))
+
     def _store_docs_with_source(self) -> List[Any]:
         assert self._store is not None
-        from ..memory.types import MEMORY_TYPES
-        docs = []
-        for typ in MEMORY_TYPES:
-            try:
-                docs.extend(self._store.list_official(typ))
-            except ValueError:
-                continue
-        return docs
+        return list(self._store.list_all())
+
+    def _docs_for_source(self, source: str) -> List[Any]:
+        src = self._norm_src(source)
+        if not src:
+            return []
+        return [d for d in self._store_docs_with_source() if self._doc_source(d) == src]
+
+    def _read_doc(self, item_id: str | None) -> Any:
+        if not item_id or self._store is None:
+            return None
+        if isinstance(item_id, dict):
+            item_id = item_id.get("id")
+        try:
+            return self._store.read(str(item_id))
+        except (FileNotFoundError, ValueError):
+            return None
+
+    def _peer_doc(self, row: Dict[str, Any]) -> Any:
+        path = self._norm_src(row.get("user_rule_path") if isinstance(row.get("user_rule_path"), str) else "")
+        if path.startswith("item:"):
+            return self._read_doc(path.split(":", 1)[1])
+        item_id = row.get("item_id")
+        if isinstance(item_id, dict):
+            item_id = item_id.get("id")
+        for doc in self._docs_for_source(path):
+            if not item_id or doc.id != item_id:
+                return doc
+        return None
+
+    def _activate_doc(self, doc: Any) -> bool:
+        if doc is None or self._store is None or doc.status != "pending_review":
+            return False
+        try:
+            from ..memory.paths import official_dir
+
+            self._store.move(doc.id, official_dir(self._store.rsi_dir, doc.type))
+            return True
+        except (FileNotFoundError, ValueError, OSError):
+            return False
+
+    def _archive_doc(self, doc: Any) -> bool:
+        if doc is None or self._store is None:
+            return False
+        try:
+            self._store.move(doc.id, self._store.rsi_dir / "memory" / "archive")
+            return True
+        except (FileNotFoundError, ValueError, OSError):
+            return False
 
     async def _scan_store(self, project_id: str) -> Dict[str, int]:
         if self._root is None:
@@ -904,7 +954,7 @@ class ConflictDetector:
         logs = self._recent_logs_store()
         by_src: Dict[str, List[str]] = {}
         for doc in self._store_docs_with_source():
-            src = self._norm_src(doc.source)
+            src = self._doc_source(doc)
             if src:
                 by_src.setdefault(src, []).append(doc.id)
         seen_hashes = {r.get("user_rule_hash") for r in existing if (r.get("type") or r.get("conflict_type")) == "version"}
@@ -973,7 +1023,7 @@ class ConflictDetector:
             try:
                 doc = self._store.read(item_id)
                 title = doc.title
-                source = self._norm_src(doc.source)
+                source = self._doc_source(doc)
             except (FileNotFoundError, ValueError):
                 pass
         return {
@@ -1020,9 +1070,15 @@ class ConflictDetector:
     def _persist_knowledge_conflicts_store(
         self, project_id: str, drafts: list, source_to_item_id: dict[str, str],
     ) -> int:
-        mapped = {self._norm_src(k): v for k, v in source_to_item_id.items()}
+        def _as_id(value: Any) -> str:
+            if isinstance(value, dict):
+                return str(value.get("id") or "")
+            return str(value or "")
+
+        mapped = {self._norm_src(k): _as_id(v) for k, v in source_to_item_id.items()}
         existing = self._load_conflict_rows()
         seen = {self._conflict_key(r) for r in existing}
+        seen_hashes = {r.get("user_rule_hash") for r in existing if r.get("user_rule_hash")}
         now = _utc_iso()
         inserted = 0
         for draft in drafts:
@@ -1035,6 +1091,8 @@ class ConflictDetector:
             family_hash = hashlib.sha256(
                 f"{draft.conflict_type}:{a}:{b}".encode("utf-8")
             ).hexdigest()
+            if family_hash in seen_hashes:
+                continue
             row = {
                 "id": uuid.uuid4().hex,
                 "project_id": project_id,
@@ -1055,6 +1113,7 @@ class ConflictDetector:
                 continue
             existing.append(row)
             seen.add(self._conflict_key(row))
+            seen_hashes.add(family_hash)
             inserted += 1
         if inserted:
             self._save_conflict_rows(existing)
@@ -1080,6 +1139,10 @@ class ConflictDetector:
                 item_status = doc.status
             except (FileNotFoundError, ValueError):
                 pass
+        peer = self._peer_doc(row)
+        peer_excerpt = listed["user_rule_excerpt"] or ""
+        if peer is not None:
+            peer_excerpt = mask_text(peer.content or peer_excerpt)[:_EXCERPT_MAX]
         sides = [
             {
                 "role": "item",
@@ -1091,11 +1154,11 @@ class ConflictDetector:
             },
             {
                 "role": "peer",
-                "item_id": None,
-                "title": "",
-                "excerpt": listed["user_rule_excerpt"] or "",
-                "source": self._norm_src(listed["user_rule_path"]),
-                "status": "",
+                "item_id": peer.id if peer is not None else None,
+                "title": peer.title if peer is not None else "",
+                "excerpt": peer_excerpt,
+                "source": self._doc_source(peer) if peer is not None else self._norm_src(listed["user_rule_path"]),
+                "status": peer.status if peer is not None else "",
             },
         ]
         recommended = ""
@@ -1135,16 +1198,12 @@ class ConflictDetector:
             return None
         now = _utc_iso()
         guidance = ""
+        activate_ids: List[str] = []
         if ctype in ("version", "doc_code", "incoherent"):
-            guidance = await self._resolve_pair_store(row, resolution)
+            guidance, activate_ids = self._resolve_pair_store(row, resolution)
         elif resolution == "user_wins":
-            item_id = row.get("item_id")
-            if item_id and self._store is not None:
-                try:
-                    archive = self._store.rsi_dir / "memory" / "archive"
-                    self._store.move(item_id, archive)
-                except (FileNotFoundError, ValueError, OSError):
-                    logger.exception("裁决归档记忆失败")
+            item = self._read_doc(row.get("item_id"))
+            self._archive_doc(item)
             guidance = "已按用户规则为准：该学习记忆不再注入宿主上下文（保留在库供审计）"
         elif resolution == "memory_wins":
             guidance = (f"请手动修改或删除你的规则文件 {row.get('user_rule_path')}；"
@@ -1157,45 +1216,52 @@ class ConflictDetector:
         self._save_conflict_rows(rows)
         notify = resolution in ("user_wins", "keep_peer", "keep_item", "coexist")
         project_id = row.get("project_id") or ""
-        if notify and self._on_change is not None:
+        if notify and self._knowledge is not None:
+            try:
+                await self._knowledge.finalize_active(project_id, activate_ids)
+            except Exception:
+                logger.exception("裁决后补 embedding/注入失败（下轮变更重试）")
+        elif notify and self._on_change is not None:
             try:
                 await self._on_change(project_id)
             except Exception:
                 logger.exception("裁决后注入重写失败（下轮变更重试）")
         return {"conflict_id": conflict_id, "resolution": resolution, "guidance": guidance}
 
-    async def _resolve_pair_store(self, row: Dict[str, Any], resolution: str) -> str:
-        item_src = ""
-        item_id = row.get("item_id")
-        if item_id and self._store is not None:
-            try:
-                item_src = self._norm_src(self._store.read(item_id).source)
-            except (FileNotFoundError, ValueError):
-                pass
-        peer_src = self._norm_src(row.get("user_rule_path"))
-        if resolution == "coexist":
-            return "已标记两版共存并转为可用，该组合不再提醒"
-        if resolution == "keep_item":
-            archive_src, keep_src = peer_src, item_src
-            peer_id = self._doc_id_by_source(peer_src)
-            if peer_id and self._store is not None:
-                try:
-                    self._store.move(peer_id, self._store.rsi_dir / "memory" / "archive")
-                except (FileNotFoundError, ValueError, OSError):
-                    pass
+    def _resolve_pair_store(self, row: Dict[str, Any], resolution: str) -> tuple[str, List[str]]:
+        ctype = row.get("type") or row.get("conflict_type")
+        item = self._read_doc(row.get("item_id"))
+        item_src = self._doc_source(item) if item is not None else ""
+        peer_src = self._norm_src(row.get("user_rule_path") if isinstance(row.get("user_rule_path"), str) else "")
+        if ctype == "version":
+            item_side = self._docs_for_source(item_src) or ([item] if item is not None else [])
+            peer_side = self._docs_for_source(peer_src)
         else:
-            archive_src, keep_src = item_src, peer_src
-            if item_id and self._store is not None:
-                try:
-                    self._store.move(item_id, self._store.rsi_dir / "memory" / "archive")
-                except (FileNotFoundError, ValueError, OSError):
-                    pass
-        return f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）"
+            peer = self._peer_doc(row)
+            item_side = [item] if item is not None else []
+            peer_side = [peer] if peer is not None else []
 
-    def _doc_id_by_source(self, source: str) -> Optional[str]:
-        if not source:
-            return None
-        for doc in self._store_docs_with_source():
-            if self._norm_src(doc.source) == source:
-                return doc.id
-        return None
+        activate: List[str] = []
+        if resolution == "coexist":
+            for doc in (*item_side, *peer_side):
+                if self._activate_doc(doc):
+                    activate.append(doc.id)
+            return "已标记两版共存并转为可用，该组合不再提醒", activate
+
+        if resolution == "keep_item":
+            archive_side, keep_side = peer_side, item_side
+            archive_src, keep_src = peer_src, item_src
+        else:
+            archive_side, keep_side = item_side, peer_side
+            archive_src, keep_src = item_src, peer_src
+        keep_ids = {d.id for d in keep_side if d is not None}
+        for doc in archive_side:
+            if doc is not None and doc.id not in keep_ids:
+                self._archive_doc(doc)
+        for doc in keep_side:
+            if self._activate_doc(doc):
+                activate.append(doc.id)
+        return (
+            f"已按你的选择归档 {archive_src} 一侧，保留 {keep_src}（可在审批队列/知识列表核对）",
+            activate,
+        )

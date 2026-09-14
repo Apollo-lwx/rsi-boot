@@ -57,7 +57,26 @@ def load_latest_run_id(
     return None
 
 
+def _doc_source_url(doc: Any) -> str:
+    extra = getattr(doc, "extra", None) or {}
+    return str(extra.get("source_url") or getattr(doc, "source", None) or "")
+
+
 async def _extract_ids(runtime: Any, run_id: str) -> list[str]:
+    store = getattr(runtime, "store", None)
+    marker = f"bootstrap_run_id:{run_id}"
+    ids: list[str] = []
+    if store is not None:
+        for doc in store.list_pending():
+            if _doc_source_url(doc) == "auto-extract":
+                continue
+            tags = list(doc.tags or [])
+            if marker not in tags:
+                continue
+            if not _EXTRACT_SIGNALS.intersection(tags):
+                continue
+            ids.append(doc.id)
+        return ids
     conn = await runtime.db.connect()
     async with conn.execute(
         "SELECT id, tags, source_url FROM knowledge_items "
@@ -65,8 +84,6 @@ async def _extract_ids(runtime: Any, run_id: str) -> list[str]:
         (runtime.project_id or "",),
     ) as cur:
         rows = await cur.fetchall()
-    marker = f"bootstrap_run_id:{run_id}"
-    ids: list[str] = []
     for row in rows:
         if (row["source_url"] or "") == "auto-extract":
             continue
@@ -81,9 +98,29 @@ async def _extract_ids(runtime: Any, run_id: str) -> list[str]:
 
 async def _conflicts_for_run(runtime: Any, run_id: str) -> list[dict[str, Any]]:
     listed = await runtime.conflict_detector.list_conflicts(runtime.project_id or "", "open")
-    conn = await runtime.db.connect()
     marker = f"bootstrap_run_id:{run_id}"
+    store = getattr(runtime, "store", None)
     out: list[dict[str, Any]] = []
+    if store is not None:
+        by_id = {doc.id: doc for doc in store.list_all()}
+        by_src = {_doc_source_url(doc): doc for doc in store.list_all() if _doc_source_url(doc)}
+        for conflict in listed:
+            ctype = conflict.get("conflict_type") or conflict.get("type")
+            if ctype not in _CONFLICT_TYPES:
+                continue
+            item_id = conflict.get("item_id")
+            doc = by_id.get(item_id) if item_id else None
+            if doc is not None and marker in list(doc.tags or []):
+                out.append(conflict)
+                continue
+            peer = conflict.get("user_rule_path")
+            if not peer:
+                continue
+            prow = by_src.get(peer)
+            if prow and marker in list(prow.tags or []):
+                out.append(conflict)
+        return out
+    conn = await runtime.db.connect()
     for conflict in listed:
         if conflict.get("conflict_type") not in _CONFLICT_TYPES:
             continue
@@ -122,9 +159,15 @@ async def accept_bootstrap_extracts(
     runtime: Any, *, run_id: Optional[str], reject: bool, conflicts: Optional[str],
 ) -> dict[str, Any]:
     """conflicts: None | 'tend' | 'coexist'。只处理 tags 含 bootstrap_run_id 且 signal conversation|rules。"""
+    store = getattr(runtime, "store", None)
+    db_hint = None
+    if store is not None:
+        db_hint = store.rsi_dir / "rsi.db"
+    else:
+        db_hint = getattr(getattr(runtime, "db", None), "db_path", None)
     rid = run_id or load_latest_run_id(
         getattr(runtime, "_project_root", None),
-        getattr(runtime.db, "db_path", None),
+        db_hint,
     )
     processed = 0
     new_status = "rejected" if reject else "active"

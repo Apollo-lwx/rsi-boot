@@ -13,11 +13,11 @@ import pytest
 
 from rsi_boot.api.tools import knowledge_review_tool
 from rsi_boot.cli.bootstrap_command import run_bootstrap
-from rsi_boot.project import project_scope
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.data.sqlite import SQLiteClient
 from rsi_boot.knowledge.retriever import KnowledgeRetriever
 from rsi_boot.services.knowledge_service import KnowledgeService
+
+from memory_helpers import memory_item_rows
 
 
 def _make_doc_project(tmp_path: Path, doc_count: int = 8) -> Path:
@@ -46,18 +46,12 @@ def _args(root: Path, **overrides) -> argparse.Namespace:
     return argparse.Namespace(**{**defaults, **overrides})
 
 
-async def _status_counts(db_path: Path, project_id: str) -> dict[str, int]:
-    db = SQLiteClient(db_path)
-    try:
-        conn = await db.connect()
-        async with conn.execute(
-            "SELECT status, COUNT(*) AS n FROM knowledge_items WHERE project_id = ? GROUP BY status",
-            (project_id,),
-        ) as cur:
-            rows = await cur.fetchall()
-        return {r["status"]: r["n"] for r in rows}
-    finally:
-        await db.close()
+async def _status_counts(root: Path, project_id: str = "") -> dict[str, int]:
+    del project_id
+    counts: dict[str, int] = {}
+    for row in memory_item_rows(root):
+        counts[row["status"]] = counts.get(row["status"], 0) + 1
+    return counts
 
 
 async def test_bootstrap_caps_review_queue(tmp_path, monkeypatch):
@@ -66,25 +60,15 @@ async def test_bootstrap_caps_review_queue(tmp_path, monkeypatch):
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
 
-    db_path, pid = project_scope(root)
-    counts = await _status_counts(db_path, pid)
+    counts = await _status_counts(root)
     assert counts.get("archived", 0) == 0
     assert counts.get("active", 0) >= 8  # 文档 + 配置直通
 
-    db = SQLiteClient(db_path)
-    try:
-        conn = await db.connect()
-        async with conn.execute(
-            "SELECT content_type, status FROM knowledge_items WHERE project_id = ?",
-            (pid,),
-        ) as cur:
-            rows = await cur.fetchall()
-        conventions = [r for r in rows if r["content_type"] == "convention"]
-        assert conventions and all(r["status"] == "active" for r in conventions)
-        docs = [r for r in rows if r["content_type"] == "documentation"]
-        assert docs and all(r["status"] == "active" for r in docs)
-    finally:
-        await db.close()
+    rows = memory_item_rows(root)
+    conventions = [r for r in rows if r["content_type"] == "convention"]
+    assert conventions and all(r["status"] == "active" for r in conventions)
+    docs = [r for r in rows if r["content_type"] == "documentation"]
+    assert docs and all(r["status"] == "active" for r in docs)
 
 
 async def test_bootstrap_force_rerun_does_not_requeue_archived(tmp_path, monkeypatch):
@@ -92,13 +76,12 @@ async def test_bootstrap_force_rerun_does_not_requeue_archived(tmp_path, monkeyp
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
-    db_path, pid = project_scope(root)
-    before = await _status_counts(db_path, pid)
+    before = await _status_counts(root)
 
     assert await run_bootstrap(_args(root, force=True)) == 0
     report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
     assert report["knowledge_written"] == 0
-    after = await _status_counts(db_path, pid)
+    after = await _status_counts(root)
     assert after == before  # 总量不变：archived 未被重新入队
 
 

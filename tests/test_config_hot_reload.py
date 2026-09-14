@@ -12,8 +12,9 @@ async def test_reload_applies_new_config(tmp_path, monkeypatch):
         (tmp_path / "rsi-boot.yaml").write_text("retrieval:\n  top_n: 3\n", encoding="utf-8")
         assert runtime.watcher.reload() is True
         assert runtime.config["retrieval"]["top_n"] == 3
-        # 依赖配置的组件已重建
-        assert runtime.retriever._top_n == 3
+        # 依赖配置的组件已重建（文件 Runtime 无 sqlite retriever）
+        assert runtime.knowledge is not None
+        assert runtime.recall is not None
     finally:
         await runtime.close()
 

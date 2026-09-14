@@ -14,9 +14,9 @@ from pathlib import Path
 
 from rsi_boot.bootstrap import build_runtime
 from rsi_boot.cli.bootstrap_command import run_bootstrap
-from rsi_boot.data.sqlite import SQLiteClient
-from rsi_boot.project import project_scope
 from rsi_boot.scanner.incremental import IncrementalLearner
+
+from memory_helpers import memory_item_rows
 
 
 def _args(root: Path, **overrides) -> argparse.Namespace:
@@ -30,22 +30,7 @@ def _args(root: Path, **overrides) -> argparse.Namespace:
 
 
 async def _proj_items(root: Path):
-    db_path, project_id = project_scope(root)
-    return await _items(db_path, project_id)
-
-
-async def _items(db_path: Path, project_id: str):
-    db = SQLiteClient(db_path)
-    try:
-        conn = await db.connect()
-        async with conn.execute(
-            "SELECT id, title, content, content_type, status, source_url, tags "
-            "FROM knowledge_items WHERE project_id = ? ORDER BY created_at, id",
-            (project_id,),
-        ) as cur:
-            return [dict(r) for r in await cur.fetchall()]
-    finally:
-        await db.close()
+    return memory_item_rows(root)
 
 
 _LOGIN = "用户通过邮箱验证码登录，验证码有效期十分钟，连续失败五次锁定账户。" * 15
