@@ -64,10 +64,10 @@ async def handle(
 
     if action == "list":
         items = await engine.list_proposals(project_id, status=arguments.get("status") or None)
-        return {"status": "ok", "proposals": items}
+        return {"status": "success", "proposals": items}
     if action == "generate":
         ids = await engine.generate(project_id)
-        return {"status": "ok", "generated": len(ids), "proposal_ids": ids}
+        return {"status": "success", "generated": len(ids), "proposal_ids": ids}
 
     if action in ("approve", "reject", "rollback"):
         proposal_id = str(arguments.get("proposal_id", ""))
@@ -82,22 +82,22 @@ async def handle(
             ok = await engine.rollback(proposal_id, reason=reason)
         if not ok:
             return {"status": "error", "message": "提案不存在或状态不允许该操作"}
-        return {"status": "ok", "proposal_id": proposal_id, "action": action}
+        return {"status": "success", "proposal_id": proposal_id, "action": action}
 
     if action == "snapshot_list":
-        return {"status": "ok", "snapshots": await snapshots.list(project_id)}
+        return {"status": "success", "snapshots": await snapshots.list(project_id)}
     if action in ("snapshot_switch", "snapshot_export"):
         version = arguments.get("version")
         if version is None:
             return {"status": "error", "message": f"{action} 需要 version"}
         if action == "snapshot_switch":
             ok = await snapshots.switch(project_id, int(version))
-            return {"status": "ok" if ok else "error",
+            return {"status": "success" if ok else "error",
                     "message": f"已切换到 v{version}" if ok else f"版本不存在: v{version}"}
         out = Path(str(arguments.get("out_dir") or "./genome-bundle"))
         result = await snapshots.export_bundle(project_id, int(version), out)
         if result is None:
             return {"status": "error", "message": f"版本不存在: v{version}"}
-        return {"status": "ok", "bundle": str(result)}
+        return {"status": "success", "bundle": str(result)}
 
     return {"status": "error", "message": f"未知 action: {action}"}

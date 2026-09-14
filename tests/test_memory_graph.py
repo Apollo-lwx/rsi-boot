@@ -20,7 +20,7 @@ def _seed_docs(tmp_path):
         MemoryDoc(id="b" * 32, type="convention", title="约定乙", content="写法乙"),
         dest=official_dir(store.rsi_dir, "convention") / memory_filename("约定乙", "b" * 32),
     )
-    catalog = tmp_path / ".rsi" / "state" / "catalog.yaml"
+    catalog = tmp_path / ".rsi" / "catalog.yaml"
     catalog.parent.mkdir(parents=True, exist_ok=True)
     catalog.write_text(
         yaml.safe_dump(
@@ -55,6 +55,28 @@ async def test_graph_returns_mermaid_with_ids_no_md(tmp_path, monkeypatch):
         assert md_after == md_before
     finally:
         await rt.close()
+
+
+def test_catalog_writes_spec_root_and_reads_legacy_state(tmp_path):
+    from rsi_boot.memory.graph import add_edge, catalog_path, load_catalog, save_catalog
+
+    rsi = tmp_path / ".rsi"
+    add_edge(rsi, "a" * 32, "b" * 32, "cites")
+    assert catalog_path(rsi) == rsi / "catalog.yaml"
+    assert (rsi / "catalog.yaml").is_file()
+    assert not (rsi / "state" / "catalog.yaml").exists()
+
+    legacy = rsi / "state" / "catalog.yaml"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text(
+        yaml.safe_dump({"edges": [{"from": "c" * 32, "to": "d" * 32, "rel": "supersedes"}]}),
+        encoding="utf-8",
+    )
+    (rsi / "catalog.yaml").unlink()
+    loaded = load_catalog(rsi)
+    assert loaded["edges"][0]["from"] == "c" * 32
+    save_catalog(rsi, loaded)
+    assert (rsi / "catalog.yaml").is_file()
 
 
 def test_prune_catalog_drops_edges_to_missing_ids(tmp_path):

@@ -48,5 +48,5 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
     )
     result = await knowledge.add(item)
     if isinstance(result, dict):
-        return {"status": "ok", **result}
-    return {"status": "ok", "id": result}
+        return {"status": "success", **result}
+    return {"status": "success", "id": result}

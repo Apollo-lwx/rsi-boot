@@ -28,11 +28,14 @@ def format_duration(seconds: float, lang: str | None = None) -> str:
     return f"{t('HOUR', loc, n=hours)}{t('MIN', loc, n=minutes)}"
 
 
-def format_remaining(seconds: float) -> str:
+def format_remaining(seconds: float, lang: str | None = None) -> str:
     """剩余时间：有活未干完时不显示 0秒（否则像卡住）。"""
+    from rsi_boot.ux.messages import t
+
+    loc = lang or "zh"
     if seconds < 1:
-        return "不到1秒"
-    return format_duration(math.ceil(seconds))
+        return t("LT_ONE_SEC", loc)
+    return format_duration(math.ceil(seconds), loc)
 
 
 def display_width(text: str) -> int:
@@ -220,13 +223,17 @@ class Progress:
             count = f"{shown}/{self.phase_total}"
         elif self.phase_done:
             count = str(self.phase_done)
+        from rsi_boot.ux.lang import locale_lang
+        from rsi_boot.ux.messages import t
+
+        loc = locale_lang()
         elapsed = self._phase_elapsed()
-        elapsed_s = f"已用 {format_duration(elapsed)}"
+        elapsed_s = t("ELAPSED", loc, duration=format_duration(elapsed, loc))
         remain_s = ""
         if not done and self.phase_total:
             remain = estimate_remaining(self.phase_done, self.phase_total, elapsed)
             if remain is not None:
-                remain_s = f"约剩 {format_remaining(remain)}"
+                remain_s = t("REMAINING", loc, duration=format_remaining(remain, loc))
         bar10 = format_bar(shown, self.phase_total, width=10) if self.phase_total else ""
         full = [prefix, bar, count, elapsed_s, remain_s]
         if not fit:

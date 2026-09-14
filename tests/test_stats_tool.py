@@ -136,7 +136,7 @@ async def test_tool_invalid_group_by(db):
 async def test_tool_json_payload(db):
     await _seed(db, arm="conservative", feedback_action="copied")
     result = await stats_tool.handle(StatsService(db), {"period": "week", "group_by": "arm"})
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
     assert result["summary"]["recalls"] == 1
     assert result["summary"]["adoption_rate"] == pytest.approx(1.0)
     assert result["groups"][0]["arm"] == "conservative"
@@ -147,7 +147,7 @@ async def test_tool_export_json(db, tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path))
     await _seed(db)
     result = await stats_tool.handle(StatsService(db), {"period": "month", "export": True})
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
     exported = tmp_path / "exports" / result["exported"].split("exports")[-1].lstrip("\\/")
     assert exported.name.startswith("rsi_stats_month_") and exported.suffix == ".json"
     payload = json.loads(exported.read_text(encoding="utf-8"))
@@ -160,7 +160,7 @@ async def test_tool_export_csv(db, tmp_path, monkeypatch):
     result = await stats_tool.handle(
         StatsService(db), {"period": "week", "group_by": "arm", "format": "csv"}
     )
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
     content = (tmp_path / "exports").glob("*.csv").__next__().read_text(encoding="utf-8")
     assert "metric,value" in content
     assert "balanced" in content

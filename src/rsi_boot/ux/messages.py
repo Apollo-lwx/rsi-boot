@@ -34,6 +34,9 @@ STRINGS = {
     "REINDEX_DONE": {"zh": "索引已重建", "en": "Index rebuilt"},
     "BOOTSTRAP_DONE": {"zh": "学习完成", "en": "Learning complete"},
     "DURATION": {"zh": "总耗时 {duration}", "en": "elapsed {duration}"},
+    "ELAPSED": {"zh": "已用 {duration}", "en": "elapsed {duration}"},
+    "REMAINING": {"zh": "约剩 {duration}", "en": "eta {duration}"},
+    "LT_ONE_SEC": {"zh": "不到1秒", "en": "under 1s"},
     "MEMORY_NEED_SUB": {
         "zh": "请指定子命令：migrate / reindex / index / open / graph",
         "en": "Specify a subcommand: migrate / reindex / index / open / graph",

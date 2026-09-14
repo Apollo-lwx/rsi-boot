@@ -72,6 +72,7 @@ class MemoryStore:
         self.rsi_dir = Path(rsi_dir)
         self._lock = asyncio.Lock()
         self._io = threading.RLock()
+        self._id_index: dict[str, list[Path]] = {}
 
     def write(self, doc: MemoryDoc, *, dest: Path) -> MemoryDoc:
         """写 dest.tmp → os.replace；回写 status 与 path；返回 doc。"""
@@ -91,6 +92,7 @@ class MemoryStore:
             written = self._write_unlocked(doc, dest)
             if src is not None and src.exists() and src.resolve() != dest.resolve():
                 src.unlink()
+                self._index_forget(src)
             return written
 
     def list_official(self, type: str | None = None) -> list[MemoryDoc]:
@@ -138,12 +140,53 @@ class MemoryStore:
         payload = masked.model_dump(exclude_none=True)
         text = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
         _atomic_replace(dest, text)
+        self._index_remember(masked.id, dest)
         return masked
 
+    def _index_remember(self, doc_id: str, path: Path) -> None:
+        resolved = Path(path)
+        bucket = self._id_index.setdefault(doc_id, [])
+        if not any(existing.resolve() == resolved.resolve() for existing in bucket):
+            bucket.append(resolved)
+
+    def _index_forget(self, path: Path) -> None:
+        resolved = Path(path).resolve()
+        for doc_id, paths in list(self._id_index.items()):
+            kept = [p for p in paths if p.resolve() != resolved]
+            if kept:
+                self._id_index[doc_id] = kept
+            else:
+                self._id_index.pop(doc_id, None)
+
     def _read_unlocked(self, id: str) -> MemoryDoc:
+        indexed = list(self._id_index.get(id) or [])
+        if indexed:
+            matches, invalid = self._hydrate_paths(indexed, id)
+            if matches:
+                return self._prefer_teaching(matches)
+            if invalid:
+                raise ValueError(t("YAML_INVALID", locale_lang(), path=str(invalid[0])))
+        matches, invalid = self._hydrate_paths(self._iter_memory_yaml(), id)
+        for doc in matches:
+            if doc.path:
+                self._index_remember(doc.id, self.rsi_dir / doc.path)
+        if matches:
+            return self._prefer_teaching(matches)
+        if invalid:
+            path = invalid[0]
+            raise ValueError(t("YAML_INVALID", locale_lang(), path=str(path)))
+        raise FileNotFoundError(t("NOT_FOUND", locale_lang(), id=id))
+
+    def _prefer_teaching(self, matches: list[MemoryDoc]) -> MemoryDoc:
+        for doc in matches:
+            if doc.type == "teaching_case":
+                return doc
+        return matches[0]
+
+    def _hydrate_paths(self, paths: Iterable[Path], id: str) -> tuple[list[MemoryDoc], list[Path]]:
         matches: list[MemoryDoc] = []
         invalid: list[Path] = []
-        for path in self._iter_memory_yaml():
+        for path in paths:
             raw = self._safe_load(path)
             if not isinstance(raw, dict):
                 if raw is not None:
@@ -156,15 +199,7 @@ class MemoryStore:
             except ValidationError as exc:
                 self._log_invalid(path, exc)
                 invalid.append(path)
-        if matches:
-            for doc in matches:
-                if doc.type == "teaching_case":
-                    return doc
-            return matches[0]
-        if invalid:
-            path = invalid[0]
-            raise ValueError(t("YAML_INVALID", locale_lang(), path=str(path)))
-        raise FileNotFoundError(t("NOT_FOUND", locale_lang(), id=id))
+        return matches, invalid
 
     def _load_tree(self, root: Path) -> list[MemoryDoc]:
         docs: list[MemoryDoc] = []

@@ -174,7 +174,7 @@ async def test_tool_all_pending(db, base_config):
     result = await knowledge_review_tool.handle(
         knowledge, {"all_pending": True, "action": "approve", "project_id": "p1"}
     )
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
     assert result["processed"] == 3
 
 
@@ -185,7 +185,7 @@ async def test_tool_ids_batch(db, base_config):
     result = await knowledge_review_tool.handle(
         knowledge, {"ids": ids, "action": "reject", "project_id": "p1"}
     )
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
     assert result["processed"] == 2
     assert await _status_of(db, other) == "pending_review"
 
@@ -196,7 +196,7 @@ async def test_tool_single_id_still_works(db, base_config):
     result = await knowledge_review_tool.handle(
         knowledge, {"id": item_id, "action": "approve", "project_id": "p1"}
     )
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
     assert result["new_status"] == "active"
 
 

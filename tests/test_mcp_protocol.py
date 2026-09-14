@@ -104,7 +104,7 @@ async def test_recall_feedback_protocol_loop(tmp_path):
             "rsi_feedback",
             {"feedback_token": payload["data"]["feedback_token"], "action": "modified", "rating": 3},
         )
-        assert json.loads(fb.content[0].text)["status"] == "ok"
+        assert json.loads(fb.content[0].text)["status"] == "success"
 
         bad = await session.call_tool("rsi_feedback", {"feedback_token": "forged-token", "action": "accepted"})
         assert json.loads(bad.content[0].text)["status"] == "error"

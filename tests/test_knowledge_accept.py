@@ -134,7 +134,7 @@ async def test_all_pending_does_not_approve_bootstrap_run_items(db, base_config)
     result = await knowledge_review_tool.handle(
         knowledge, {"all_pending": True, "action": "approve", "project_id": "p1"}
     )
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
     assert result["processed"] == 1
     assert await _status_of(db, daily) == "active"
     assert await _status_of(db, boot) == "pending_review"
@@ -187,7 +187,7 @@ async def test_review_bootstrap_run_id_includes_faq(tmp_path):
             "action": "approve",
             "bootstrap_run_id": run_id,
         })
-        assert result["status"] == "ok"
+        assert result["status"] == "success"
         assert result["processed"] == 1
         assert await _status_of(rt, faq_id) == "active"
     finally:

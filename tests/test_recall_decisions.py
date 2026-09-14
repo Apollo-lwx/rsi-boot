@@ -196,7 +196,7 @@ async def test_knowledge_review_keeps_extract_card_while_pending_remain(tmp_path
             "action": "approve",
             "project_id": rt.project_id,
         })
-        assert result["status"] == "ok"
+        assert result["status"] == "success"
         second = await rt.recall.recall("开始任务", rt.project_id)
         assert len(second["decisions"]) == 1
         assert second["decisions"][0]["id"] == f"extract:{run_id}"
@@ -205,7 +205,7 @@ async def test_knowledge_review_keeps_extract_card_while_pending_remain(tmp_path
             "action": "approve",
             "project_id": rt.project_id,
         })
-        assert result_b["status"] == "ok"
+        assert result_b["status"] == "success"
         third = await rt.recall.recall("开始任务", rt.project_id)
         assert third["decisions"] == []
     finally:
@@ -236,7 +236,7 @@ async def test_knowledge_review_closes_extract_card(tmp_path, monkeypatch):
             "action": "approve",
             "project_id": rt.project_id,
         })
-        assert result["status"] == "ok"
+        assert result["status"] == "success"
         second = await rt.recall.recall("开始任务", rt.project_id)
         assert second["decisions"] == []
     finally:
@@ -276,7 +276,7 @@ async def test_extract_card_approve_via_bootstrap_run_id(tmp_path, monkeypatch):
             "all_pending": True,
             "project_id": rt.project_id,
         })
-        assert result["status"] == "ok"
+        assert result["status"] == "success"
         assert result.get("processed", 0) >= 1
         assert rt.store.read(item_id).status == "active"
         assert rt.store.read(daily_id).status == "pending_review"
@@ -315,7 +315,7 @@ async def test_bootstrap_run_id_all_pending_skips_docs_lane(tmp_path, monkeypatc
             "all_pending": True,
             "project_id": rt.project_id,
         })
-        assert result["status"] == "ok"
+        assert result["status"] == "success"
         assert result["processed"] == 1
         assert rt.store.read(conv_id).status == "active"
         assert rt.store.read(docs_id).status == "pending_review"
@@ -348,7 +348,7 @@ async def test_knowledge_review_skip_suppresses_extract_card(tmp_path, monkeypat
             "id": extract_id,
             "project_id": rt.project_id,
         })
-        assert result["status"] == "ok"
+        assert result["status"] == "success"
         second = await rt.recall.recall("开始任务", rt.project_id)
         ids = [d["id"] for d in second["decisions"]]
         assert extract_id not in ids

@@ -9,7 +9,9 @@ import yaml
 from rsi_boot.learning.proposal_engine import ProposalEngine
 from rsi_boot.learning.snapshot_store import SnapshotStore
 from rsi_boot.memory.logstore import append_event
+from rsi_boot.memory.paths import official_dir
 from rsi_boot.memory.store import MemoryStore
+from rsi_boot.memory.types import MemoryDoc
 from rsi_boot.strategy.recall import RecallArmSelector
 
 
@@ -38,6 +40,52 @@ async def test_approve_knowledge_add_writes_pending_not_official(tmp_path):
     pending = list((store.rsi_dir / "memory" / "pending" / "conventions").glob("*.yaml"))
     assert official == []
     assert pending
+
+
+@pytest.mark.asyncio
+async def test_approve_knowledge_remove_archives_existing(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    existing = store.write(
+        MemoryDoc(id="b" * 32, type="convention", title="旧约定", content="旧正文足够长"),
+        dest=official_dir(store.rsi_dir, "convention") / "old--bbbbbbbb.yaml",
+    )
+    engine = ProposalEngine(store=store)
+    pid = "c" * 32
+    engine._write_proposal_yaml({
+        "id": pid,
+        "project_id": "p1",
+        "slot": "knowledge",
+        "target_ref": existing.id,
+        "action": "remove",
+        "status": "approved",
+        "payload": {"after": {}},
+    })
+    assert await engine.approve(pid) is True
+    assert store.read(existing.id).status == "archived"
+
+
+@pytest.mark.asyncio
+async def test_approve_skill_writes_pending_skill_yaml_not_home_skill_md(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    engine = ProposalEngine(store=store)
+    pid = "d" * 32
+    engine._write_proposal_yaml({
+        "id": pid,
+        "project_id": "p1",
+        "slot": "skill",
+        "target_ref": "list-columns",
+        "action": "add",
+        "status": "approved",
+        "payload": {"after": {"skill_md": "必须写列名", "description": "列名技能"}},
+    })
+    assert await engine.approve(pid) is True
+    pending = list((store.rsi_dir / "memory" / "pending" / "skills").rglob("*.yaml"))
+    home_md = list((tmp_path / ".rsi-home").rglob("SKILL.md")) if (tmp_path / ".rsi-home").exists() else []
+    assert pending
+    dumped = yaml.safe_load(pending[0].read_text(encoding="utf-8"))
+    assert dumped["type"] == "skill"
+    assert "必须写列名" in dumped["content"]
+    assert home_md == []
 
 
 @pytest.mark.asyncio

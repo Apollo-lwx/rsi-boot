@@ -42,6 +42,24 @@ def test_write_retries_replace_on_oserror(tmp_path, monkeypatch):
     assert calls["n"] >= 2
 
 
+def test_read_uses_id_index_without_rescan(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    doc = MemoryDoc(id="a" * 32, type="prohibition", title="禁止 SELECT *", content="必须列字段")
+    dest = official_dir(store.rsi_dir, "prohibition") / "no-star--aaaaaaaa.yaml"
+    store.write(doc, dest=dest)
+    calls = {"n": 0}
+    real = store._iter_memory_yaml
+
+    def counting():
+        calls["n"] += 1
+        return real()
+
+    store._iter_memory_yaml = counting  # type: ignore[method-assign]
+    got = store.read("a" * 32)
+    assert got.content == "必须列字段"
+    assert calls["n"] == 0
+
+
 def test_write_then_read(tmp_path):
     store = MemoryStore(tmp_path / ".rsi")
     doc = MemoryDoc(id="a"*32, type="prohibition", title="禁止 SELECT *", content="必须列字段")

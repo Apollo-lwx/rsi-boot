@@ -11,7 +11,8 @@ import yaml
 from rsi_boot.memory.store import MemoryStore
 
 ALLOWED_REL = frozenset({"supersedes", "conflicts", "cites", "distilled_from", "implements"})
-CATALOG_REL = "state/catalog.yaml"
+CATALOG_REL = "catalog.yaml"
+_LEGACY_CATALOG_REL = "state/catalog.yaml"
 
 
 def catalog_path(rsi_dir: Path) -> Path:
@@ -20,6 +21,8 @@ def catalog_path(rsi_dir: Path) -> Path:
 
 def load_catalog(rsi_dir: Path) -> dict[str, Any]:
     path = catalog_path(rsi_dir)
+    if not path.is_file():
+        path = Path(rsi_dir) / _LEGACY_CATALOG_REL
     if not path.is_file():
         return {"edges": []}
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))

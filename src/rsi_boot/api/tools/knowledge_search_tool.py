@@ -43,7 +43,7 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
         top_k=top_k,
     )
     return {
-        "status": "ok",
+        "status": "success",
         "items": [
             {"id": it.id, "title": it.title, "content": it.content, "tags": it.tags, "domain": it.domain}
             for it in items

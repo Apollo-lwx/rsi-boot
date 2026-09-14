@@ -67,5 +67,5 @@ async def handle(
 
     if bool(arguments.get("export")) or fmt == "csv":
         path = await stats.export(payload, fmt, period)
-        return {"status": "ok", "exported": str(path), "summary": payload["summary"]}
-    return {"status": "ok", **payload}
+        return {"status": "success", "exported": str(path), "summary": payload["summary"]}
+    return {"status": "success", **payload}

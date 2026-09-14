@@ -481,6 +481,13 @@ class ProposalEngine:
     def _apply_knowledge_store(self, target_ref: str, action: str, after: Dict[str, Any]) -> None:
         assert self._store is not None
         if action == "remove":
+            try:
+                self._store.move(
+                    target_ref,
+                    self._store.rsi_dir / "memory" / "archive",
+                )
+            except (FileNotFoundError, ValueError):
+                return
             return
         typ = str(after.get("content_type") or after.get("type") or "convention")
         if typ not in MEMORY_TYPES:
@@ -548,14 +555,29 @@ class ProposalEngine:
             else:
                 path.write_text(str(after.get("template_content", "")), encoding="utf-8")
         elif slot == "skill":
-            skill_dir = self._home / "skills" / target_ref
+            from rsi_boot.injector.slug import slugify
+
+            name = slugify(str(after.get("name") or target_ref))
             if action == "remove":
-                if (skill_dir / "SKILL.md").is_file():
-                    (skill_dir / "SKILL.md").unlink()
-                    skill_dir.rmdir()
-            else:
-                skill_dir.mkdir(parents=True, exist_ok=True)
-                (skill_dir / "SKILL.md").write_text(str(after.get("skill_md", "")), encoding="utf-8")
+                for doc in self._store.list_all():
+                    if doc.type != "skill":
+                        continue
+                    payload_name = str((doc.payload or {}).get("name") or "")
+                    if target_ref in (doc.id, doc.title, payload_name):
+                        self._store.move(doc.id, self._store.rsi_dir / "memory" / "archive")
+                        return
+                return
+            content = str(after.get("skill_md") or after.get("content") or "")
+            doc = MemoryDoc(
+                id=uuid.uuid4().hex,
+                type="skill",
+                title=name[:120],
+                content=content[:20000],
+                description=str(after.get("description") or "") or None,
+                payload={"name": name},
+            )
+            dest = pending_dir(self._store.rsi_dir, "skill") / memory_filename(doc.title, doc.id)
+            self._store.write(doc, dest=dest)
 
     async def _apply_slot_change(self, project_id: str, slot: str, target_ref: str,
                                  action: str, after: Dict[str, Any]) -> None:

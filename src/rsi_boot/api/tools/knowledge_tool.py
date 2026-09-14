@@ -31,4 +31,4 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
     deleted = await knowledge.delete(item_id, project_id)
     if not deleted:
         return {"status": "error", "message": f"条目不存在或不属于项目 {project_id}: {item_id}"}
-    return {"status": "ok", "deleted": item_id}
+    return {"status": "success", "deleted": item_id}

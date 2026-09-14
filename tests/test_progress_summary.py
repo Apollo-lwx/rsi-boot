@@ -15,6 +15,19 @@ def test_finish_custom_summary():
     assert "学习完成" not in text
 
 
+def test_mid_phase_line_follows_lang(monkeypatch):
+    buf = StringIO()
+    monkeypatch.setenv("RSI_LANG", "en")
+    p = Progress(stream=buf, min_interval=0)
+    p.start(1)
+    p.phase("Open", total=10)
+    p.tick(3)
+    text = buf.getvalue()
+    assert "elapsed" in text.lower() or "eta" in text.lower()
+    assert "已用" not in text
+    assert "约剩" not in text
+
+
 def test_finish_en_migrate_not_chinese_done():
     buf = StringIO()
     p = Progress(stream=buf, min_interval=0)

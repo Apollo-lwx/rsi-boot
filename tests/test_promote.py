@@ -120,7 +120,7 @@ async def test_three_successes_writes_pending_not_patterns_no_inject(tmp_path, m
         assert after_patterns == before_patterns
         assert rewrite_calls == []
         catalog = yaml.safe_load(
-            (tmp_path / ".rsi" / "state" / "catalog.yaml").read_text(encoding="utf-8")
+            (tmp_path / ".rsi" / "catalog.yaml").read_text(encoding="utf-8")
         )
         edges = catalog.get("edges") or []
         assert any(

@@ -155,7 +155,7 @@ async def test_tool_accepts_implicit_actions(db):
         result = await feedback_tool.handle(
             logs, SECRET, {"feedback_token": token, "action": "copied"}, worker=worker
         )
-        assert result["status"] == "ok"
+        assert result["status"] == "success"
         assert result["queued"] is True
         await _drain(worker)
     finally:
@@ -188,7 +188,7 @@ async def test_tool_modified_with_content(db):
         LogService(db), SECRET,
         {"feedback_token": token, "action": "modified", "modified_content": "改后的内容"},
     )
-    assert result["status"] == "ok"
+    assert result["status"] == "success"
 
 
 async def test_file_runtime_rejected_comment_writes_pending_prohibition(tmp_path):

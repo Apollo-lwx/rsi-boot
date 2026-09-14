@@ -84,4 +84,4 @@ async def handle(
             modified_content=modified_content,
             comment=str(comment) if comment else None,
         ))
-    return {"status": "ok", "action": action, "queued": queued}
+    return {"status": "success", "action": action, "queued": queued}

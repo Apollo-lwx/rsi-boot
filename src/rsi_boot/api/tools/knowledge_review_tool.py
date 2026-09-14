@@ -88,7 +88,7 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
             return {"status": "error", "message": "skip 需要决策卡 id"}
         if decisions is not None:
             decisions.suppress(decision_id)
-        return {"status": "ok", "id": decision_id, "suppressed": True}
+        return {"status": "success", "id": decision_id, "suppressed": True}
     if action not in ("approve", "reject"):
         return {"status": "error", "message": "action 非法（approve/reject/skip）"}
     approve = action == "approve"
@@ -108,7 +108,7 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
             await close_extract_runs(
                 decisions, tags, db=db, store=store, project_id=project_id,
             )
-        return {"status": "ok", **result}
+        return {"status": "success", **result}
 
     if arguments.get("all_pending") or (bootstrap_run_id and not arguments.get("id")):
         content_type = arguments.get("content_type") or None
@@ -140,7 +140,7 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
                 decisions, [json.dumps([f"bootstrap_run_id:{bootstrap_run_id}"])],
                 db=db, store=store, project_id=project_id,
             )
-        return {"status": "ok", **result}
+        return {"status": "success", **result}
 
     item_id = str(arguments.get("id", ""))
     if not item_id:
@@ -152,4 +152,4 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
     await close_extract_runs(
         decisions, tags, db=db, store=store, project_id=project_id,
     )
-    return {"status": "ok", "id": item_id, "new_status": new_status}
+    return {"status": "success", "id": item_id, "new_status": new_status}

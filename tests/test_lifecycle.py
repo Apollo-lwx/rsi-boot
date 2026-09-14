@@ -58,7 +58,7 @@ async def test_knowledge_delete_tool(db, base_config):
     item_id = await service.add(KnowledgeItem(project_id="p1", title="t", content="c"))
 
     ok = await knowledge_tool.handle(service, {"id": item_id, "project_id": "p1"})
-    assert ok["status"] == "ok"
+    assert ok["status"] == "success"
 
     again = await knowledge_tool.handle(service, {"id": item_id, "project_id": "p1"})
     assert again["status"] == "error"
