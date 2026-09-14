@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from rsi_boot.core.masking import mask_text
-from rsi_boot.memory.paths import official_dir, pending_dir
+from rsi_boot.memory.paths import official_dir, pending_dir, review_dir
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.memory.types import MemoryDoc
 from rsi_boot.ux.messages import t
@@ -159,6 +159,42 @@ def test_list_official_and_pending(tmp_path):
     assert [d.id for d in pending_docs] == ["b" * 32]
     assert pending_docs[0].status == "pending_review"
     assert store.list_pending("convention") == []
+
+
+def test_list_pending_includes_documentation(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    faq = MemoryDoc(id="e" * 32, type="documentation", title="对话摘录", content="问答正文足够长")
+    store.write(
+        faq,
+        dest=review_dir(store.rsi_dir, "documentation") / "faq--eeeeeeee.yaml",
+    )
+    pending = store.list_pending()
+    assert {d.id for d in pending} == {"e" * 32}
+    assert store.list_pending("documentation")[0].id == "e" * 32
+
+
+def test_read_rewrites_stale_status_from_path(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    dest = pending_dir(store.rsi_dir, "prohibition") / "stale--aaaaaaaa.yaml"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(
+        yaml.safe_dump(
+            {
+                "id": "a" * 32,
+                "type": "prohibition",
+                "title": "禁止 SELECT *",
+                "content": "必须列字段",
+                "status": "active",
+            },
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    got = store.read("a" * 32)
+    assert got.status == "pending_review"
+    dumped = yaml.safe_load(dest.read_text(encoding="utf-8"))
+    assert dumped["status"] == "pending_review"
 
 
 def test_move_rewrites_status_and_slug_id8_name(tmp_path):

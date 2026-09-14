@@ -4,7 +4,7 @@ import pytest
 
 from rsi_boot.api.tools.knowledge_review_tool import TOOL_DESCRIPTION
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.memory.paths import official_dir, pending_dir
+from rsi_boot.memory.paths import official_dir, pending_dir, review_dir
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.memory.types import MemoryDoc
 from rsi_boot.services.knowledge_service import KnowledgeService
@@ -75,6 +75,18 @@ async def test_delete_moves_to_archive(tmp_path):
     got = store.read("c"*32)
     assert got.status == "archived"
     assert "archive" in (got.path or "").replace("\\", "/")
+
+
+@pytest.mark.asyncio
+async def test_list_includes_pending_documentation(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    store.write(
+        MemoryDoc(id="e" * 32, type="documentation", title="对话摘录", content="问答正文足够长"),
+        dest=review_dir(store.rsi_dir, "documentation") / "faq--eeeeeeee.yaml",
+    )
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    rows = await svc.list("p1")
+    assert any(r["id"] == "e" * 32 and r["status"] == "pending_review" for r in rows)
 
 
 @pytest.mark.asyncio

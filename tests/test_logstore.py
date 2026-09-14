@@ -9,6 +9,11 @@ from rsi_boot.memory.logstore import append_event, iter_events
 _DOC_ID = "a" * 32
 
 
+def test_append_rejects_null_retrieved(tmp_path):
+    with pytest.raises(ValueError, match="retrieved"):
+        append_event(tmp_path, {"id": "e1", "kind": "recall", "retrieved": None})
+
+
 def test_append_rejects_non_id_retrieved(tmp_path):
     with pytest.raises(ValueError, match="retrieved"):
         append_event(tmp_path, {"id": "e1", "kind": "recall", "retrieved": ["database"]})

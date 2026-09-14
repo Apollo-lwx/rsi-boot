@@ -27,8 +27,6 @@ def _validate_retrieved(event: dict) -> None:
     if "retrieved" not in event:
         return
     retrieved = event["retrieved"]
-    if retrieved is None:
-        return
     if not isinstance(retrieved, list) or not all(
         isinstance(item, str) and _DOC_ID.fullmatch(item) for item in retrieved
     ):

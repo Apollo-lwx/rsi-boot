@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 _RECALL_SCAN_LIMIT = 200  # 禁止项匹配的项目内扫描上限
 _STORE_DEFAULT_ARM = "recall-balanced"
 _STORE_DEFAULT_TOP_N = 5
-_STORE_DEFAULT_THRESHOLD = 0.6
 _ITEM_TYPES = frozenset({"convention", "documentation"})
 _SEARCH_TYPES = frozenset({
     "prohibition", "convention", "documentation",
@@ -159,8 +158,8 @@ class RecallService:
         ]
         items = [
             by_id[doc_id]
-            for doc_id, score in search(index, expanded, types=_ITEM_TYPES, top_n=limit)
-            if doc_id in by_id and score >= _STORE_DEFAULT_THRESHOLD
+            for doc_id, _score in search(index, expanded, types=_ITEM_TYPES, top_n=limit)
+            if doc_id in by_id
         ]
         teaching = [
             by_id[doc_id]

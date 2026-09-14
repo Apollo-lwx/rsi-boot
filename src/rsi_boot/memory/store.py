@@ -16,12 +16,10 @@ from pydantic import ValidationError
 
 from rsi_boot.core.masking import mask_text
 from rsi_boot.injector.slug import slugify
-from rsi_boot.memory.paths import official_dir, pending_dir
+from rsi_boot.memory.paths import official_dir, review_dir
 from rsi_boot.memory.types import MEMORY_TYPES, MemoryDoc, status_from_path
 from rsi_boot.ux.lang import locale_lang
 from rsi_boot.ux.messages import t
-
-_PENDING_TYPES = ("prohibition", "convention", "skill")
 
 
 def memory_filename(title: str, id: str) -> str:
@@ -104,12 +102,10 @@ class MemoryStore:
             return docs
 
     def list_pending(self, type: str | None = None) -> list[MemoryDoc]:
-        types: Iterable[str] = (type,) if type else _PENDING_TYPES
         with self._io:
-            docs: list[MemoryDoc] = []
-            for typ in types:
-                docs.extend(self._load_tree(pending_dir(self.rsi_dir, typ)))
-            return docs
+            if type:
+                return self._load_tree(review_dir(self.rsi_dir, type))
+            return self._load_tree(self.rsi_dir / "memory" / "pending")
 
     def list_all(self) -> list[MemoryDoc]:
         """Official + pending + archive (and any other memory/**/*.yaml)."""
@@ -163,7 +159,7 @@ class MemoryStore:
         if indexed:
             matches, invalid = self._hydrate_paths(indexed, id)
             if matches:
-                return self._prefer_teaching(matches)
+                return self._sync_status_to_disk(self._prefer_teaching(matches))
             if invalid:
                 raise ValueError(t("YAML_INVALID", locale_lang(), path=str(invalid[0])))
         matches, invalid = self._hydrate_paths(self._iter_memory_yaml(), id)
@@ -171,11 +167,23 @@ class MemoryStore:
             if doc.path:
                 self._index_remember(doc.id, self.rsi_dir / doc.path)
         if matches:
-            return self._prefer_teaching(matches)
+            return self._sync_status_to_disk(self._prefer_teaching(matches))
         if invalid:
             path = invalid[0]
             raise ValueError(t("YAML_INVALID", locale_lang(), path=str(path)))
         raise FileNotFoundError(t("NOT_FOUND", locale_lang(), id=id))
+
+    def _sync_status_to_disk(self, doc: MemoryDoc) -> MemoryDoc:
+        if not doc.path:
+            return doc
+        dest = self.rsi_dir / doc.path
+        raw = self._safe_load(dest)
+        if not isinstance(raw, dict):
+            return doc
+        expected = status_from_path(doc.path)
+        if raw.get("status") == expected:
+            return doc
+        return self._write_unlocked(doc, dest)
 
     def _prefer_teaching(self, matches: list[MemoryDoc]) -> MemoryDoc:
         for doc in matches:
