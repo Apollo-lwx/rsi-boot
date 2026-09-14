@@ -33,7 +33,7 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
         try:
             doc = runtime.store.read(doc_id)
         except FileNotFoundError:
-            return {"status": "error", "message": t("NOT_FOUND", lang, id=doc_id)}
+            return {"status": "error", "code": "not_found", "message": t("NOT_FOUND", lang, id=doc_id)}
         data = doc.model_dump(exclude_none=True)
         return {
             "status": "success",
@@ -58,4 +58,4 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
             "message": t("REINDEX_DONE", lang),
             "data": {"n": index.get("n", 0)},
         }
-    return {"status": "error", "message": t("MEMORY_NEED_SUB", lang)}
+    return {"status": "error", "code": "invalid", "message": t("MEMORY_NEED_SUB", lang)}

@@ -73,6 +73,31 @@ async def test_teach_catch_writes_draft(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_teach_catch_redacts_secrets_on_disk(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        secret = "supersecret99"
+        out = await handle(rt, {
+            "action": "teach_catch",
+            "trigger": {
+                "error_signature": "conn-leak",
+                "message": f"failed with password={secret}",
+            },
+            "system_attempts": [{"attempt": f"connect password={secret}", "result": "denied"}],
+        })
+        assert out["status"] == "success"
+        draft = tmp_path / ".rsi" / "state" / "teach-drafts" / f"{out['data']['id']}.yaml"
+        raw = draft.read_text(encoding="utf-8")
+        assert secret not in raw
+        assert "password=****" in raw
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
 async def test_missing_action_uses_locked_copy(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_LANG", "zh")
     from rsi_boot.api.tools.learn_tool import handle
@@ -82,7 +107,12 @@ async def test_missing_action_uses_locked_copy(tmp_path, monkeypatch):
     try:
         out = await handle(rt, {})
         assert out["status"] == "error"
+        assert out["code"] == "invalid"
         assert out["message"] == t("LEARN_NEED_ACTION", "zh")
+        unknown = await handle(rt, {"action": "nope"})
+        assert unknown["status"] == "error"
+        assert unknown["code"] == "invalid"
+        assert unknown["message"] == t("LEARN_NEED_ACTION", "zh")
     finally:
         await rt.close()
 
@@ -116,6 +146,7 @@ async def test_teach_record_requires_correct_fix(tmp_path, monkeypatch):
             "lesson": {"correct_fix": "   ", "error_signature": "x"},
         })
         assert out["status"] == "error"
+        assert out["code"] == "invalid"
         assert out["message"] == t("TEACH_NEED_FIX", "zh")
     finally:
         await rt.close()

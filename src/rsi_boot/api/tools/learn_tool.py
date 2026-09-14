@@ -41,7 +41,7 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     lang = resolve_lang(arguments)
     action = str(arguments.get("action") or "").strip()
     if not action:
-        return {"status": "error", "message": t("LEARN_NEED_ACTION", lang)}
+        return {"status": "error", "code": "invalid", "message": t("LEARN_NEED_ACTION", lang)}
     if action == "promote":
         return {"status": "error", "code": "not_in_phase", "message": t("PHASE_PROMOTE", lang)}
     if action.startswith("audit_") or action == "extract":
@@ -61,4 +61,4 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
             "message": t("EXTRACT_CLOSEOUT", lang),
             "data": {"rubric": RUBRIC_TEXT},
         }
-    return {"status": "error", "message": t("LEARN_NEED_ACTION", lang)}
+    return {"status": "error", "code": "invalid", "message": t("LEARN_NEED_ACTION", lang)}

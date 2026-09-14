@@ -10,6 +10,7 @@ from typing import Any
 
 import yaml
 
+from rsi_boot.core.masking import mask_text
 from rsi_boot.memory.logstore import append_event
 from rsi_boot.memory.paths import official_dir
 from rsi_boot.memory.store import MemoryStore, memory_filename
@@ -62,15 +63,16 @@ def teach_catch(store: MemoryStore, arguments: dict[str, Any], lang: str) -> dic
     if not isinstance(attempts, list):
         attempts = (arguments.get("payload") or {}).get("system_attempts") or []
     dest = drafts_dir(store.rsi_dir) / f"{draft_id}.yaml"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(
-        yaml.safe_dump(
-            {"id": draft_id, "trigger": trigger, "system_attempts": attempts},
-            allow_unicode=True,
-            sort_keys=False,
-        ),
-        encoding="utf-8",
+    text = yaml.safe_dump(
+        {
+            "id": draft_id,
+            "trigger": _mask_value(trigger),
+            "system_attempts": _mask_value(attempts),
+        },
+        allow_unicode=True,
+        sort_keys=False,
     )
+    _atomic_write(dest, text)
     rel = f"state/teach-drafts/{draft_id}.yaml"
     return {
         "status": "success",
@@ -83,7 +85,7 @@ def teach_record(store: MemoryStore, arguments: dict[str, Any], lang: str) -> di
     lesson = _lesson(arguments)
     correct_fix = str(lesson.get("correct_fix") or "").strip()
     if not correct_fix:
-        return {"status": "error", "message": t("TEACH_NEED_FIX", lang)}
+        return {"status": "error", "code": "invalid", "message": t("TEACH_NEED_FIX", lang)}
 
     doc_id = _record_id(arguments)
     title = _title(lesson, correct_fix)
@@ -207,6 +209,31 @@ def skip_draft(store: MemoryStore, arguments: dict[str, Any], lang: str) -> dict
         "message": t("TEACH_SKIPPED", lang, id=draft_id),
         "data": {"id": draft_id, "closeout": [{"kind": "skip", "reason": reason}]},
     }
+
+
+def _mask_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return mask_text(value)
+    if isinstance(value, dict):
+        return {k: _mask_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_mask_value(v) for v in value]
+    return value
+
+
+def _atomic_write(dest: Path, text: str) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = Path(str(dest) + ".tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, dest)
+    except Exception:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+        raise
 
 
 def _lesson(arguments: dict[str, Any]) -> dict[str, Any]:

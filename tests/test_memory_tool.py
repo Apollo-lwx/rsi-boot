@@ -38,6 +38,7 @@ async def test_memory_open_missing(tmp_path, monkeypatch):
         missing = "a" * 32
         out = await handle(rt, {"action": "open", "id": missing})
         assert out["status"] == "error"
+        assert out["code"] == "not_found"
         assert out["message"] == t("NOT_FOUND", "zh", id=missing)
     finally:
         await rt.close()
@@ -54,6 +55,10 @@ async def test_graph_not_in_phase(tmp_path, monkeypatch):
         out = await handle(rt, {"action": "graph"})
         assert out["code"] == "not_in_phase"
         assert out["message"] == t("PHASE_GRAPH", "zh")
+        empty = await handle(rt, {})
+        assert empty["status"] == "error"
+        assert empty["code"] == "invalid"
+        assert empty["message"] == t("MEMORY_NEED_SUB", "zh")
     finally:
         await rt.close()
 
