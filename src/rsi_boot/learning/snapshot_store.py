@@ -52,8 +52,171 @@ class SnapshotStore:
 
     # ---------- 槽位采集与重建 ----------
 
+    def _load_yaml_file(self, path: Path, key: str | None = None) -> Any:
+        if not path.is_file():
+            return [] if key else None
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return [] if key else None
+        if key is None:
+            return data
+        if isinstance(data, list):
+            return [r for r in data if isinstance(r, dict)]
+        if isinstance(data, dict):
+            rows = data.get(key) or data.get("items") or []
+            if isinstance(rows, list):
+                return [r for r in rows if isinstance(r, dict)]
+        return []
+
+    def _file_overlays(self) -> Dict[str, Any]:
+        templates: Dict[str, str] = {}
+        tpl_dir = self._home / "templates"
+        if tpl_dir.is_dir():
+            for p in sorted(tpl_dir.glob("*.jinja2")):
+                templates[p.name] = p.read_text(encoding="utf-8")
+
+        skills: Dict[str, str] = {}
+        skill_root = self._home / "skills"
+        if skill_root.is_dir():
+            for p in sorted(skill_root.glob("*/SKILL.md")):
+                skills[p.parent.name] = p.read_text(encoding="utf-8")
+
+        intent_overlay = ""
+        overlay_path = self._home / "intent_rules.yaml"
+        if overlay_path.is_file():
+            intent_overlay = overlay_path.read_text(encoding="utf-8")
+        return {
+            "prompt_template": templates,
+            "skill": skills,
+            "intent_rule": {"overlay_yaml": intent_overlay},
+        }
+
+    def _gather_slots_store(self, project_id: str) -> Dict[str, Any]:
+        assert self._store is not None
+        overlays = self._file_overlays()
+        strategy = self._load_yaml_file(self._home / "state" / "arms.yaml", "arms")
+        knowledge = []
+        for doc in [*self._store.list_official(), *self._store.list_pending()]:
+            knowledge.append({
+                "id": doc.id,
+                "title": doc.title,
+                "content": doc.content,
+                "type": doc.type,
+                "status": doc.status,
+                "tags": list(doc.tags or []),
+                "roles": list(doc.roles or []),
+                "domain": doc.domain,
+            })
+        profile = self._load_yaml_file(self._home / "state" / "profile.yaml")
+        if profile is None:
+            profile = []
+        return {
+            "prompt_template": overlays["prompt_template"],
+            "skill": overlays["skill"],
+            "strategy": strategy,
+            "intent_rule": overlays["intent_rule"],
+            "knowledge": knowledge,
+            "profile": profile,
+        }
+
+    def _restore_file_overlays(self, slots: Dict[str, Any]) -> None:
+        tpl_dir = self._home / "templates"
+        tpl_dir.mkdir(parents=True, exist_ok=True)
+        for p in tpl_dir.glob("*.jinja2"):
+            p.unlink()
+        for name, content in (slots.get("prompt_template") or {}).items():
+            (tpl_dir / name).write_text(content, encoding="utf-8")
+
+        skill_root = self._home / "skills"
+        skill_root.mkdir(parents=True, exist_ok=True)
+        for d in skill_root.iterdir():
+            if d.is_dir() and (d / "SKILL.md").is_file():
+                (d / "SKILL.md").unlink()
+                d.rmdir()
+        for name, content in (slots.get("skill") or {}).items():
+            d = skill_root / name
+            d.mkdir(exist_ok=True)
+            (d / "SKILL.md").write_text(content, encoding="utf-8")
+
+        overlay = (slots.get("intent_rule") or {}).get("overlay_yaml", "")
+        overlay_path = self._home / "intent_rules.yaml"
+        if overlay:
+            overlay_path.write_text(overlay, encoding="utf-8")
+        elif overlay_path.is_file():
+            overlay_path.unlink()
+
+    def _restore_slots_store(self, project_id: str, slots: Dict[str, Any]) -> None:
+        assert self._store is not None
+        self._restore_file_overlays(slots)
+        arms_path = self._home / "state" / "arms.yaml"
+        arms_path.parent.mkdir(parents=True, exist_ok=True)
+        rows = slots.get("strategy") or []
+        tmp = Path(str(arms_path) + ".tmp")
+        tmp.write_text(yaml.safe_dump({"arms": rows}, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        os.replace(tmp, arms_path)
+
+        from ..memory.paths import official_dir
+        from ..memory.store import memory_filename
+        from ..memory.types import MemoryDoc
+        for row in slots.get("knowledge") or []:
+            if not isinstance(row, dict) or not row.get("id"):
+                continue
+            try:
+                doc = MemoryDoc(
+                    id=row["id"],
+                    type=row.get("type") or "documentation",
+                    title=row.get("title") or row["id"],
+                    content=row.get("content") or "",
+                    tags=list(row.get("tags") or []),
+                    roles=list(row.get("roles") or []),
+                    domain=row.get("domain"),
+                )
+                dest = official_dir(self._store.rsi_dir, doc.type) / memory_filename(doc.title, doc.id)
+                self._store.write(doc, dest=dest)
+            except (ValueError, TypeError, KeyError):
+                continue
+
+        profile = slots.get("profile")
+        if profile is not None:
+            profile_path = self._home / "state" / "profile.yaml"
+            profile_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = Path(str(profile_path) + ".tmp")
+            tmp.write_text(yaml.safe_dump(profile, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            os.replace(tmp, profile_path)
+
+    def _resolve_store(self, project_id: str, version: int) -> Dict[str, Any]:
+        docs = [
+            d for d in self._iter_snapshot_docs(project_id)
+            if int(d.get("version") or 0) <= version
+        ]
+        docs.sort(key=lambda d: int(d.get("version") or 0))
+        resolved: Dict[str, Any] = {}
+        for data in docs:
+            slots = data.get("slots") or {}
+            if isinstance(slots, str):
+                try:
+                    slots = json.loads(slots)
+                except (TypeError, ValueError):
+                    continue
+            if not isinstance(slots, dict):
+                continue
+            for slot, entry in slots.items():
+                if not isinstance(entry, dict):
+                    resolved[slot] = entry
+                    continue
+                if entry.get("inherit"):
+                    continue
+                if entry.get("reset"):
+                    resolved[slot] = {} if slot != "intent_rule" else {"overlay_yaml": ""}
+                elif "value" in entry:
+                    resolved[slot] = entry["value"]
+        return resolved
+
     async def _gather_slots(self, project_id: str) -> Dict[str, Any]:
         """导出 6 槽位当前内容（文件槽读 ~/.rsi 覆写层；DB 槽读项目行）"""
+        if self._store is not None:
+            return self._gather_slots_store(project_id)
         conn = await self._db.connect()
 
         templates: Dict[str, str] = {}
@@ -102,6 +265,9 @@ class SnapshotStore:
 
     async def _restore_slots(self, project_id: str, slots: Dict[str, Any]) -> None:
         """以解析后的槽位内容重建（回滚 = 切换快照，非逆向重放 diff）"""
+        if self._store is not None:
+            self._restore_slots_store(project_id, slots)
+            return
         conn = await self._db.connect()
         now = _utc_iso()
 
@@ -185,6 +351,8 @@ class SnapshotStore:
 
     async def _resolve(self, project_id: str, version: int) -> Dict[str, Any]:
         """按合并语义解析指定版本的完整槽位内容（沿版本链回放 inherit/reset/value）"""
+        if self._store is not None:
+            return self._resolve_store(project_id, version)
         conn = await self._db.connect()
         async with conn.execute(
             "SELECT version, slots FROM config_snapshots WHERE project_id = ? AND version <= ?"
@@ -364,6 +532,7 @@ class SnapshotStore:
         return docs
 
     def _capture_store(self, project_id: str, trigger_proposal: Optional[str] = None) -> int:
+        current = self._gather_slots_store(project_id)
         version = 1
         for data in self._iter_snapshot_docs(project_id):
             ver = int(data.get("version") or 0)
@@ -372,12 +541,19 @@ class SnapshotStore:
             if data.get("status") == "active":
                 data["status"] = "superseded"
                 self._write_snapshot_yaml(data)
+        previous = self._resolve_store(project_id, version - 1) if version > 1 else {}
+        slots: Dict[str, Any] = {}
+        for slot, content in current.items():
+            if previous.get(slot) == content:
+                slots[slot] = {"inherit": True}
+            else:
+                slots[slot] = {"value": content}
         payload = {
             "id": uuid.uuid4().hex,
             "project_id": project_id,
             "version": version,
             "trigger_proposal": trigger_proposal,
-            "slots": {},
+            "slots": slots,
             "status": "active",
             "created_at": _utc_iso(),
         }
@@ -390,6 +566,8 @@ class SnapshotStore:
         versions = {int(d.get("version") or 0) for d in docs}
         if version not in versions:
             return False
+        resolved = self._resolve_store(project_id, version)
+        self._restore_slots_store(project_id, resolved)
         for data in docs:
             ver = int(data.get("version") or 0)
             if data.get("status") == "active":

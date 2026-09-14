@@ -21,7 +21,10 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from ..data.sqlite import SQLiteClient
-from ..memory.store import MemoryStore
+from ..memory.logstore import iter_events
+from ..memory.paths import official_dir
+from ..memory.store import MemoryStore, memory_filename
+from ..memory.types import MEMORY_TYPES, MemoryDoc
 from .failure_miner import FailureBucket, mine_failures
 from .regression_gate import RegressionGate
 from .snapshot_store import SnapshotStore
@@ -200,7 +203,7 @@ class ProposalEngine:
     async def generate(self, project_id: str, days: int = 7) -> List[str]:
         """失败挖掘 → 模板化（默认）/LLM（增强）提案 → 落库 proposed。返回提案 id 列表"""
         if self._store is not None:
-            return []
+            return self._generate_store(project_id, days)
         buckets = await mine_failures(self._db, days=days)
         raw: List[tuple[Dict[str, Any], Optional[FailureBucket]]] = []
         for bucket in buckets:
@@ -296,9 +299,266 @@ class ProposalEngine:
 
     # ---------- 3. 人工确认与晋升 ----------
 
+    def _slot_weekly_count_store(self, project_id: str, slot: str) -> int:
+        since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+        n = 0
+        for row in self._list_proposals_store(project_id, None):
+            if row.get("slot") != slot or row.get("status") == "rejected":
+                continue
+            created = str(row.get("created_at") or "")
+            if created and created < since:
+                continue
+            n += 1
+        return n
+
+    def _mine_store_failures(self, project_id: str, days: int) -> List[FailureBucket]:
+        assert self._store is not None
+        since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        events = list(iter_events(self._store.rsi_dir))
+        feedback_by_token: Dict[str, Dict[str, Any]] = {}
+        for event in events:
+            token = event.get("token")
+            if event.get("kind") == "feedback" and token:
+                feedback_by_token[str(token)] = event
+
+        buckets: Dict[str, FailureBucket] = {}
+        for event in events:
+            if event.get("kind") not in (None, "recall"):
+                continue
+            if event.get("status") == "pending":
+                continue
+            ts = str(event.get("ts") or event.get("created_at") or "")
+            if ts and ts < since:
+                continue
+            if project_id and event.get("project_id") and event.get("project_id") != project_id:
+                continue
+            token = event.get("token")
+            fb = feedback_by_token.get(str(token)) if token else None
+            action = event.get("action") or event.get("feedback_action")
+            if not action and fb:
+                action = fb.get("action") or fb.get("feedback_action")
+            rating = event.get("rating")
+            if rating is None:
+                rating = event.get("feedback_rating")
+            if rating is None and fb:
+                rating = fb.get("rating")
+            comment = event.get("comment") or event.get("feedback_comment")
+            if not comment and fb:
+                comment = fb.get("comment") or fb.get("feedback_comment")
+            try:
+                rating_n = int(rating) if rating is not None else None
+            except (TypeError, ValueError):
+                rating_n = None
+            if action not in ("rejected", "modified") and not (rating_n is not None and rating_n <= 2):
+                continue
+            retrieved = event.get("retrieved") or []
+            group_key = retrieved[0] if retrieved else str(event.get("task") or "unknown")
+            arm = str(event.get("arm") or event.get("strategy_name") or "default")
+            bucket = buckets.setdefault(str(group_key), FailureBucket(intent="recall", strategy_name=arm))
+            bucket.log_ids.append(str(event.get("id") or ""))
+            if action == "rejected":
+                bucket.signals["rejected"] = bucket.signals.get("rejected", 0) + 1
+                if comment:
+                    bucket.comments.append(str(comment))
+            if action == "modified":
+                bucket.signals["modified"] = bucket.signals.get("modified", 0) + 1
+            if rating_n is not None and rating_n <= 2:
+                bucket.signals["low_rating"] = bucket.signals.get("low_rating", 0) + 1
+            if len(bucket.examples) < 3:
+                bucket.examples.append({"input_excerpt": str(event.get("task") or "")[:200]})
+        return list(buckets.values())
+
+    def _generate_store(self, project_id: str, days: int) -> List[str]:
+        raw: List[tuple[Dict[str, Any], Optional[FailureBucket]]] = []
+        for bucket in self._mine_store_failures(project_id, days):
+            raw.extend((p, bucket) for p in self._template_propose(bucket))
+
+        proposal_ids: List[str] = []
+        for p, bucket in raw:
+            if len(proposal_ids) >= MAX_PROPOSALS_PER_ROUND:
+                break
+            if self._slot_weekly_count_store(project_id, p["slot"]) >= SLOT_WEEKLY_CAP:
+                logger.info("槽位 %s 周变更已达上限 %d，跳过提案", p["slot"], SLOT_WEEKLY_CAP)
+                continue
+            pid = uuid.uuid4().hex
+            evidence = {
+                "bucket": ({"intent": bucket.intent, "strategy": bucket.strategy_name,
+                            "count": bucket.count, "signals": bucket.signals}
+                           if bucket else {"intent": "", "strategy": "", "count": 0, "signals": {}}),
+                "log_ids": bucket.log_ids[:10] if bucket else [],
+                "rationale": p.get("rationale", ""),
+            }
+            self._write_proposal_yaml({
+                "id": pid,
+                "project_id": project_id,
+                "slot": p["slot"],
+                "target_ref": str(p["target_ref"]),
+                "action": p["action"],
+                "payload": {"before": p.get("before"), "after": p.get("after") or {}},
+                "evidence": evidence,
+                "status": "proposed",
+                "created_at": _utc_iso(),
+            })
+            proposal_ids.append(pid)
+        if proposal_ids:
+            logger.info("提案生成完成：%d 个（项目 %s）", len(proposal_ids), project_id)
+        return proposal_ids
+
+    def _load_arm_rows(self) -> tuple[List[Dict[str, Any]], Any]:
+        assert self._store is not None
+        path = self._store.rsi_dir / "state" / "arms.yaml"
+        if not path.is_file():
+            return [], {"arms": []}
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return [], {"arms": []}
+        if isinstance(data, list):
+            return [r for r in data if isinstance(r, dict)], data
+        if isinstance(data, dict):
+            rows = data.get("arms") or []
+            return [r for r in rows if isinstance(r, dict)], data
+        return [], {"arms": []}
+
+    def _write_arm_rows(self, rows: List[Dict[str, Any]], wrapper: Any) -> None:
+        assert self._store is not None
+        dest = self._store.rsi_dir / "state" / "arms.yaml"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        payload: Any = rows if isinstance(wrapper, list) else {**(wrapper or {}), "arms": rows}
+        tmp = Path(str(dest) + ".tmp")
+        tmp.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        import os
+        os.replace(tmp, dest)
+
+    def _apply_strategy_store(self, target_ref: str, action: str, after: Dict[str, Any]) -> None:
+        rows, wrapper = self._load_arm_rows()
+        now = _utc_iso()
+        if action == "add":
+            params = after.get("params") or {}
+            rows.append({
+                "id": uuid.uuid4().hex,
+                "name": target_ref,
+                "intent": after.get("intent", "recall"),
+                "top_n": params.get("top_n", after.get("top_n", 5)),
+                "threshold": params.get("threshold", after.get("threshold", 0.6)),
+                "params": params,
+                "active": True,
+                "created_at": now,
+                "updated_at": now,
+            })
+        elif action == "remove":
+            for row in rows:
+                if (row.get("name") or row.get("strategy_name")) == target_ref:
+                    row["active"] = False
+                    row["updated_at"] = now
+        else:
+            for row in rows:
+                if (row.get("name") or row.get("strategy_name")) != target_ref:
+                    continue
+                params = after.get("params") or {}
+                existing = row.get("params") or {}
+                if isinstance(existing, str):
+                    try:
+                        existing = json.loads(existing)
+                    except (TypeError, ValueError):
+                        existing = {}
+                if not isinstance(existing, dict):
+                    existing = {}
+                if params:
+                    existing.update(params)
+                    row["params"] = existing
+                    if "top_n" in params:
+                        row["top_n"] = params["top_n"]
+                    if "threshold" in params:
+                        row["threshold"] = params["threshold"]
+                if after.get("model_name"):
+                    row["model_name"] = after["model_name"]
+                if after.get("weight") is not None:
+                    row["weight"] = after["weight"]
+                row["updated_at"] = now
+        self._write_arm_rows(rows, wrapper)
+
+    def _apply_knowledge_store(self, target_ref: str, action: str, after: Dict[str, Any]) -> None:
+        assert self._store is not None
+        if action == "remove":
+            return
+        typ = str(after.get("content_type") or after.get("type") or "convention")
+        if typ not in MEMORY_TYPES:
+            typ = "convention"
+        doc_id = target_ref if action == "modify" and len(target_ref) == 32 else uuid.uuid4().hex
+        if action == "modify":
+            try:
+                existing = self._store.read(target_ref)
+                dest = self._store.rsi_dir / existing.path if existing.path else (
+                    official_dir(self._store.rsi_dir, existing.type) / memory_filename(existing.title, existing.id)
+                )
+                updated = existing.model_copy(update={
+                    "content": str(after.get("content") or existing.content),
+                    "title": str(after.get("title") or existing.title),
+                })
+                self._store.write(updated, dest=dest)
+                return
+            except (FileNotFoundError, ValueError):
+                doc_id = target_ref if len(target_ref) == 32 else uuid.uuid4().hex
+        title = str(after.get("title") or target_ref)[:120]
+        doc = MemoryDoc(
+            id=doc_id if len(doc_id) == 32 else uuid.uuid4().hex,
+            type=typ,
+            title=title,
+            content=str(after.get("content") or "")[:20000],
+            tags=list(after.get("tags") or []),
+            roles=list(after.get("roles") or []),
+            domain=after.get("domain"),
+        )
+        dest = official_dir(self._store.rsi_dir, doc.type) / memory_filename(doc.title, doc.id)
+        self._store.write(doc, dest=dest)
+
+    def _apply_slot_change_store(self, project_id: str, slot: str, target_ref: str,
+                                 action: str, after: Dict[str, Any]) -> None:
+        mentions_arms = bool(after.get("params") or after.get("arms") or "arms" in after)
+        if slot == "strategy" or mentions_arms:
+            self._apply_strategy_store(target_ref, action, after)
+            if slot == "strategy":
+                return
+        if slot == "knowledge":
+            self._apply_knowledge_store(target_ref, action, after)
+            return
+        if slot == "intent_rule":
+            overlay_path = self._home / "intent_rules.yaml"
+            data: Dict[str, Any] = {}
+            if overlay_path.is_file():
+                data = yaml.safe_load(overlay_path.read_text(encoding="utf-8")) or {}
+            rules: List[Dict[str, Any]] = list(data.get("rules") or [])
+            if action == "remove":
+                rules = [r for r in rules if r.get("name") != target_ref]
+            else:
+                rules = [r for r in rules if r.get("name") != target_ref]
+                rules.append({"name": target_ref, **(after or {})})
+            overlay_path.write_text(yaml.safe_dump({"rules": rules}, allow_unicode=True), encoding="utf-8")
+        elif slot == "prompt_template":
+            tpl_dir = self._home / "templates"
+            tpl_dir.mkdir(parents=True, exist_ok=True)
+            path = tpl_dir / target_ref
+            if action == "remove":
+                path.unlink(missing_ok=True)
+            else:
+                path.write_text(str(after.get("template_content", "")), encoding="utf-8")
+        elif slot == "skill":
+            skill_dir = self._home / "skills" / target_ref
+            if action == "remove":
+                if (skill_dir / "SKILL.md").is_file():
+                    (skill_dir / "SKILL.md").unlink()
+                    skill_dir.rmdir()
+            else:
+                skill_dir.mkdir(parents=True, exist_ok=True)
+                (skill_dir / "SKILL.md").write_text(str(after.get("skill_md", "")), encoding="utf-8")
+
     async def _apply_slot_change(self, project_id: str, slot: str, target_ref: str,
                                  action: str, after: Dict[str, Any]) -> None:
         """槽位变更应用（仅内容槽位；评估代码/门禁参数/提案机制不可写）"""
+        if self._store is not None:
+            self._apply_slot_change_store(project_id, slot, target_ref, action, after)
+            return
         conn = await self._db.connect()
         now = _utc_iso()
         if slot == "strategy":
@@ -625,6 +885,19 @@ class ProposalEngine:
         data["activated_at"] = now.isoformat()
         data["observe_until"] = (now + timedelta(days=OBSERVATION_DAYS)).isoformat()
         self._write_proposal_yaml(data)
+        after = payload.get("after") or {}
+        if isinstance(after, str):
+            try:
+                after = json.loads(after)
+            except (TypeError, ValueError):
+                after = {}
+        await self._apply_slot_change(
+            project_id,
+            str(data.get("slot") or ""),
+            str(data.get("target_ref") or ""),
+            str(data.get("action") or "modify"),
+            after if isinstance(after, dict) else {},
+        )
         await self._snapshots.capture(project_id, trigger_proposal=proposal_id)
         await self._notify_change(project_id)
         return True

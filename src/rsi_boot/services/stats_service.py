@@ -261,9 +261,43 @@ class StatsService:
     def _event_excerpt(self, event: Dict[str, Any]) -> str:
         return str(event.get("excerpt") or event.get("response_excerpt") or "")
 
+    def _feedback_by_token(self) -> Dict[str, Dict[str, Any]]:
+        assert self._store is not None
+        latest: Dict[str, Dict[str, Any]] = {}
+        for event in iter_events(self._store.rsi_dir, kinds={"feedback"}):
+            token = event.get("token")
+            if token:
+                latest[str(token)] = event
+        return latest
+
+    def _join_feedback(
+        self, event: Dict[str, Any], feedback_by_token: Dict[str, Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        token = event.get("token")
+        fb = feedback_by_token.get(str(token)) if token else None
+        if not fb:
+            return event
+        merged = dict(event)
+        if not self._event_action(merged):
+            action = fb.get("action") or fb.get("feedback_action")
+            if action:
+                merged["action"] = action
+        if self._event_rating(merged) is None:
+            rating = fb.get("rating")
+            if rating is None:
+                rating = fb.get("feedback_rating")
+            if rating is not None:
+                merged["rating"] = rating
+        if not merged.get("comment") and not merged.get("feedback_comment"):
+            comment = fb.get("comment") or fb.get("feedback_comment")
+            if comment:
+                merged["comment"] = comment
+        return merged
+
     def _recall_events(self, period: str, project_id: Optional[str]) -> List[Dict[str, Any]]:
         assert self._store is not None
         start = self.window_start(period)
+        feedback_by_token = self._feedback_by_token()
         out: List[Dict[str, Any]] = []
         for event in iter_events(self._store.rsi_dir, kinds={"recall"}):
             if event.get("status") == "pending":
@@ -273,7 +307,7 @@ class StatsService:
                 continue
             if project_id and event.get("project_id") and event.get("project_id") != project_id:
                 continue
-            out.append(event)
+            out.append(self._join_feedback(event, feedback_by_token))
         return out
 
     def _load_yaml_list(self, path: Path, key: str) -> List[Dict[str, Any]]:

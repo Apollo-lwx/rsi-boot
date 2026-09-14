@@ -123,16 +123,33 @@ class LogService:
                 x for x in (retrieved_tags or [])
                 if isinstance(x, str) and _DOC_ID.fullmatch(x)
             ]
-            append_event(self._store.rsi_dir, {
+            pending = None
+            for event in iter_events(self._store.rsi_dir):
+                if event.get("id") == log_id:
+                    pending = event
+                    if event.get("status") == "pending":
+                        break
+            token = (pending or {}).get("token")
+            kind = "recall"
+            if intent and (intent == "recall" or str(intent).startswith("recall")):
+                kind = intent
+            event: dict[str, Any] = {
                 "id": log_id,
                 "ts": _utc_iso(),
-                "kind": intent or "recall",
+                "kind": kind,
                 "status": status,
                 "retrieved": retrieved,
                 "arm": strategy_name,
                 "latency_ms": latency_ms,
                 "excerpt": mask_text(response_excerpt[:4000]) if response_excerpt else None,
-            })
+            }
+            if token:
+                event["token"] = token
+            if pending:
+                for key in ("project_id", "user_id", "task"):
+                    if pending.get(key) is not None:
+                        event[key] = pending[key]
+            append_event(self._store.rsi_dir, event)
             return
         try:
             self._db.breaker.allow_request()
