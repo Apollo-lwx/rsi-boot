@@ -234,14 +234,20 @@ class FeedbackWorker:
         arm = row.get("arm") or row.get("strategy_name")
         if reward != 0.0 and arm:
             await self._apply_reward_store(row.get("project_id") or "default", arm, reward)
-        if event.action in ("rejected", "modified"):
+        question = row.get("task") or row.get("raw_input") or ""
+        should_extract = False
+        if event.action == "rejected" and event.comment:
+            should_extract = True
+        elif event.action == "modified" and event.modified_content:
+            should_extract = diff_ratio(question, event.modified_content) > DIFF_CANDIDATE_THRESHOLD
+        if should_extract:
             written = extract_from_feedback(
                 self._store.rsi_dir,
                 action=event.action,
                 comment=event.comment,
                 retrieved=retrieved,
                 modified_content=event.modified_content,
-                question=row.get("task") or row.get("raw_input") or "",
+                question=question,
             )
             if written:
                 logger.info("反馈提取已写入 pending：action=%s n=%s", event.action, len(written))

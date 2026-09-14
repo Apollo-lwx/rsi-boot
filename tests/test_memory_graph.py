@@ -57,6 +57,21 @@ async def test_graph_returns_mermaid_with_ids_no_md(tmp_path, monkeypatch):
         await rt.close()
 
 
+def test_prune_catalog_drops_edges_to_missing_ids(tmp_path):
+    from rsi_boot.memory.graph import add_edge, load_catalog, prune_catalog
+
+    store = MemoryStore(tmp_path / ".rsi")
+    a = store.write(
+        MemoryDoc(id="a" * 32, type="convention", title="约定甲", content="写法甲"),
+        dest=official_dir(store.rsi_dir, "convention") / memory_filename("约定甲", "a" * 32),
+    )
+    add_edge(store.rsi_dir, a.id, "f" * 32, "cites")
+    add_edge(store.rsi_dir, a.id, "b" * 32, "supersedes")
+    prune_catalog(store.rsi_dir, store)
+    edges = load_catalog(store.rsi_dir)["edges"]
+    assert edges == []
+
+
 def test_render_mermaid_quotes_digit_starting_ids(tmp_path):
     from rsi_boot.memory.graph import add_edge, render_mermaid
 

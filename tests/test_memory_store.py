@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 from pathlib import Path
 
@@ -11,6 +12,34 @@ from rsi_boot.memory.paths import official_dir, pending_dir
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.memory.types import MemoryDoc
 from rsi_boot.ux.messages import t
+
+
+def test_write_rejects_dest_outside_rsi_dir(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    doc = MemoryDoc(id="a" * 32, type="prohibition", title="禁止 SELECT *", content="必须列字段")
+    dest = tmp_path / "outside.yaml"
+    with pytest.raises(ValueError):
+        store.write(doc, dest=dest)
+    assert not dest.exists()
+
+
+def test_write_retries_replace_on_oserror(tmp_path, monkeypatch):
+    store = MemoryStore(tmp_path / ".rsi")
+    doc = MemoryDoc(id="a" * 32, type="prohibition", title="禁止 SELECT *", content="必须列字段")
+    dest = official_dir(store.rsi_dir, "prohibition") / "no-star--aaaaaaaa.yaml"
+    calls = {"n": 0}
+    real_replace = os.replace
+
+    def flaky(src, dst):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError("sharing violation")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", flaky)
+    store.write(doc, dest=dest)
+    assert dest.is_file()
+    assert calls["n"] >= 2
 
 
 def test_write_then_read(tmp_path):

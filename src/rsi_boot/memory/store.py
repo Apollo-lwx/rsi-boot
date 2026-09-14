@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -47,7 +48,16 @@ def _atomic_replace(dest: Path, text: str) -> None:
     tmp = Path(str(dest) + ".tmp")
     try:
         tmp.write_text(text, encoding="utf-8")
-        os.replace(tmp, dest)
+        last_err: OSError | None = None
+        for attempt in range(8):
+            try:
+                os.replace(tmp, dest)
+                return
+            except OSError as exc:
+                last_err = exc
+                time.sleep(0.05 * (attempt + 1))
+        if last_err is not None:
+            raise last_err
     except Exception:
         if tmp.exists():
             try:
@@ -106,6 +116,12 @@ class MemoryStore:
 
     def _write_unlocked(self, doc: MemoryDoc, dest: Path) -> MemoryDoc:
         dest = Path(dest)
+        root = self.rsi_dir.resolve()
+        resolved = dest.resolve()
+        try:
+            resolved.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(t("YAML_INVALID", locale_lang(), path=str(dest))) from exc
         now = _utc_now()
         rel = self._rel_posix(dest)
         masked = doc.model_copy(

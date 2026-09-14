@@ -107,10 +107,10 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
             elif name == memory_tool.TOOL_NAME:
                 payload = await memory_tool.handle(runtime, arguments)
             else:
-                payload = {"status": "error", "message": f"unknown tool: {name}"}
+                payload = {"status": "error", "code": "invalid", "message": f"unknown tool: {name}"}
         except Exception as exc:  # 工具级兜底，避免 MCP 连接中断
             logger.exception("tool %s failed", name)
-            payload = {"status": "error", "message": str(exc)}
+            payload = {"status": "error", "code": "invalid", "message": str(exc)}
         return [types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, default=str))]
 
     return server

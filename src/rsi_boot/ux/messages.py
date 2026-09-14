@@ -148,6 +148,14 @@ STRINGS = {
         "en": "action must be one of {actions}",
     },
     "FEEDBACK_RATING_RANGE": {"zh": "rating 须在 1-5 之间", "en": "rating must be between 1 and 5"},
+    "FEEDBACK_TOKEN_MISSING": {
+        "zh": "feedback_token 不存在",
+        "en": "feedback_token not found",
+    },
+    "FEEDBACK_TOKEN_BAD_SIG": {
+        "zh": "feedback_token 签名校验失败",
+        "en": "feedback_token signature check failed",
+    },
 }
 
 # list_tools：中英并列，不走 t()。改字必须同步测试。

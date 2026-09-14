@@ -23,6 +23,14 @@ class YamlWatcher:
         self.on_change = on_change
         self.debounce_ms = max(int(debounce_ms), DEBOUNCE_MS)
         self._mtimes: dict[Path, float] = {}
+        self._seed()
+
+    def _seed(self) -> None:
+        for path in self._yaml_paths():
+            try:
+                self._mtimes[path] = path.stat().st_mtime
+            except OSError:
+                continue
 
     def _yaml_paths(self) -> list[Path]:
         if not self.root.exists():

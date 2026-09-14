@@ -55,16 +55,19 @@ async def handle(
 
     lang = locale_lang()
     if action not in ALL_ACTIONS:
-        return {"status": "error", "message": t("FEEDBACK_ACTION_INVALID", lang, actions=_ACTIONS)}
+        return {
+            "status": "error", "code": "invalid",
+            "message": t("FEEDBACK_ACTION_INVALID", lang, actions=_ACTIONS),
+        }
     if rating is not None and not (1 <= int(rating) <= 5):
-        return {"status": "error", "message": t("FEEDBACK_RATING_RANGE", lang)}
+        return {"status": "error", "code": "invalid", "message": t("FEEDBACK_RATING_RANGE", lang)}
 
     context = await logs.get_token_context(token)
     if context is None:
-        return {"status": "error", "message": "feedback_token 不存在"}
+        return {"status": "error", "code": "not_found", "message": t("FEEDBACK_TOKEN_MISSING", lang)}
     request_id, user_id = context
     if not verify_feedback_token(token, request_id, user_id, secret):
-        return {"status": "error", "message": "feedback_token 签名校验失败"}
+        return {"status": "error", "code": "invalid", "message": t("FEEDBACK_TOKEN_BAD_SIG", lang)}
 
     # 显式反馈同步落库（§4.2：响应返回前完成日志更新）
     await logs.apply_feedback(

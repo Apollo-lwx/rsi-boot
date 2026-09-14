@@ -28,6 +28,29 @@ async def _seed_prohibition(tmp_path):
     return rsi
 
 
+async def test_legacy_adopt_refuses_without_opening_sqlite(tmp_path, capsys, monkeypatch):
+    from argparse import Namespace
+
+    from rsi_boot.__main__ import cmd_migrate
+
+    hits = {"n": 0}
+
+    def boom(*_a, **_k):
+        hits["n"] += 1
+        raise AssertionError("sqlite")
+
+    monkeypatch.setattr("rsi_boot.data.sqlite.SQLiteClient.__init__", boom)
+    monkeypatch.setattr("rsi_boot.data.sqlite.SQLiteClient.connect", boom)
+    monkeypatch.setenv("RSI_LANG", "zh")
+    code = await cmd_migrate(Namespace(
+        migrate_action="adopt", namespace="default",
+        project_root=str(tmp_path), verbose=False,
+    ))
+    assert code == 3
+    assert hits["n"] == 0
+    assert t("MIGRATE_ADOPT_DEPRECATED", "zh") in capsys.readouterr().err
+
+
 def test_cli_migrate_no_db_exit_3(tmp_path, capsys, monkeypatch):
     from rsi_boot.cli.memory_command import run_memory
     from rsi_boot.ux.messages import t

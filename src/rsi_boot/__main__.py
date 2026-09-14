@@ -123,41 +123,15 @@ async def cmd_migrate(args: argparse.Namespace) -> int:
     """把旧版 ~/.rsi/rsi.db 里的命名空间拆进当前项目库（default 须显式认领）"""
     setup_cli_logging(getattr(args, "verbose", False))
     from .project import legacy_shared_db_path
-    from .services.legacy_migrate import adopt_namespaces, list_legacy_namespaces
+    from .services.legacy_migrate import list_legacy_namespaces
 
     if args.migrate_action == "status":
         ns = await list_legacy_namespaces()
         _print_json({"legacy_db": str(legacy_shared_db_path()), "namespaces": ns})
         return 0
     if args.migrate_action == "adopt":
-        from .data.migrate import migrate
-        from .data.sqlite import SQLiteClient
-        from .project import load_or_create_identity, project_db_path
-
-        root = resolve_project_root(explicit=Path(args.project_root))
-        identity = load_or_create_identity(root)
-        if not identity.project_id:
-            print("无法解析当前项目身份", file=sys.stderr)
-            return 2
-        db = SQLiteClient(project_db_path(root))
-        await migrate(db)
-        try:
-            rows = await adopt_namespaces(
-                legacy_shared_db_path(), db, [args.namespace], identity.project_id,
-            )
-            _print_json({
-                "adopted": args.namespace,
-                "dest_project_id": identity.project_id,
-                "dest_db": str(db.db_path),
-                "rows": rows,
-            })
-            from .ux.lang import locale_lang
-            from .ux.messages import t
-
-            print(t("MIGRATE_ADOPT_DEPRECATED", locale_lang()), file=sys.stderr)
-            return 0
-        finally:
-            await db.close()
+        print(t("MIGRATE_ADOPT_DEPRECATED", locale_lang()), file=sys.stderr)
+        return 3
     print("未知 migrate 子命令", file=sys.stderr)
     return 2
 

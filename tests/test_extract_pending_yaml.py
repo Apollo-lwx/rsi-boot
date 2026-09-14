@@ -1,6 +1,34 @@
 from pathlib import Path
 
 
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_run_daily_file_runtime_extracts_high_rated(tmp_path):
+    from datetime import datetime, timezone
+
+    from rsi_boot.learning.knowledge_extractor import KnowledgeExtractor
+    from rsi_boot.memory.logstore import append_event
+    from rsi_boot.memory.store import MemoryStore
+
+    store = MemoryStore(tmp_path / ".rsi")
+    append_event(store.rsi_dir, {
+        "id": "e" * 32,
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "kind": "recall",
+        "task": "怎么写查询",
+        "excerpt": "必须列出列名，禁止 SELECT *",
+        "rating": 5,
+        "retrieved": [],
+    })
+    stats = await KnowledgeExtractor(store=store).run_daily()
+    assert stats["collected"] >= 1
+    assert stats["extracted"] >= 1
+    pending = list((store.rsi_dir / "memory" / "pending" / "conventions").glob("*.yaml"))
+    assert pending
+
+
 def test_feedback_extract_only_pending_norms(tmp_path):
     from rsi_boot.learning.pipeline import extract_from_feedback
     paths = extract_from_feedback(

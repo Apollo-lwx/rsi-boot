@@ -18,4 +18,7 @@ async def test_build_runtime_does_not_construct_sqlite(monkeypatch, tmp_path):
     rt = await build_runtime(project_root=tmp_path)
     assert hits["n"] == 0
     assert not hasattr(rt, "db")
+    await rt.recall.recall("别把所有列一次查出来", rt.project_id)
+    await rt.injector.rewrite(rt.project_id)
+    assert hits["n"] == 0
     await rt.close()

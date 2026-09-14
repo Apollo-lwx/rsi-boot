@@ -26,6 +26,10 @@ import numpy as np
 from ..data.sqlite import SQLiteClient
 from ..injector.conflict import ConflictDetector
 from ..knowledge.embedding import EmbeddingService, deserialize_embedding
+from ..memory.logstore import iter_events
+from ..memory.paths import pending_dir
+from ..memory.store import MemoryStore, memory_filename
+from ..memory.types import MemoryDoc
 from ..scanner.conflict_gate import DraftItem, gate_drafts
 from .pipeline import extract_draft_rule as extract_draft_rule_fn
 from .pipeline import extract_from_feedback as extract_from_feedback_fn
@@ -207,11 +211,101 @@ class KnowledgeExtractor:
 
     # ---- 4. 每日任务主流程 ----
 
+    def _store_or_dir(self) -> MemoryStore | None:
+        if self._store is not None:
+            return self._store
+        if self._rsi_dir is not None:
+            return MemoryStore(self._rsi_dir)
+        return None
+
+    def _high_rated_seen_ids(self, rsi_dir: Path) -> set[str]:
+        path = Path(rsi_dir) / "logs" / "candidates.jsonl"
+        seen: set[str] = set()
+        if not path.is_file():
+            return seen
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            if not raw.strip():
+                continue
+            try:
+                rec = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            if rec.get("candidate_type") != "high_rated":
+                continue
+            sid = rec.get("source_event_id") or rec.get("id")
+            if sid:
+                seen.add(str(sid))
+        return seen
+
+    def _append_high_rated_candidate(self, rsi_dir: Path, event_id: str, path: str) -> None:
+        dest = Path(rsi_dir) / "logs" / "candidates.jsonl"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "ts": _utc_iso(),
+            "kind": "candidate",
+            "candidate_type": "high_rated",
+            "source_event_id": event_id,
+            "path": path,
+            "status": "extracted",
+        }
+        with dest.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    async def _run_daily_store(self) -> Dict[str, int]:
+        stats = {"collected": 0, "extracted": 0, "merged": 0, "skipped": 0, "cleaned": 0}
+        store = self._store_or_dir()
+        if store is None:
+            return stats
+        seen = self._high_rated_seen_ids(store.rsi_dir)
+        since = datetime.now(timezone.utc) - timedelta(hours=_HIGH_RATED_WINDOW_HOURS)
+        since_key = since.strftime("%Y-%m-%dT%H:%M:%S")
+        for ev in iter_events(store.rsi_dir):
+            rating = ev.get("rating")
+            try:
+                rating_n = int(rating) if rating is not None else 0
+            except (TypeError, ValueError):
+                rating_n = 0
+            if rating_n < _HIGH_RATED_MIN_RATING:
+                continue
+            ts = str(ev.get("ts") or "")
+            if ts and ts.replace("Z", "")[:19] < since_key:
+                continue
+            answer = str(ev.get("excerpt") or ev.get("content") or "").strip()
+            question = str(ev.get("task") or ev.get("raw_input") or "")
+            if not answer:
+                continue
+            eid = str(ev.get("id") or "")
+            if eid and eid in seen:
+                stats["skipped"] += 1
+                continue
+            stats["collected"] += 1
+            draft = self.extract_draft_rule("high_rated", question, answer)
+            if draft is None:
+                stats["skipped"] += 1
+                continue
+            doc = MemoryDoc(
+                id=uuid.uuid4().hex,
+                type="convention",
+                title=str(draft["title"])[:120],
+                content=str(draft["content"])[:20000],
+                source="auto-extract",
+                extra={"candidate_type": "high_rated", "source_event_id": eid},
+            )
+            dest = pending_dir(store.rsi_dir, "convention") / memory_filename(doc.title, doc.id)
+            written = store.write(doc, dest=dest)
+            if eid:
+                self._append_high_rated_candidate(store.rsi_dir, eid, written.path or "")
+                seen.add(eid)
+            stats["extracted"] += 1
+        return stats
+
     async def run_daily(self) -> Dict[str, int]:
         """汇集 → 提取（规则式默认 / LLM 增强）→ 去重 → pending_review 入库；返回各环节计数"""
         stats = {"collected": 0, "extracted": 0, "merged": 0, "skipped": 0, "cleaned": 0}
         if self._db is None:
-            return stats
+            return await self._run_daily_store()
         stats["collected"] = await self.collect_high_rated()
 
         conn = await self._db.connect()

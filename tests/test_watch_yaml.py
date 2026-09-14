@@ -19,6 +19,20 @@ async def test_watch_only_yaml(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_watch_first_poll_does_not_fire_existing_yaml(tmp_path):
+    from rsi_boot.memory.watch import YamlWatcher
+
+    seen: list[str] = []
+    memory = tmp_path / ".rsi" / "memory"
+    dest = memory / "prohibitions"
+    dest.mkdir(parents=True)
+    (dest / "already.yaml").write_text("id: a\n", encoding="utf-8")
+    w = YamlWatcher(memory, on_change=lambda p: seen.append(p.name))
+    await w.poll_once()
+    assert seen == []
+
+
+@pytest.mark.asyncio
 async def test_watch_sees_yaml_under_memory(tmp_path):
     from rsi_boot.memory.watch import YamlWatcher
 

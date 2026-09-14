@@ -90,6 +90,9 @@ class Runtime:
         self.vec = None
         self.decisions = DecisionQueue()
         self._index: Optional[dict[str, Any]] = None
+        from .memory.graph import prune_catalog
+
+        prune_catalog(store.rsi_dir, store)
         self._apply_config(watcher.config)
         watcher.subscribe(self._apply_config)
 
