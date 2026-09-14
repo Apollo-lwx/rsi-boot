@@ -6,7 +6,12 @@ from argparse import Namespace
 from pathlib import Path
 
 from rsi_boot.__main__ import build_parser
-from rsi_boot.cli.wipe_command import _is_holder_cmdline, run_wipe, wipe_project_memory
+from rsi_boot.cli.wipe_command import (
+    WIPE_TREES,
+    _is_holder_cmdline,
+    run_wipe,
+    wipe_project_memory,
+)
 from rsi_boot.ux.messages import t
 
 
@@ -48,6 +53,26 @@ def test_wipe_yes_removes_memory_yaml_keeps_identity(tmp_path: Path, monkeypatch
     out = capsys.readouterr().out
     assert t("WIPE_DONE", "zh") in out
     assert t("WIPE_KEPT", "zh", path="identity.json") in out
+
+
+def test_wipe_yes_removes_all_five_trees(tmp_path: Path, monkeypatch):
+    rsi = tmp_path / ".rsi"
+    planted = []
+    for tree in WIPE_TREES:
+        path = rsi / tree / "keep-me.txt"
+        path.parent.mkdir(parents=True)
+        path.write_text(tree, encoding="utf-8")
+        planted.append(path)
+    (rsi / "identity.json").write_text('{"project_id":"p1"}', encoding="utf-8")
+    monkeypatch.setattr("rsi_boot.cli.wipe_command.stop_db_holders", lambda _root: [])
+
+    result = wipe_project_memory(tmp_path, yes=True, lang="zh")
+    assert result["ok"] is True
+    for path in planted:
+        assert not path.exists()
+        assert not path.parent.exists()
+    assert WIPE_TREES == ("memory", "logs", "cache", "audit", "state")
+    assert (rsi / "identity.json").is_file()
 
 
 def test_wipe_also_deletes_leftover_rsi_db(tmp_path: Path, monkeypatch):
