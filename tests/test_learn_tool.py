@@ -185,6 +185,23 @@ async def test_skip_closes_draft_without_case(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_skip_rejects_path_escape_and_keeps_outside_files(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        marker = tmp_path / ".rsi" / "identity.yaml"
+        marker.write_text("keep-me\n", encoding="utf-8")
+        out = await handle(rt, {"action": "skip", "id": "../../identity", "reason": "probe"})
+        assert out["status"] == "success"
+        assert marker.is_file()
+        assert marker.read_text(encoding="utf-8") == "keep-me\n"
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
 async def test_teach_record_pending_and_pattern_paths(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_LANG", "zh")
     from rsi_boot.api.tools.learn_tool import handle
@@ -207,7 +224,14 @@ async def test_teach_record_pending_and_pattern_paths(tmp_path, monkeypatch):
         })
         assert promoted["status"] == "success"
         memory_root = tmp_path / ".rsi" / "memory"
-        assert list((memory_root / "patterns").glob("*.yaml"))
+        patterns = list((memory_root / "patterns").glob("*.yaml"))
+        assert patterns
+        teaching_id = promoted["data"]["id"]
+        pattern = yaml.safe_load(patterns[0].read_text(encoding="utf-8"))
+        assert pattern["id"] != teaching_id
+        assert teaching_id in (pattern.get("refs") or [])
+        assert rt.store.read(teaching_id).type == "teaching_case"
+        assert rt.store.read(pattern["id"]).type == "pattern"
         assert not list((memory_root / "prohibitions").glob("*.yaml"))
         assert not list((memory_root / "conventions").glob("*.yaml"))
     finally:

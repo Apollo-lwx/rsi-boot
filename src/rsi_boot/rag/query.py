@@ -28,8 +28,12 @@ _SQL_RE = re.compile(
 _HAN = re.compile(r"[\u4e00-\u9fff]")
 
 
-def _load_terms_synonyms(root: Path | None = None) -> dict[str, list[str]]:
-    path = (Path(root) if root is not None else Path.cwd()) / ".rsi" / "state" / "terms.yaml"
+def _load_terms_synonyms(rsi_dir: Path | None = None) -> dict[str, list[str]]:
+    path = (
+        Path(rsi_dir) / "state" / "terms.yaml"
+        if rsi_dir is not None
+        else Path.cwd() / ".rsi" / "state" / "terms.yaml"
+    )
     if not path.is_file():
         return {}
     try:
@@ -49,9 +53,9 @@ def _load_terms_synonyms(root: Path | None = None) -> dict[str, list[str]]:
     return extra
 
 
-def _merged_synonyms(root: Path | None = None) -> dict[str, list[str]]:
+def _merged_synonyms(rsi_dir: Path | None = None) -> dict[str, list[str]]:
     merged = {key: list(values) for key, values in INTENT_SYNONYMS.items()}
-    for key, values in _load_terms_synonyms(root).items():
+    for key, values in _load_terms_synonyms(rsi_dir).items():
         bucket = merged.setdefault(key, [])
         for item in values:
             if item not in bucket:
@@ -78,14 +82,16 @@ def _extract_sql(task: str) -> list[str]:
     return found
 
 
-def expand_query(task: str, *, role: str | None = None) -> tuple[str, str, float]:
+def expand_query(
+    task: str, *, role: str | None = None, rsi_dir: Path | None = None,
+) -> tuple[str, str, float]:
     """返回 (expanded_text, intent, confidence)。
     expanded = 原文 + 意图名 + INTENT_SYNONYMS + preserve_spans 抽出的 SQL。
     不得把 expanded 设成某条 title。terms.yaml 只追加，不删内置。"""
     intent, confidence = detect_intent(task, role=role)
     parts = [task, intent]
     seen = {task, intent}
-    for key, syns in _merged_synonyms().items():
+    for key, syns in _merged_synonyms(rsi_dir).items():
         if not _key_in_text(task, key):
             continue
         for syn in syns:

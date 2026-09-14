@@ -252,7 +252,7 @@ class KnowledgeService:
         if role:
             docs = [d for d in docs if not d.roles or role in d.roles]
         by_id = {d.id: d for d in docs}
-        hits = retrieve(docs, query, role=role, top_n=top_k)
+        hits = retrieve(docs, query, role=role, top_n=top_k, rsi_dir=store.rsi_dir)
         items: List[KnowledgeItem] = []
         for doc_id, _score in hits:
             doc = by_id.get(doc_id)

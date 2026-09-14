@@ -143,7 +143,9 @@ class RecallService:
 
         docs = self._store_search_docs(store, role)
         by_id = {doc.id: doc for doc in docs}
-        expanded, intent, _confidence = expand_query(task, role=role)
+        expanded, intent, _confidence = expand_query(
+            task, role=role, rsi_dir=store.rsi_dir,
+        )
         index = build_index(docs)
 
         from ..rag.index import best_heading
@@ -316,7 +318,7 @@ class RecallService:
         from ..rag.query import expand_query
 
         def _fp_terms(text: str) -> set[str]:
-            ev_exp, ev_intent, _ = expand_query(text)
+            ev_exp, ev_intent, _ = expand_query(text, rsi_dir=store.rsi_dir)
             return set(tokenize(ev_exp)) - set(tokenize(ev_intent))
 
         q_terms = _fp_terms(task)

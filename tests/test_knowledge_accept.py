@@ -148,6 +148,52 @@ def _write_run(root: Path, run_id: str) -> None:
     )
 
 
+async def test_accept_releases_conversation_faq_documentation(tmp_path):
+    from rsi_boot.cli.knowledge_accept import accept_bootstrap_extracts
+
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-faq"
+    _write_run(root, run_id)
+    rt = await build_runtime(project_root=root)
+    try:
+        faq_id = await _add(
+            rt.knowledge, title="对话常见问题", project_id=rt.project_id,
+            content_type="faq", source_url="cursor/chat.md",
+            tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
+        )
+        result = await accept_bootstrap_extracts(
+            rt, run_id=None, reject=False, conflicts=None,
+        )
+        assert result["processed"] == 1
+        assert await _status_of(rt, faq_id) == "active"
+    finally:
+        await rt.close()
+
+
+async def test_review_bootstrap_run_id_includes_faq(tmp_path):
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-faq-review"
+    _write_run(root, run_id)
+    rt = await build_runtime(project_root=root)
+    try:
+        faq_id = await _add(
+            rt.knowledge, title="决策记录", project_id=rt.project_id,
+            content_type="faq", source_url="cursor/decisions.md",
+            tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
+        )
+        result = await knowledge_review_tool.handle(rt, {
+            "action": "approve",
+            "bootstrap_run_id": run_id,
+        })
+        assert result["status"] == "ok"
+        assert result["processed"] == 1
+        assert await _status_of(rt, faq_id) == "active"
+    finally:
+        await rt.close()
+
+
 async def test_accept_only_releases_this_run_extracts_not_auto_extract(tmp_path):
     from rsi_boot.cli.knowledge_accept import accept_bootstrap_extracts
 

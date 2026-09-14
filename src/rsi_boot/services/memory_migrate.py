@@ -16,7 +16,7 @@ import yaml
 from rsi_boot.cli.progress import Progress
 from rsi_boot.data.sqlite import SQLiteClient
 from rsi_boot.injector.rule_injector import RuleInjector
-from rsi_boot.memory.logstore import append_event
+from rsi_boot.memory.logstore import append_event, iter_events
 from rsi_boot.memory.paths import official_dir, pending_dir
 from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc, type_from_legacy
@@ -497,8 +497,18 @@ async def migrate_workspace(
                     progress.tick()
             for doc, dest in skill_pairs:
                 store.write(doc, dest=dest)
+            existing_ids = {
+                str(ev.get("id")) for ev in iter_events(rsi_dir) if ev.get("id")
+            }
             for event in events:
+                eid = event.get("id")
+                if eid is not None and str(eid) in existing_ids:
+                    if progress is not None:
+                        progress.tick()
+                    continue
                 append_event(rsi_dir, event)
+                if eid is not None:
+                    existing_ids.add(str(eid))
                 if progress is not None:
                     progress.tick()
             _write_yaml(rsi_dir / "state" / "arms.yaml", arms)

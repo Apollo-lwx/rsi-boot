@@ -216,6 +216,37 @@ async def test_collect_historical_id_excerpt_fallback(db):
     assert old_side["title"] == "历史约定"
 
 
+async def test_collect_store_extract_card_includes_conversation_faq(tmp_path):
+    from rsi_boot.bootstrap import build_runtime
+    from rsi_boot.core.models import KnowledgeItem
+
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-faq-card"
+    rsi = root / ".rsi"
+    rsi.mkdir()
+    (rsi / "bootstrap_run.json").write_text(
+        json.dumps({"latest": run_id}), encoding="utf-8",
+    )
+    rt = await build_runtime(project_root=root)
+    try:
+        await rt.knowledge.add(KnowledgeItem(
+            project_id=rt.project_id, title="对话常见问题",
+            content="问答正文需要足够长 " * 5,
+            status="pending_review", content_type="faq",
+            tags=["signal:conversation", f"bootstrap_run_id:{run_id}"],
+            source_url="cursor/chat.md",
+        ))
+        cards = await collect_decision_cards(
+            None, rt.project_id, project_root=root, store=rt.store,
+        )
+        extract = next(c for c in cards if c.kind == "bootstrap_extract")
+        extract_ids = [s.get("item_id") for s in extract.sides if s.get("role") == "extract"]
+        assert len(extract_ids) == 1
+    finally:
+        await rt.close()
+
+
 async def test_version_card_defaults_recommended_keep_peer_without_prefix(db):
     pid = "p1"
     item_id = await _insert_item(

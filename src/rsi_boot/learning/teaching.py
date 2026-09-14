@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +18,8 @@ from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc
 from rsi_boot.ux.lang import detect_lang
 from rsi_boot.ux.messages import t
+
+_DRAFT_ID = re.compile(r"^[0-9a-f]{32}$")
 
 RUBRIC_TEXT = """kind → write path
 pattern → patterns/
@@ -163,15 +166,17 @@ def teach_record(store: MemoryStore, arguments: dict[str, Any], lang: str) -> di
         {"kind": "gene", "path": gene_written.path, "one_liner": gene_written.title},
     ]
     if promote:
+        pattern_id = uuid.uuid4().hex
         pattern = MemoryDoc(
-            id=doc_id,
+            id=pattern_id,
             type="pattern",
             title=title[:120],
             content=correct_fix[:20000],
             source="manual",
+            refs=[doc_id],
             payload={"source": "teach_record"},
         )
-        pat_dest = official_dir(store.rsi_dir, "pattern") / memory_filename(title, doc_id)
+        pat_dest = official_dir(store.rsi_dir, "pattern") / memory_filename(title, pattern_id)
         pat_written = store.write(pattern, dest=pat_dest)
         closeout.append({"kind": "pattern", "path": pat_written.path, "one_liner": pat_written.title})
 
@@ -189,9 +194,22 @@ def teach_record(store: MemoryStore, arguments: dict[str, Any], lang: str) -> di
     }
 
 
+def _safe_draft_path(rsi_dir: Path, draft_id: str) -> Path | None:
+    val = str(draft_id or "").strip().lower()
+    if not _DRAFT_ID.fullmatch(val):
+        return None
+    root = drafts_dir(rsi_dir).resolve()
+    path = (root / f"{val}.yaml").resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return None
+    return path
+
+
 def skip_draft(store: MemoryStore, arguments: dict[str, Any], lang: str) -> dict[str, Any]:
     draft_id = str(arguments.get("id") or arguments.get("draft_id") or "")
-    path = drafts_dir(store.rsi_dir) / f"{draft_id}.yaml" if draft_id else None
+    path = _safe_draft_path(store.rsi_dir, draft_id)
     if path is not None and path.is_file():
         path.unlink()
     reason = str(arguments.get("reason") or arguments.get("skip_reason") or "")
@@ -300,8 +318,8 @@ def _delete_matching_draft(rsi_dir: Path, arguments: dict[str, Any], lesson: dic
     for cid in candidates:
         if not cid:
             continue
-        path = ddir / f"{cid}.yaml"
-        if path.is_file():
+        path = _safe_draft_path(rsi_dir, str(cid))
+        if path is not None and path.is_file():
             path.unlink()
             return
     sig = str(lesson.get("error_signature") or "")

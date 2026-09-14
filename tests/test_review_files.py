@@ -14,6 +14,33 @@ from rsi_boot.strategy.recall import RecallArmSelector
 
 
 @pytest.mark.asyncio
+async def test_approve_knowledge_add_writes_pending_not_official(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    engine = ProposalEngine(store=store)
+    pid = "a" * 32
+    engine._write_proposal_yaml({
+        "id": pid,
+        "project_id": "p1",
+        "slot": "knowledge",
+        "target_ref": "new-norm",
+        "action": "add",
+        "status": "approved",
+        "payload": {
+            "after": {
+                "content_type": "convention",
+                "title": "列出列名",
+                "content": "查询必须显式写列名",
+            }
+        },
+    })
+    assert await engine.approve(pid) is True
+    official = list((store.rsi_dir / "memory" / "conventions").glob("*.yaml"))
+    pending = list((store.rsi_dir / "memory" / "pending" / "conventions").glob("*.yaml"))
+    assert official == []
+    assert pending
+
+
+@pytest.mark.asyncio
 async def test_list_empty_proposals_and_snapshots_without_sqlite(tmp_path):
     store = MemoryStore(tmp_path / ".rsi")
     (store.rsi_dir / "state" / "proposals").mkdir(parents=True)

@@ -22,7 +22,7 @@ import yaml
 
 from ..data.sqlite import SQLiteClient
 from ..memory.logstore import iter_events
-from ..memory.paths import official_dir
+from ..memory.paths import official_dir, pending_dir, review_dir
 from ..memory.store import MemoryStore, memory_filename
 from ..memory.types import MEMORY_TYPES, MemoryDoc
 from .failure_miner import FailureBucket, mine_failures
@@ -510,7 +510,11 @@ class ProposalEngine:
             roles=list(after.get("roles") or []),
             domain=after.get("domain"),
         )
-        dest = official_dir(self._store.rsi_dir, doc.type) / memory_filename(doc.title, doc.id)
+        try:
+            dest_dir = pending_dir(self._store.rsi_dir, doc.type)
+        except ValueError:
+            dest_dir = review_dir(self._store.rsi_dir, doc.type)
+        dest = dest_dir / memory_filename(doc.title, doc.id)
         self._store.write(doc, dest=dest)
 
     def _apply_slot_change_store(self, project_id: str, slot: str, target_ref: str,

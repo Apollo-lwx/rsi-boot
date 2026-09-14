@@ -142,6 +142,50 @@ async def test_log_non_id_retrieved_tags_go_to_legacy(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_migrate_retry_does_not_duplicate_events(tmp_path, monkeypatch):
+    from rsi_boot.data.migrate import migrate
+    from rsi_boot.data.sqlite import SQLiteClient
+    from rsi_boot.memory.logstore import iter_events
+    from rsi_boot.services import memory_migrate
+    from rsi_boot.services.memory_migrate import MemoryMigrateHalfError, migrate_workspace
+
+    rsi = tmp_path / ".rsi"
+    rsi.mkdir()
+    db = SQLiteClient(rsi / "rsi.db")
+    await migrate(db)
+    now = "2026-09-13T00:00:00+00:00"
+    kid = "d" * 32
+    await db.execute(
+        "INSERT INTO knowledge_items (id, project_id, title, content, content_type, status,"
+        " created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
+        (kid, "local", "列名", "写列名", "convention", "active", now, now),
+    )
+    await db.execute(
+        "INSERT INTO interaction_logs (id, request_id, user_id, project_id, raw_input,"
+        " latency_ms, status, feedback_token, retrieved_tags, created_at)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?)",
+        ("log-retry", "req1", "u1", "local", "别用星号", 10, "success", "tok1",
+         json.dumps([kid], ensure_ascii=False), now),
+    )
+    await db.commit()
+    await db.close()
+
+    def _locked(_rsi_dir):
+        raise OSError("db locked")
+
+    monkeypatch.setattr(memory_migrate, "_rename_legacy_db", _locked)
+    with pytest.raises(MemoryMigrateHalfError):
+        await migrate_workspace(tmp_path, lang="zh")
+    first = [ev for ev in iter_events(rsi) if ev.get("id") == "log-retry"]
+    assert len(first) == 1
+
+    monkeypatch.undo()
+    await migrate_workspace(tmp_path, lang="zh")
+    again = [ev for ev in iter_events(rsi) if ev.get("id") == "log-retry"]
+    assert len(again) == 1
+
+
+@pytest.mark.asyncio
 async def test_experience_maps_to_convention_with_legacy_type(tmp_path):
     from rsi_boot.data.migrate import migrate
     from rsi_boot.data.sqlite import SQLiteClient

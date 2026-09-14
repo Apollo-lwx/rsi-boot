@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-from ..cli.knowledge_accept import load_latest_run_id
+from ..cli.knowledge_accept import iter_run_extracts, load_latest_run_id
 from ..data.sqlite import SQLiteClient
 
 _HISTORICAL_ID_RE = re.compile(r"historical_id=([^\s]+)")
@@ -438,18 +438,7 @@ async def _collect_decision_cards_store(
 
     run_id = load_latest_run_id(project_root, store.rsi_dir / "rsi.db")
     if run_id:
-        marker = f"bootstrap_run_id:{run_id}"
-        extracts: list[dict[str, Any]] = []
-        for doc in store.list_pending():
-            src = _doc_source_url(doc)
-            if src == "auto-extract":
-                continue
-            ptags = list(doc.tags or [])
-            if marker not in ptags:
-                continue
-            if not _EXTRACT_SIGNALS.intersection(ptags):
-                continue
-            extracts.append(_doc_as_item(doc))
+        extracts = [_doc_as_item(doc) for doc in iter_run_extracts(store, run_id)]
         if extracts:
             cards.append(_extract_card(run_id, extracts))
     return cards
@@ -505,16 +494,4 @@ async def close_extract_runs(
 
 
 def _pending_extract_count_store(store: Any, run_id: str) -> int:
-    marker = f"bootstrap_run_id:{run_id}"
-    n = 0
-    for doc in store.list_pending():
-        src = _doc_source_url(doc)
-        if src == "auto-extract":
-            continue
-        ptags = list(doc.tags or [])
-        if marker not in ptags:
-            continue
-        if not _EXTRACT_SIGNALS.intersection(ptags):
-            continue
-        n += 1
-    return n
+    return len(iter_run_extracts(store, run_id))

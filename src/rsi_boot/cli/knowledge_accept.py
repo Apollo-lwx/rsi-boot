@@ -62,21 +62,30 @@ def _doc_source_url(doc: Any) -> str:
     return str(extra.get("source_url") or getattr(doc, "source", None) or "")
 
 
+def iter_run_extracts(store: Any, run_id: str) -> list[Any]:
+    """本轮 bootstrap 抽取：pending_review + conversation|rules，含 documentation/faq。"""
+    marker = f"bootstrap_run_id:{run_id}"
+    out: list[Any] = []
+    for doc in store.list_all():
+        if getattr(doc, "status", None) != "pending_review":
+            continue
+        if _doc_source_url(doc) == "auto-extract":
+            continue
+        tags = list(doc.tags or [])
+        if marker not in tags:
+            continue
+        if not _EXTRACT_SIGNALS.intersection(tags):
+            continue
+        out.append(doc)
+    return out
+
+
 async def _extract_ids(runtime: Any, run_id: str) -> list[str]:
     store = getattr(runtime, "store", None)
+    if store is not None:
+        return [doc.id for doc in iter_run_extracts(store, run_id)]
     marker = f"bootstrap_run_id:{run_id}"
     ids: list[str] = []
-    if store is not None:
-        for doc in store.list_pending():
-            if _doc_source_url(doc) == "auto-extract":
-                continue
-            tags = list(doc.tags or [])
-            if marker not in tags:
-                continue
-            if not _EXTRACT_SIGNALS.intersection(tags):
-                continue
-            ids.append(doc.id)
-        return ids
     conn = await runtime.db.connect()
     async with conn.execute(
         "SELECT id, tags, source_url FROM knowledge_items "
