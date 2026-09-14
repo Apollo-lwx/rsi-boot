@@ -4,18 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from ...ux.messages import TOOL_DESC
+
 TOOL_NAME = "rsi_recall"
 
-#: 工具描述契约：驱动宿主在任务开始前自动调用（A/B 调优的载体，改动需同步 mcp_server 注册处）
-TOOL_DESCRIPTION = (
-    "在开始任何编码、适配、调试、设计任务前调用，获取本项目历史沉淀的经验、约定与禁止项"
-    "（prohibitions 为必须遵守的禁止项，items 为相关经验）。返回 feedback_token 用于后续"
-    "通过 rsi_feedback 上报采纳情况。"
-    "有 decisions 时由你调用 rsi_conflicts / rsi_knowledge_review 落库；"
-    "用户要自动执行时立刻用 recommended 对应选项；"
-    "用户要展开则调用 rsi_conflicts action=explain，不要关闭这张卡；"
-    "不要让用户自己去终端跑 rsi。"
-)
+TOOL_DESCRIPTION = TOOL_DESC["recall"]
 
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",

@@ -47,6 +47,13 @@ STRINGS = {
         "zh": "已记下现场 {id}，写好 lesson 后调用 teach_record",
         "en": "Saved catch {id}. Call teach_record after you write the lesson.",
     },
+    "TEACH_NEED_FIX": {
+        "zh": "lesson.correct_fix 不能为空",
+        "en": "lesson.correct_fix must not be empty",
+    },
+    "TEACH_SKIPPED": {"zh": "已跳过现场 {id}", "en": "Skipped catch {id}"},
+    "MEMORY_INDEX": {"zh": "共 {n} 条记忆文件", "en": "{n} memory file(s)"},
+    "MEMORY_OPENED": {"zh": "已打开记忆 {id}", "en": "Opened memory {id}"},
     "REVIEW_APPROVED": {
         "zh": "已获准 {n} 条，禁止项已注入规则文件",
         "en": "Approved {n} item(s). Prohibitions were injected.",

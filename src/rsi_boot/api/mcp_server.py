@@ -1,5 +1,6 @@
 """MCP stdio server（Spec v3.0 §6）：对外暴露 rsi_recall / rsi_feedback / rsi_knowledge_* /
-rsi_review / rsi_conflicts / rsi_stats 工具族。v3.0 起 rsi_query 退役（主链路无生成环节）。
+rsi_review / rsi_conflicts / rsi_stats / rsi_learn / rsi_memory 工具族。
+v3.0 起 rsi_query 退役（主链路无生成环节）。
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from mcp.server.stdio import stdio_server
 from .. import __version__
 from ..services.log_service import LogService
 from ..services.stats_service import StatsService
+from ..ux.messages import TOOL_DESC
 from .tools import (
     conflicts_tool,
     feedback_tool,
@@ -22,6 +24,8 @@ from .tools import (
     knowledge_review_tool,
     knowledge_search_tool,
     knowledge_tool,
+    learn_tool,
+    memory_tool,
     recall_tool,
     review_tool,
     stats_tool,
@@ -29,11 +33,7 @@ from .tools import (
 
 logger = logging.getLogger(__name__)
 
-_INSTRUCTIONS = (
-    "RSI Boot：宿主模型的程序性记忆层。开始任何编码/适配/调试/设计任务前调用 rsi_recall "
-    "获取本项目沉淀的经验、约定与禁止项；之后用 rsi_feedback 上报采纳情况"
-    "（accepted/applied/modified/copied/referenced/ignored/rejected + 可选 1-5 评分与评语）。"
-)
+_INSTRUCTIONS = TOOL_DESC["recall"]
 
 
 def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server:
@@ -74,6 +74,12 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
             types.Tool(name=stats_tool.TOOL_NAME,
                        description="记忆使用统计（§6）：period=day/week/month 汇总触达/采纳/禁止项遵循/提案通过率",
                        inputSchema=stats_tool.INPUT_SCHEMA),
+            types.Tool(name=learn_tool.TOOL_NAME,
+                       description=learn_tool.TOOL_DESCRIPTION,
+                       inputSchema=learn_tool.INPUT_SCHEMA),
+            types.Tool(name=memory_tool.TOOL_NAME,
+                       description=memory_tool.TOOL_DESCRIPTION,
+                       inputSchema=memory_tool.INPUT_SCHEMA),
         ]
 
     @server.call_tool()
@@ -99,6 +105,10 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
                 stats = StatsService(store=runtime.store)
                 stats.bound_project_id = runtime.project_id
                 payload = await stats_tool.handle(stats, arguments)
+            elif name == learn_tool.TOOL_NAME:
+                payload = await learn_tool.handle(runtime, arguments)
+            elif name == memory_tool.TOOL_NAME:
+                payload = await memory_tool.handle(runtime, arguments)
             else:
                 payload = {"status": "error", "message": f"unknown tool: {name}"}
         except Exception as exc:  # 工具级兜底，避免 MCP 连接中断
