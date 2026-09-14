@@ -24,7 +24,13 @@ from rsi_boot.project import (
     project_scope,
     resolve_project_root,
 )
-from rsi_boot.services.legacy_migrate import adopt_namespaces, list_legacy_namespaces
+from rsi_boot.services.legacy_migrate import (
+    _journal_path,
+    _load_journal,
+    adopt_namespaces,
+    list_legacy_namespaces,
+    remap_to_workspace_id,
+)
 
 
 def test_same_folder_name_gets_separate_rsi_dirs(tmp_path):
@@ -105,6 +111,43 @@ def test_ide_workspace_file_uri(tmp_path, monkeypatch):
     monkeypatch.delenv("WORKSPACE_FOLDER_PATHS", raising=False)
     monkeypatch.setenv("CURSOR_WORKSPACE", uri)
     assert resolve_project_root(cwd=tmp_path / "elsewhere") == workspace.resolve()
+
+
+def test_unexpanded_workspace_placeholder_falls_back_to_ide_env(tmp_path, monkeypatch):
+    """Cursor 用户级 mcp.json 经常不展开 ${workspaceFolder}，字面量不得盖过 IDE 注入。"""
+    workspace = tmp_path / "real-repo"
+    workspace.mkdir()
+    fake_cwd = tmp_path / "Cursor"
+    fake_cwd.mkdir()
+    monkeypatch.delenv("RSI_PROJECT_ROOT", raising=False)
+    monkeypatch.setenv("WORKSPACE_FOLDER_PATHS", str(workspace))
+    assert resolve_project_root(
+        explicit=Path("${workspaceFolder}"), cwd=fake_cwd,
+    ) == workspace.resolve()
+    assert resolve_project_root(
+        explicit=fake_cwd / "${workspaceFolder}", cwd=fake_cwd,
+    ) == workspace.resolve()
+
+
+def test_cursor_workspace_root_env(tmp_path, monkeypatch):
+    workspace = tmp_path / "repo"
+    workspace.mkdir()
+    monkeypatch.delenv("RSI_PROJECT_ROOT", raising=False)
+    monkeypatch.delenv("WORKSPACE_FOLDER_PATHS", raising=False)
+    monkeypatch.setenv("CURSOR_WORKSPACE_ROOT", str(workspace))
+    assert resolve_project_root(cwd=tmp_path / "elsewhere") == workspace.resolve()
+
+
+def test_serve_help_points_at_rsi_project_root():
+    from rsi_boot.__main__ import build_parser
+
+    serve_help = None
+    for action in build_parser()._subparsers._group_actions:
+        for name, sub in action.choices.items():
+            if name == "serve":
+                serve_help = sub.format_help()
+    assert serve_help is not None
+    assert "RSI_PROJECT_ROOT" in serve_help
 
 
 def test_serve_parser_accepts_project_root():
@@ -308,6 +351,136 @@ async def test_migrate_adopt_default_into_current_project_only(tmp_path, monkeyp
         assert "认领的水槽" in titles
     finally:
         await rt.close()
+
+
+async def test_same_folder_name_each_dest_db_adopts_once(tmp_path, monkeypatch):
+    """journal 按目标库路径去重：两个 frontend 工作区各自认领一份，互不跳过。"""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("RSI_HOME", str(home))
+    await _seed_legacy(home, [
+        ("frontend", "旧前端约定", "来自旧共享库的 frontend 命名空间记忆，足够长。"),
+    ])
+    a = tmp_path / "workspace-a" / "frontend"
+    b = tmp_path / "workspace-b" / "frontend"
+    a.mkdir(parents=True)
+    b.mkdir(parents=True)
+    dest_a = SQLiteClient(project_db_path(a))
+    dest_b = SQLiteClient(project_db_path(b))
+    await migrate(dest_a)
+    await migrate(dest_b)
+    try:
+        await adopt_namespaces(home / "rsi.db", dest_a, ["frontend"], WORKSPACE_PROJECT_ID)
+        await adopt_namespaces(home / "rsi.db", dest_b, ["frontend"], WORKSPACE_PROJECT_ID)
+        conn_a = await dest_a.connect()
+        conn_b = await dest_b.connect()
+        async with conn_a.execute("SELECT title FROM knowledge_items") as cur:
+            titles_a = [r["title"] for r in await cur.fetchall()]
+        async with conn_b.execute("SELECT title FROM knowledge_items") as cur:
+            titles_b = [r["title"] for r in await cur.fetchall()]
+        assert "旧前端约定" in titles_a
+        assert "旧前端约定" in titles_b
+        journal = _load_journal()
+        dests = {
+            Path(row["dest_db"]).resolve()
+            for row in journal["adoptions"]
+            if row.get("namespace") == "frontend"
+        }
+        assert dests == {dest_a.db_path.resolve(), dest_b.db_path.resolve()}
+        assert _journal_path().is_file()
+    finally:
+        await dest_a.close()
+        await dest_b.close()
+
+
+async def test_remap_user_profiles_without_collision_rewrites_id(tmp_path):
+    db = SQLiteClient(tmp_path / "rsi.db")
+    await migrate(db)
+    try:
+        conn = await db.connect()
+        now = "2026-01-01T00:00:00+00:00"
+        await conn.execute(
+            "INSERT INTO user_profiles (user_id, project_id, profile_data, created_at, updated_at) "
+            "VALUES ('u1', 'old-hash', '{\"keep\":\"old\"}', ?, ?)",
+            (now, now),
+        )
+        await conn.commit()
+        assert await remap_to_workspace_id(db, WORKSPACE_PROJECT_ID) >= 1
+        async with conn.execute(
+            "SELECT project_id, profile_data FROM user_profiles WHERE user_id = 'u1'"
+        ) as cur:
+            rows = await cur.fetchall()
+        assert len(rows) == 1
+        assert rows[0]["project_id"] == WORKSPACE_PROJECT_ID
+        assert "old" in rows[0]["profile_data"]
+    finally:
+        await db.close()
+
+
+async def test_remap_user_profiles_collision_keeps_local(tmp_path):
+    """旧哈希 project_id 与已有 local 并存时，remap 不得 UNIQUE 崩掉。"""
+    db = SQLiteClient(tmp_path / "rsi.db")
+    await migrate(db)
+    try:
+        conn = await db.connect()
+        now = "2026-01-01T00:00:00+00:00"
+        await conn.execute(
+            "INSERT INTO user_profiles (user_id, project_id, profile_data, created_at, updated_at) "
+            "VALUES ('u1', 'old-hash', '{\"keep\":\"old\"}', ?, ?)",
+            (now, now),
+        )
+        await conn.execute(
+            "INSERT INTO user_profiles (user_id, project_id, profile_data, created_at, updated_at) "
+            "VALUES ('u1', ?, '{\"keep\":\"local\"}', ?, ?)",
+            (WORKSPACE_PROJECT_ID, now, now),
+        )
+        await conn.execute(
+            "INSERT INTO project_configs (project_id, config_data, created_at, updated_at) "
+            "VALUES ('old-hash', '{\"src\":\"old\"}', ?, ?)",
+            (now, now),
+        )
+        await conn.execute(
+            "INSERT INTO project_configs (project_id, config_data, created_at, updated_at) "
+            "VALUES (?, '{\"src\":\"local\"}', ?, ?)",
+            (WORKSPACE_PROJECT_ID, now, now),
+        )
+        await conn.commit()
+
+        updated = await remap_to_workspace_id(db, WORKSPACE_PROJECT_ID)
+        assert updated >= 0
+
+        async with conn.execute(
+            "SELECT project_id, profile_data FROM user_profiles WHERE user_id = 'u1'"
+        ) as cur:
+            rows = await cur.fetchall()
+        assert len(rows) == 1
+        assert rows[0]["project_id"] == WORKSPACE_PROJECT_ID
+        assert "local" in rows[0]["profile_data"]
+
+        async with conn.execute("SELECT project_id, config_data FROM project_configs") as cur:
+            cfg = await cur.fetchall()
+        assert len(cfg) == 1
+        assert cfg[0]["project_id"] == WORKSPACE_PROJECT_ID
+        assert "local" in cfg[0]["config_data"]
+    finally:
+        await db.close()
+
+
+async def test_cmd_serve_defaults_to_warning_log(monkeypatch, tmp_path):
+    from rsi_boot.__main__ import build_parser, cmd_serve
+
+    levels: list[str] = []
+    monkeypatch.setattr(
+        "rsi_boot.__main__.setup_logging",
+        lambda level="INFO", stream=None: levels.append(level),
+    )
+    monkeypatch.setattr("rsi_boot.__main__.resolve_project_root", lambda explicit=None: tmp_path)
+    async def _run(*_a, **_k):
+        return 0
+    monkeypatch.setattr("rsi_boot.__main__.run_serve", _run)
+    args = build_parser().parse_args(["serve"])
+    assert await cmd_serve(args) == 0
+    assert levels == ["WARNING"]
 
 
 def test_identity_json_written(tmp_path):

@@ -28,6 +28,7 @@ _IDE_WORKSPACE_ENV = (
     "RSI_PROJECT_ROOT",
     "WORKSPACE_FOLDER_PATHS",
     "WORKSPACE_FOLDER",
+    "CURSOR_WORKSPACE_ROOT",
     "CURSOR_WORKSPACE",
     "CURSOR_PROJECT_DIR",
     "VSCODE_WORKSPACE",
@@ -129,6 +130,19 @@ def _split_workspace_paths(raw: str) -> list[str]:
     return [text]
 
 
+def _is_unexpanded_placeholder(value: Path | str) -> bool:
+    """Cursor 用户级 mcp.json 常把 ${workspaceFolder} 原样传进 argv。"""
+    text = str(value)
+    if "${" not in text and "%{" not in text:
+        return False
+    try:
+        if Path(text).is_dir():
+            return False
+    except OSError:
+        pass
+    return True
+
+
 def iter_ide_workspace_paths() -> Iterable[Path]:
     """全局安装时 IDE 注入的工作区，优先于进程 cwd。"""
     seen: set[str] = set()
@@ -158,7 +172,7 @@ def resolve_project_root(
     3. 从 cwd 向上已有的项目 `.rsi/`
     4. cwd（排除用户主目录）
     """
-    if explicit is not None:
+    if explicit is not None and not _is_unexpanded_placeholder(explicit):
         return Path(explicit).resolve()
     for ide_root in iter_ide_workspace_paths():
         return ide_root

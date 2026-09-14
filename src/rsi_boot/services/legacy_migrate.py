@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -61,9 +62,26 @@ def _save_journal(data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _already_adopted(journal: dict[str, Any], namespace: str, dest_project_id: str) -> bool:
+def _norm_db_path(path: Path | str) -> str:
+    return os.path.normcase(str(Path(path).resolve()))
+
+
+def _already_adopted(
+    journal: dict[str, Any],
+    namespace: str,
+    dest_project_id: str,
+    dest_db_path: Path | str | None = None,
+) -> bool:
+    want = _norm_db_path(dest_db_path) if dest_db_path else None
     for row in journal.get("adoptions") or []:
-        if row.get("namespace") == namespace and row.get("dest_project_id") == dest_project_id:
+        if row.get("namespace") != namespace:
+            continue
+        row_db = row.get("dest_db")
+        if want and row_db:
+            if _norm_db_path(row_db) == want:
+                return True
+            continue
+        if not want and row.get("dest_project_id") == dest_project_id:
             return True
     return False
 
@@ -134,11 +152,13 @@ async def adopt_namespaces(
     finally:
         await src.close()
     journal = _load_journal()
+    dest_path = dest_db.db_path
     for namespace in ns:
-        if not _already_adopted(journal, namespace, dest_project_id):
+        if not _already_adopted(journal, namespace, dest_project_id, dest_path):
             journal["adoptions"].append({
                 "namespace": namespace,
                 "dest_project_id": dest_project_id,
+                "dest_db": str(Path(dest_path).resolve()),
                 "at": _utc_iso(),
                 "rows": counts,
             })
@@ -209,7 +229,10 @@ async def list_legacy_namespaces(src_path: Optional[Path] = None) -> dict[str, i
 
 
 async def remap_to_workspace_id(db: SQLiteClient, dest_project_id: str) -> int:
-    """把工作区库里旧哈希/目录名 project_id 收成 local（空字符串全局行不动）"""
+    """把工作区库里旧哈希/目录名 project_id 收成 local（空字符串全局行不动）。
+
+    已有 dest 行时丢掉旧哈希行，避免 PRIMARY KEY / UNIQUE 把启动路径打崩。
+    """
     conn = await db.connect()
     updated = 0
     for table in _SCOPED_TABLES:
@@ -218,6 +241,7 @@ async def remap_to_workspace_id(db: SQLiteClient, dest_project_id: str) -> int:
         cols = await _table_columns(db, table)
         if "project_id" not in cols:
             continue
+        await _drop_colliding_before_remap(conn, table, dest_project_id, cols)
         cur = await conn.execute(
             f"UPDATE {table} SET project_id = ? "
             f"WHERE project_id IS NOT NULL AND project_id != '' AND project_id != ?",
@@ -226,6 +250,37 @@ async def remap_to_workspace_id(db: SQLiteClient, dest_project_id: str) -> int:
         updated += int(cur.rowcount or 0)
     await conn.commit()
     return updated
+
+
+async def _drop_colliding_before_remap(
+    conn: Any,
+    table: str,
+    dest_project_id: str,
+    cols: list[str],
+) -> None:
+    if table == "user_profiles" and "user_id" in cols:
+        async with conn.execute(
+            "SELECT user_id FROM user_profiles WHERE project_id = ?",
+            (dest_project_id,),
+        ) as cur:
+            keep = {row["user_id"] for row in await cur.fetchall()}
+        for user_id in keep:
+            await conn.execute(
+                "DELETE FROM user_profiles WHERE user_id = ? AND project_id != ? AND project_id != ''",
+                (user_id, dest_project_id),
+            )
+        return
+    if table == "project_configs":
+        async with conn.execute(
+            "SELECT 1 FROM project_configs WHERE project_id = ?",
+            (dest_project_id,),
+        ) as cur:
+            if await cur.fetchone() is None:
+                return
+        await conn.execute(
+            "DELETE FROM project_configs WHERE project_id != ? AND project_id != ''",
+            (dest_project_id,),
+        )
 
 
 async def maybe_auto_migrate(
@@ -241,7 +296,9 @@ async def maybe_auto_migrate(
     folder = Path(project_root).name
     journal = _load_journal()
     auto: list[str] = []
-    if folder and folder != "default" and not _already_adopted(journal, folder, dest_project_id):
+    if folder and folder != "default" and not _already_adopted(
+        journal, folder, dest_project_id, dest_db.db_path,
+    ):
         auto.append(folder)
     if auto:
         report["auto_namespaces"] = auto

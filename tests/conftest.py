@@ -12,7 +12,8 @@ def _isolate_rsi_home(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     for key in (
         "RSI_PROJECT_ROOT", "WORKSPACE_FOLDER_PATHS", "WORKSPACE_FOLDER",
-        "CURSOR_WORKSPACE", "CURSOR_PROJECT_DIR", "VSCODE_WORKSPACE", "VSCODE_CWD",
+        "CURSOR_WORKSPACE_ROOT", "CURSOR_WORKSPACE", "CURSOR_PROJECT_DIR",
+        "VSCODE_WORKSPACE", "VSCODE_CWD",
     ):
         monkeypatch.delenv(key, raising=False)
 

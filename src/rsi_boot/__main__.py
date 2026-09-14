@@ -97,7 +97,7 @@ async def run_serve(project_root: Path, *, watch: bool = False) -> int:
 
 
 async def cmd_serve(args: argparse.Namespace) -> int:
-    setup_logging()
+    setup_logging("INFO" if getattr(args, "verbose", False) else "WARNING")
     explicit = Path(args.project_root) if getattr(args, "project_root", None) else None
     project_root = resolve_project_root(explicit=explicit)
     return await run_serve(project_root, watch=bool(getattr(args, "watch", False)))
@@ -220,10 +220,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve = sub.add_parser("serve", help="启动 MCP stdio server")
     p_serve.add_argument(
         "--project-root", default=None,
-        help="工作区根（全局 MCP 请传 ${workspaceFolder}；缺省读 WORKSPACE_FOLDER_PATHS / cwd）",
+        help="工作区根（全局 MCP 请用环境变量 RSI_PROJECT_ROOT；缺省读 WORKSPACE_FOLDER_PATHS / cwd）",
     )
     p_serve.add_argument("--watch", action="store_true", help="文件监听静默学习（§10.9.5）")
-    _add_verbose(p_serve)  # serve 恒 INFO+stderr（stdio 协议），--verbose 仅为兼容接受
+    _add_verbose(p_serve)  # 默认 WARNING；--verbose 才 INFO（Cursor 把 stderr INFO 标成 error）
 
     p_boot = sub.add_parser("bootstrap", help="项目自学习：扫描信号源生成知识与画像（§10.9）")
     p_boot.add_argument("--scope", default="", help="逗号分隔：docs,code,git,conversation,config")

@@ -58,13 +58,16 @@ rsi bootstrap --local-judge
   "mcpServers": {
     "rsi-boot": {
       "command": "rsi",
-      "args": ["serve", "--project-root", "${workspaceFolder}"]
+      "args": ["serve"],
+      "env": {
+        "RSI_PROJECT_ROOT": "${workspaceFolder}"
+      }
     }
   }
 }
 ```
 
-`rsi` 可以全局安装。Cursor 拉起 MCP 时进程 cwd **常常不是仓库根**，所以必须把工作区传进去：`--project-root ${workspaceFolder}`，或依赖 Cursor 注入的 `WORKSPACE_FOLDER_PATHS`。每个窗口仍会在**该仓库**下创建自己的 `.rsi/`，和 Superpowers 的 `.superpowers/` 一样。
+`rsi` 可以全局安装。Cursor 用户级 `mcp.json` 里 **`args` 中的 `${workspaceFolder}` 经常不展开**（会落到字面路径，记忆串库）。工作区请走环境变量 `RSI_PROJECT_ROOT`，或依赖 Cursor 注入的 `WORKSPACE_FOLDER_PATHS` / `CURSOR_WORKSPACE_ROOT`。未展开的 `${…}` 会被忽略并回落这些变量。每个窗口仍会在**该仓库**下创建自己的 `.rsi/`，和 Superpowers 的 `.superpowers/` 一样。
 
 暴露工具（v3.0）：
 
