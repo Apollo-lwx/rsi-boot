@@ -163,7 +163,22 @@ sequenceDiagram
 - `teach_record` 仍强制 `wrong_action` + `correct_fix`。
 - 同 `error_signature` 已有案例则更新那条，禁止每次修 bug 复制一条同内容 YAML。
 - 召回必须带上 weight=2 的新案例；禁止「权太低就不返回」。
-- 注入纪律：修完用户可见 bug 就要记；引用 teaching 时按 weight 当建议或当强约束（≥8 才按强约束口吻，在晋升之前仍不是 mdc）。
+- 注入纪律：修完用户可见 bug 就要记。
+
+**召回信封（建议与强约束分开）：**
+
+`rsi_recall` 的 `teaching_cases[]` / `gene_cases[]` **每条**增加：
+
+| 字段 | 值 |
+|------|-----|
+| `weight` | 整数，与盘上一致 |
+| `role` | `suggestion`（weight &lt; 8）或 `constraint`（weight ≥ 8，或 `author=user`） |
+
+另增顶层 **`suggestions[]`**：上述两条里 `role=suggestion` 的拷贝（同一套 id/title/content/source_path/weight/role），方便宿主先扫建议、不必自己按 weight 过滤。`prohibitions[]` / 正式 `items[]` **不**进 `suggestions`，也不带 `role=suggestion`。
+
+weight 升到 ≥ 8 后：该条离开 `suggestions[]`，只留在 `teaching_cases`/`gene_cases` 且 `role=constraint`。晋升进正式 prohibition 之前，**仍不是** alwaysApply mdc。
+
+宿主纪律：`role=suggestion` 只参考，可不用；`role=constraint` 按应遵守处理，但仍须走 promote+review 才能进规则文件。
 
 ### 3.2 采集阶段（有进度 / 有 ETA）
 
@@ -375,6 +390,8 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 新增仅 `rsi_learn` 的 `pack_list` / `pack_open` / `pack_done`。  
 `rsi_conflicts` 的 list/resolve/explain 行为不变，但 bootstrap 不再为它预灌原文对。
 
+`rsi_recall` 增补（见 §3.6）：命中 teaching/gene 带 `weight`+`role`；顶层 `suggestions[]`。不新增工具名。旧客户端忽略未知字段应仍可用。
+
 ### 6.3 文件
 
 | 路径 | 生命周期 |
@@ -405,6 +422,8 @@ RSI **不再**对阅读包源或仓库原文跑 Jaccard。
 - 首次修 bug：weight=2，召回能带回；第二次须先有 retrieved 命中才 +2；同 signature 不新增文件。
 - `author=user` 仍直接 weight=10。
 - 召回不得因 weight=2 丢弃 teaching/gene。
+- 首次修 bug 的召回：该条 `role=suggestion`、`weight=2`，且出现在顶层 `suggestions[]`；不在 `prohibitions`。
+- weight≥8 或 author=user：`role=constraint`，不在 `suggestions[]`。
 - `tests/test_conflict_gate.py`、`tests/test_bootstrap_judge_flags.py` 中依赖 Jaccard / 原文队列的用例**删除或改写成阅读包**，禁止为已删函数保测试。
 
 ---
