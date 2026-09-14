@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,8 @@ import yaml
 
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.ux.messages import t
+
+_UNSAFE_SLUG = re.compile(r"[^0-9A-Za-z._-]+")
 
 
 def _utc_now() -> str:
@@ -35,6 +38,13 @@ def _atomic_write(dest: Path, text: str) -> None:
         raise
 
 
+def _safe_slug(value: str, fallback: str = "scope") -> str:
+    text = str(value).replace("\\", "/").strip()
+    parts = [p for p in text.split("/") if p and p not in {".", ".."}]
+    slug = _UNSAFE_SLUG.sub("-", "-".join(parts)).strip(".-")
+    return slug or fallback
+
+
 def _scope_name(arguments: dict[str, Any], lang: str) -> tuple[str | None, dict[str, Any] | None]:
     scope = str(arguments.get("scope") or "session").strip() or "session"
     if scope not in {"session", "full"}:
@@ -42,11 +52,17 @@ def _scope_name(arguments: dict[str, Any], lang: str) -> tuple[str | None, dict[
     scope_id = str(arguments.get("scope_id") or "").strip()
     if scope == "full" and not scope_id:
         return None, {"status": "error", "code": "invalid", "message": t("AUDIT_NEED_SCOPE_ID", lang)}
-    return (scope_id if scope == "full" else "session"), None
+    folder = _safe_slug(scope_id, fallback="scope") if scope == "full" else "session"
+    return folder, None
 
 
 def _audit_dir(store: MemoryStore, folder: str) -> Path:
-    return store.rsi_dir / "audit" / folder
+    dest = store.rsi_dir / "audit" / _safe_slug(folder)
+    root = (store.rsi_dir / "audit").resolve()
+    resolved = dest.resolve()
+    if resolved != root and root not in resolved.parents:
+        return store.rsi_dir / "audit" / "scope"
+    return dest
 
 
 def _session_path(store: MemoryStore) -> Path:

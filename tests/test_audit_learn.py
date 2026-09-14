@@ -236,3 +236,133 @@ def test_learn_schema_lists_live_actions():
         "audit_start", "audit_probes", "audit_report", "audit_finish", "extract",
     ):
         assert name in desc
+
+
+@pytest.mark.asyncio
+async def test_extract_nested_trigger_signatures_flatten_and_skip_dup(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+
+    item = {
+        "kind": "gene",
+        "title": "嵌套签名",
+        "content": "禁止 SELECT *",
+        "one_liner": "嵌套签名",
+        "payload": {"trigger": {"error_signature": "nested-star", "failure_type": "sql"}},
+    }
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        first = await handle(rt, {"action": "extract", "scope": "session", "items": [item]})
+        assert first["status"] == "success"
+        assert first["data"]["closeout"][0]["kind"] == "gene"
+        cases = list((tmp_path / ".rsi" / "memory" / "gene-map" / "cases").glob("*.yaml"))
+        assert len(cases) == 1
+        stored = yaml.safe_load(cases[0].read_text(encoding="utf-8"))
+        payload = stored.get("payload") or {}
+        assert payload["error_signature"] == "nested-star"
+        assert payload["failure_type"] == "sql"
+
+        second = await handle(rt, {"action": "extract", "scope": "session", "items": [item]})
+        assert second["status"] == "success"
+        cited = [row for row in second["data"]["closeout"] if row["kind"] == "skip_dup"]
+        assert cited
+        assert first["data"]["closeout"][0]["id"] in str(cited[0])
+        assert len(list((tmp_path / ".rsi" / "memory" / "gene-map" / "cases").glob("*.yaml"))) == 1
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
+async def test_extract_empty_failure_type_not_wildcard_dup(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        filled = await handle(rt, {
+            "action": "extract",
+            "scope": "session",
+            "items": [{
+                "kind": "gene",
+                "title": "有失败类型",
+                "content": "禁止 SELECT *",
+                "one_liner": "有失败类型",
+                "payload": {"error_signature": "same-star", "failure_type": "sql"},
+            }],
+        })
+        assert filled["status"] == "success"
+        assert filled["data"]["closeout"][0]["kind"] == "gene"
+
+        empty = await handle(rt, {
+            "action": "extract",
+            "scope": "session",
+            "items": [{
+                "kind": "gene",
+                "title": "空失败类型",
+                "content": "禁止 SELECT * 空类型",
+                "one_liner": "空失败类型",
+                "payload": {"error_signature": "same-star", "failure_type": ""},
+            }],
+        })
+        assert empty["status"] == "success"
+        assert empty["data"]["closeout"][0]["kind"] != "skip_dup"
+        assert empty["data"]["closeout"][0]["kind"] == "gene"
+        cases = list((tmp_path / ".rsi" / "memory" / "gene-map" / "cases").glob("*.yaml"))
+        assert len(cases) == 2
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
+async def test_full_audit_scope_id_stays_inside_audit_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+
+    audit_root = (tmp_path / ".rsi" / "audit").resolve()
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        for scope_id in ("../outside", "foo/bar", r"..\..\escape"):
+            started = await handle(rt, {
+                "action": "audit_start",
+                "scope": "full",
+                "scope_id": scope_id,
+                "changed_files": ["src/foo.py"],
+            })
+            assert started["status"] == "success"
+            start_rel = started["data"]["path"].replace("\\", "/")
+            assert ".." not in Path(start_rel).parts
+            start_dest = (tmp_path / ".rsi" / start_rel).resolve()
+            assert start_dest.is_file()
+            assert start_dest.is_relative_to(audit_root)
+            assert len(Path(start_rel).parts) == 3
+
+            reported = await handle(rt, {
+                "action": "audit_report",
+                "scope": "full",
+                "scope_id": scope_id,
+                "overall": "fail",
+                "findings": [],
+                "probe_summary": {},
+            })
+            assert reported["status"] == "success"
+            report_rel = reported["data"]["path"].replace("\\", "/")
+            assert ".." not in Path(report_rel).parts
+            report_dest = (tmp_path / ".rsi" / report_rel).resolve()
+            assert report_dest.is_file()
+            assert report_dest.is_relative_to(audit_root)
+            assert len(Path(report_rel).parts) == 3
+
+        assert not (tmp_path / "outside").exists()
+        assert not (tmp_path / "escape").exists()
+        leaked = [
+            p for p in tmp_path.rglob("*")
+            if p.is_file() and ".rsi" not in p.resolve().parts
+        ]
+        assert not leaked
+        assert not (tmp_path / ".rsi" / "outside").exists()
+        assert not list((tmp_path / ".rsi" / "audit" / "foo").glob("**/*"))
+    finally:
+        await rt.close()
