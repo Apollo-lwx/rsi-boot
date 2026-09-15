@@ -365,5 +365,21 @@ async def test_teach_record_user_then_agent_keeps_weight(tmp_path, monkeypatch):
         second = await handle(rt, {"action": "teach_record", "lesson": agent})
         assert second["data"]["id"] == doc_id
         assert rt.store.read(doc_id).payload["fix_and_learn"]["gene_map_weight"] == 10
+
+        agent_first = {
+            "wrong_action": "裸 bootstrap",
+            "correct_fix": "加上 --host-judge",
+            "error_signature": "missing-host-judge",
+            "failure_type": "cli",
+            "author": "agent",
+        }
+        first_agent = await handle(rt, {"action": "teach_record", "lesson": agent_first})
+        agent_id = first_agent["data"]["id"]
+        assert rt.store.read(agent_id).payload["fix_and_learn"]["gene_map_weight"] == 2
+        user_second = dict(agent_first)
+        user_second["author"] = "user"
+        after_user = await handle(rt, {"action": "teach_record", "lesson": user_second})
+        assert after_user["data"]["id"] == agent_id
+        assert rt.store.read(agent_id).payload["fix_and_learn"]["gene_map_weight"] == 10
     finally:
         await rt.close()

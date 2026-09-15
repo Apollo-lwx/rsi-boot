@@ -317,7 +317,7 @@ async def test_force_does_not_revive_untagged_overflow_archive(tmp_path, monkeyp
         (doc_id,),
     )
     assert leftover
-    assert all(r["status"] == "archived" for r in leftover)
+    assert all(r["id"] == doc_id and r["status"] == "archived" for r in leftover)
 
 
 async def test_force_rewrites_packs_without_touching_old_yaml(tmp_path, monkeypatch):

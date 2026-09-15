@@ -76,7 +76,7 @@ async def memory_rows_from_sql(root: Path, sql: str, params: tuple = ()) -> list
             if isinstance(raw, str) and "%" in raw:
                 needle = raw.replace("%", "")
                 rows = [r for r in rows if needle in (r.get("tags") or "")]
-    if "id in (" in sql_l:
+    if "id in (" in sql_l or " id =" in f" {sql_l}":
         ids = {p for p in params if isinstance(p, str) and len(p) == 32}
         if ids:
             rows = [r for r in rows if r["id"] in ids]

@@ -31,7 +31,7 @@ def _args(root: Path, **overrides) -> argparse.Namespace:
 
 
 async def _proj_items(root: Path):
-    return memory_item_rows(root)
+    return [r for r in memory_item_rows(root) if r.get("content_type") != "skill"]
 
 
 _LOGIN = "用户通过邮箱验证码登录，验证码有效期十分钟，连续失败五次锁定账户。" * 15
