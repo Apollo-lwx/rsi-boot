@@ -8,6 +8,7 @@ from rsi_boot.memory.paths import official_dir, pending_dir, review_dir
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.memory.types import MemoryDoc
 from rsi_boot.services.knowledge_service import KnowledgeService
+from rsi_boot.ux.lang import locale_lang
 from rsi_boot.ux.messages import TOOL_DESC, t
 
 
@@ -178,3 +179,101 @@ async def test_review_pending_reject_archives_via_review(tmp_path):
     got = store.read("8"*32)
     assert got.status == "archived"
     assert got.extra.get("review") == "rejected"
+
+
+def _yaml_count(rsi: Path) -> int:
+    return len(list(rsi.rglob("*.yaml")))
+
+
+@pytest.mark.asyncio
+async def test_add_rejects_content_over_1500(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    before = _yaml_count(store.rsi_dir)
+    result = await svc.add(KnowledgeItem(
+        project_id="p", title="超长条", content="字" * 1501, content_type="documentation",
+    ))
+    assert result == {
+        "status": "error",
+        "code": "invalid",
+        "message": t("KNOWLEDGE_TOO_LONG", locale_lang()),
+    }
+    assert _yaml_count(store.rsi_dir) == before
+
+
+@pytest.mark.asyncio
+async def test_add_rejects_harvest_titles(tmp_path):
+    from rsi_boot.memory.harvest import HARVEST_TITLES
+
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    before = _yaml_count(store.rsi_dir)
+    for title in HARVEST_TITLES:
+        result = await svc.add(KnowledgeItem(
+            project_id="p", title=title, content="自包含短知识", content_type="documentation",
+        ))
+        assert result["status"] == "error"
+        assert result["code"] == "invalid"
+        assert result["message"] == t("KNOWLEDGE_HARVEST_TITLE", locale_lang())
+    assert _yaml_count(store.rsi_dir) == before
+
+
+@pytest.mark.asyncio
+async def test_add_rejects_distilled_without_run_id(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    before = _yaml_count(store.rsi_dir)
+    result = await svc.add(KnowledgeItem(
+        project_id="p", title="登录校验", content="验证码十分钟有效",
+        content_type="documentation", tags=["signal:distilled"],
+    ))
+    assert result == {
+        "status": "error",
+        "code": "invalid",
+        "message": t("KNOWLEDGE_DISTILL_TAGS", locale_lang()),
+    }
+    assert _yaml_count(store.rsi_dir) == before
+
+
+@pytest.mark.asyncio
+async def test_add_short_prohibition_succeeds(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    item_id = await svc.add(KnowledgeItem(
+        project_id="p", title="禁止 SELECT *", content="必须列字段",
+        content_type="prohibition",
+    ))
+    assert isinstance(item_id, str) and len(item_id) == 32
+    got = store.read(item_id)
+    assert got.status == "pending_review"
+    assert got.content == "必须列字段"
+
+
+@pytest.mark.asyncio
+async def test_add_distilled_goes_pending_even_if_active(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    item_id = await svc.add(KnowledgeItem(
+        project_id="p", title="登录校验", content="验证码十分钟有效",
+        content_type="documentation", status="active",
+        tags=["signal:distilled", "bootstrap_run_id:run-1"],
+    ))
+    assert isinstance(item_id, str)
+    got = store.read(item_id)
+    assert got.status == "pending_review"
+    assert "pending" in (got.path or "").replace("\\", "/")
+
+
+@pytest.mark.asyncio
+async def test_knowledge_add_tool_passthrough_error(tmp_path):
+    from rsi_boot.api.tools import knowledge_add_tool
+
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    result = await knowledge_add_tool.handle(svc, {
+        "title": "超长条",
+        "content": "字" * 1501,
+    })
+    assert result["status"] == "error"
+    assert result["code"] == "invalid"
+    assert "success" not in result

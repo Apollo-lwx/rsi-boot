@@ -15,7 +15,7 @@ from uuid import UUID
 from ..core.models import KnowledgeItem
 from ..injector.rule_injector import RuleInjector
 from ..injector.slug import slugify
-from ..memory.harvest import is_harvest_doc
+from ..memory.harvest import HARVEST_TITLES, is_harvest_doc
 from ..memory.paths import official_dir, pending_dir, review_dir
 from ..memory.store import MemoryStore, memory_filename
 from ..memory.types import MEMORY_TYPES, MemoryDoc, type_from_legacy
@@ -72,15 +72,33 @@ class KnowledgeService:
 
     async def add(
         self, item: KnowledgeItem, api_key: Optional[str] = None
-    ) -> str:
-        """写入知识条目。item.status 缺省 active；bootstrap 等批量来源传 pending_review
-        走审批流（PRD v3.0 M2）——pending 条目不入检索/注入"""
+    ) -> str | dict[str, Any]:
+        """写入知识条目。校验失败返回 error dict，成功返回 id 字符串。"""
         del api_key
         item_id = self._add_to_store(item)
+        if isinstance(item_id, dict):
+            return item_id
         await self._notify_change(item.project_id or self.bound_project_id or "")
         return item_id
 
-    def _add_to_store(self, item: KnowledgeItem) -> str:
+    def _invalid(self, key: str) -> dict[str, Any]:
+        return {
+            "status": "error",
+            "code": "invalid",
+            "message": t(key, locale_lang()),
+        }
+
+    def _add_to_store(self, item: KnowledgeItem) -> str | dict[str, Any]:
+        content = item.content or ""
+        if len(content) > 1500:
+            return self._invalid("KNOWLEDGE_TOO_LONG")
+        if (item.title or "") in HARVEST_TITLES:
+            return self._invalid("KNOWLEDGE_HARVEST_TITLE")
+        tags = list(item.tags or [])
+        if "signal:distilled" in tags and not any(
+            str(tag).startswith("bootstrap_run_id:") for tag in tags
+        ):
+            return self._invalid("KNOWLEDGE_DISTILL_TAGS")
         store = self._store
         typ, extra_update = type_from_legacy(item.content_type or "documentation")
         if typ not in MEMORY_TYPES:
@@ -93,7 +111,7 @@ class KnowledgeService:
             id=item_id,
             type=typ,
             title=item.title[:120],
-            content=item.content[:20000],
+            content=content,
             domain=item.domain,
             tags=list(item.tags),
             roles=list(item.roles),
@@ -106,6 +124,14 @@ class KnowledgeService:
             "signal:conversation", "signal:rules",
         )
         explicit_active = (item.status or "active") == "active"
+        if "signal:distilled" in tags:
+            dest = (
+                pending_dir(store.rsi_dir, typ)
+                if typ in _PENDING_TYPES
+                else review_dir(store.rsi_dir, typ)
+            ) / memory_filename(doc.title, item_id)
+            written = store.write(doc, dest=dest)
+            return written.id
         if typ in _PENDING_TYPES:
             # MCP add: default active + empty source → pending. Bootstrap lane-A
             # (signal:config/code/git) and explicit active with a source → official.

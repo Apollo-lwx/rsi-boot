@@ -155,6 +155,9 @@ async def cmd_knowledge(args: argparse.Namespace) -> int:
                 roles=[r for r in (args.roles or "").split(",") if r],
             )
             item_id = await runtime.knowledge.add(item)
+            if isinstance(item_id, dict) and item_id.get("status") == "error":
+                print(item_id.get("message") or "invalid", file=sys.stderr)
+                return 1
             print(f"已添加知识条目：{item_id}")
             return 0
         if args.knowledge_action == "list":

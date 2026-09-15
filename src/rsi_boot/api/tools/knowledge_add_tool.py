@@ -47,6 +47,8 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
         domain=arguments.get("domain") or None,
     )
     result = await knowledge.add(item)
+    if isinstance(result, dict) and result.get("status") == "error":
+        return result
     if isinstance(result, dict):
         return {"status": "success", **result}
     return {"status": "success", "id": result}

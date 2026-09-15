@@ -41,6 +41,18 @@ STRINGS = {
         "zh": "请指定子命令：migrate / reindex / index / open / graph",
         "en": "Specify a subcommand: migrate / reindex / index / open / graph",
     },
+    "KNOWLEDGE_TOO_LONG": {
+        "zh": "知识正文不能超过 1500 字",
+        "en": "Knowledge content cannot exceed 1500 characters",
+    },
+    "KNOWLEDGE_HARVEST_TITLE": {
+        "zh": "不能使用采集物标题，请写自包含短知识",
+        "en": "Harvest titles are not allowed; write self-contained knowledge",
+    },
+    "KNOWLEDGE_DISTILL_TAGS": {
+        "zh": "蒸馏条必须带 bootstrap_run_id 标签",
+        "en": "Distilled items need a bootstrap_run_id tag",
+    },
     "LEARN_NEED_ACTION": {
         "zh": "请指定动作：teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote",
         "en": "Specify an action: teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote",
