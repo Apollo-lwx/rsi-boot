@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..core.models import RSIRequest, generate_feedback_token
+from ..memory.harvest import is_harvest_doc
 from ..memory.store import MemoryStore
 from ..memory.types import MemoryDoc
 from ..strategy.recall import RecallArmSelector
@@ -190,6 +191,9 @@ class RecallService:
             for doc in store.list_official(typ):
                 if doc.status != "active" or doc.type not in _SEARCH_TYPES:
                     continue
+                if doc.type in _ITEM_TYPES or doc.type == "prohibition":
+                    if is_harvest_doc(doc):
+                        continue
                 if doc.roles and role and role not in doc.roles:
                     continue
                 if typ == "teaching_case":

@@ -24,6 +24,7 @@ from ..scanner.profile_generator import (
     build_profile,
 )
 from ..injector.targets import discover_user_rule_files
+from ..memory.harvest import is_harvest_doc
 from ..scanner import reading_packs as reading_packs_mod
 from ..scanner.reading_packs import build_packs, unlink_host_judge_queue, write_packs
 from ..scanner.report import BootstrapReport
@@ -347,6 +348,9 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             return 1
 
         unlink_host_judge_queue(rsi_dir)
+        leftover = sum(1 for doc in runtime.store.list_official() if is_harvest_doc(doc))
+        if leftover:
+            report.harvest_warning = f"库存仍有 {leftover} 条旧采集物"
         write_relearn = getattr(reading_packs_mod, "write_relearn_skill", None)
         if callable(write_relearn):
             try:

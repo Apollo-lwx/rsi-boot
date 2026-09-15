@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from ..memory.store import MemoryStore
 
 from ..core.masking import mask_text
+from ..memory.harvest import is_harvest_doc
 from ..memory.logstore import iter_events
 from ..scanner.version_conflict import apply_conversation_hint, detect_version_families
 from .targets import AgentsMdTarget, discover_user_rule_files
@@ -574,7 +575,7 @@ class ConflictDetector:
         docs = []
         for typ in ("prohibition", "convention"):
             docs.extend(self._store.list_official(typ))
-        return [d for d in docs if d.status == "active"]
+        return [d for d in docs if d.status == "active" and not is_harvest_doc(d)]
 
     def _doc_source(self, doc: Any) -> str:
         extra = getattr(doc, "extra", None) or {}

@@ -15,6 +15,7 @@ from uuid import UUID
 from ..core.models import KnowledgeItem
 from ..injector.rule_injector import RuleInjector
 from ..injector.slug import slugify
+from ..memory.harvest import is_harvest_doc
 from ..memory.paths import official_dir, pending_dir, review_dir
 from ..memory.store import MemoryStore, memory_filename
 from ..memory.types import MEMORY_TYPES, MemoryDoc, type_from_legacy
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 _PENDING_TYPES = frozenset({"prohibition", "convention", "skill"})
 _REVIEWABLE_STATUSES = frozenset({"pending_review", "archived"})
+_SHORT_KNOWLEDGE = frozenset({"prohibition", "convention", "documentation"})
 
 
 def _archive_dir(store: MemoryStore) -> Path:
@@ -152,7 +154,14 @@ class KnowledgeService:
         from ..rag.retriever import retrieve
 
         store = self._store
-        docs = [d for d in store.list_official() if d.status == "active"]
+        docs = [
+            d for d in store.list_official()
+            if d.status == "active" and d.type in _SHORT_KNOWLEDGE and not is_harvest_doc(d)
+        ]
+        docs.extend(
+            d for d in store.list_pending()
+            if d.type in _SHORT_KNOWLEDGE and not is_harvest_doc(d)
+        )
         if role:
             docs = [d for d in docs if not d.roles or role in d.roles]
         by_id = {d.id: d for d in docs}
