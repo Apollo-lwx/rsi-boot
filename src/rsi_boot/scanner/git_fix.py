@@ -22,7 +22,7 @@ def is_fix_subject(subject: str) -> bool:
 def list_fix_commits(project_root: Path, max_commits: int = 500) -> list[dict[str, Any]]:
     """列出 fix 类提交；无 .git 或 git 失败时返回 []。"""
     root = Path(project_root)
-    if not (root / ".git").is_dir():
+    if not (root / ".git").exists():
         return []
     try:
         out = subprocess.run(

@@ -6,24 +6,10 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
-_SLICE_LABELS = {
-    "source_files": "源文件",
-    "chunks": "切出",
-    "merged_tiny": "合并碎块",
-    "split_large": "拆超长",
-    "index_written": "目录条目",
-    "skipped_tiny": "过碎跳过",
-}
-_APPLIED_LABELS = {
-    "docs": "文档",
-    "code": "代码",
-    "config": "配置",
-    "git": "Git",
-    "correlation": "关联",
-}
-
+from rsi_boot.ux.messages import t
+from rsi_boot.ux.next import next_block, render_next
 
 @dataclass
 class BootstrapReport:
@@ -131,7 +117,23 @@ class BootstrapReport:
                 lines.append(f"画像: {summary or '信号不足，留空'}")
         if self.errors:
             lines.append(f"错误 {len(self.errors)} 条（详见 JSON 报告）")
+        if not self.dry_run:
+            lines.extend(render_next(self.next_block()))
         return "\n".join(lines)
+
+    def next_block(self, lang: str = "zh") -> dict[str, Any]:
+        return next_block(
+            [
+                {"action": "pack_list", "label": t("NEXT_PACK_LIST", lang)},
+                {
+                    "action": "pack_open",
+                    "label": t("NEXT_PACK_OPEN", lang, id="pending"),
+                },
+                {"action": "knowledge_review", "label": t("NEXT_REVIEW", lang)},
+                {"action": "wait", "label": t("NEXT_WAIT", lang)},
+            ],
+            lang=lang,
+        )
 
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -146,47 +148,24 @@ class BootstrapReport:
             f"项目: {self.project_root}",
             f"开始: {self.started_at}",
             "",
-            "## 画像",
+            "## 采集结果",
         ]
-        if self.profile_summary:
+        judge_line = self._format_judge_line()
+        if judge_line:
+            lines.append(f"- {judge_line}")
+        else:
+            lines.append(f"- 阅读包 {self.pack_count} 个")
+        if self.harvest_warning:
+            lines.append(f"- {self.harvest_warning}")
+        if self.profile_summary and any(self.profile_summary.values()):
             for key, value in self.profile_summary.items():
                 if value:
                     lines.append(f"- **{key}**: {value}")
-        if not any(self.profile_summary.values()):
-            lines.append("（信号不足，留空）")
-
-        lines.extend(["", "## 直通生效"])
-        if self.applied:
-            for kind in ("docs", "code", "config", "git", "correlation"):
-                count = self.applied.get(kind, 0)
-                if not count:
-                    continue
-                label = _APPLIED_LABELS.get(kind, kind)
-                lines.append(f"- **{label}**: {count} 条")
-                for title in self.applied_samples.get(kind, [])[:15]:
-                    lines.append(f"  - {title}")
         else:
-            lines.append("（本轮无直通条目）")
-
-        lines.extend(["", "## 切片统计"])
-        if self.slice_stats:
-            for key, label in _SLICE_LABELS.items():
-                if key in self.slice_stats:
-                    lines.append(f"- **{label}**: {self.slice_stats[key]}")
-        else:
-            lines.append("（未扫描文档或未启用 docs 维度）")
-
-        lines.extend(["", "## 抽取待确认"])
-        if self.extracts:
-            for item in self.extracts:
-                lines.append(f"- {item.get('title', '')}（{item.get('source', '')}）")
-        else:
-            lines.append("（本轮无对话/规则抽取）")
-
-        lines.extend(["", "## 冲突组"])
+            lines.append("- 画像：（信号不足，留空）")
         if self.conflict_counts:
             lines.append(
-                "计数: "
+                "- 冲突计数: "
                 + " · ".join(
                     f"{name} {n}" for name, n in sorted(self.conflict_counts.items())
                 )
@@ -202,22 +181,17 @@ class BootstrapReport:
             extra = max(0, sum(self.conflict_counts.values()) - len(sample)) if self.conflict_counts else max(0, len(self.conflicts) - 30)
             if extra:
                 lines.append(f"（仅列出前 {len(sample)} 条样例，其余 {extra} 组见库内 rsi_conflicts）")
-        else:
-            lines.append("（未检测到冲突组）")
-        judge_line = self._format_judge_line()
-        if judge_line:
-            lines.append(judge_line)
-        if self.harvest_warning:
-            lines.append(self.harvest_warning)
+
+        lines.extend(["", "## 阅读包", f"- 阅读包 {self.pack_count} 个"])
+        omitted = list(self.pack_omitted_sources or [])
+        if omitted:
+            lines.append(f"- 未入包源 {len(omitted)} 条（最多列出 20）")
+            for src in omitted[:20]:
+                lines.append(f"  - {src}")
 
         if self.wipe_hint:
             lines.extend(["", "## 清库重学", self.wipe_hint])
-        lines.extend([
-            "",
-            "## 下一步",
-            "打开 Cursor 继续开发时，**下一次任务会在对话里弹出抉择**，"
-            "用于确认本轮抽取项与冲突组；无 IDE 时可用 "
-            "`rsi knowledge accept` 作为兜底。",
-        ])
+        lines.extend(["", "## 下一步"])
+        lines.extend(render_next(self.next_block()))
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")

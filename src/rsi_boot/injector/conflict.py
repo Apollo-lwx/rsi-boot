@@ -249,6 +249,8 @@ class ConflictDetector:
         logs = self._recent_logs()
         by_src: Dict[str, List[str]] = {}
         for doc in self._store_docs_with_source():
+            if is_harvest_doc(doc):
+                continue
             src = self._doc_source(doc)
             if src:
                 by_src.setdefault(src, []).append(doc.id)

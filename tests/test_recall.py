@@ -206,3 +206,6 @@ async def test_recall_suggestions_and_retrieved_case_ids(store):
     retrieved = [e for e in iter_events(store.rsi_dir) if e.get("kind") == "recall"][-1]["retrieved"]
     assert low_id in retrieved
     assert high_id in retrieved
+    assert result["retrieved"] == retrieved
+    assert low_id in result["retrieved"]
+    assert high_id in result["retrieved"]

@@ -358,7 +358,8 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             except Exception as exc:
                 logger.warning("写入 rsi-relearn 技能失败: %s", exc)
 
-        await runtime.conflict_detector.scan(project_id)
+        if judge != "local":
+            await runtime.conflict_detector.scan(project_id)
 
         _save_bootstrap_run(rsi_dir, run_id)
         doc_quality = assess_doc_quality(signals["docs"].files, project_root)

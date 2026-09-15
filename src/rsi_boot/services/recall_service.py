@@ -185,6 +185,7 @@ class RecallService:
             "feedback_token": token,
             "recall_arm": _STORE_DEFAULT_ARM,
             "decisions": decisions,
+            "retrieved": retrieved,
         }
 
     def _store_search_docs(self, store: MemoryStore, role: Optional[str]) -> List[MemoryDoc]:

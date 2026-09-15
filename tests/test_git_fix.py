@@ -50,3 +50,22 @@ def test_list_fix_commits_filters_subjects(tmp_path):
 
 def test_list_fix_commits_no_git(tmp_path):
     assert list_fix_commits(tmp_path) == []
+
+
+def test_list_fix_commits_linked_worktree(tmp_path):
+    if shutil.which("git") is None:
+        pytest.skip("git 不可用")
+    repo = tmp_path / "repo"
+    worktree = tmp_path / "wt"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "config", "user.email", "dev@example.com")
+    _git(repo, "config", "user.name", "Dev")
+    (repo / "src").mkdir()
+    (repo / "src" / "a.py").write_text("a", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "fix: a")
+    _git(repo, "worktree", "add", str(worktree))
+    assert (worktree / ".git").is_file()
+    fixes = list_fix_commits(worktree)
+    assert [row["message"] for row in fixes] == ["fix: a"]

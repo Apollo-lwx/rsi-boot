@@ -121,6 +121,36 @@ async def test_host_judge_writes_packs_not_queue_or_harvest(tmp_path, monkeypatc
     assert not (_HARVEST_TITLES & set(_memory_titles(root)))
 
 
+async def test_local_judge_does_not_open_conflicts(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _proj(tmp_path / "proj")
+    (root / "foo-v1.0.md").write_text("# Foo\n\nv1.0 body\n", encoding="utf-8")
+    (root / "foo-v1.1.md").write_text("# Foo\n\nv1.1 body\n", encoding="utf-8")
+    from rsi_boot.memory.paths import official_dir
+    from rsi_boot.memory.store import MemoryStore, memory_filename
+    from rsi_boot.memory.types import MemoryDoc
+
+    store = MemoryStore(root / ".rsi")
+    for src, item_id in (("foo-v1.0.md", "a" * 32), ("foo-v1.1.md", "b" * 32)):
+        store.write(
+            MemoryDoc(
+                id=item_id,
+                type="documentation",
+                title=f"Foo {src}",
+                content="自包含短知识 " * 20,
+                tags=["signal:distilled", "bootstrap_run_id:old"],
+                extra={"source_url": src},
+            ),
+            dest=official_dir(store.rsi_dir, "documentation")
+            / memory_filename(f"Foo {src}", item_id),
+        )
+    assert await run_bootstrap(_args(root, local_judge=True)) == 0
+    path = root / ".rsi" / "state" / "conflicts.yaml"
+    if path.is_file():
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        assert not data.get("conflicts")
+
+
 async def test_local_judge_writes_packs_without_distilled_knowledge(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _proj(tmp_path / "proj")

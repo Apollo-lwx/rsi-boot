@@ -206,7 +206,7 @@ async def test_bootstrap_version_keep_peer_activates_kept(tmp_path, monkeypatch)
         encoding="utf-8",
     )
     await _seed_version_knowledge(root)
-    assert await run_bootstrap(_args(root)) == 0
+    assert await run_bootstrap(_args(root, host_judge=True, local_judge=False)) == 0
 
     rt = await build_runtime(project_root=root)
     try:
@@ -243,7 +243,7 @@ async def test_bootstrap_version_coexist_activates_both(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     await _seed_version_knowledge(root)
-    assert await run_bootstrap(_args(root)) == 0
+    assert await run_bootstrap(_args(root, host_judge=True, local_judge=False)) == 0
 
     rt = await build_runtime(project_root=root)
     try:
@@ -278,7 +278,7 @@ async def test_bootstrap_multichunk_version_one_open_row(tmp_path, monkeypatch):
         _multichunk_doc("Foo", "新版 json accountId"), encoding="utf-8",
     )
     await _seed_version_knowledge(root)
-    assert await run_bootstrap(_args(root)) == 0
+    assert await run_bootstrap(_args(root, host_judge=True, local_judge=False)) == 0
     paths = _pack_paths(root)
     assert any(p.startswith("foo-v1.0.md") for p in paths)
     assert any(p.startswith("foo-v1.1.md") for p in paths)

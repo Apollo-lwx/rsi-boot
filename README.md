@@ -25,10 +25,10 @@ rsi recall "帮我审查这段 Python 代码"
 rsi knowledge add --title "项目约定" --content "本项目统一使用 snake_case 命名"
 rsi recall "本项目的命名约定是什么"
 
-# 4. 项目自学习：扫描文档/配置/规范，无冲突原文直通生效；抽取与冲突留待确认
-rsi bootstrap --dry-run          # 预览：信号发现 + 将直通 / 将进确认
-rsi bootstrap --local-judge      # 正式学习（幂等，未改文件会跳过）
-rsi bootstrap --local-judge --force   # 忽略 manifest 指纹，按当前文件全量再扫
+# 4. 项目自学习：只写阅读包，不把原文当知识
+rsi bootstrap --dry-run          # 预览将生成的阅读包，不写盘
+rsi bootstrap --local-judge      # 终端采集阅读包（不开冲突）
+rsi bootstrap --local-judge --force   # 已 done 的包改回 pending
 rsi bootstrap --include .auto-learn   # 默认不扫 .worktrees/.auto-learn/.superpowers/任意 artifacts/，按需加回
 
 # 5. 若工作区仍有旧版 rsi.db，先迁到文件记忆
@@ -38,9 +38,9 @@ rsi memory migrate
 rsi serve
 ```
 
-在 Cursor 对话里由 agent 重新学习时走 `--host-judge`（冲突工作包由宿主模型当场裁决）；你自己敲终端用 `--local-judge`（本地整条比对，宁缺毋滥）。两者必须且只能给一个，`--dry-run` 除外。
+对话里重新学习走 `--host-judge`；自己敲终端用 `--local-judge`（只写阅读包，不开冲突）。两者必须且只能给一个，`--dry-run` 除外。
 
-无冲突的仓库原文直接生效。抽取与冲突在 Cursor 对话里由 agent 调 MCP 工具确认，无需在终端手动跑 `rsi knowledge accept` 等命令。
+采集结束后按报告「下一步」编号走：`rsi_learn pack_list` → `pack_open` → 蒸馏短知识 → `pack_done` → `rsi_knowledge_review` 批准本 run。未批准不得声称召回可用。
 约定（convention）获准后只进召回，**不会**写成 `rsi-convention-*.mdc` 规则文件。
 
 **重新学习：** `--force` 只忽略指纹，**不会**把旧版溢出归档（无 `bootstrap_run_id`）救回 `active`。曾用旧逻辑学过、记忆几乎全是归档时，先清文件记忆再学（删除 `.rsi` 下 `memory/` `logs/` `cache/` `audit/` `state/` 与 `manifest.json`，残留 `rsi.db*` 也会删；`identity.json` 会保留）：

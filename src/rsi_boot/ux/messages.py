@@ -73,6 +73,40 @@ STRINGS = {
         "zh": "pack_done 的 status 只能是 done 或 skipped",
         "en": "pack_done status must be done or skipped",
     },
+    "NEXT_PROMPT": {
+        "zh": "接下来？",
+        "en": "What would you like to do?",
+    },
+    "NEXT_WHICH": {"zh": "选哪一项？", "en": "Which option?"},
+    "NEXT_RECOMMENDED": {"zh": "（推荐）", "en": " (Recommended)"},
+    "NEXT_BOOTSTRAP": {
+        "zh": "rsi bootstrap --consent --host-judge — 先采集阅读包",
+        "en": "rsi bootstrap --consent --host-judge — collect reading packs first",
+    },
+    "NEXT_PACK_LIST": {
+        "zh": "rsi_learn pack_list — 列出阅读包",
+        "en": "rsi_learn pack_list — list reading packs",
+    },
+    "NEXT_PACK_OPEN": {
+        "zh": "rsi_learn pack_open — 打开 {id}",
+        "en": "rsi_learn pack_open — open {id}",
+    },
+    "NEXT_PACK_DONE": {
+        "zh": "读源并 rsi_knowledge_add 后 pack_done",
+        "en": "Read sources, rsi_knowledge_add, then pack_done",
+    },
+    "NEXT_PACK_SKIP": {
+        "zh": "pack_done status=skipped — 写不出就跳过并写原因",
+        "en": "pack_done status=skipped — skip with a reason if you cannot distill",
+    },
+    "NEXT_REVIEW": {
+        "zh": "rsi_knowledge_review — 批准本 run 蒸馏条",
+        "en": "rsi_knowledge_review — approve this-run distilled items",
+    },
+    "NEXT_WAIT": {
+        "zh": "先不蒸馏，阅读包保留 pending",
+        "en": "Stop here; reading packs stay pending",
+    },
     "TEACH_RECORDED": {"zh": "已写入教学案例 {path}", "en": "Wrote teaching case {path}"},
     "TEACH_CATCH_SAVED": {
         "zh": "已记下现场 {id}，写好 lesson 后调用 teach_record",

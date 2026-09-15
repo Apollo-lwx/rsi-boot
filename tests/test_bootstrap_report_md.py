@@ -9,18 +9,17 @@ from pathlib import Path
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.scanner.report import BootstrapReport
 
-_HEADINGS = ("## 画像", "## 直通生效", "## 切片统计", "## 抽取待确认", "## 冲突组", "## 下一步")
-_DIALOG_HINT = "下一次任务会在对话里弹出抉择"
+_HEADINGS = ("## 采集结果", "## 阅读包", "## 下一步")
 
 
-def test_write_markdown_has_six_sections_and_dialog_hint(tmp_path):
+def test_write_markdown_has_pack_sections_and_numbered_next(tmp_path):
     report = BootstrapReport(
         project_root=str(tmp_path),
+        judge="host",
+        pack_count=3,
+        pack_omitted_sources=["docs/extra.md"],
+        harvest_warning="库存仍有 2 条旧采集物",
         profile_summary={"language": "Python", "framework": "FastAPI"},
-        applied={"docs": 2, "config": 1},
-        applied_samples={"docs": ["README# 使用", "ADR# 背景"]},
-        slice_stats={"source_files": 1, "chunks": 3, "merged_tiny": 0},
-        extracts=[{"title": "禁止硬编码密钥", "source": ".cursor/rules/x.mdc"}],
         conflicts=[{
             "type": "version",
             "left": "foo-v1.0.md",
@@ -34,7 +33,16 @@ def test_write_markdown_has_six_sections_and_dialog_hint(tmp_path):
     text = out.read_text(encoding="utf-8")
     for heading in _HEADINGS:
         assert heading in text, f"missing {heading}"
-    assert _DIALOG_HINT in text
+    assert "阅读包 3 个" in text or "3" in text
+    assert "docs/extra.md" in text
+    assert "库存仍有 2 条旧采集物" in text
+    assert "1." in text
+    assert "pack_list" in text
+    assert "Which option?" in text or "选哪一项" in text
+    assert "Cursor" not in text
+    assert "弹出抉择" not in text
+    assert "knowledge accept" not in text
+    assert "直通生效" not in text
 
 
 def test_write_markdown_caps_conflict_samples_and_counts(tmp_path):
@@ -82,7 +90,9 @@ async def test_bootstrap_writes_markdown_report(tmp_path, monkeypatch, capsys):
     text = md_path.read_text(encoding="utf-8")
     for heading in _HEADINGS:
         assert heading in text
-    assert _DIALOG_HINT in text
+    assert "pack_list" in text
+    assert "Cursor" not in text
+    assert "弹出抉择" not in text
 
     out = capsys.readouterr().out
     assert "bootstrap_report.md" in out
@@ -98,6 +108,8 @@ def test_render_terminal_shows_judge_line(tmp_path):
     assert "judge=host" in text
     assert "12" in text
     assert "host_judge_queue" not in text
+    assert "1." in text
+    assert "pack_list" in text
 
 
 def test_render_terminal_shows_local_relearn_line(tmp_path):

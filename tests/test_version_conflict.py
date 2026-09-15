@@ -39,6 +39,7 @@ def _add_doc(
     status="pending_review",
     item_id: str | None = None,
     created_at: str | None = None,
+    extra_tags: list[str] | None = None,
 ) -> str:
     item_id = item_id or uuid.uuid4().hex
     dest_dir = (
@@ -51,7 +52,7 @@ def _add_doc(
         type="documentation",
         title=title,
         content=content or (title + "足够长的正文内容。" * 8),
-        tags=["signal:docs"],
+        tags=[] if extra_tags is None else extra_tags,
         extra={"source_url": source_url},
     )
     if created_at:
@@ -333,3 +334,23 @@ async def test_conflicts_tool_version_resolve(tmp_path):
         "action": "resolve", "conflict_id": cid, "resolution": "keep_peer",
     })
     assert resolved["status"] == "success"
+
+
+async def test_scan_skips_harvest_version_family(tmp_path):
+    store = _store(tmp_path)
+    (tmp_path / "foo-v1.0.md").write_text("# Foo\n\nv1.0 body\n", encoding="utf-8")
+    (tmp_path / "foo-v1.1.md").write_text("# Foo\n\nv1.1 body\n", encoding="utf-8")
+    from rsi_boot.memory.harvest import is_harvest_doc
+
+    hid1 = _add_doc(
+        store, "foo-v1.0.md", title="代码骨架摘要",
+        extra_tags=["signal:code"], status="active",
+    )
+    hid2 = _add_doc(
+        store, "foo-v1.1.md", title="代码骨架摘要",
+        extra_tags=["signal:code"], status="active", item_id="c" * 32,
+    )
+    assert is_harvest_doc(store.read(hid1))
+    assert is_harvest_doc(store.read(hid2))
+    await _detector(store, tmp_path).scan("p1")
+    assert _open_version(tmp_path) == []

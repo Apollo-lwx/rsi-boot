@@ -30,6 +30,8 @@ def test_pack_list_empty_dir_does_not_raise(tmp_path):
         "packs": [],
     }
     assert out["message"] == t("PACK_NEED_BOOTSTRAP", "zh")
+    assert out["next"]["recommended"] == "1"
+    assert out["next"]["options"][0]["action"] == "bootstrap"
 
 
 def test_pack_open_unknown_is_not_found(tmp_path):
@@ -104,6 +106,12 @@ def test_pack_list_counts_statuses(tmp_path):
     assert opened["status"] == "success"
     assert opened["data"]["id"] == "c"
     assert "content" not in opened["data"]["sources"][0]
+    listed_next = {opt["action"]: opt for opt in out["next"]["options"]}
+    assert listed_next["pack_open"]["args"]["pack_id"] == "c"
+    assert out["next"]["recommended"] == "1"
+    assert opened["next"]["options"][0]["action"] == "pack_done"
+    done_c = pack_done(store, "c", status="done", lang="zh")
+    assert done_c["next"]["options"][0]["action"] == "knowledge_review"
 
 
 @pytest.mark.asyncio
