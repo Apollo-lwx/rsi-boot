@@ -14,6 +14,7 @@ from pathlib import Path
 
 from rsi_boot.bootstrap import build_runtime
 from rsi_boot.cli.bootstrap_command import run_bootstrap
+from rsi_boot.core.models import KnowledgeItem
 from rsi_boot.scanner.incremental import IncrementalLearner
 
 from memory_helpers import memory_item_rows
@@ -59,75 +60,71 @@ def _report(root: Path) -> dict:
 # ---------- 文档变更收敛 ----------
 
 
-async def test_full_rewrite_supersedes_old_chunks(tmp_path, monkeypatch):
-    """需求整体推翻重写 → 重跑后旧切片全部 archived，新切片 active（车道 A）"""
+async def test_full_rewrite_does_not_ingest_or_archive_yaml(tmp_path, monkeypatch):
+    """文档推翻重写后 bootstrap 只更新阅读包，不灌切片、不归档旧 YAML。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
 
     assert await run_bootstrap(_args(root)) == 0
-    before = await _proj_items(root)
-    assert before and all(i["status"] == "active" for i in before)
+    assert await _proj_items(root) == []
+    assert _report(root)["knowledge_written"] == 0
+    assert _report(root)["pack_count"] >= 1
+
+    (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
+    assert await run_bootstrap(_args(root)) == 0
+    assert await _proj_items(root) == []
+    assert _report(root)["knowledge_written"] == 0
+    assert (root / ".rsi" / "state" / "reading-packs" / "index.yaml").is_file()
+
+
+async def test_partial_edit_keeps_existing_short_knowledge(tmp_path, monkeypatch):
+    """部分改文档：预置短知识保持不动。"""
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _make_doc_project(tmp_path / "proj")
+    rt = await build_runtime(project_root=root)
+    try:
+        added = await rt.knowledge.add(KnowledgeItem(
+            project_id=rt.project_id,
+            title="登录",
+            content=_LOGIN,
+            status="active",
+            content_type="documentation",
+            source_url="requirements.md",
+        ))
+        item_id = added["id"] if isinstance(added, dict) else added
+    finally:
+        await rt.close()
 
     (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
     assert await run_bootstrap(_args(root)) == 0
     after = await _proj_items(root)
-
-    old_ids = {i["id"] for i in before}
-    pay_old = [i for i in after if i["id"] in old_ids and "支付" in i["title"]]
-    assert pay_old and all(i["status"] == "archived" for i in pay_old)  # 旧版本收敛
-    pay_new = [i for i in after if i["id"] not in old_ids and "支付" in i["title"]]
-    assert pay_new and all(i["status"] == "active" for i in pay_new)
-    assert _report(root)["superseded"] >= 1
+    kept = next(i for i in after if i["id"] == item_id)
+    assert kept["status"] == "active"
 
 
-async def test_partial_edit_keeps_unchanged_sections(tmp_path, monkeypatch):
-    """部分修改：未变更章节的条目原样保留（同 id、状态不动）"""
+async def test_deleted_file_does_not_archive_existing_yaml(tmp_path, monkeypatch):
+    """源文件删除：bootstrap 不再因文件列表归档旧 YAML。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_doc_project(tmp_path / "proj")
-    assert await run_bootstrap(_args(root)) == 0
-    before = await _proj_items(root)
-    login_before = next(i for i in before if "登录" in i["title"])
-
-    (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
-    assert await run_bootstrap(_args(root)) == 0
-    after = await _proj_items(root)
-
-    login_after = next(i for i in after if i["id"] == login_before["id"])
-    assert login_after["status"] == "active"  # 未变章节不收敛、不重建
-
-
-async def test_revert_revives_archived_items(tmp_path, monkeypatch):
-    """revert/分支切回：旧版本内容回来时复活（同 id 回 active，不产生重复行）"""
-    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
-    root = _make_doc_project(tmp_path / "proj")
-    assert await run_bootstrap(_args(root)) == 0
-    v1_items = await _proj_items(root)
-    v1_pay = next(i for i in v1_items if "支付" in i["title"])
-
-    (root / "requirements.md").write_text(_doc(_PAY_V2), encoding="utf-8")
-    assert await run_bootstrap(_args(root)) == 0
-    # 切回 v1（revert）
-    (root / "requirements.md").write_text(_doc(_PAY_V1), encoding="utf-8")
-    assert await run_bootstrap(_args(root)) == 0
-    after = await _proj_items(root)
-
-    revived = next(i for i in after if i["id"] == v1_pay["id"])
-    assert revived["status"] == "active"
-    # 同内容不产生重复行
-    assert sum(1 for i in after if i["content"] == v1_pay["content"]) == 1
-    assert _report(root)["revived"] >= 1
-
-
-async def test_deleted_file_archives_pending_review_too(tmp_path, monkeypatch):
-    """源文件删除：车道 A 的 active 条目一并归档"""
-    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
-    root = _make_doc_project(tmp_path / "proj")
-    assert await run_bootstrap(_args(root)) == 0
+    rt = await build_runtime(project_root=root)
+    try:
+        added = await rt.knowledge.add(KnowledgeItem(
+            project_id=rt.project_id,
+            title="需求文档",
+            content=_LOGIN,
+            status="active",
+            content_type="documentation",
+            source_url="requirements.md",
+        ))
+        item_id = added["id"] if isinstance(added, dict) else added
+    finally:
+        await rt.close()
 
     (root / "requirements.md").unlink()
     assert await run_bootstrap(_args(root)) == 0
     after = await _proj_items(root)
-    assert after and all(i["status"] == "archived" for i in after)
+    kept = next(i for i in after if i["id"] == item_id)
+    assert kept["status"] == "active"
 
 
 # ---------- watch 静默学习收敛 ----------
@@ -160,8 +157,8 @@ async def test_watch_relearn_converges_old_chunks(tmp_path, monkeypatch):
 # ---------- 聚合类生成知识 churn 收敛 ----------
 
 
-async def test_config_summary_churn_supersedes(tmp_path, monkeypatch):
-    """配置摘要内容随依赖演进变化 → 旧版本 archived（此前 dedup 跳过新写但旧滞留）"""
+async def test_config_scope_writes_packs_not_summary(tmp_path, monkeypatch):
+    """--scope=config 只分包，不写配置摘要知识。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = tmp_path / "proj"
     root.mkdir()
@@ -170,26 +167,13 @@ async def test_config_summary_churn_supersedes(tmp_path, monkeypatch):
     pyproject.write_text('[project]\ndependencies = ["pydantic>=2"]\n', encoding="utf-8")
 
     assert await run_bootstrap(_args(root, scope="config")) == 0
-    before = await _proj_items(root)
-    cfg_before = [i for i in before if "signal:config" in (i["tags"] or "")]
-    assert len(cfg_before) == 1
-
-    pyproject.write_text(
-        '[project]\ndependencies = ["pydantic>=2", "fastapi>=0.115"]\n', encoding="utf-8"
-    )
-    assert await run_bootstrap(_args(root, scope="config")) == 0
-    after = await _proj_items(root)
-    cfg_after = [i for i in after if "signal:config" in (i["tags"] or "")]
-    assert len(cfg_after) == 2
-    old = next(i for i in cfg_after if i["id"] == cfg_before[0]["id"])
-    new = next(i for i in cfg_after if i["id"] != cfg_before[0]["id"])
-    assert old["status"] == "archived"
-    assert new["status"] == "active"
-    assert "fastapi" in new["content"]
+    assert [i for i in await _proj_items(root) if "signal:config" in (i["tags"] or "")] == []
+    assert _report(root)["knowledge_written"] == 0
+    assert _report(root)["pack_count"] >= 0
 
 
-async def test_rule_seed_churn_supersedes(tmp_path, monkeypatch):
-    """用户规则文件改写（规范推翻）→ 旧种子 archived、新种子入队"""
+async def test_rule_file_lands_in_pack_not_seed_yaml(tmp_path, monkeypatch):
+    """用户规则进阅读包，不写 prohibition 种子。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = tmp_path / "proj"
     rules = root / ".cursor" / "rules"
@@ -198,16 +182,9 @@ async def test_rule_seed_churn_supersedes(tmp_path, monkeypatch):
     (rules / "a.mdc").write_text("- 禁止使用裸 SQL，一律参数化查询\n", encoding="utf-8")
 
     assert await run_bootstrap(_args(root, scope="config")) == 0
-    before = await _proj_items(root)
-    seeds_before = [i for i in before if i["content_type"] == "prohibition"]
-    assert len(seeds_before) == 1
-
-    (rules / "a.mdc").write_text("- 禁止直调 Mapper，必须经 Service 层\n", encoding="utf-8")
-    assert await run_bootstrap(_args(root, scope="config")) == 0
-    after = await _proj_items(root)
-    seeds_after = [i for i in after if i["content_type"] == "prohibition"]
-    assert len(seeds_after) == 2
-    old = next(i for i in seeds_after if i["id"] == seeds_before[0]["id"])
-    new = next(i for i in seeds_after if i["id"] != seeds_before[0]["id"])
-    assert old["status"] == "archived"
-    assert new["status"] == "pending_review"
+    assert [i for i in await _proj_items(root) if i["content_type"] == "prohibition"] == []
+    text = "\n".join(
+        p.read_text(encoding="utf-8")
+        for p in (root / ".rsi" / "state" / "reading-packs").glob("*.yaml")
+    )
+    assert "a.mdc" in text

@@ -177,10 +177,10 @@ async def test_bootstrap_prints_phase_progress(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "开始学习" in out
     assert "扫描文件树" in out
-    assert "配置" in out
+    assert "规则与技能" in out or "分包" in out
     assert "已用" in out
     assert "冲突检测" not in out
-    assert "写入知识" in out
+    assert "写入知识" not in out
 
 
 def _git(repo: Path, *args: str) -> None:
@@ -206,4 +206,4 @@ async def test_bootstrap_git_phase_shows_commit_count(tmp_path, monkeypatch, cap
     assert await run_bootstrap(_args(root, scope="git")) == 0
     out = capsys.readouterr().out
     assert "git 2" in out
-    assert "Git（2 次提交）" in out
+    assert "Git fix（2 次提交）" in out

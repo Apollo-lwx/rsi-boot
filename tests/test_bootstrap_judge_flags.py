@@ -1,9 +1,20 @@
-"""bootstrap 判断旗标：非 dry-run 必须恰好一个。"""
+"""bootstrap 判断旗标 + 阅读包（Task 5b）。"""
 import argparse
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
+import yaml
+
 from rsi_boot.cli.bootstrap_command import run_bootstrap
+
+_HARVEST_TITLES = {
+    "代码骨架摘要",
+    "项目配置与规范摘要",
+    "Git 历史分析",
+    "跨信号关联图谱",
+}
 
 
 def _args(root: Path, **overrides) -> argparse.Namespace:
@@ -25,6 +36,39 @@ def _proj(root: Path) -> Path:
     return root
 
 
+def _memory_titles(root: Path) -> list[str]:
+    mem = root / ".rsi" / "memory"
+    if not mem.is_dir():
+        return []
+    titles: list[str] = []
+    for path in mem.rglob("*.yaml"):
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        if isinstance(data, dict) and data.get("title"):
+            titles.append(str(data["title"]))
+    return titles
+
+
+def _index(root: Path) -> dict:
+    path = root / ".rsi" / "state" / "reading-packs" / "index.yaml"
+    assert path.is_file()
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert isinstance(data, dict)
+    assert isinstance(data.get("packs"), list)
+    return data
+
+
+def _pack_kinds(root: Path) -> set[str]:
+    kinds: set[str] = set()
+    for path in (root / ".rsi" / "state" / "reading-packs").glob("*.yaml"):
+        if path.name == "index.yaml":
+            continue
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        for src in data.get("sources") or []:
+            if isinstance(src, dict) and src.get("kind"):
+                kinds.add(str(src["kind"]))
+    return kinds
+
+
 async def test_bootstrap_without_judge_flag_exits_2(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _proj(tmp_path / "proj")
@@ -44,10 +88,11 @@ async def test_bootstrap_dry_run_exempt_from_judge_flag(tmp_path, monkeypatch):
     root = _proj(tmp_path / "proj")
     assert await run_bootstrap(_args(root, dry_run=True)) == 0
     assert not (root / ".rsi" / "manifest.json").exists()
+    assert not (root / ".rsi" / "state" / "reading-packs" / "index.yaml").exists()
 
 
 def test_parser_accepts_judge_flags():
-    from rsi_boot.__main__ import build_parser  # 现网 179 行已是 build_parser()
+    from rsi_boot.__main__ import build_parser
     parser = build_parser()
     args = parser.parse_args(["bootstrap", "--host-judge"])
     assert args.host_judge is True and args.local_judge is False
@@ -55,8 +100,7 @@ def test_parser_accepts_judge_flags():
     assert args.local_judge is True and args.host_judge is False
 
 
-async def test_host_judge_exits_zero_without_queue_assertions(tmp_path, monkeypatch):
-    """5a：只断言能跑通；阅读包断言由 5b 补。"""
+async def test_host_judge_writes_packs_not_queue_or_harvest(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _proj(tmp_path / "proj")
     (root / "docs").mkdir(exist_ok=True)
@@ -66,21 +110,72 @@ async def test_host_judge_exits_zero_without_queue_assertions(tmp_path, monkeypa
         "# 部署\n\n" + "禁止使用 docker compose 启动全部服务，只起基础镜像。" * 8,
         encoding="utf-8")
     assert await run_bootstrap(_args(root, host_judge=True)) == 0
+    assert not (root / ".rsi" / "host_judge_queue.json").exists()
+    index = _index(root)
+    assert index["packs"]
     report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
     assert report["judge"] == "host"
+    assert report["knowledge_written"] == 0
+    assert report["pack_count"] >= 1
     assert "judge_queue_path" not in report
-    assert "judge_candidates" not in report
-    assert "judge_omitted" not in report
-    assert "judge_unresolved" not in report
-    assert "pack_count" in report
+    assert not (_HARVEST_TITLES & set(_memory_titles(root)))
 
 
-async def test_local_judge_exits_zero(tmp_path, monkeypatch):
-    """5a：只断言能跑通；阅读包断言由 5b 补。"""
+async def test_local_judge_writes_packs_without_distilled_knowledge(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _proj(tmp_path / "proj")
-    rsi = root / ".rsi"
-    rsi.mkdir()
     assert await run_bootstrap(_args(root, local_judge=True)) == 0
-    report = json.loads((rsi / "bootstrap_report.json").read_text(encoding="utf-8"))
+    assert not (root / ".rsi" / "host_judge_queue.json").exists()
+    index = _index(root)
+    assert index["packs"]
+    report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
     assert report["judge"] == "local"
+    assert report["knowledge_written"] == 0
+    titles = set(_memory_titles(root))
+    assert not (_HARVEST_TITLES & titles)
+
+
+async def test_force_rewrites_done_packs_to_pending(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _proj(tmp_path / "proj")
+    packs = root / ".rsi" / "state" / "reading-packs"
+    packs.mkdir(parents=True)
+    (packs / "index.yaml").write_text(
+        "bootstrap_run_id: old\n"
+        "packs:\n"
+        "  - id: README-0\n"
+        "    domain: README\n"
+        "    title: old\n"
+        "    status: done\n"
+        "    source_count: 1\n"
+        "    fingerprint: deadbeef\n",
+        encoding="utf-8",
+    )
+    (packs / "README-0.yaml").write_text(
+        "id: README-0\nstatus: done\nsources: []\nfingerprint: deadbeef\n",
+        encoding="utf-8",
+    )
+    assert await run_bootstrap(_args(root, host_judge=True, force=True)) == 0
+    index = _index(root)
+    assert index["packs"]
+    assert all(p.get("status") == "pending" for p in index["packs"])
+
+
+async def test_chinese_fix_commit_lands_in_git_fix_pack(tmp_path, monkeypatch):
+    if shutil.which("git") is None:
+        import pytest
+        pytest.skip("git 不可用")
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
+    root = _proj(tmp_path / "proj")
+    (root / "src").mkdir()
+    (root / "src" / "a.py").write_text("x = 1\n", encoding="utf-8")
+    subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "dev@example.com"], cwd=root, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Dev"], cwd=root, check=True, capture_output=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "修复 token 刷新"],
+        cwd=root, check=True, capture_output=True,
+    )
+    assert await run_bootstrap(_args(root, host_judge=True)) == 0
+    assert "git_fix" in _pack_kinds(root)

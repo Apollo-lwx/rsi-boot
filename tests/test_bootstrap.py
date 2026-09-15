@@ -4,8 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-import pytest
-
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.scanner.config_scanner import scan_configs
 from rsi_boot.scanner.document_scanner import slice_document
@@ -133,14 +131,16 @@ async def test_bootstrap_end_to_end(tmp_path, monkeypatch):
     assert await run_bootstrap(_args(root, dry_run=True)) == 0
     assert not (root / ".rsi" / "manifest.json").exists()
 
-    # 正式执行
+    # 正式执行：只写阅读包，不灌原文知识
     assert await run_bootstrap(_args(root)) == 0
     report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
-    assert report["knowledge_written"] >= 4  # README 3 节 + docs 3 篇 + 配置摘要
+    assert report["knowledge_written"] == 0
+    assert report["pack_count"] >= 1
     assert report["profile_summary"]["language"] == "python"
     assert report["profile_summary"]["test_culture"] == "strong"  # 1 test / 1 code = 100%
+    assert (root / ".rsi" / "state" / "reading-packs" / "index.yaml").is_file()
 
-    # 幂等：重跑无新增
+    # 重跑仍不写知识
     assert await run_bootstrap(_args(root)) == 0
     report2 = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
     assert report2["knowledge_written"] == 0
@@ -149,25 +149,14 @@ async def test_bootstrap_end_to_end(tmp_path, monkeypatch):
     assert ".rsi" in (root / ".gitignore").read_text(encoding="utf-8")
 
 
-async def test_bootstrap_strict_raises(tmp_path, monkeypatch):
+async def test_bootstrap_pack_write_failure_exits_1(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _make_project(tmp_path)
 
-    import rsi_boot.scanner.incremental as inc
-    from rsi_boot.scanner.validator import StrictModeError
+    import rsi_boot.cli.bootstrap_command as cmd
 
-    original = inc.slice_document
-    def _explode(path):
-        if path.name == "guide0.md":
-            raise RuntimeError("模拟切片失败")
-        return original(path)
-    monkeypatch.setattr(inc, "slice_document", _explode)
+    def _explode(*_a, **_k):
+        raise OSError("模拟写包失败")
 
-    # 默认模式：单文件失败不影响整体
-    assert await run_bootstrap(_args(root)) == 0
-    report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
-    assert any("guide0" in e for e in report["errors"])
-
-    # strict 模式：首个失败即中断
-    with pytest.raises(StrictModeError):
-        await run_bootstrap(_args(root, strict=True, force=True))
+    monkeypatch.setattr(cmd, "write_packs", _explode)
+    assert await run_bootstrap(_args(root)) == 1

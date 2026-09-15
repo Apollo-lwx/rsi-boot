@@ -6,6 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
+import yaml
+
 from rsi_boot.bootstrap import build_runtime
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.core.models import KnowledgeItem
@@ -43,8 +45,23 @@ async def _rows(root: Path, sql: str, params: tuple = ()):
     return await memory_rows_from_sql(root, sql, params)
 
 
+def _pack_paths(root: Path) -> set[str]:
+    out: set[str] = set()
+    packs = root / ".rsi" / "state" / "reading-packs"
+    if not packs.is_dir():
+        return out
+    for path in packs.glob("*.yaml"):
+        if path.name == "index.yaml":
+            continue
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        for src in data.get("sources") or []:
+            if isinstance(src, dict) and src.get("path"):
+                out.add(str(src["path"]).replace("\\", "/"))
+    return out
+
+
 async def test_clean_repo_docs_and_config_are_active(tmp_path, monkeypatch):
-    """干净小仓：README + pyproject → 知识全是 active（或仅规则种子 pending）。"""
+    """干净小仓：写阅读包与 run id，不灌配置摘要知识。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
 
@@ -55,21 +72,10 @@ async def test_clean_repo_docs_and_config_are_active(tmp_path, monkeypatch):
     run = json.loads(run_path.read_text(encoding="utf-8"))
     rid = run["latest"]
     assert rid and len(rid) == 32
-
-    rows = await _rows(
-        root,
-        "SELECT status, content_type, tags, source_url FROM knowledge_items WHERE project_id = ?",
-    )
-    assert rows
-    pending = [r for r in rows if r["status"] == "pending_review"]
-    assert all(r["content_type"] == "prohibition" for r in pending)
-    assert all(r["status"] in ("active", "pending_review") for r in rows)
-    assert any(r["status"] == "active" for r in rows)
-    tag = f"bootstrap_run_id:{rid}"
-    assert all(tag in (r["tags"] or "") for r in rows)
-    config_rows = [r for r in rows if "signal:config" in (r["tags"] or "")]
-    assert config_rows
-    assert all((r["source_url"] or "") == "signal:config" for r in config_rows)
+    report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
+    assert report["knowledge_written"] == 0
+    assert report["pack_count"] >= 1
+    assert any(p.endswith("README.md") or p == "README.md" for p in _pack_paths(root))
 
 
 async def test_auto_extract_pending_survives_cap(tmp_path, monkeypatch):
@@ -127,17 +133,11 @@ async def test_versioned_docs_held_others_active(tmp_path, monkeypatch):
     )
 
     assert await run_bootstrap(_args(root)) == 0
-
-    rows = await _rows(
-        root,
-        "SELECT status, source_url, tags FROM knowledge_items WHERE project_id = ?",
-    )
-    family = [
-        r for r in rows
-        if _src(r).startswith("foo-v1.0.md") or _src(r).startswith("foo-v1.1.md")
-    ]
-    assert family
-    assert all(r["status"] == "active" for r in family)
+    paths = _pack_paths(root)
+    assert any(p.startswith("foo-v1.0.md") for p in paths)
+    assert any(p.startswith("foo-v1.1.md") for p in paths)
+    report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
+    assert report["knowledge_written"] == 0
 
 
 async def test_incremental_version_sibling_holds_existing_active(tmp_path, monkeypatch):
@@ -150,32 +150,16 @@ async def test_incremental_version_sibling_holds_existing_active(tmp_path, monke
     )
 
     assert await run_bootstrap(_args(root)) == 0
-    first = await _rows(
-        root,
-        "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
-    )
-    v10 = [r for r in first if _src(r).startswith("foo-v1.0.md")]
-    assert v10
-    assert all(r["status"] == "active" for r in v10)
+    assert any(p.startswith("foo-v1.0.md") for p in _pack_paths(root))
 
     (root / "foo-v1.1.md").write_text(
         "# Foo\n\n" + _long("新版接口返回 json 且字段名为 accountId"),
         encoding="utf-8",
     )
     assert await run_bootstrap(_args(root)) == 0
-
-    rows = await _rows(
-        root,
-        "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
-    )
-    family = [
-        r for r in rows
-        if _src(r).startswith("foo-v1.0.md") or _src(r).startswith("foo-v1.1.md")
-    ]
-    assert { _src(r).split("#", 1)[0] for r in family } == {
-        "foo-v1.0.md", "foo-v1.1.md",
-    }
-    assert all(r["status"] == "active" for r in family)
+    paths = _pack_paths(root)
+    assert any(p.startswith("foo-v1.0.md") for p in paths)
+    assert any(p.startswith("foo-v1.1.md") for p in paths)
 
 
 def _src(row: dict) -> str:
@@ -190,8 +174,27 @@ def _multichunk_doc(title: str, note: str) -> str:
     return "\n".join(parts)
 
 
+async def _seed_version_knowledge(root: Path) -> None:
+    rt = await build_runtime(project_root=root)
+    try:
+        for rel, title, body in (
+            ("foo-v1.0.md", "Foo v1.0", "旧版接口返回 xml 且字段名为 user_id"),
+            ("foo-v1.1.md", "Foo v1.1", "新版接口返回 json 且字段名为 accountId"),
+        ):
+            await rt.knowledge.add(KnowledgeItem(
+                project_id=rt.project_id,
+                title=title,
+                content=_long(body),
+                status="active",
+                content_type="documentation",
+                source_url=rel,
+            ))
+    finally:
+        await rt.close()
+
+
 async def test_bootstrap_version_keep_peer_activates_kept(tmp_path, monkeypatch):
-    """foo-v1.0 / foo-v1.1：keep_peer 后倾向侧 active，另一侧 archived。"""
+    """已有短知识 + 版本文件：scan 开冲突后 keep_peer 归档旧版。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
     (root / "foo-v1.0.md").write_text(
@@ -202,6 +205,7 @@ async def test_bootstrap_version_keep_peer_activates_kept(tmp_path, monkeypatch)
         "# Foo\n\n" + _long("新版接口返回 json 且字段名为 accountId"),
         encoding="utf-8",
     )
+    await _seed_version_knowledge(root)
     assert await run_bootstrap(_args(root)) == 0
 
     rt = await build_runtime(project_root=root)
@@ -238,6 +242,7 @@ async def test_bootstrap_version_coexist_activates_both(tmp_path, monkeypatch):
         "# Foo\n\n" + _long("新版接口返回 json 且字段名为 accountId"),
         encoding="utf-8",
     )
+    await _seed_version_knowledge(root)
     assert await run_bootstrap(_args(root)) == 0
 
     rt = await build_runtime(project_root=root)
@@ -272,69 +277,59 @@ async def test_bootstrap_multichunk_version_one_open_row(tmp_path, monkeypatch):
     (root / "foo-v1.1.md").write_text(
         _multichunk_doc("Foo", "新版 json accountId"), encoding="utf-8",
     )
+    await _seed_version_knowledge(root)
     assert await run_bootstrap(_args(root)) == 0
-
-    items = await _rows(
-        root,
-        "SELECT source_url FROM knowledge_items WHERE project_id = ?",
-    )
-    v10 = [r for r in items if _src(r) == "foo-v1.0.md"]
-    v11 = [r for r in items if _src(r) == "foo-v1.1.md"]
-    assert len(v10) > 1 and len(v11) > 1
-
-    conflicts = await _rows(
-        root,
-        "SELECT id FROM rule_conflicts "
-        "WHERE project_id = ? AND conflict_type = 'version' AND status = 'open'",
-    )
+    paths = _pack_paths(root)
+    assert any(p.startswith("foo-v1.0.md") for p in paths)
+    assert any(p.startswith("foo-v1.1.md") for p in paths)
+    conflicts = [
+        r for r in memory_conflict_rows(root)
+        if (r.get("conflict_type") or r.get("type")) == "version"
+        and r.get("status", "open") == "open"
+    ]
     assert len(conflicts) == 1
 
 
 async def test_force_does_not_revive_untagged_overflow_archive(tmp_path, monkeypatch):
-    """旧 cap 溢出 archived（无 bootstrap_run_id）在 --force 同哈希时不得复活为 active。"""
+    """已归档短知识在 --force 采集后仍 archived（不再因文件列表复活）。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
-    assert await run_bootstrap(_args(root)) == 0
-    docs = await _rows(
-        root,
-        "SELECT id, tags FROM knowledge_items "
-        "WHERE project_id = ? AND tags LIKE '%signal:docs%'",
-    )
-    assert docs
-    archive_memory_docs(root, [r["id"] for r in docs], clear_tags=True)
+    rt = await build_runtime(project_root=root)
+    try:
+        added = await rt.knowledge.add(KnowledgeItem(
+            project_id=rt.project_id,
+            title="旧文档切片",
+            content=_long("这是一条将被归档的文档知识"),
+            status="active",
+            content_type="documentation",
+            tags=["signal:docs"],
+            source_url="README.md",
+        ))
+        doc_id = added["id"] if isinstance(added, dict) else added
+    finally:
+        await rt.close()
+    archive_memory_docs(root, [doc_id], clear_tags=True)
 
     assert await run_bootstrap(_args(root, force=True)) == 0
     leftover = await _rows(
         root,
-        "SELECT id, status FROM knowledge_items WHERE project_id = ? AND id IN ("
-        + ",".join("?" * len(docs)) + ")",
-        tuple(r["id"] for r in docs),
+        "SELECT id, status FROM knowledge_items WHERE project_id = ? AND id = ?",
+        (doc_id,),
     )
     assert leftover
     assert all(r["status"] == "archived" for r in leftover)
 
 
-async def test_force_does_not_stamp_manifest_for_untagged_archive(tmp_path, monkeypatch, capsys):
-    """--force 跳过未打标归档后不得回写指纹，并提示连同 manifest.json 清库。"""
+async def test_force_rewrites_packs_without_touching_old_yaml(tmp_path, monkeypatch):
+    """--force 重写阅读包为 pending，不写 manifest、不灌知识。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
-    docs = await _rows(
-        root,
-        "SELECT id, source_url FROM knowledge_items "
-        "WHERE project_id = ? AND tags LIKE '%signal:docs%'",
-    )
-    assert docs
-    archive_memory_docs(root, [r["id"] for r in docs], clear_tags=True)
-
-    capsys.readouterr()
     assert await run_bootstrap(_args(root, force=True)) == 0
-    out = capsys.readouterr().out
-    manifest = json.loads((root / ".rsi" / "manifest.json").read_text(encoding="utf-8"))
-    stamped = {r["source_url"] for r in docs if r["source_url"] in manifest}
-    assert not stamped
-    assert "manifest.json" in out
-    assert "rsi wipe --yes" in out
+    report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
+    assert report["knowledge_written"] == 0
+    assert report["pack_count"] >= 1
+    assert not (root / ".rsi" / "manifest.json").exists()
 
 
 def test_readme_wipe_mentions_manifest():
@@ -394,25 +389,12 @@ async def test_dry_run_skips_write_and_gate(tmp_path, monkeypatch):
 
 
 async def test_dry_run_reports_apply_and_confirm_lanes(tmp_path, monkeypatch, capsys):
-    """dry-run：文件级将直通/将进确认，不切片、不 gate。"""
+    """dry-run：打印将生成的包数/域，不写盘、不切片。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
     (root / "CLAUDE.md").write_text("禁止使用 foo 作为默认依赖。\n", encoding="utf-8")
 
-    import rsi_boot.cli.bootstrap_command as cmd
-
-    sliced = {"n": 0}
-
-    def _no_slice(*_a, **_k):
-        sliced["n"] += 1
-        raise AssertionError("dry-run 不得调用 slice_document")
-
-    monkeypatch.setattr(cmd, "slice_document", _no_slice)
-
     assert await run_bootstrap(_args(root, dry_run=True)) == 0
-    assert sliced["n"] == 0
     out = capsys.readouterr().out
-    assert "将直通" in out
-    assert "README.md" in out
-    assert "将进确认" in out
-    assert "CLAUDE.md" in out
+    assert "将生成阅读包" in out
+    assert not (root / ".rsi" / "state" / "reading-packs" / "index.yaml").exists()

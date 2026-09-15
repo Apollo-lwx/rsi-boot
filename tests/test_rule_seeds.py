@@ -122,14 +122,12 @@ async def test_bootstrap_produces_prohibition_drafts(tmp_path, monkeypatch):
     (root / "README.md").write_text("# Demo\n\n## 使用\ndemo run\n", encoding="utf-8")
 
     assert await run_bootstrap(_args(root)) == 0
-    rows = await _prohibition_rows(root)
-    assert len(rows) == 2
-    assert all(r["status"] == "pending_review" for r in rows)
-    assert any("Mapper" in r["title"] for r in rows)
-    assert all(".cursor/rules/java.mdc#L" in r["source_url"] for r in rows)
-
     report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
-    assert report["prohibition_seeds"] == 2
+    assert report["knowledge_written"] == 0
+    assert await _prohibition_rows(root) == []
+    packs = root / ".rsi" / "state" / "reading-packs"
+    text = "\n".join(p.read_text(encoding="utf-8") for p in packs.glob("*.yaml"))
+    assert "java.mdc" in text
 
 
 async def test_bootstrap_prohibition_seeds_idempotent(tmp_path, monkeypatch):
@@ -142,5 +140,4 @@ async def test_bootstrap_prohibition_seeds_idempotent(tmp_path, monkeypatch):
 
     assert await run_bootstrap(_args(root)) == 0
     assert await run_bootstrap(_args(root, force=True)) == 0
-    rows = await _prohibition_rows(root)
-    assert len(rows) == 1
+    assert await _prohibition_rows(root) == []

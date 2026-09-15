@@ -60,15 +60,12 @@ async def test_bootstrap_caps_review_queue(tmp_path, monkeypatch):
     root = _make_doc_project(tmp_path / "proj")
     assert await run_bootstrap(_args(root)) == 0
 
+    report = json.loads((root / ".rsi" / "bootstrap_report.json").read_text(encoding="utf-8"))
+    assert report["knowledge_written"] == 0
+    assert report["pack_count"] >= 1
     counts = await _status_counts(root)
     assert counts.get("archived", 0) == 0
-    assert counts.get("active", 0) >= 8  # 文档 + 配置直通
-
-    rows = memory_item_rows(root)
-    conventions = [r for r in rows if r["content_type"] == "convention"]
-    assert conventions and all(r["status"] == "active" for r in conventions)
-    docs = [r for r in rows if r["content_type"] == "documentation"]
-    assert docs and all(r["status"] == "active" for r in docs)
+    assert (root / ".rsi" / "state" / "reading-packs" / "index.yaml").is_file()
 
 
 async def test_bootstrap_force_rerun_does_not_requeue_archived(tmp_path, monkeypatch):
