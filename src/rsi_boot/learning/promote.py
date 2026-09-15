@@ -108,6 +108,20 @@ def _success_counts(store: MemoryStore) -> dict[tuple[str, str], int]:
     return counts
 
 
+def _disk_int(doc: MemoryDoc, *keys: str) -> int:
+    payload = doc.payload or {}
+    fix = payload.get("fix_and_learn") if isinstance(payload.get("fix_and_learn"), dict) else {}
+    for src in (payload, fix):
+        for key in keys:
+            if src.get(key) is None:
+                continue
+            try:
+                return int(src[key])
+            except (TypeError, ValueError):
+                continue
+    return 0
+
+
 def _candidates(store: MemoryStore) -> list[MemoryDoc]:
     counts = _success_counts(store)
     seen: set[str] = set()
@@ -119,7 +133,11 @@ def _candidates(store: MemoryStore) -> list[MemoryDoc]:
             pair = _sig_pair(doc.payload or {})
             flagged = doc.type == "teaching_case" and _promote_flagged(doc)
             enough = bool(pair[0]) and counts.get(pair, 0) >= 3
-            if flagged or enough:
+            disk_ready = (
+                _disk_int(doc, "record_count", "hit_count") >= 3
+                or _disk_int(doc, "weight", "gene_map_weight") >= 8
+            )
+            if flagged or enough or disk_ready:
                 seen.add(doc.id)
                 out.append(doc)
     return out

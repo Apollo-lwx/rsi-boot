@@ -12,7 +12,8 @@ from typing import Any
 import yaml
 
 from rsi_boot.core.masking import mask_text
-from rsi_boot.memory.logstore import append_event
+from rsi_boot.learning.gene_map import find_duplicate
+from rsi_boot.memory.logstore import append_event, iter_events
 from rsi_boot.memory.paths import official_dir
 from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc
@@ -25,7 +26,7 @@ RUBRIC_TEXT = """kind → write path
 pattern → patterns/
 gene → gene-map/cases/
 teaching → teaching-cases/
-teaching_pending → teaching-cases/pending/
+low_confidence → official teaching-cases/ plus lesson.low_confidence
 skip_dup → do not write; cite existing id
 RSI does not write the lesson. Host writes Catch→Teach→Fix then teach_record.
 """
@@ -84,26 +85,131 @@ def teach_catch(store: MemoryStore, arguments: dict[str, Any], lang: str) -> dic
     }
 
 
+def _utc_stamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _as_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _count_field(payload: dict[str, Any], *keys: str) -> int | None:
+    for key in keys:
+        if payload.get(key) is None:
+            continue
+        return _as_int(payload.get(key), 0)
+    return None
+
+
+def _load_pair(store: MemoryStore, doc_id: str) -> tuple[MemoryDoc | None, MemoryDoc | None]:
+    teaching = next((d for d in store.list_official("teaching_case") if d.id == doc_id), None)
+    gene = next((d for d in store.list_official("gene_case") if d.id == doc_id), None)
+    return teaching, gene
+
+
+def _dest_for(store: MemoryStore, doc: MemoryDoc | None, typ: str, title: str, doc_id: str) -> Path:
+    if doc and doc.path:
+        path = Path(doc.path)
+        return path if path.is_absolute() else store.rsi_dir / doc.path
+    root = official_dir(store.rsi_dir, typ)
+    if typ == "gene_case":
+        return root / "manual" / memory_filename(title, doc_id)
+    return root / memory_filename(title, doc_id)
+
+
+def _recall_hits_since(store: MemoryStore, doc_id: str, recorded_at: str) -> int:
+    hits = 0
+    for event in iter_events(store.rsi_dir, kinds={"recall"}):
+        ts = str(event.get("ts") or "")
+        if recorded_at and ts <= recorded_at:
+            continue
+        retrieved = event.get("retrieved") or []
+        if doc_id in retrieved:
+            hits += 1
+    return hits
+
+
 def teach_record(store: MemoryStore, arguments: dict[str, Any], lang: str) -> dict[str, Any]:
     lesson = _lesson(arguments)
     correct_fix = str(lesson.get("correct_fix") or "").strip()
     if not correct_fix:
         return {"status": "error", "code": "invalid", "message": t("TEACH_NEED_FIX", lang)}
+    wrong_action = str(lesson.get("wrong_action") or "").strip()
+    if not wrong_action:
+        return {"status": "error", "code": "invalid", "message": t("TEACH_NEED_WRONG", lang)}
+    error_signature = str(lesson.get("error_signature") or "").strip()
+    if not error_signature:
+        return {"status": "error", "code": "invalid", "message": t("TEACH_NEED_SIGNATURE", lang)}
 
-    doc_id = _record_id(arguments)
+    failure_type = str(lesson.get("failure_type") or "").strip()
+    dup = find_duplicate(store, error_signature, failure_type)
+    existing_id = (
+        dup.id if dup is not None and dup.type in {"gene_case", "teaching_case"} else None
+    )
+    prior_teaching, prior_gene = _load_pair(store, existing_id) if existing_id else (None, None)
+    doc_id = existing_id or _record_id(arguments)
+    if existing_id is None:
+        prior_teaching, prior_gene = _load_pair(store, doc_id)
+
     title = _title(lesson, correct_fix)
     author = str(lesson.get("author") or arguments.get("author") or "agent")
-    weight = 10 if author == "user" else 8
     low_conf = _low_confidence(arguments, lesson)
     promote = _promote_to_pattern(arguments, lesson)
     trigger = {
-        "error_signature": str(lesson.get("error_signature") or ""),
-        "failure_type": str(lesson.get("failure_type") or ""),
+        "error_signature": error_signature,
+        "failure_type": failure_type,
         "fingerprint": str(lesson.get("fingerprint") or ""),
     }
     attempts = arguments.get("system_attempts")
     if not isinstance(attempts, list):
         attempts = []
+    if prior_teaching is not None:
+        prior_attempts = list((prior_teaching.payload or {}).get("system_attempts") or [])
+        attempts = prior_attempts + attempts
+
+    prior_payload = (prior_teaching.payload if prior_teaching else None) or (prior_gene.payload if prior_gene else None) or {}
+    prior_fix = prior_payload.get("fix_and_learn") if isinstance(prior_payload.get("fix_and_learn"), dict) else {}
+    recorded_at = str(prior_fix.get("recorded_at") or prior_payload.get("recorded_at") or "")
+    record_count = _count_field(prior_fix, "record_count", "hit_count")
+    if record_count is None:
+        record_count = _count_field(prior_payload, "record_count", "hit_count")
+    recall_hits = _count_field(prior_fix, "recall_hits")
+    if recall_hits is None:
+        recall_hits = _count_field(prior_payload, "recall_hits") or 0
+    weight = _count_field(prior_payload, "weight")
+    if weight is None:
+        weight = _count_field(prior_fix, "gene_map_weight")
+
+    if prior_teaching is None and prior_gene is None:
+        record_count = 1
+        recall_hits = 0
+        weight = 10 if author == "user" else 2
+    else:
+        record_count = (record_count or 1) + 1
+        new_hits = _recall_hits_since(store, doc_id, recorded_at)
+        if new_hits:
+            weight = min(10, (weight if weight is not None else 2) + 2)
+            recall_hits = (recall_hits or 0) + new_hits
+        elif weight is None:
+            weight = 2
+    if author == "user":
+        weight = max(weight or 0, 10)
+    recorded_at = _utc_stamp()
+
+    lesson_payload = {
+        "author": author,
+        "correct_fix": correct_fix,
+        "reason": str(lesson.get("reason") or ""),
+        "applies_to": list(lesson.get("applies_to") or []),
+        "tags": list(lesson.get("tags") or []),
+        "open_questions": list(lesson.get("open_questions") or []),
+        "wrong_action": wrong_action,
+    }
+    if low_conf:
+        lesson_payload["low_confidence"] = True
 
     teaching = MemoryDoc(
         id=doc_id,
@@ -115,28 +221,19 @@ def teach_record(store: MemoryStore, arguments: dict[str, Any], lang: str) -> di
             "scenario_type": str(lesson.get("scenario_type") or arguments.get("scenario_type") or "repair"),
             "trigger": trigger,
             "system_attempts": attempts,
-            "lesson": {
-                "author": author,
-                "correct_fix": correct_fix,
-                "reason": str(lesson.get("reason") or ""),
-                "applies_to": list(lesson.get("applies_to") or []),
-                "tags": list(lesson.get("tags") or []),
-                "open_questions": list(lesson.get("open_questions") or []),
-                "wrong_action": str(lesson.get("wrong_action") or ""),
-            },
+            "lesson": lesson_payload,
             "fix_and_learn": {
                 "applied": bool((arguments.get("fix_and_learn") or {}).get("applied", False)),
                 "validation": "",
                 "gene_map_weight": weight,
                 "promote_to_pattern": promote,
+                "record_count": record_count,
+                "recall_hits": recall_hits,
+                "recorded_at": recorded_at,
             },
         },
     )
-    teaching_root = official_dir(store.rsi_dir, "teaching_case")
-    if low_conf:
-        teaching_dest = teaching_root / "pending" / memory_filename(title, doc_id)
-    else:
-        teaching_dest = teaching_root / memory_filename(title, doc_id)
+    teaching_dest = _dest_for(store, prior_teaching, "teaching_case", title, doc_id)
     written = store.write(teaching, dest=teaching_dest)
 
     gene = MemoryDoc(
@@ -156,9 +253,12 @@ def teach_record(store: MemoryStore, arguments: dict[str, Any], lang: str) -> di
             "solution": correct_fix,
             "validation": "skipped",
             "scope": "project",
+            "record_count": record_count,
+            "recall_hits": recall_hits,
+            "recorded_at": recorded_at,
         },
     )
-    gene_dest = official_dir(store.rsi_dir, "gene_case") / "manual" / memory_filename(title, doc_id)
+    gene_dest = _dest_for(store, prior_gene, "gene_case", title, doc_id)
     gene_written = store.write(gene, dest=gene_dest)
 
     closeout: list[dict[str, Any]] = [

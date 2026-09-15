@@ -157,6 +157,22 @@ async def test_teach_record_requires_correct_fix(tmp_path, monkeypatch):
         assert out["status"] == "error"
         assert out["code"] == "invalid"
         assert out["message"] == t("TEACH_NEED_FIX", "zh")
+        missing_wrong = await handle(rt, {
+            "action": "teach_record",
+            "lesson": {"correct_fix": "列出列名", "error_signature": "select-star"},
+        })
+        assert missing_wrong["status"] == "error"
+        assert missing_wrong["message"] == t("TEACH_NEED_WRONG", "zh")
+        empty_sig = await handle(rt, {
+            "action": "teach_record",
+            "lesson": {
+                "wrong_action": "SELECT *",
+                "correct_fix": "列出列名",
+                "error_signature": "   ",
+            },
+        })
+        assert empty_sig["status"] == "error"
+        assert empty_sig["message"] == t("TEACH_NEED_SIGNATURE", "zh")
     finally:
         await rt.close()
 
@@ -211,16 +227,28 @@ async def test_teach_record_pending_and_pattern_paths(tmp_path, monkeypatch):
         pending = await handle(rt, {
             "action": "teach_record",
             "low_confidence": True,
-            "lesson": {"correct_fix": "列出列名", "error_signature": "select-star"},
+            "lesson": {
+                "wrong_action": "SELECT *",
+                "correct_fix": "列出列名",
+                "error_signature": "select-star",
+            },
         })
         assert pending["status"] == "success"
-        assert "teaching-cases/pending" in pending["data"]["path"].replace("\\", "/")
+        pending_path = pending["data"]["path"].replace("\\", "/")
+        assert "teaching-cases/pending" not in pending_path
+        assert "teaching-cases/" in pending_path
         assert pending["data"].get("status", "active") == "active"
+        lesson = rt.store.read(pending["data"]["id"]).payload["lesson"]
+        assert lesson.get("low_confidence") is True
 
         promoted = await handle(rt, {
             "action": "teach_record",
             "promote_to_pattern": True,
-            "lesson": {"correct_fix": "写列名", "error_signature": "star-2"},
+            "lesson": {
+                "wrong_action": "SELECT *",
+                "correct_fix": "写列名",
+                "error_signature": "star-2",
+            },
         })
         assert promoted["status"] == "success"
         memory_root = tmp_path / ".rsi" / "memory"
@@ -261,3 +289,81 @@ def test_list_tools_uses_tool_desc():
     from rsi_boot.ux.messages import TOOL_DESC
     assert TOOL_DESCRIPTION == TOOL_DESC["learn"]
     assert RECALL_DESC == TOOL_DESC["recall"]
+
+
+@pytest.mark.asyncio
+async def test_teach_record_weight_ramps_only_after_recall_hit(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+    from rsi_boot.memory.logstore import append_event
+
+    lesson = {
+        "wrong_action": "SELECT *",
+        "correct_fix": "列出列名",
+        "error_signature": "select-star",
+        "failure_type": "sql",
+    }
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        first = await handle(rt, {"action": "teach_record", "lesson": lesson})
+        assert first["status"] == "success"
+        doc_id = first["data"]["id"]
+        first_doc = rt.store.read(doc_id)
+        assert first_doc.payload["fix_and_learn"]["gene_map_weight"] == 2
+        assert first_doc.payload["fix_and_learn"]["record_count"] == 1
+        gene = next(d for d in rt.store.list_official("gene_case") if d.id == doc_id)
+        assert gene.payload["weight"] == 2
+
+        second = await handle(rt, {"action": "teach_record", "lesson": lesson})
+        assert second["data"]["id"] == doc_id
+        second_doc = rt.store.read(doc_id)
+        assert second_doc.payload["fix_and_learn"]["gene_map_weight"] == 2
+        assert second_doc.payload["fix_and_learn"]["record_count"] == 2
+        teaching_files = list((tmp_path / ".rsi" / "memory" / "teaching-cases").glob("*.yaml"))
+        assert len(teaching_files) == 1
+
+        append_event(rt.store.rsi_dir, {
+            "id": "b" * 32,
+            "ts": "2099-01-01T00:00:00Z",
+            "kind": "recall",
+            "retrieved": [doc_id],
+        })
+        third = await handle(rt, {"action": "teach_record", "lesson": lesson})
+        assert third["data"]["id"] == doc_id
+        third_doc = rt.store.read(doc_id)
+        assert third_doc.payload["fix_and_learn"]["gene_map_weight"] == 4
+        assert third_doc.payload["fix_and_learn"]["record_count"] == 3
+        assert third_doc.payload["fix_and_learn"]["recall_hits"] >= 1
+        gene = next(d for d in rt.store.list_official("gene_case") if d.id == doc_id)
+        assert gene.payload["weight"] == 4
+        assert len(list((tmp_path / ".rsi" / "memory" / "teaching-cases").glob("*.yaml"))) == 1
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
+async def test_teach_record_user_then_agent_keeps_weight(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+
+    lesson = {
+        "wrong_action": "SELECT *",
+        "correct_fix": "列出列名",
+        "error_signature": "select-star",
+        "failure_type": "sql",
+        "author": "user",
+    }
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        first = await handle(rt, {"action": "teach_record", "lesson": lesson})
+        doc_id = first["data"]["id"]
+        assert rt.store.read(doc_id).payload["fix_and_learn"]["gene_map_weight"] == 10
+        agent = dict(lesson)
+        agent["author"] = "agent"
+        second = await handle(rt, {"action": "teach_record", "lesson": agent})
+        assert second["data"]["id"] == doc_id
+        assert rt.store.read(doc_id).payload["fix_and_learn"]["gene_map_weight"] == 10
+    finally:
+        await rt.close()

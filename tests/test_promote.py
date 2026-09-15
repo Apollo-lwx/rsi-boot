@@ -234,3 +234,34 @@ async def test_domain_scope_skips_global_prohibition(tmp_path, monkeypatch):
         assert list(proh.glob("*.yaml")) == []
     finally:
         await rt.close()
+
+
+@pytest.mark.asyncio
+async def test_record_count_three_promotes_without_feedback(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_LANG", "zh")
+    from rsi_boot.api.tools.learn_tool import handle
+    from rsi_boot.bootstrap import build_runtime
+
+    store = MemoryStore(tmp_path / ".rsi")
+    doc_id = "e" * 32
+    dest = official_dir(store.rsi_dir, "teaching_case") / memory_filename("列出列名", doc_id)
+    store.write(
+        MemoryDoc(
+            id=doc_id,
+            type="teaching_case",
+            title="列出列名",
+            content="查询必须写列名",
+            payload={
+                "trigger": {"error_signature": "select-star", "failure_type": "sql"},
+                "fix_and_learn": {"record_count": 3, "gene_map_weight": 4},
+            },
+        ),
+        dest=dest,
+    )
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        out = await handle(rt, {"action": "promote"})
+        assert out["status"] == "success"
+        assert _pending_yaml(tmp_path)
+    finally:
+        await rt.close()

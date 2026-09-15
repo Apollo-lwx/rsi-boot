@@ -76,7 +76,11 @@ async def test_memory_index_and_reindex(tmp_path, monkeypatch):
     try:
         await learn_handle(rt, {
             "action": "teach_record",
-            "lesson": {"correct_fix": "列出列名", "error_signature": "select-star"},
+            "lesson": {
+                "wrong_action": "SELECT *",
+                "correct_fix": "列出列名",
+                "error_signature": "select-star",
+            },
         })
         listed = await handle(rt, {"action": "index"})
         assert listed["status"] == "success"

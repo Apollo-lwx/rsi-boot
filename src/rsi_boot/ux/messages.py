@@ -82,6 +82,14 @@ STRINGS = {
         "zh": "lesson.correct_fix 不能为空",
         "en": "lesson.correct_fix must not be empty",
     },
+    "TEACH_NEED_WRONG": {
+        "zh": "lesson.wrong_action 不能为空",
+        "en": "lesson.wrong_action must not be empty",
+    },
+    "TEACH_NEED_SIGNATURE": {
+        "zh": "lesson.error_signature 不能为空",
+        "en": "lesson.error_signature must not be empty",
+    },
     "TEACH_SKIPPED": {"zh": "已跳过现场 {id}", "en": "Skipped catch {id}"},
     "MEMORY_INDEX": {"zh": "共 {n} 条记忆文件", "en": "{n} memory file(s)"},
     "MEMORY_OPENED": {"zh": "已打开记忆 {id}", "en": "Opened memory {id}"},
