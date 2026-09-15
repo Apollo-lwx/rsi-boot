@@ -21,7 +21,6 @@ import yaml
 
 if TYPE_CHECKING:
     from ..memory.store import MemoryStore
-    from ..scanner.conflict_gate import ConflictDraft
 
 from ..core.masking import mask_text
 from ..memory.logstore import iter_events
@@ -340,60 +339,6 @@ class ConflictDetector:
             return True
         peer = self._peer_doc(row)
         return peer is not None and marker in list(peer.tags or [])
-
-    async def persist_knowledge_conflicts(
-        self, project_id: str, drafts: list[ConflictDraft],
-        source_to_item_id: dict[str, str],
-    ) -> int:
-        """INSERT OR IGNORE；item_id = left_source 对应条目；user_rule_path = right_source。"""
-        def _as_id(value: Any) -> str:
-            if isinstance(value, dict):
-                return str(value.get("id") or "")
-            return str(value or "")
-
-        mapped = {self._norm_src(k): _as_id(v) for k, v in source_to_item_id.items()}
-        existing = self._load_conflict_rows()
-        seen = {self._conflict_key(r) for r in existing}
-        seen_hashes = {r.get("user_rule_hash") for r in existing if r.get("user_rule_hash")}
-        now = _utc_iso()
-        inserted = 0
-        for draft in drafts:
-            left = self._norm_src(draft.left_source)
-            right = self._norm_src(draft.right_source)
-            item_id = mapped.get(left)
-            if not item_id or not right:
-                continue
-            a, b = sorted((left, right))
-            family_hash = hashlib.sha256(
-                f"{draft.conflict_type}:{a}:{b}".encode("utf-8")
-            ).hexdigest()
-            if family_hash in seen_hashes:
-                continue
-            row = {
-                "id": uuid.uuid4().hex,
-                "project_id": project_id,
-                "item_id": item_id,
-                "user_rule_path": right,
-                "excerpt": mask_text(
-                    f"[{draft.conflict_type}] {draft.reason}\n"
-                    f"倾向: {draft.recommended}（{draft.recommended_reason}）\n"
-                    f"另一侧: {right}"
-                )[:_EXCERPT_MAX],
-                "user_rule_hash": family_hash,
-                "type": draft.conflict_type,
-                "status": "open",
-                "resolution_note": f"recommended:{draft.recommended}",
-                "detected_at": now,
-            }
-            if self._conflict_key(row) in seen:
-                continue
-            existing.append(row)
-            seen.add(self._conflict_key(row))
-            seen_hashes.add(family_hash)
-            inserted += 1
-        if inserted:
-            self._save_conflict_rows(existing)
-        return inserted
 
     async def explain(self, conflict_id: str) -> Optional[Dict[str, Any]]:
         """只读。返回 sides、impact、options，不 UPDATE。"""

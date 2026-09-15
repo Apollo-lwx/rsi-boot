@@ -11,9 +11,7 @@ from rsi_boot.bootstrap import build_runtime
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.cli.knowledge_accept import accept_bootstrap_extracts
 from rsi_boot.core.models import KnowledgeItem
-from rsi_boot.scanner.conflict_gate import ConflictDraft
-
-from memory_helpers import memory_conflict_rows, memory_item_rows, memory_rows_from_sql
+from memory_helpers import memory_conflict_rows, memory_item_rows, memory_rows_from_sql, write_memory_conflict
 
 
 def _args(root: Path, **overrides) -> argparse.Namespace:
@@ -117,7 +115,7 @@ async def test_clean_repo_bootstrap_active_pending_only_extracts(tmp_path):
 
 
 async def test_doc_missing_class_held_code_skeleton_active(tmp_path):
-    """文档点名 class MissingThing → 该文档 pending；代码骨架仍直通 active。"""
+    """5a：文档点名不存在的 class 不再 Jaccard hold，也不预灌 doc_code 冲突。"""
     root = _clean_repo(tmp_path / "proj")
     docs = root / "docs"
     docs.mkdir()
@@ -140,7 +138,7 @@ async def test_doc_missing_class_held_code_skeleton_active(tmp_path):
     doc_rows = [r for r in rows if _src(r).startswith("docs/user.md")]
     code_rows = [r for r in rows if _src(r) == "signal:code"]
     assert doc_rows
-    assert all(r["status"] == "pending_review" for r in doc_rows)
+    assert all(r["status"] == "active" for r in doc_rows)
     assert code_rows
     assert all(r["status"] == "active" for r in code_rows)
 
@@ -148,7 +146,7 @@ async def test_doc_missing_class_held_code_skeleton_active(tmp_path):
         root,
         "SELECT conflict_type, item_id FROM rule_conflicts WHERE project_id = ?",
     )
-    assert any(c["conflict_type"] == "doc_code" for c in conflicts)
+    assert not any(c["conflict_type"] == "doc_code" for c in conflicts)
 
 
 async def test_review_queue_cap_does_not_archive_auto_extract(tmp_path):
@@ -242,20 +240,10 @@ async def test_meikan_dong_explain_must_not_skip_or_close_decision(tmp_path):
             tags=["signal:docs"],
             source_url="docs/api.md",
         ))
-        n = await rt.conflict_detector.persist_knowledge_conflicts(
-            pid,
-            [ConflictDraft(
-                conflict_type="incoherent",
-                left_source="auto-extract",
-                right_source="docs/api.md",
-                reason="极性相反：禁止 pydantic vs 允许 pydantic",
-                hold_sources=["auto-extract"],
-                recommended="keep_item",
-                recommended_reason="新稿来自刚才这次对话的明确否定",
-            )],
-            {"auto-extract": left_id, "docs/api.md": right_id},
+        write_memory_conflict(
+            rt.store, item_id=left_id, peer_source="docs/api.md",
+            excerpt="极性相反：禁止 pydantic vs 允许 pydantic",
         )
-        assert n == 1
 
         first = await rt.recall.recall("API 校验怎么写", pid)
         assert first["decisions"]

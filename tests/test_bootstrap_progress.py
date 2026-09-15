@@ -179,7 +179,7 @@ async def test_bootstrap_prints_phase_progress(tmp_path, monkeypatch, capsys):
     assert "扫描文件树" in out
     assert "配置" in out
     assert "已用" in out
-    assert "冲突检测" in out
+    assert "冲突检测" not in out
     assert "写入知识" in out
 
 

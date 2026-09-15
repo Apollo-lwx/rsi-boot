@@ -12,10 +12,9 @@ import json
 import logging
 import sys
 import uuid
-from collections import Counter
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Set
 
 from ..bootstrap import build_runtime, detect_user_id
 from ..project import load_or_create_identity
@@ -23,7 +22,6 @@ from ..core.masking import mask_text
 from ..core.models import KnowledgeItem
 from ..scanner.code_scanner import aggregate_imports, scan_code
 from ..scanner.config_scanner import scan_configs
-from ..scanner.conflict_gate import DraftItem, GateResult, gate_drafts
 from ..scanner.conversation_scanner import scan_conversations
 from ..scanner.correlation_engine import (
     correlate_commit_files,
@@ -40,13 +38,13 @@ from ..scanner.profile_generator import (
     build_profile,
 )
 from ..injector.targets import discover_user_rule_files
+from ..scanner.reading_packs import unlink_host_judge_queue
 from ..scanner.report import BootstrapReport
 from ..scanner.rule_seed_scanner import scan_rule_seeds
 from ..scanner.signal_discovery import (
     discover_signals,
     parse_include_dirs,
     plan_scopes,
-    source_path_excluded,
 )
 from ..scanner.validator import DedupSet, ErrorCollector, content_hash, read_text_tolerant, validate_chunk
 from ..ux.lang import locale_lang
@@ -55,8 +53,6 @@ from .progress import Progress
 
 _LANE_B = frozenset({"conversation", "rules"})
 _REVIEW_CAP_WARN = 500
-_QUEUE_NAME = "host_judge_queue.json"
-_QUEUE_CONTENT_CAP = 6000  # 与 slice max_tokens 1500 × 4 字符一致
 _SIGNAL_SOURCE = {
     "config": "signal:config",
     "code": "signal:code",
@@ -65,8 +61,30 @@ _SIGNAL_SOURCE = {
 }
 
 
+@dataclass
+class _SrcDraft:
+    """Harvest write record. Local name so this file does not import the deleted gate."""
+
+    title: str
+    content: str
+    content_type: str
+    source_url: str
+    tags: list[str]
+    signal: str
+
+
 def _norm_src(path: str) -> str:
     return (path or "").replace("\\", "/")
+
+
+@dataclass
+class _SrcDraft:
+    title: str
+    content: str
+    content_type: str
+    source_url: str
+    tags: List[str]
+    signal: str
 
 
 def _doc_source(doc: Any) -> str:
@@ -240,118 +258,6 @@ async def _write_code_batch(
     report.knowledge_written += 1
 
 
-async def _source_to_item_id(runtime: Any, project_id: str) -> Dict[str, str]:
-    del project_id
-    mapping: Dict[str, str] = {}
-    for doc in _store_docs(runtime):
-        key = _doc_source(doc)
-        if key:
-            mapping.setdefault(key, doc.id)
-    return mapping
-
-
-def _truncate_for_queue(text: str) -> tuple[str, bool]:
-    """超 _QUEUE_CONTENT_CAP 截断并标 truncated。"""
-    if len(text) <= _QUEUE_CONTENT_CAP:
-        return text, False
-    return text[:_QUEUE_CONTENT_CAP], True
-
-
-def _conflict_sides(
-    gate: GateResult, drafts_by_source: Dict[str, DraftItem],
-) -> Dict[str, DraftItem]:
-    """left/right source → DraftItem（库内同伴已在 drafts 里，直接索引）。"""
-    sides: Dict[str, DraftItem] = {}
-    for conflict in gate.conflicts:
-        for src in (conflict.left_source, conflict.right_source):
-            key = _norm_src(src)
-            if key and key not in sides and key in drafts_by_source:
-                sides[key] = drafts_by_source[key]
-    return sides
-
-
-async def _write_host_judge_queue(
-    runtime: Any, rsi_dir: Path, project_id: str, run_id: str,
-    gate: GateResult, drafts: List[DraftItem],
-    source_to_item_id: Optional[Dict[str, str]] = None,
-) -> tuple[Path, int]:
-    """持久化冲突后，把本 run 全部 open 冲突（含 conflict_id）写成队列文件。
-    返回 (队列路径, 未决组数)。写失败抛 OSError（调用方转 exit 1）。"""
-    drafts_by_source = {_norm_src(d.source_url): d for d in drafts if d.source_url}
-    sides = _conflict_sides(gate, drafts_by_source)
-    mapping = (
-        source_to_item_id
-        if source_to_item_id is not None
-        else await _source_to_item_id(runtime, project_id)
-    )
-    item_to_source = {item_id: src for src, item_id in mapping.items()}
-    gate_by_pair = {
-        (c.conflict_type, _norm_src(c.left_source), _norm_src(c.right_source)): c
-        for c in gate.conflicts
-    }
-    rows: List[Dict[str, Any]] = []
-    offset = 0
-    page_size = 200
-    while True:
-        page = await runtime.conflict_detector.list_conflicts(
-            project_id, "open", bootstrap_run_id=run_id,
-            limit=page_size, offset=offset,
-        )
-        rows.extend(page)
-        if len(page) < page_size:
-            break
-        offset += page_size
-    items: List[Dict[str, Any]] = []
-    for row in rows:
-        left = _norm_src(item_to_source.get(row.get("item_id") or "", ""))
-        right = _norm_src(row.get("user_rule_path") or "")
-        conflict = gate_by_pair.get((row.get("conflict_type") or "", left, right))
-        left_draft = sides.get(left) or drafts_by_source.get(left)
-        right_draft = sides.get(right) or drafts_by_source.get(right)
-        left_content, left_cut = _truncate_for_queue(left_draft.content if left_draft else "")
-        right_content, right_cut = _truncate_for_queue(right_draft.content if right_draft else "")
-        note = row.get("resolution_note") or ""
-        items.append({
-            "conflict_id": row["id"],
-            "conflict_type": conflict.conflict_type if conflict else row.get("conflict_type", ""),
-            "left": {
-                "title": left_draft.title if left_draft else left,
-                "content": left_content,
-                "source": left,
-            },
-            "right": {
-                "title": right_draft.title if right_draft else right,
-                "content": right_content,
-                "source": right,
-            },
-            "recommended": (
-                conflict.recommended if conflict
-                else note[len("recommended:"):] if note.startswith("recommended:") else ""
-            ),
-            "recommended_reason": conflict.recommended_reason if conflict else "",
-            "truncated": left_cut or right_cut,
-        })
-    payload = {
-        "bootstrap_run_id": run_id,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "judge": "host",
-        "capped": gate.omitted_candidates > 0,
-        "omitted": gate.omitted_candidates,
-        "items": items,
-    }
-    rsi_dir.mkdir(parents=True, exist_ok=True)
-    queue_path = rsi_dir / _QUEUE_NAME
-    queue_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    return queue_path, len(items)
-
-
-def _delete_host_judge_queue(rsi_dir: Path) -> None:
-    """--local-judge：存在则删，避免 agent 误读旧 run。"""
-    (rsi_dir / _QUEUE_NAME).unlink(missing_ok=True)
-
-
 async def _existing_hashes(runtime: Any, project_id: str) -> Set[str]:
     del project_id
     return {
@@ -359,59 +265,6 @@ async def _existing_hashes(runtime: Any, project_id: str) -> Set[str]:
         for doc in _store_docs(runtime)
         if doc.status in ("active", "pending_review", "archived")
     }
-
-
-def _signal_from_tags(tags_raw: Any) -> str:
-    try:
-        tags = json.loads(tags_raw) if isinstance(tags_raw, str) else (tags_raw or [])
-    except (TypeError, ValueError):
-        tags = []
-    if not isinstance(tags, list):
-        tags = []
-    for tag in tags:
-        if isinstance(tag, str) and tag.startswith("signal:"):
-            return tag.split(":", 1)[1]
-    return "docs"
-
-
-def _peer_title(title: str, source_url: str) -> str:
-    """ingest 标题是 `{filename}# {chunk.title}`；gate 按 chunk 标题比版本家族。"""
-    name = Path(source_url).name
-    prefix = f"{name}# "
-    if title.startswith(prefix):
-        return title[len(prefix):]
-    return title
-
-
-async def _load_existing_drafts(
-    runtime: Any, project_id: str, already: Set[str],
-    include: Sequence[str] | None = None,
-) -> List[DraftItem]:
-    """把库中 active/pending 行当成本轮 DraftItem 同伴，供 gate 看到指纹跳过的版本对。"""
-    del project_id
-    allowed = parse_include_dirs(include)
-    peers: List[DraftItem] = []
-    for doc in _store_docs(runtime):
-        if doc.status not in ("active", "pending_review"):
-            continue
-        src = _doc_source(doc)
-        if not src or src in already:
-            continue
-        if src == "auto-extract" or src.startswith("item:"):
-            continue
-        if source_path_excluded(src, allowed):
-            continue
-        tags = list(doc.tags or [])
-        signal = _signal_from_tags(tags)
-        peers.append(DraftItem(
-            title=_peer_title(doc.title or "", src),
-            content=doc.content or "",
-            content_type=doc.type or "documentation",
-            source_url=src,
-            tags=tags or [f"signal:{signal}"],
-            signal=signal,
-        ))
-    return peers
 
 
 async def _demote_held_active(
@@ -520,7 +373,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         new_manifest = dict(manifest)
         dedup = DedupSet(await _existing_hashes(runtime, project_id))
         run_id = uuid.uuid4().hex
-        drafts: List[DraftItem] = []
+        drafts: List[_SrcDraft] = []
         doc_jobs: List[Dict[str, Any]] = []
 
         # ---- 先切片/摘要成草稿，不写库 ----
@@ -556,7 +409,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                         chunk_tags = ["signal:docs"]
                         if chunk.kind == "index":
                             chunk_tags.append("signal:doc-index")
-                        drafts.append(DraftItem(
+                        drafts.append(_SrcDraft(
                             title=chunk.title, content=chunk.content,
                             content_type="documentation", source_url=rel_n,
                             tags=chunk_tags, signal="docs",
@@ -579,7 +432,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
         config_src = _SIGNAL_SOURCE["config"]
         if plan.get("config"):
             config_summary = mask_text(insights.summary_text())
-            drafts.append(DraftItem(
+            drafts.append(_SrcDraft(
                 title="项目配置与规范摘要", content=config_summary,
                 content_type="convention", source_url=config_src,
                 tags=["signal:config"], signal="config",
@@ -601,7 +454,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 batch_chars += len(skeleton.to_text())
                 if batch_chars >= 3000:
                     code_batches.append(batch)
-                    drafts.append(DraftItem(
+                    drafts.append(_SrcDraft(
                         title="代码骨架摘要", content="\n\n".join(batch),
                         content_type="architecture", source_url=_SIGNAL_SOURCE["code"],
                         tags=["signal:code"], signal="code",
@@ -609,7 +462,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     batch, batch_chars = [], 0
             if batch:
                 code_batches.append(batch)
-                drafts.append(DraftItem(
+                drafts.append(_SrcDraft(
                     title="代码骨架摘要", content="\n\n".join(batch),
                     content_type="architecture", source_url=_SIGNAL_SOURCE["code"],
                     tags=["signal:code"], signal="code",
@@ -632,13 +485,13 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                     f"{len(git_insights.authors)} 人, conventional {git_insights.conventional_ratio:.0%}"
                 )
                 git_summary = mask_text(git_insights.to_summary())
-                drafts.append(DraftItem(
+                drafts.append(_SrcDraft(
                     title="Git 历史分析", content=git_summary,
                     content_type="architecture", source_url=_SIGNAL_SOURCE["git"],
                     tags=["signal:git"], signal="git",
                 ))
 
-        convo_drafts: List[DraftItem] = []
+        convo_drafts: List[_SrcDraft] = []
         if plan.get("conversation"):
             progress.phase("对话", total=max(len(signals["conversation"].files), 1))
             patterns = scan_conversations(project_root, signals["conversation"].files)
@@ -648,7 +501,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 result = validate_chunk(pattern.text, allow_sensitive=args.allow_sensitive)
                 if not result.ok:
                     continue
-                item = DraftItem(
+                item = _SrcDraft(
                     title=f"{'决策记录' if pattern.kind == 'decision' else '常见问题'}（{Path(pattern.source).name}）",
                     content=result.content, content_type="faq",
                     source_url=pattern.source,
@@ -658,11 +511,11 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
                 drafts.append(item)
                 convo_drafts.append(item)
 
-        rule_drafts: List[DraftItem] = []
+        rule_drafts: List[_SrcDraft] = []
         if plan.get("config"):
             progress.phase("规则种子")
             for seed in scan_rule_seeds(project_root):
-                item = DraftItem(
+                item = _SrcDraft(
                     title=seed.title, content=seed.content,
                     content_type="prohibition", source_url=seed.source,
                     tags=["signal:rules"], signal="rules",
@@ -679,42 +532,20 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             for c in correlations:
                 report.correlations[c.kind] = report.correlations.get(c.kind, 0) + 1
             corr_summary = mask_text(summarize_correlations(correlations))
-            drafts.append(DraftItem(
+            drafts.append(_SrcDraft(
                 title="跨信号关联图谱", content=corr_summary,
                 content_type="architecture", source_url=_SIGNAL_SOURCE["correlation"],
                 tags=["signal:correlation"], signal="correlation",
             ))
 
-        already = {_norm_src(d.source_url) for d in drafts if d.source_url}
-        drafts.extend(await _load_existing_drafts(
-            runtime, project_id, already, include=include,
-        ))
-        progress.phase("冲突检测", total=max(len(drafts) * 2, 1))
-        gate = gate_drafts(
-            drafts, skeletons, project_root, on_progress=progress.tick,
-            on_match_start=lambda n: progress.retarget(
-                "冲突检测（同桶配对）", total=n or None,
-            ),
-            include=include,
-            judge=judge,
-        )
-        hold = {_norm_src(s) for s in gate.hold_sources}
+        hold: Set[str] = set()
         report.extracts = [
             {"title": item.title, "source": item.source_url}
             for item in convo_drafts + rule_drafts
         ]
-        counts = Counter(c.conflict_type for c in gate.conflicts)
-        report.conflict_counts = dict(counts)
-        report.version_conflicts = counts.get("version", 0)
-        report.conflicts = [
-            {
-                "type": c.conflict_type,
-                "left": c.left_source,
-                "right": c.right_source,
-                "reason": c.reason,
-            }
-            for c in gate.conflicts[:30]
-        ]
+        report.conflict_counts = {}
+        report.version_conflicts = 0
+        report.conflicts = []
 
         # ---- 过闸后再写库 ----
         write_total = (
@@ -875,25 +706,8 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             progress.tick(write_done)
 
         progress.phase("收尾", total=5)
-        mapping: Dict[str, str] = {}
-        if gate.conflicts or judge == "host":
-            mapping = await _source_to_item_id(runtime, project_id)
-        if gate.conflicts:
-            await runtime.conflict_detector.persist_knowledge_conflicts(
-                project_id, gate.conflicts, mapping,
-            )
         report.judge = judge
-        if judge == "host":
-            try:
-                await _write_host_judge_queue(
-                    runtime, rsi_dir, project_id, run_id, gate, drafts,
-                    source_to_item_id=mapping,
-                )
-            except OSError as exc:
-                print(f"写冲突工作包队列失败: {exc}", file=sys.stderr)
-                return 1
-        else:
-            _delete_host_judge_queue(rsi_dir)
+        unlink_host_judge_queue(rsi_dir)
         progress.tick(1)
 
         await _demote_held_active(runtime, project_id, hold)

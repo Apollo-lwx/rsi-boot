@@ -14,7 +14,6 @@ from rsi_boot.memory.logstore import append_event
 from rsi_boot.memory.paths import official_dir, review_dir
 from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc
-from rsi_boot.scanner.conflict_gate import ConflictDraft
 from rsi_boot.scanner.version_conflict import (
     detect_version_families,
     is_self_deprecated,
@@ -268,8 +267,12 @@ async def test_resolve_coexist_activates_both(tmp_path):
     assert items and items[0]["conflict_type"] == "version"
 
 
-async def test_scan_does_not_duplicate_persist_version_family(tmp_path):
-    """persist 与 scan 用不同 chunk item_id 时，同一 source pair 只留一条 open version。"""
+async def test_scan_does_not_duplicate_handwritten_version_family(tmp_path):
+    """手写 version 行与 scan 用不同 chunk item_id 时，同一 source pair 只留一条 open version。"""
+    import hashlib
+
+    import yaml
+
     store = _store(tmp_path)
     (tmp_path / "foo-v1.0.md").write_text("# Foo\n\nv1.0 body\n", encoding="utf-8")
     (tmp_path / "foo-v1.1.md").write_text("# Foo\n\nv1.1 body\n", encoding="utf-8")
@@ -288,21 +291,26 @@ async def test_scan_does_not_duplicate_persist_version_family(tmp_path):
             store, source, title=source, item_id=item_id, created_at=created,
         )
 
-    det = _detector(store, tmp_path)
-    n = await det.persist_knowledge_conflicts(
-        "p1",
-        [ConflictDraft(
-            conflict_type="version",
-            left_source="foo-v1.0.md",
-            right_source="foo-v1.1.md",
-            reason="versioned siblings",
-            hold_sources=["foo-v1.0.md", "foo-v1.1.md"],
-            recommended="keep_peer",
-            recommended_reason="倾向 v1.1",
-        )],
-        {"foo-v1.0.md": persist_v10, "foo-v1.1.md": persist_v11},
+    a, b = sorted(("foo-v1.0.md", "foo-v1.1.md"))
+    family_hash = hashlib.sha256(f"version:{a}:{b}".encode("utf-8")).hexdigest()
+    path = store.rsi_dir / "state" / "conflicts.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        yaml.safe_dump({
+            "conflicts": [{
+                "id": "d" * 32,
+                "project_id": "p1",
+                "item_id": persist_v10,
+                "user_rule_path": "foo-v1.1.md",
+                "user_rule_hash": family_hash,
+                "type": "version",
+                "status": "open",
+                "detected_at": early,
+            }],
+        }, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
     )
-    assert n == 1
+    det = _detector(store, tmp_path)
     await det.scan("p1")
     assert len(_open_version(tmp_path)) == 1
 

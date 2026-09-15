@@ -2,21 +2,12 @@
 
 from __future__ import annotations
 
-import json
-import uuid
-from datetime import datetime, timezone
-
 import pytest
 
 from rsi_boot.api.tools import conflicts_tool
 from rsi_boot.bootstrap import build_runtime
-from rsi_boot.scanner.conflict_gate import ConflictDraft
 
-from memory_helpers import memory_conflict_rows, write_memory_item
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+from memory_helpers import memory_conflict_rows, write_memory_conflict, write_memory_item
 
 
 async def _insert_knowledge(rt, *, title: str, content: str, source_url: str,
@@ -24,18 +15,6 @@ async def _insert_knowledge(rt, *, title: str, content: str, source_url: str,
     return write_memory_item(
         rt.store, title=title, content=content, source_url=source_url,
         tags=["signal:docs"], type=content_type, status=status,
-    )
-
-
-def _incoherent_draft(left: str, right: str) -> ConflictDraft:
-    return ConflictDraft(
-        conflict_type="incoherent",
-        left_source=left,
-        right_source=right,
-        reason="极性相反：禁止 pydantic vs 允许 pydantic",
-        hold_sources=[left, right],
-        recommended="keep_item",
-        recommended_reason="新稿来自刚才这次对话的明确否定",
     )
 
 
@@ -67,11 +46,10 @@ async def _seed_incoherent_pair(rt, left="docs/new.md", right="docs/old.md",
         rt, title="API 用 pydantic", content="允许使用 pydantic 做请求校验。",
         source_url=right, status=right_status,
     )
-    n = await rt.conflict_detector.persist_knowledge_conflicts(
-        rt.project_id, [_incoherent_draft(left, right)],
-        {left: left_id, right: right_id},
+    write_memory_conflict(
+        rt.store, item_id=left_id, peer_source=right,
+        excerpt="极性相反：禁止 pydantic vs 允许 pydantic",
     )
-    assert n == 1
     conflict = await _open_conflict(rt, rt.project_id)
     return left_id, right_id, conflict
 
@@ -103,25 +81,6 @@ async def test_explain_does_not_mutate(tmp_path, monkeypatch):
         items_after = {i: rt.store.read(i).status for i in (left_id, right_id)}
         assert items_after == items_before
         assert pid
-    finally:
-        await rt.close()
-
-
-@pytest.mark.asyncio
-async def test_persist_knowledge_conflicts_is_idempotent(tmp_path, monkeypatch):
-    monkeypatch.setenv("RSI_HOME", str(tmp_path / "home"))
-    root = tmp_path / "proj"
-    root.mkdir()
-    rt = await build_runtime(project_root=root)
-    try:
-        left, right = "docs/new.md", "docs/old.md"
-        left_id, right_id, _ = await _seed_incoherent_pair(rt, left, right)
-        again = await rt.conflict_detector.persist_knowledge_conflicts(
-            rt.project_id, [_incoherent_draft(left, right)],
-            {left: left_id, right: right_id},
-        )
-        assert again == 0
-        assert len(memory_conflict_rows(root)) == 1
     finally:
         await rt.close()
 
@@ -205,20 +164,10 @@ async def test_explain_item_peer_key_shows_historical_title(tmp_path, monkeypatc
             content_type="prohibition",
         )
         peer_key = f"item:{hist_id}"
-        n = await rt.conflict_detector.persist_knowledge_conflicts(
-            rt.project_id,
-            [ConflictDraft(
-                conflict_type="incoherent",
-                left_source="auto-extract",
-                right_source=peer_key,
-                reason="极性相反：禁止 pydantic vs 允许 pydantic",
-                hold_sources=["auto-extract", peer_key],
-                recommended="keep_item",
-                recommended_reason="新稿来自刚才这次对话的明确否定",
-            )],
-            {"auto-extract": new_id, peer_key: hist_id},
+        write_memory_conflict(
+            rt.store, item_id=new_id, peer_source=peer_key,
+            excerpt="极性相反：禁止 pydantic vs 允许 pydantic",
         )
-        assert n == 1
         conflict = await _open_conflict(rt, rt.project_id)
         assert conflict["user_rule_path"] == peer_key
 

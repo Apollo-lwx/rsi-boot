@@ -114,7 +114,7 @@ async def test_auto_extract_pending_survives_cap(tmp_path, monkeypatch):
 
 
 async def test_versioned_docs_held_others_active(tmp_path, monkeypatch):
-    """foo-v1.0.md + foo-v1.1.md → 这两条 source pending，其它 active。"""
+    """5a：不再用 Jaccard 把版本家族 hold 成 pending，也不预灌 version 冲突。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
     (root / "foo-v1.0.md").write_text(
@@ -132,30 +132,16 @@ async def test_versioned_docs_held_others_active(tmp_path, monkeypatch):
         root,
         "SELECT status, source_url, tags FROM knowledge_items WHERE project_id = ?",
     )
-    held = [
+    family = [
         r for r in rows
-        if (r["source_url"] or "").replace("\\", "/") in ("foo-v1.0.md", "foo-v1.1.md")
+        if _src(r).startswith("foo-v1.0.md") or _src(r).startswith("foo-v1.1.md")
     ]
-    others = [r for r in rows if r not in held]
-    assert held
-    assert all(r["status"] == "pending_review" for r in held)
-    assert others
-    for r in others:
-        if "signal:rules" in (r["tags"] or ""):
-            assert r["status"] == "pending_review"
-        else:
-            assert r["status"] == "active"
-
-    conflicts = await _rows(
-        root,
-        "SELECT conflict_type, item_id FROM rule_conflicts WHERE project_id = ?",
-    )
-    assert any(c["conflict_type"] == "version" for c in conflicts)
-    assert all(c["item_id"] for c in conflicts)
+    assert family
+    assert all(r["status"] == "active" for r in family)
 
 
 async def test_incremental_version_sibling_holds_existing_active(tmp_path, monkeypatch):
-    """先学 foo-v1.0.md（active）；再加 foo-v1.1.md → 两侧 pending 且有 version 冲突。"""
+    """5a：增量出现版本兄弟也不再 hold / 预灌 version 冲突。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
     (root / "foo-v1.0.md").write_text(
@@ -168,10 +154,7 @@ async def test_incremental_version_sibling_holds_existing_active(tmp_path, monke
         root,
         "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
     )
-    v10 = [
-        r for r in first
-        if (r["source_url"] or "").replace("\\", "/") == "foo-v1.0.md"
-    ]
+    v10 = [r for r in first if _src(r).startswith("foo-v1.0.md")]
     assert v10
     assert all(r["status"] == "active" for r in v10)
 
@@ -185,21 +168,14 @@ async def test_incremental_version_sibling_holds_existing_active(tmp_path, monke
         root,
         "SELECT status, source_url FROM knowledge_items WHERE project_id = ?",
     )
-    held = [
+    family = [
         r for r in rows
-        if (r["source_url"] or "").replace("\\", "/") in ("foo-v1.0.md", "foo-v1.1.md")
+        if _src(r).startswith("foo-v1.0.md") or _src(r).startswith("foo-v1.1.md")
     ]
-    assert { (r["source_url"] or "").replace("\\", "/") for r in held } == {
+    assert { _src(r).split("#", 1)[0] for r in family } == {
         "foo-v1.0.md", "foo-v1.1.md",
     }
-    assert all(r["status"] == "pending_review" for r in held)
-
-    conflicts = await _rows(
-        root,
-        "SELECT conflict_type, item_id FROM rule_conflicts WHERE project_id = ?",
-    )
-    assert any(c["conflict_type"] == "version" for c in conflicts)
-    assert all(c["item_id"] for c in conflicts)
+    assert all(r["status"] == "active" for r in family)
 
 
 def _src(row: dict) -> str:
@@ -407,28 +383,11 @@ async def test_bootstrap_does_not_demote_active_auto_extract(tmp_path, monkeypat
 
 
 async def test_dry_run_skips_write_and_gate(tmp_path, monkeypatch):
-    """dry-run：不写库、不跑 gate、不落 run id。"""
+    """dry-run：不写库、不落 run id。"""
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = _clean_repo(tmp_path / "proj")
-    called = {"gate": 0}
-
-    import rsi_boot.cli.bootstrap_command as cmd
-
-    orig = cmd.gate_drafts if hasattr(cmd, "gate_drafts") else None
-
-    def _boom(*_a, **_k):
-        called["gate"] += 1
-        raise AssertionError("dry-run 不得调用 gate_drafts")
-
-    if orig is not None:
-        monkeypatch.setattr(cmd, "gate_drafts", _boom)
-    else:
-        monkeypatch.setattr(
-            "rsi_boot.scanner.conflict_gate.gate_drafts", _boom, raising=False
-        )
 
     assert await run_bootstrap(_args(root, dry_run=True)) == 0
-    assert called["gate"] == 0
     assert not (root / ".rsi" / "bootstrap_run.json").exists()
     assert not (root / ".rsi" / "manifest.json").exists()
     assert not (root / ".rsi" / "rsi.db").exists()

@@ -11,8 +11,9 @@ from rsi_boot.bootstrap import build_runtime
 from rsi_boot.core.models import KnowledgeItem
 from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc, type_from_legacy
-from rsi_boot.scanner.conflict_gate import ConflictDraft
 from rsi_boot.services.knowledge_service import KnowledgeService
+
+from memory_helpers import write_memory_conflict
 
 
 def _service(store: MemoryStore, tmp_path) -> KnowledgeService:
@@ -284,17 +285,10 @@ async def test_accept_conflicts_tend_uses_recommended(tmp_path):
             source_url=right,
             tags=["signal:docs", f"bootstrap_run_id:{run_id}"],
         )
-        n = await rt.conflict_detector.persist_knowledge_conflicts(
-            pid,
-            [ConflictDraft(
-                conflict_type="incoherent",
-                left_source=left, right_source=right,
-                reason="极性相反", hold_sources=[left, right],
-                recommended="keep_item", recommended_reason="新稿",
-            )],
-            {left: left_id, right: right_id},
+        write_memory_conflict(
+            rt.store, item_id=left_id, peer_source=right,
+            excerpt="极性相反",
         )
-        assert n == 1
         result = await accept_bootstrap_extracts(
             rt, run_id=run_id, reject=False, conflicts="tend",
         )
