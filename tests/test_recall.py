@@ -3,6 +3,7 @@
 
 import asyncio
 import uuid
+from pathlib import Path
 
 import yaml
 
@@ -129,3 +130,21 @@ async def test_recall_top_k_override(store):
         _write_official(store, title=f"缓存经验{i}", content=f"缓存做法 {i} 容量 过期")
     result = await _recall(store).recall("缓存配置怎么做", "p1", top_k=2)
     assert len(result["items"]) <= 2
+
+
+async def test_skill_catalog_is_memory_store_only(store):
+    from rsi_boot.scanner.reading_packs import write_relearn_skill
+
+    assert write_relearn_skill(store) is True
+    root = store.rsi_dir.parent
+    for rel in (
+        Path(".cursor") / "skills" / "ghost" / "SKILL.md",
+        Path(".claude") / "skills" / "ghost" / "SKILL.md",
+    ):
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Ghost\n\nNot a memory skill.\n", encoding="utf-8")
+    result = await _recall(store).recall("重新学习项目知识", "p1")
+    names = [item.get("name") for item in result["skills"]]
+    assert "rsi-relearn" in names
+    assert "ghost" not in names
