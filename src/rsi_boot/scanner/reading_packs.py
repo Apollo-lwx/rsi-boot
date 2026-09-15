@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -442,3 +443,41 @@ def unlink_host_judge_queue(rsi_dir: Path) -> None:
     p = Path(rsi_dir) / "host_judge_queue.json"
     if p.is_file():
         p.unlink()
+
+
+def write_relearn_skill(store) -> bool:
+    """Upsert official rsi-relearn skill. Write failure returns False."""
+    try:
+        from ..memory.paths import official_dir
+        from ..memory.store import memory_filename
+        from ..memory.types import MemoryDoc
+
+        template = Path(__file__).with_name("relearn_skill.md").read_text(encoding="utf-8")
+        existing = next(
+            (
+                doc
+                for doc in store.list_official("skill")
+                if (doc.payload or {}).get("name") == "rsi-relearn"
+            ),
+            None,
+        )
+        doc_id = existing.id if existing else uuid.uuid4().hex
+        dest = official_dir(store.rsi_dir, "skill") / memory_filename("rsi-relearn", doc_id)
+        if existing and existing.path:
+            prior = Path(existing.path)
+            dest = prior if prior.is_absolute() else store.rsi_dir / existing.path
+        store.write(
+            MemoryDoc(
+                id=doc_id,
+                type="skill",
+                title="rsi-relearn",
+                content=template,
+                status="active",
+                description="重新学习时按阅读包蒸馏短知识",
+                payload={"name": "rsi-relearn"},
+            ),
+            dest=dest,
+        )
+        return True
+    except Exception:
+        return False

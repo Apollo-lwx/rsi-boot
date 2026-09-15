@@ -28,6 +28,8 @@ def test_closeout_strings_in_agents_hosted_block(tmp_path):
     block = _hosted_block(text)
     assert "teach_catch" in block
     assert "teach_record" in block
+    assert "wrong_action" in block
+    assert "correct_fix" in block
     assert "audit_finish" in block
     assert "最终总结照抄 closeout" in block
     subsection = _closeout_subsection(block)

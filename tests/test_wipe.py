@@ -55,6 +55,25 @@ def test_wipe_yes_removes_memory_yaml_keeps_identity(tmp_path: Path, monkeypatch
     assert t("WIPE_KEPT", "zh", path="identity.json") in out
 
 
+def test_wipe_yes_removes_reading_packs_and_relearn_skill(tmp_path: Path, monkeypatch):
+    rsi = tmp_path / ".rsi"
+    packs = rsi / "state" / "reading-packs" / "index.yaml"
+    packs.parent.mkdir(parents=True)
+    packs.write_text("packs: []\n", encoding="utf-8")
+    skill = rsi / "memory" / "skills" / "rsi-relearn--abcd1234.yaml"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("title: rsi-relearn\npayload:\n  name: rsi-relearn\n", encoding="utf-8")
+    (rsi / "identity.json").write_text('{"project_id":"p1"}', encoding="utf-8")
+    monkeypatch.setattr("rsi_boot.cli.wipe_command.stop_db_holders", lambda _root: [])
+
+    result = wipe_project_memory(tmp_path, yes=True, lang="zh")
+    assert result["ok"] is True
+    assert not packs.exists()
+    assert not packs.parent.exists()
+    assert not skill.exists()
+    assert (rsi / "identity.json").is_file()
+
+
 def test_wipe_yes_removes_all_five_trees(tmp_path: Path, monkeypatch):
     rsi = tmp_path / ".rsi"
     planted = []

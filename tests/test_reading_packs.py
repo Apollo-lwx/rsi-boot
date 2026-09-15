@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+from rsi_boot.memory.store import MemoryStore
 from rsi_boot.scanner.reading_packs import (
     PACKS_DIRNAME,
     MAX_PACKS,
@@ -19,6 +20,7 @@ from rsi_boot.scanner.reading_packs import (
     source_fingerprint,
     unlink_host_judge_queue,
     write_packs,
+    write_relearn_skill,
 )
 
 
@@ -289,3 +291,22 @@ def test_omitted_source_paths_capped_at_200():
     packs, omitted = _build(docs=docs)
     assert len(packs) == MAX_PACKS
     assert len(omitted) == 200
+
+
+def test_write_relearn_skill_upserts_official_yaml(tmp_path: Path):
+    store = MemoryStore(tmp_path / ".rsi")
+    assert write_relearn_skill(store) is True
+    skills = store.list_official("skill")
+    match = [d for d in skills if (d.payload or {}).get("name") == "rsi-relearn"]
+    assert len(match) == 1
+    assert match[0].status == "active"
+    assert "pack_list" in match[0].content
+    assert "rsi bootstrap --consent --host-judge" in match[0].content
+    assert "Cursor" not in match[0].content
+    dest = tmp_path / ".rsi" / "memory" / "skills"
+    assert dest.is_dir()
+    assert not (tmp_path / ".cursor" / "skills" / "rsi-relearn").exists()
+    assert write_relearn_skill(store) is True
+    again = [d for d in store.list_official("skill") if (d.payload or {}).get("name") == "rsi-relearn"]
+    assert len(again) == 1
+    assert again[0].id == match[0].id

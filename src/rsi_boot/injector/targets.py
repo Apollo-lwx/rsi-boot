@@ -27,6 +27,7 @@ _CLOSEOUT_BODY = (
     "\n"
     "teach_catch：修失败多次、低置信、改公共规则、或用户纠正执行方式时先记现场；"
     "写好 lesson 后 teach_record。\n"
+    "修了用户可见的 bug（成功也算）必须 teach_record，lesson 含 wrong_action 与 correct_fix。\n"
     "未 audit_finish 前不得改业务代码。\n"
     "最终总结照抄 closeout 路径，或写跳过原因。\n"
     "Catch then record. Do not edit product code before the audit is finished. "
@@ -39,10 +40,12 @@ _DECISIONS_BODY = (
     "用户要自动执行（你看着办/按推荐）时立刻用 recommended 调工具。"
     "用户要展开或问影响面时用 explain 或卡上的 sides/impact，不要关闭这张卡。"
     "不要让用户自己去终端跑 rsi。"
-    "用户说重新学习时你执行 rsi bootstrap --consent --host-judge（要清文件记忆先 rsi wipe --yes），"
+    "用户说重新学习时按 rsi-relearn：先 rsi wipe --yes（要清文件记忆），"
+    "再 rsi bootstrap --consent --host-judge。"
     "看到「必须指定 --host-judge 或 --local-judge」就加 --host-judge 重跑，不要改用 --local-judge。"
-    "学完用 rsi_conflicts（可选带 bootstrap_run_id）处理未决冲突，"
-    "每批最多 200 条 resolve，直到未决为 0；只有你不确定的才留给以后的 recall 卡。"
+    "学完用 rsi_learn pack_list / pack_open 读源，rsi_knowledge_search 后 rsi_knowledge_add，pack_done；"
+    "再用 rsi_knowledge_review 批准本 run。未批准不得声称召回可用。"
+    "rsi_conflicts 只处理短知识 id（可选带 bootstrap_run_id）。"
 )
 
 #: domain → globs 映射（宿主按 globs 挂载；未映射领域为空 = 通用经验，靠 description 触发）

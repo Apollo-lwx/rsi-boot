@@ -342,7 +342,10 @@ def test_decisions_mdc_covers_host_judge_recipe(tmp_path):
     assert "rsi_conflicts" in text
     assert "唯一入口" not in text
     assert "学完读 .rsi/host_judge_queue.json" not in text
-    assert "200" in text
+    assert "host_judge_queue.json" not in text
+    assert "每批 200" not in text
+    assert "pack_list" in text
+    assert "rsi-relearn" in text
     assert "不要让用户自己去终端" in text
 
 
@@ -353,3 +356,7 @@ def test_decisions_body_mentions_rsi_conflicts_not_queue_as_only_entry():
     assert "bootstrap_run_id" in _DECISIONS_BODY
     assert "唯一入口" not in _DECISIONS_BODY
     assert "学完读 .rsi/host_judge_queue.json" not in _DECISIONS_BODY
+    assert "host_judge_queue.json" not in _DECISIONS_BODY
+    assert "每批 200" not in _DECISIONS_BODY
+    assert "pack_list" in _DECISIONS_BODY
+    assert "rsi-relearn" in _DECISIONS_BODY
