@@ -148,3 +148,61 @@ async def test_skill_catalog_is_memory_store_only(store):
     names = [item.get("name") for item in result["skills"]]
     assert "rsi-relearn" in names
     assert "ghost" not in names
+
+
+async def test_recall_suggestions_and_retrieved_case_ids(store):
+    low_id = uuid.uuid4().hex
+    high_id = uuid.uuid4().hex
+    harvest_id = uuid.uuid4().hex
+    store.write(
+        MemoryDoc(
+            id=low_id,
+            type="teaching_case",
+            title="首次修 SELECT 星号",
+            content="必须写列名，禁止 SELECT *，首次修复只作建议",
+            payload={
+                "lesson": {"author": "agent", "wrong_action": "SELECT *", "correct_fix": "列名"},
+                "fix_and_learn": {"gene_map_weight": 2},
+            },
+        ),
+        dest=official_dir(store.rsi_dir, "teaching_case") / memory_filename("首次修 SELECT 星号", low_id),
+    )
+    store.write(
+        MemoryDoc(
+            id=high_id,
+            type="teaching_case",
+            title="用户纠正 SELECT 星号",
+            content="必须写列名，禁止 SELECT *，用户纠正后作为约束",
+            payload={
+                "lesson": {"author": "user", "wrong_action": "SELECT *", "correct_fix": "列名"},
+                "fix_and_learn": {"gene_map_weight": 10},
+            },
+        ),
+        dest=official_dir(store.rsi_dir, "teaching_case") / memory_filename("用户纠正 SELECT 星号", high_id),
+    )
+    store.write(
+        MemoryDoc(
+            id=harvest_id,
+            type="documentation",
+            title="代码骨架摘要",
+            content="class User 骨架足够长用于检索 SELECT",
+            tags=["signal:code"],
+        ),
+        dest=official_dir(store.rsi_dir, "documentation") / memory_filename("代码骨架摘要", harvest_id),
+    )
+    result = await _recall(store).recall("禁止 SELECT * 怎么写列名", "p1")
+    by_id = {row["id"]: row for row in result["teaching_cases"]}
+    assert low_id in by_id
+    assert by_id[low_id]["role"] == "suggestion"
+    assert by_id[low_id]["weight"] == 2
+    assert high_id in by_id
+    assert by_id[high_id]["role"] == "constraint"
+    assert by_id[high_id]["weight"] == 10
+    suggestion_ids = [row["id"] for row in result["suggestions"]]
+    assert low_id in suggestion_ids
+    assert high_id not in suggestion_ids
+    assert low_id not in [row["id"] for row in result["prohibitions"]]
+    assert harvest_id not in [row["id"] for row in result["items"]]
+    retrieved = [e for e in iter_events(store.rsi_dir) if e.get("kind") == "recall"][-1]["retrieved"]
+    assert low_id in retrieved
+    assert high_id in retrieved

@@ -162,20 +162,23 @@ class RecallService:
             self._decisions.mark_presented(picked.id)
             decisions = [picked.asdict()]
 
+        teaching_rows = [
+            self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
+            for doc in teaching
+        ]
+        gene_rows = [
+            self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
+            for doc in genes
+        ]
         return {
             "prohibitions": [self._prohibition_payload(doc) for doc in prohibitions],
             "items": [
                 self._item_payload(doc, heading=best_heading(index, doc.id, expanded))
                 for doc in items
             ],
-            "gene_cases": [
-                self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
-                for doc in genes
-            ],
-            "teaching_cases": [
-                self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
-                for doc in teaching
-            ],
+            "gene_cases": gene_rows,
+            "teaching_cases": teaching_rows,
+            "suggestions": self._suggestion_rows(teaching_rows, gene_rows),
             "episodes": episodes,
             "skills": skills,
             "hint": t("HINT_TEACH", detect_lang(task)),
@@ -245,14 +248,48 @@ class RecallService:
         return payload
 
     @staticmethod
+    def _case_weight_and_role(doc: MemoryDoc) -> tuple[int, str]:
+        payload = doc.payload or {}
+        lesson = payload.get("lesson") if isinstance(payload.get("lesson"), dict) else {}
+        fix = payload.get("fix_and_learn") if isinstance(payload.get("fix_and_learn"), dict) else {}
+        raw = payload.get("weight")
+        if raw is None:
+            raw = fix.get("gene_map_weight")
+        try:
+            weight = int(raw) if raw is not None else 2
+        except (TypeError, ValueError):
+            weight = 2
+        author = str(lesson.get("author") or payload.get("author") or "")
+        role = "constraint" if weight >= 8 or author == "user" else "suggestion"
+        return weight, role
+
+    @staticmethod
     def _case_payload(doc: MemoryDoc, heading: str = "") -> Dict[str, Any]:
+        weight, role = RecallService._case_weight_and_role(doc)
         return {
             "id": doc.id,
             "title": doc.title,
             "content": doc.content,
             "source_path": doc.path,
             "heading": heading,
+            "weight": weight,
+            "role": role,
         }
+
+    @staticmethod
+    def _suggestion_rows(
+        teaching_rows: List[Dict[str, Any]],
+        gene_rows: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for row in teaching_rows + gene_rows:
+            rid = row.get("id")
+            if row.get("role") != "suggestion" or not isinstance(rid, str) or rid in seen:
+                continue
+            seen.add(rid)
+            out.append(row)
+        return out
 
     def _episodes_from_events(
         self, store: MemoryStore, task: str, expanded: str,
