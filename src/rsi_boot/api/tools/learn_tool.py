@@ -12,6 +12,7 @@ from rsi_boot.learning.audit_store import (
 )
 from rsi_boot.learning.gene_map import extract_items
 from rsi_boot.learning.promote import promote_items
+from rsi_boot.learning.reading_pack_actions import pack_done, pack_list, pack_open
 from rsi_boot.learning.teaching import (
     RUBRIC_TEXT,
     resolve_lang,
@@ -31,11 +32,14 @@ INPUT_SCHEMA: dict[str, Any] = {
             "type": "string",
             "description": (
                 "teach_catch / teach_record / skip / rubric / "
-                "audit_start / audit_probes / audit_report / audit_finish / extract / promote"
+                "audit_start / audit_probes / audit_report / audit_finish / extract / promote / "
+                "pack_list / pack_open / pack_done"
             ),
         },
         "lang": {"type": "string", "enum": ["zh", "en"], "description": "explicit locale override"},
-        "id": {"type": "string", "description": "teach-draft id for skip / teach_record"},
+        "id": {"type": "string", "description": "teach-draft id or reading-pack id"},
+        "pack_id": {"type": "string", "description": "alias of id for pack_open / pack_done"},
+        "status": {"type": "string", "description": "pack_done: done or skipped"},
         "draft_id": {"type": "string", "description": "alias of id"},
         "trigger": {"type": "object", "description": "teach_catch trigger"},
         "system_attempts": {"type": "array", "description": "teach_catch attempts"},
@@ -63,6 +67,22 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     action = str(arguments.get("action") or "").strip()
     if not action:
         return {"status": "error", "code": "invalid", "message": t("LEARN_NEED_ACTION", lang)}
+    if action == "pack_list":
+        return pack_list(runtime.store, lang)
+    if action == "pack_open":
+        return pack_open(
+            runtime.store,
+            str(arguments.get("id") or arguments.get("pack_id") or ""),
+            lang,
+        )
+    if action == "pack_done":
+        return pack_done(
+            runtime.store,
+            str(arguments.get("id") or arguments.get("pack_id") or ""),
+            status=str(arguments.get("status") or "done"),
+            reason=str(arguments.get("reason") or ""),
+            lang=lang,
+        )
     if action == "promote":
         return promote_items(runtime.store, arguments, lang)
     if action == "audit_start":

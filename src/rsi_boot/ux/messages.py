@@ -54,8 +54,24 @@ STRINGS = {
         "en": "Distilled items need a bootstrap_run_id tag",
     },
     "LEARN_NEED_ACTION": {
-        "zh": "请指定动作：teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote",
-        "en": "Specify an action: teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote",
+        "zh": "请指定动作：teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote / pack_list / pack_open / pack_done",
+        "en": "Specify an action: teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote / pack_list / pack_open / pack_done",
+    },
+    "PACK_NEED_BOOTSTRAP": {
+        "zh": "还没有阅读包。请先运行 rsi bootstrap --consent --host-judge",
+        "en": "No reading packs yet. Run rsi bootstrap --consent --host-judge first",
+    },
+    "PACK_NOT_FOUND": {
+        "zh": "找不到该阅读包",
+        "en": "Reading pack not found",
+    },
+    "PACK_NEED_ID": {
+        "zh": "pack_open / pack_done 需要 id",
+        "en": "pack_open / pack_done needs an id",
+    },
+    "PACK_BAD_STATUS": {
+        "zh": "pack_done 的 status 只能是 done 或 skipped",
+        "en": "pack_done status must be done or skipped",
     },
     "TEACH_RECORDED": {"zh": "已写入教学案例 {path}", "en": "Wrote teaching case {path}"},
     "TEACH_CATCH_SAVED": {
@@ -186,11 +202,13 @@ TOOL_DESC = {
         "有 decisions 时立刻调 rsi_conflicts / rsi_knowledge_review，不要让用户去终端跑 rsi。"
     ),
     "learn": (
-        "Teaching / audit / closeout learn / promote. The host agent writes the lesson "
-        "(Catch→Teach→Fix) then teach_record; RSI does not write the lesson. "
+        "Teaching / audit / closeout learn / promote / reading-pack actions. "
+        "The host agent writes the lesson (Catch→Teach→Fix) then teach_record; "
+        "RSI does not write the lesson. pack_list / pack_open / pack_done walk reading packs. "
         "Unavailable actions return not_in_phase — follow message. "
-        "教学/审计/收工学习/晋升。Agent 自己 Catch→Teach→Fix 后 teach_record；"
-        "不要让 RSI 代写 lesson。未开放的 action 返回 not_in_phase，按 message 改用其它工具。"
+        "教学/审计/收工学习/晋升/阅读包。Agent 自己 Catch→Teach→Fix 后 teach_record；"
+        "不要让 RSI 代写 lesson。pack_list / pack_open / pack_done 串联阅读包。"
+        "未开放的 action 返回 not_in_phase，按 message 改用其它工具。"
     ),
     "memory": (
         "Open or search memory files. index lists entries, open reads one id, reindex rebuilds cache, "
