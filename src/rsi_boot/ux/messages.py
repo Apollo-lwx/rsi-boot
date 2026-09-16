@@ -73,6 +73,10 @@ STRINGS = {
         "zh": "pack_done 的 status 只能是 done 或 skipped",
         "en": "pack_done status must be done or skipped",
     },
+    "PACK_NEED_ITEMS": {
+        "zh": "包 {id} 标 done 前至少写入 {need} 条蒸馏知识（已有 {have}）。knowledge_add 须带 pack_id 与 signal:distilled。只有 README 或 .cursor/audit-result、.rsi/audit 才可用 skipped。",
+        "en": "Pack {id} needs at least {need} distilled items before done (have {have}). knowledge_add must include pack_id and signal:distilled. Only README or .cursor/audit-result / .rsi/audit may be skipped.",
+    },
     "NEXT_PROMPT": {
         "zh": "接下来？",
         "en": "What would you like to do?",
@@ -96,8 +100,8 @@ STRINGS = {
         "en": "Read sources, rsi_knowledge_add, then pack_done",
     },
     "NEXT_PACK_SKIP": {
-        "zh": "pack_done status=skipped — 写不出就跳过并写原因",
-        "en": "pack_done status=skipped — skip with a reason if you cannot distill",
+        "zh": "pack_done status=skipped — 仅 README 或 .cursor/audit-result、.rsi/audit；被拒就继续蒸馏",
+        "en": "pack_done status=skipped — only README or .cursor/audit-result / .rsi/audit; if rejected, keep distilling",
     },
     "NEXT_REVIEW": {
         "zh": "rsi_knowledge_review — 批准本 run 蒸馏条",
@@ -106,6 +110,18 @@ STRINGS = {
     "NEXT_WAIT": {
         "zh": "先不蒸馏，阅读包保留 pending",
         "en": "Stop here; reading packs stay pending",
+    },
+    "PACK_LANE_NEED_DONE": {
+        "zh": "板块 {lane} 至少先蒸馏一包并标 done，禁止整板 skip。",
+        "en": "Lane {lane} needs at least one done pack before any skip. Do not skip a whole board.",
+    },
+    "PACK_SKIP_NOT_ALLOWED": {
+        "zh": "只有 README 文件名或 .cursor/audit-result、.rsi/audit 可以 skip。对话已有几条示例、version-mirror / clone / catalog / 产品路径含 ats- 都必须蒸馏。",
+        "en": "Only README filenames or .cursor/audit-result / .rsi/audit may be skipped. A few conversation examples, version-mirror / clone / catalog, or product paths containing ats- must still be distilled.",
+    },
+    "PACK_FINISH_SESSION": {
+        "zh": "本轮必须蒸完剩余 {pending} 个包：按 pack_list.lanes 并行派生子代理（代码 / 对话 / .cursor / docs / skills+rules / git / 其余），不要停到下次对话。skipped 算未覆盖。",
+        "en": "Finish all {pending} remaining packs this session. Dispatch parallel subagents from pack_list.lanes (code / conversation / .cursor / docs / skills+rules / git / rest). Do not stop for a later chat. skipped is uncovered.",
     },
     "TEACH_RECORDED": {"zh": "已写入教学案例 {path}", "en": "Wrote teaching case {path}"},
     "TEACH_CATCH_SAVED": {

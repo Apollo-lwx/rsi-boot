@@ -53,7 +53,7 @@ def save_catalog(rsi_dir: Path, catalog: dict[str, Any]) -> None:
 
 def prune_catalog(rsi_dir: Path, store: MemoryStore) -> None:
     """Drop edges whose endpoints are no longer on disk."""
-    known = {doc.id for doc in store.list_all()}
+    known = store.list_ids()
     catalog = load_catalog(rsi_dir)
     kept = [
         edge for edge in catalog.get("edges") or []

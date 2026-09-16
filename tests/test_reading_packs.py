@@ -9,14 +9,17 @@ import yaml
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.scanner.reading_packs import (
     PACKS_DIRNAME,
-    MAX_PACKS,
     MAX_SOURCES_PER_PACK,
     build_packs,
+    distill_type_for_domain,
+    distill_type_for_pack,
+    pack_lane,
     load_index,
     load_pack,
     pack_fingerprint,
     packs_dir,
     set_pack_status,
+    skip_allowed,
     source_fingerprint,
     unlink_host_judge_queue,
     write_packs,
@@ -163,6 +166,25 @@ def _all_sources(packs: list[dict]) -> list[dict]:
     return [src for pack in packs for src in pack["sources"]]
 
 
+def test_pack_lane_splits_parallel_boards():
+    assert pack_lane("src/auth") == "code"
+    assert pack_lane("skills") == "skills_rules"
+    assert pack_lane("rules") == "skills_rules"
+    assert pack_lane("docs") == "docs"
+    assert pack_lane("README") == "docs"
+    assert pack_lane("git-fix") == "git"
+    assert pack_lane("teaching") == "teaching"
+    assert pack_lane(".cursor") == "cursor"
+    assert pack_lane("conversation") == "conversation"
+    assert pack_lane("misc") == "other"
+    assert distill_type_for_domain("skills") == "skill"
+    assert distill_type_for_domain("teaching") == "teaching_case"
+    assert distill_type_for_domain("gene-map") == "gene_case"
+    assert distill_type_for_domain("patterns") == "pattern"
+    assert distill_type_for_domain("src/auth") == "convention"
+    assert distill_type_for_domain("docs") == "documentation"
+
+
 def test_forty_one_docs_same_dir_split_into_at_least_two_packs():
     docs = [{"path": f"docs/page-{i:02d}.md", "heading": f"H{i}"} for i in range(41)]
     packs, omitted = _build(docs=docs)
@@ -186,15 +208,31 @@ def test_same_path_appears_in_only_one_pack():
     assert paths.count("docs/auth.md") == 1
 
 
-def test_eighty_one_packs_omits_overflow_sources():
+def test_eighty_one_singleton_dirs_all_stay_packed():
     docs = [{"path": f"dir{i:03d}/doc.md", "heading": f"H{i}"} for i in range(81)]
     packs, omitted = _build(docs=docs)
-    assert len(packs) == MAX_PACKS
-    assert omitted
-    assert len(omitted) <= 200
+    assert omitted == []
+    assert len(packs) == 81
     kept = {src.get("path") for src in _all_sources(packs)}
-    assert set(omitted).isdisjoint(kept)
-    assert len(kept) + len(omitted) == 81
+    assert kept == {doc["path"] for doc in docs}
+
+
+def test_docs_code_and_git_fix_keep_packing_past_eighty():
+    # 各域独立顶层目录，避免同域 ≤40 条被收成一包后看不出「停切」
+    docs = [{"path": f"docs-area-{i:03d}/guide.md", "heading": f"D{i}"} for i in range(50)]
+    code = [{"path": f"src/mod{i:03d}/Api.java", "heading": f"C{i}"} for i in range(50)]
+    git_fix = [
+        {"hash": f"{i:07x}", "message": f"fix {i}", "files": [f"orphan/{i}.c"]}
+        for i in range(40)
+    ]
+    packs, omitted = _build(docs=docs, code=code, git_fix=git_fix)
+    assert omitted == []
+    assert len(packs) > 80
+    kinds = {src["kind"] for src in _all_sources(packs)}
+    assert kinds == {"docs", "code", "git_fix"}
+    assert {d["path"] for d in docs} <= {s.get("path") for s in _all_sources(packs)}
+    assert {c["path"] for c in code} <= {s.get("path") for s in _all_sources(packs)}
+    assert {g["hash"] for g in git_fix} <= {s.get("hash") for s in _all_sources(packs)}
 
 
 def test_git_fix_identity_is_hash_code_path_still_allowed():
@@ -248,7 +286,10 @@ def test_domains_follow_first_level_and_kind_rules():
         code=[{"path": "src/auth/Token.java", "heading": "Token"}],
         rules=[{"path": ".cursor/rules/foo.mdc", "heading": "Foo"}],
         skills=[{"path": ".cursor/skills/bar/SKILL.md", "name": "bar"}],
-        conversations=[{"path": ".cursor/notes.md"}],
+        conversations=[
+            {"path": ".cursor/notes.md"},
+            {"path": "agent-transcripts/foo.jsonl"},
+        ],
     )
     domains = {pack["domain"] for pack in packs}
     assert "rules" in domains
@@ -257,6 +298,7 @@ def test_domains_follow_first_level_and_kind_rules():
     assert any(pack["domain"] == "README" for pack in packs)
     assert any(pack["domain"] in {"src/auth", "src"} for pack in packs)
     assert "conversation" in domains
+    assert ".cursor" in domains
     kinds = {src["kind"] for src in _all_sources(packs)}
     assert kinds == {"docs", "code", "rule", "skill", "conversation"}
 
@@ -286,11 +328,74 @@ def test_pack_ids_are_unique_stable_slug_or_hex():
         assert re.fullmatch(r"[A-Za-z0-9._-]+", pack_id)
 
 
-def test_omitted_source_paths_capped_at_200():
+def test_teaching_and_gene_kept_when_readme_would_fill_cap():
+    teaching = [
+        {"path": f".cursor/knowledge/teaching-cases/case-{i:02d}.md", "heading": f"T{i}"}
+        for i in range(12)
+    ]
+    readmes = [
+        {"path": f"docs/engine-{i:02d}/README.md", "heading": f"R{i}"}
+        for i in range(80)
+    ]
+    packs, omitted = _build(docs=teaching + readmes)
+    kept = {src.get("path") for src in _all_sources(packs)}
+    assert all(src["path"] in kept for src in teaching)
+    readme_packs = [p for p in packs if p["domain"] == "README"]
+    assert len(readme_packs) <= 2
+    assert not any("teaching-cases" in (path or "") for path in omitted)
+
+
+def test_scattered_readmes_chunk_instead_of_one_pack_each():
+    readmes = [
+        {"path": f"module-{i:02d}/README.md", "heading": f"R{i}"}
+        for i in range(41)
+    ]
+    packs, omitted = _build(docs=readmes)
+    assert omitted == []
+    readme_packs = [p for p in packs if p["domain"] == "README"]
+    assert len(readme_packs) == 2
+    assert sum(len(p["sources"]) for p in readme_packs) == 41
+
+
+def test_large_doc_set_is_fully_packed():
     docs = [{"path": f"d{i:04d}/x.md", "heading": "H"} for i in range(80 + 250)]
     packs, omitted = _build(docs=docs)
-    assert len(packs) == MAX_PACKS
-    assert len(omitted) == 200
+    assert omitted == []
+    assert len(packs) == 330
+    assert {d["path"] for d in docs} == {s.get("path") for s in _all_sources(packs)}
+
+
+def test_skip_allowed_only_readme_or_rsi_audit_dirs():
+    assert skip_allowed({
+        "domain": "src/ats-catalog",
+        "sources": [{"path": "src/ats-catalog/Probe.java"}],
+    }) is False
+    assert skip_allowed({
+        "domain": "conversation",
+        "sources": [{"path": ".cursor/knowledge/gene-map/cases/audit-optype-hive.yaml"}],
+    }) is False
+    assert skip_allowed({
+        "domain": ".cursor",
+        "sources": [{"path": ".cursor/audit-result/_session/ats-20260827.json"}],
+    }) is True
+    assert skip_allowed({
+        "domain": "README",
+        "sources": [{"path": "docs/dialects/mysql/README.md"}],
+    }) is True
+
+
+def test_conversation_gene_map_routes_to_teaching_lane():
+    packs, _ = _build(conversations=[
+        {"path": ".cursor/knowledge/gene-map/cases/audit-optype-hive.yaml"},
+        {"path": "agent-transcripts/done-example.jsonl"},
+    ])
+    domains = {pack["domain"] for pack in packs}
+    assert "gene-map" in domains
+    assert "conversation" in domains
+    assert distill_type_for_pack({
+        "domain": "conversation",
+        "sources": [{"path": ".cursor/knowledge/gene-map/cases/audit-optype-hive.yaml"}],
+    }) == "gene_case"
 
 
 def test_write_relearn_skill_upserts_official_yaml(tmp_path: Path):
@@ -301,6 +406,11 @@ def test_write_relearn_skill_upserts_official_yaml(tmp_path: Path):
     assert len(match) == 1
     assert match[0].status == "active"
     assert "pack_list" in match[0].content
+    assert "并行" in match[0].content
+    assert "本轮必须把全部 pending 蒸完" in match[0].content
+    assert "只有 README 文件名或路径落在" in match[0].content
+    assert ".cursor/audit-result" in match[0].content
+    assert "禁止" in match[0].content and "mcp_auth" in match[0].content
     assert "rsi bootstrap --consent --host-judge" in match[0].content
     assert "Cursor" not in match[0].content
     dest = tmp_path / ".rsi" / "memory" / "skills"

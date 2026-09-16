@@ -24,9 +24,14 @@ from ..scanner.profile_generator import (
     build_profile,
 )
 from ..injector.targets import discover_user_rule_files
-from ..memory.harvest import is_harvest_doc
+from ..memory.harvest import count_harvest_files
 from ..scanner import reading_packs as reading_packs_mod
-from ..scanner.reading_packs import build_packs, unlink_host_judge_queue, write_packs
+from ..scanner.reading_packs import (
+    build_packs,
+    load_index,
+    unlink_host_judge_queue,
+    write_packs,
+)
 from ..scanner.report import BootstrapReport
 from ..scanner.signal_discovery import (
     EXCLUDED_DIRS,
@@ -348,7 +353,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             return 1
 
         unlink_host_judge_queue(rsi_dir)
-        leftover = sum(1 for doc in runtime.store.list_official() if is_harvest_doc(doc))
+        leftover = count_harvest_files(rsi_dir / "memory")
         if leftover:
             report.harvest_warning = f"库存仍有 {leftover} 条旧采集物"
         write_relearn = getattr(reading_packs_mod, "write_relearn_skill", None)
@@ -384,6 +389,12 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
 
         _ensure_gitignore(project_root)
         report.errors = collector.errors
+        index_packs = [
+            item
+            for item in (load_index(rsi_dir).get("packs") or [])
+            if isinstance(item, dict) and item.get("id")
+        ]
+        report.apply_pack_inventory(index_packs, distilled_count=0)
         md_path = rsi_dir / "bootstrap_report.md"
         report.write_json(rsi_dir / "bootstrap_report.json")
         report.write_markdown(md_path)

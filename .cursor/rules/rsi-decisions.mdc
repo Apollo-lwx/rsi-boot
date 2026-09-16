@@ -1,0 +1,7 @@
+---
+description: RSI 对话内抉择纪律
+globs: 
+alwaysApply: true
+---
+
+有 decisions 时由你调用 rsi_conflicts / rsi_knowledge_review 落库。用户要自动执行（你看着办/按推荐）时立刻用 recommended 调工具。用户要展开或问影响面时用 explain 或卡上的 sides/impact，不要关闭这张卡。不要让用户自己去终端跑 rsi。用户说重新学习时你执行 rsi bootstrap --consent --host-judge（要清文件记忆先 rsi wipe --yes），看到「必须指定 --host-judge 或 --local-judge」就加 --host-judge 重跑，不要改用 --local-judge。学完用 rsi_conflicts（可选带 bootstrap_run_id）处理未决冲突，每批最多 200 条 resolve，直到未决为 0；只有你不确定的才留给以后的 recall 卡。

@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from ...cli.knowledge_accept import _extract_ids
+from ...memory.logstore import append_event
 from ...project import tool_project_id
 from ...services.decision_queue import close_extract_runs
 from ...services.knowledge_service import KnowledgeService
@@ -66,6 +69,23 @@ async def _tags_of(knowledge: KnowledgeService, item_ids: list[str]) -> list[Any
     return tags
 
 
+def _log_review(store: Any, *, action: str, ids: list[str], processed: int, bootstrap_run_id: str = "") -> None:
+    if store is None:
+        return
+    append_event(
+        store.rsi_dir,
+        {
+            "id": uuid.uuid4().hex,
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "kind": "review",
+            "action": action,
+            "processed": processed,
+            "ids": [str(i) for i in ids if i][:200],
+            "bootstrap_run_id": bootstrap_run_id or "",
+        },
+    )
+
+
 async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     knowledge = getattr(runtime_or_knowledge, "knowledge", runtime_or_knowledge)
     decisions = getattr(runtime_or_knowledge, "decisions", None)
@@ -78,6 +98,7 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
             return {"status": "error", "message": "skip 需要决策卡 id"}
         if decisions is not None:
             decisions.suppress(decision_id)
+        _log_review(store, action="skip", ids=[decision_id], processed=1)
         return {"status": "success", "id": decision_id, "suppressed": True}
     if action not in ("approve", "reject"):
         return {"status": "error", "message": "action 非法（approve/reject/skip）"}
@@ -98,11 +119,19 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
             await close_extract_runs(
                 decisions, tags, store=store, project_id=project_id,
             )
+        _log_review(
+            store,
+            action=action,
+            ids=list(ids),
+            processed=int(result.get("processed") or 0),
+            bootstrap_run_id=bootstrap_run_id or "",
+        )
         return {"status": "success", **result}
 
     if arguments.get("all_pending") or (bootstrap_run_id and not arguments.get("id")):
         content_type = arguments.get("content_type") or None
         include_archived = bool(arguments.get("include_archived"))
+        extract_ids: list[str] = []
         if bootstrap_run_id:
             extract_ids = await _extract_ids(runtime_or_knowledge, bootstrap_run_id)
             if extract_ids:
@@ -130,6 +159,13 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
                 decisions, [json.dumps([f"bootstrap_run_id:{bootstrap_run_id}"])],
                 store=store, project_id=project_id,
             )
+        _log_review(
+            store,
+            action=action,
+            ids=list(extract_ids),
+            processed=int(result.get("processed") or 0),
+            bootstrap_run_id=bootstrap_run_id or "",
+        )
         return {"status": "success", **result}
 
     item_id = str(arguments.get("id", ""))
@@ -141,5 +177,12 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
         return {"status": "error", "message": f"条目不存在或不处于待审状态: {item_id}"}
     await close_extract_runs(
         decisions, tags, store=store, project_id=project_id,
+    )
+    _log_review(
+        store,
+        action=action,
+        ids=[item_id],
+        processed=1,
+        bootstrap_run_id=bootstrap_run_id or "",
     )
     return {"status": "success", "id": item_id, "new_status": new_status}

@@ -15,6 +15,7 @@ from pydantic import ValidationError
 
 from rsi_boot.core.masking import mask_text
 from rsi_boot.injector.slug import slugify
+from rsi_boot.memory.harvest import is_harvest_file, peek_yaml_id
 from rsi_boot.memory.paths import official_dir, review_dir
 from rsi_boot.memory.types import MEMORY_TYPES, MemoryDoc, status_from_path
 from rsi_boot.ux.lang import locale_lang
@@ -92,24 +93,41 @@ class MemoryStore:
                 self._index_forget(src)
             return written
 
-    def list_official(self, type: str | None = None) -> list[MemoryDoc]:
+    def list_official(
+        self, type: str | None = None, *, skip_harvest: bool = False,
+    ) -> list[MemoryDoc]:
         types: Iterable[str] = (type,) if type else MEMORY_TYPES
         with self._io:
             docs: list[MemoryDoc] = []
             for typ in types:
-                docs.extend(self._load_tree(official_dir(self.rsi_dir, typ)))
+                docs.extend(
+                    self._load_tree(official_dir(self.rsi_dir, typ), skip_harvest=skip_harvest)
+                )
             return docs
 
-    def list_pending(self, type: str | None = None) -> list[MemoryDoc]:
+    def list_pending(
+        self, type: str | None = None, *, skip_harvest: bool = False,
+    ) -> list[MemoryDoc]:
         with self._io:
             if type:
-                return self._load_tree(review_dir(self.rsi_dir, type))
-            return self._load_tree(self.rsi_dir / "memory" / "pending")
+                return self._load_tree(
+                    review_dir(self.rsi_dir, type), skip_harvest=skip_harvest,
+                )
+            return self._load_tree(
+                self.rsi_dir / "memory" / "pending", skip_harvest=skip_harvest,
+            )
 
-    def list_all(self) -> list[MemoryDoc]:
+    def list_all(self, *, skip_harvest: bool = False) -> list[MemoryDoc]:
         """Official + pending + archive (and any other memory/**/*.yaml)."""
         with self._io:
-            return self._load_tree(self.rsi_dir / "memory")
+            return self._load_tree(self.rsi_dir / "memory", skip_harvest=skip_harvest)
+
+    def list_ids(self) -> set[str]:
+        """All on-disk memory ids. Peeks `id:` only; does not parse bodies."""
+        with self._io:
+            if not self._index_complete:
+                self._rebuild_id_index()
+            return set(self._id_index)
 
     def _write_unlocked(self, doc: MemoryDoc, dest: Path) -> MemoryDoc:
         dest = Path(dest)
@@ -156,9 +174,9 @@ class MemoryStore:
     def _rebuild_id_index(self) -> None:
         self._id_index.clear()
         for path in self._iter_memory_yaml():
-            raw = self._safe_load(path)
-            if isinstance(raw, dict) and raw.get("id"):
-                self._index_remember(str(raw["id"]), path)
+            doc_id = peek_yaml_id(path)
+            if doc_id:
+                self._index_remember(doc_id, path)
         self._index_complete = True
 
     def _read_unlocked(self, id: str) -> MemoryDoc:
@@ -209,7 +227,7 @@ class MemoryStore:
                 invalid.append(path)
         return matches, invalid
 
-    def _load_tree(self, root: Path) -> list[MemoryDoc]:
+    def _load_tree(self, root: Path, *, skip_harvest: bool = False) -> list[MemoryDoc]:
         docs: list[MemoryDoc] = []
         memory_root = (self.rsi_dir / "memory").resolve()
         if not root.exists():
@@ -217,6 +235,11 @@ class MemoryStore:
                 self._index_complete = True
             return docs
         for path in self._iter_yaml(root):
+            if skip_harvest and is_harvest_file(path):
+                doc_id = peek_yaml_id(path)
+                if doc_id:
+                    self._index_remember(doc_id, path)
+                continue
             raw = self._safe_load(path)
             if not isinstance(raw, dict):
                 if raw is not None:

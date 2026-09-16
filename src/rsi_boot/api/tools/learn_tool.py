@@ -39,7 +39,18 @@ INPUT_SCHEMA: dict[str, Any] = {
         "lang": {"type": "string", "enum": ["zh", "en"], "description": "explicit locale override"},
         "id": {"type": "string", "description": "teach-draft id or reading-pack id"},
         "pack_id": {"type": "string", "description": "alias of id for pack_open / pack_done"},
-        "status": {"type": "string", "description": "pack_done: done or skipped"},
+        "lane": {
+            "type": "string",
+            "description": (
+                "pack_list filter: skills_rules / teaching / docs / code / "
+                "git / conversation / cursor / other"
+            ),
+        },
+        "status": {"type": "string", "description": "pack_done: done / skipped / pending"},
+        "reopen_skipped": {
+            "type": "boolean",
+            "description": "pack_list: true = 把不允许 skip 的 skipped 包改回 pending",
+        },
         "draft_id": {"type": "string", "description": "alias of id"},
         "trigger": {"type": "object", "description": "teach_catch trigger"},
         "system_attempts": {"type": "array", "description": "teach_catch attempts"},
@@ -68,7 +79,12 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     if not action:
         return {"status": "error", "code": "invalid", "message": t("LEARN_NEED_ACTION", lang)}
     if action == "pack_list":
-        return pack_list(runtime.store, lang)
+        return pack_list(
+            runtime.store,
+            lang,
+            lane=str(arguments.get("lane") or ""),
+            reopen_skipped=bool(arguments.get("reopen_skipped")),
+        )
     if action == "pack_open":
         return pack_open(
             runtime.store,

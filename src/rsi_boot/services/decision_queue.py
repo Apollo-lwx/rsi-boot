@@ -241,25 +241,30 @@ def _doc_as_item(doc: Any) -> dict[str, Any]:
     }
 
 
+def _read_doc(store: Any, item_id: str) -> Any | None:
+    if not item_id:
+        return None
+    try:
+        return store.read(item_id)
+    except (FileNotFoundError, ValueError):
+        return None
+
+
 def _peer_from_store(store: Any, source: str, excerpt: str = "") -> Optional[dict[str, Any]]:
-    docs = {doc.id: doc for doc in store.list_all()}
     norm = (source or "").replace("\\", "/")
-    if norm.startswith("item:") and norm[5:] in docs:
-        return _doc_as_item(docs[norm[5:]])
+    if norm.startswith("item:"):
+        doc = _read_doc(store, norm[5:])
+        return _doc_as_item(doc) if doc is not None else None
     if "#" in norm:
-        url, suffix = norm.rsplit("#", 1)
-        if suffix in docs:
-            return _doc_as_item(docs[suffix])
-        for doc in docs.values():
-            if _doc_source_url(doc).replace("\\", "/") == url:
-                return _doc_as_item(doc)
-    elif norm:
-        for doc in docs.values():
-            if _doc_source_url(doc).replace("\\", "/") == norm:
-                return _doc_as_item(doc)
+        _url, suffix = norm.rsplit("#", 1)
+        doc = _read_doc(store, suffix)
+        if doc is not None:
+            return _doc_as_item(doc)
     hist_id = _historical_id_from_excerpt(excerpt)
-    if hist_id and hist_id in docs:
-        return _doc_as_item(docs[hist_id])
+    if hist_id:
+        doc = _read_doc(store, hist_id)
+        if doc is not None:
+            return _doc_as_item(doc)
     return None
 
 
@@ -280,7 +285,6 @@ async def _collect_decision_cards_store(
         elif isinstance(data, dict):
             rows = [r for r in (data.get("conflicts") or []) if isinstance(r, dict)]
 
-    by_id = {doc.id: doc for doc in store.list_all()}
     cards: list[DecisionCard] = []
     for row in rows:
         if row.get("status", "open") != "open":
@@ -289,7 +293,7 @@ async def _collect_decision_cards_store(
         if ctype not in ("incoherent", "version", "doc_code"):
             continue
         item_id = row.get("item_id") or ""
-        doc = by_id.get(item_id)
+        doc = _read_doc(store, item_id)
         item = _doc_as_item(doc) if doc is not None else {
             "id": item_id, "title": "", "content": "", "source_url": "",
             "status": "", "tags": [],

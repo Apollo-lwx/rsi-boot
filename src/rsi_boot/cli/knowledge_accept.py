@@ -11,7 +11,9 @@ from ..project import project_rsi_dir
 
 logger = logging.getLogger(__name__)
 
-_EXTRACT_SIGNALS = frozenset({"signal:conversation", "signal:rules"})
+_EXTRACT_SIGNALS = frozenset({
+    "signal:conversation", "signal:rules", "signal:distilled",
+})
 _CONFLICT_TYPES = frozenset({"version", "doc_code", "incoherent"})
 
 
@@ -66,7 +68,7 @@ def iter_run_extracts(store: Any, run_id: str) -> list[Any]:
     """本轮 bootstrap 抽取：pending_review + conversation|rules，含 documentation/faq。"""
     marker = f"bootstrap_run_id:{run_id}"
     out: list[Any] = []
-    for doc in store.list_all():
+    for doc in store.list_pending():
         if getattr(doc, "status", None) != "pending_review":
             continue
         if _doc_source_url(doc) == "auto-extract":

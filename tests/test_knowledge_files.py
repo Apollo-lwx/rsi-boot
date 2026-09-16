@@ -249,6 +249,83 @@ async def test_add_short_prohibition_succeeds(tmp_path):
     assert got.content == "必须列字段"
 
 
+def test_retype_distilled_for_pack_moves_skill_and_pattern(tmp_path):
+    from rsi_boot.learning.retype_pack import retype_distilled_for_pack
+    from rsi_boot.memory.store import memory_filename
+    from rsi_boot.scanner.reading_packs import write_packs
+
+    store = MemoryStore(tmp_path / ".rsi")
+    write_packs(store.rsi_dir, bootstrap_run_id="run-1", packs=[
+        {
+            "id": "skills-0000",
+            "domain": "skills",
+            "title": "Skills",
+            "sources": [{"kind": "skill", "path": ".cursor/skills/foo/SKILL.md", "name": "foo"}],
+        },
+        {
+            "id": "patterns-0000",
+            "domain": "patterns",
+            "title": "Patterns",
+            "sources": [{"kind": "docs", "path": ".cursor/knowledge/patterns/a.md"}],
+        },
+    ])
+    skill = MemoryDoc(
+        id="a" * 32,
+        type="convention",
+        title="Skill foo",
+        content="Extend parser via FMPP; do not edit generated JavaCC.",
+        tags=["pack_id:skills-0000", "signal:distilled", "bootstrap_run_id:run-1"],
+    )
+    store.write(skill, dest=official_dir(store.rsi_dir, "convention") / memory_filename(skill.title, skill.id))
+    pattern = MemoryDoc(
+        id="b" * 32,
+        type="convention",
+        title="Mask then unparse",
+        content="Apply AST mask before dialect unparse.",
+        tags=["pack_id:patterns-0000", "signal:distilled", "bootstrap_run_id:run-1"],
+    )
+    store.write(pattern, dest=official_dir(store.rsi_dir, "convention") / memory_filename(pattern.title, pattern.id))
+    assert retype_distilled_for_pack(store, "skills-0000") == 1
+    assert retype_distilled_for_pack(store, "patterns-0000") == 1
+    got_skill = store.read("a" * 32)
+    assert got_skill.type == "skill"
+    assert got_skill.status == "active"
+    assert (got_skill.payload or {}).get("name") == "foo"
+    assert (got_skill.path or "").replace("\\", "/").endswith("skills/foo/skill.yaml")
+    assert not list((tmp_path / ".rsi" / "memory" / "conventions").glob("skill-foo--aaaaaaaa.yaml"))
+    got_pat = store.read("b" * 32)
+    assert got_pat.type == "pattern"
+    assert "patterns" in (got_pat.path or "").replace("\\", "/")
+    names = {(d.payload or {}).get("name") for d in store.list_official("skill")}
+    assert "foo" in names
+    assert retype_distilled_for_pack(store, "skills-0000") == 0
+
+
+@pytest.mark.asyncio
+async def test_distilled_add_skips_injector_rewrite(tmp_path):
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    calls: list[str] = []
+
+    async def spy(project_id: str) -> None:
+        calls.append(project_id)
+
+    svc.on_change = spy
+    distilled = await svc.add(KnowledgeItem(
+        project_id="p", title="蒸馏条", content="自包含短知识正文",
+        content_type="documentation",
+        tags=["signal:distilled", "bootstrap_run_id:run-1"],
+    ))
+    assert isinstance(distilled, str)
+    assert calls == []
+    official = await svc.add(KnowledgeItem(
+        project_id="p", title="禁止空密码", content="密码不能为空",
+        content_type="prohibition", source_url="docs/a.md",
+    ))
+    assert isinstance(official, str)
+    assert calls == ["p"]
+
+
 @pytest.mark.asyncio
 async def test_add_distilled_goes_pending_even_if_active(tmp_path):
     store = MemoryStore(tmp_path / ".rsi")
@@ -277,3 +354,57 @@ async def test_knowledge_add_tool_passthrough_error(tmp_path):
     assert result["status"] == "error"
     assert result["code"] == "invalid"
     assert "success" not in result
+
+
+@pytest.mark.asyncio
+async def test_knowledge_add_infers_type_from_pack_domain(tmp_path):
+    from rsi_boot.api.tools import knowledge_add_tool
+    from rsi_boot.scanner.reading_packs import write_packs
+
+    store = MemoryStore(tmp_path / ".rsi")
+    write_packs(store.rsi_dir, bootstrap_run_id="run-1", packs=[{
+        "id": "teaching-0000",
+        "domain": "teaching",
+        "title": "Teaching",
+        "sources": [{"kind": "docs", "path": "t.md", "heading": "T"}],
+    }])
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    result = await knowledge_add_tool.handle(svc, {
+        "title": "Teaching: keep aliases",
+        "content": "AST mask must keep user select aliases",
+        "pack_id": "teaching-0000",
+        "content_type": "convention",
+    })
+    assert result["status"] == "success"
+    doc = store.read(result["id"])
+    assert doc.type == "teaching_case"
+    assert "teaching-cases" in (doc.path or "").replace("\\", "/")
+
+
+@pytest.mark.asyncio
+async def test_knowledge_review_writes_event(tmp_path):
+    from rsi_boot.api.tools import knowledge_review_tool
+    from rsi_boot.memory.logstore import iter_events
+
+    store = MemoryStore(tmp_path / ".rsi")
+    svc = KnowledgeService(store=store, project_root=tmp_path)
+    item_id = await svc.add(KnowledgeItem(
+        project_id="p",
+        title="登录校验",
+        content="验证码十分钟有效",
+        content_type="documentation",
+        tags=["signal:distilled", "bootstrap_run_id:run-1"],
+    ))
+
+    rt = type("Rt", (), {"knowledge": svc, "decisions": None, "store": store})()
+    out = await knowledge_review_tool.handle(rt, {
+        "action": "approve",
+        "id": item_id,
+        "bootstrap_run_id": "run-1",
+    })
+    assert out["status"] == "success"
+    events = [e for e in iter_events(store.rsi_dir, kinds={"review"})]
+    assert events
+    assert events[-1]["kind"] == "review"
+    assert events[-1]["action"] == "approve"
+    assert item_id in (events[-1].get("ids") or [])

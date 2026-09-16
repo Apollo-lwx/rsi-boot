@@ -18,5 +18,6 @@ build/
 .tmp-*
 *.log
 
+.pytest-*
 # 评测跑批产物（源码与 datasets/ 保留，报告不入库）
 tests/eval/reports/

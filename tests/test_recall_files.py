@@ -43,7 +43,7 @@ async def test_store_recall_does_not_apply_cosine_gate_to_raw_idf(tmp_path, monk
         dest=official_dir(store.rsi_dir, "convention") / "cols--bbbbbbbb.yaml",
     )
 
-    def fake_search(index, query, *, types=None, top_n=5):
+    def fake_search(index, query, *, types=None, top_n=5, **_kwargs):
         if types and "convention" in types:
             return [("b" * 32, 0.1)]
         return []

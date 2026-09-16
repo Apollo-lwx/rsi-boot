@@ -78,6 +78,8 @@ class KnowledgeService:
         item_id = self._add_to_store(item)
         if isinstance(item_id, dict):
             return item_id
+        if "signal:distilled" in set(item.tags or []):
+            return item_id
         await self._notify_change(item.project_id or self.bound_project_id or "")
         return item_id
 
@@ -181,11 +183,11 @@ class KnowledgeService:
 
         store = self._store
         docs = [
-            d for d in store.list_official()
+            d for d in store.list_official(skip_harvest=True)
             if d.status == "active" and d.type in _SHORT_KNOWLEDGE and not is_harvest_doc(d)
         ]
         docs.extend(
-            d for d in store.list_pending()
+            d for d in store.list_pending(skip_harvest=True)
             if d.type in _SHORT_KNOWLEDGE and not is_harvest_doc(d)
         )
         if role:

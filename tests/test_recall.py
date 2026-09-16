@@ -209,3 +209,52 @@ async def test_recall_suggestions_and_retrieved_case_ids(store):
     assert result["retrieved"] == retrieved
     assert low_id in result["retrieved"]
     assert high_id in result["retrieved"]
+
+
+async def test_recall_explain_intent_does_not_pad_weak_jdbc_or_sql_explain(store):
+    _write_official(
+        store,
+        title="AuthenticationType KERBEROS equals SPNEGO",
+        content="On the remote JDBC client, KERBEROS and SPNEGO both send HTTP Authorization Negotiate",
+    )
+    _write_official(
+        store,
+        title="GaussDB EXPLAIN dual track",
+        content="EXPLAIN ANALYZE is utility. EXPLAIN without ANALYZE is SqlExplain",
+    )
+    _write_official(
+        store,
+        title="Keep derived aliases out of JDBC column cache",
+        content="JDBC cache must ignore derived alias columns",
+    )
+    _write_official(
+        store,
+        title="dm dual skip jdbc metadata",
+        content="DUAL treated as a physical table; JDBC getColumns plus empty namespace fail-closed",
+        type="gene_case",
+    )
+    _write_official(
+        store,
+        title="kerberos is real account login",
+        content="Kerberos and SPNEGO are physical datasource accounts and must be rejected by default",
+        type="teaching_case",
+    )
+    _write_official(
+        store,
+        title="Teaching: DM tree uses JDBC getSchemas",
+        content="Dameng object-tree inventory must call official JDBC DatabaseMetaData.getSchemas",
+        type="teaching_case",
+    )
+    result = await _recall(store).recall(
+        "解释远端 JDBC 客户端上 Kerberos 与 SPNEGO 是否一回事，以及 Authorization 头如何发出",
+        "p1",
+        top_k=8,
+    )
+    item_titles = [row["title"] for row in result["items"]]
+    assert "AuthenticationType KERBEROS equals SPNEGO" in item_titles
+    assert "GaussDB EXPLAIN dual track" not in item_titles
+    assert "Keep derived aliases out of JDBC column cache" not in item_titles
+    assert "dm dual skip jdbc metadata" not in [row["title"] for row in result["gene_cases"]]
+    teach_titles = [row["title"] for row in result["teaching_cases"]]
+    assert "kerberos is real account login" in teach_titles
+    assert "Teaching: DM tree uses JDBC getSchemas" not in teach_titles

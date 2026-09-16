@@ -9,14 +9,14 @@ from pathlib import Path
 from rsi_boot.cli.bootstrap_command import run_bootstrap
 from rsi_boot.scanner.report import BootstrapReport
 
-_HEADINGS = ("## 采集结果", "## 阅读包", "## 下一步")
+_HEADINGS = ("## 仓库信号", "## 阅读包", "## 蒸馏进度", "## 画像")
 
 
-def test_write_markdown_has_pack_sections_and_numbered_next(tmp_path):
+def test_write_markdown_has_inventory_not_agent_menu(tmp_path):
     report = BootstrapReport(
         project_root=str(tmp_path),
         judge="host",
-        pack_count=3,
+        signals={"docs": 12, "code": 40},
         pack_omitted_sources=["docs/extra.md"],
         harvest_warning="库存仍有 2 条旧采集物",
         profile_summary={"language": "Python", "framework": "FastAPI"},
@@ -27,22 +27,59 @@ def test_write_markdown_has_pack_sections_and_numbered_next(tmp_path):
             "reason": "同族多版本",
         }],
     )
+    report.apply_pack_inventory([
+        {"id": "docs-0000", "domain": "docs", "status": "pending", "source_count": 8},
+        {"id": "src-auth", "domain": "src/auth", "status": "pending", "source_count": 12},
+        {"id": "git-0000", "domain": "git-fix", "status": "pending", "source_count": 3},
+    ])
     out = tmp_path / "bootstrap_report.md"
     report.write_markdown(out)
 
     text = out.read_text(encoding="utf-8")
     for heading in _HEADINGS:
         assert heading in text, f"missing {heading}"
-    assert "阅读包 3 个" in text or "3" in text
+    assert "## 下一步" not in text
+    assert "选哪一项" not in text
+    assert "Which option?" not in text
+    assert "pack_list" not in text
+    assert "先不蒸馏" not in text
+    assert "代码" in text
+    assert "docs / README" in text
+    assert "git-fix" in text
     assert "docs/extra.md" in text
     assert "库存仍有 2 条旧采集物" in text
-    assert "1." in text
-    assert "pack_list" in text
-    assert "Which option?" in text or "选哪一项" in text
+    assert "pending 3" in text
     assert "Cursor" not in text
     assert "弹出抉择" not in text
     assert "knowledge accept" not in text
     assert "直通生效" not in text
+
+
+def test_write_markdown_skip_is_uncovered_not_finished(tmp_path):
+    report = BootstrapReport(
+        project_root=str(tmp_path),
+        signals={"docs": 12, "git": 619},
+        git_summary="500 commits, 2 人, conventional 80%",
+        judge="host",
+    )
+    report.apply_pack_inventory(
+        [
+            {"id": "a", "domain": "docs", "status": "done", "source_count": 2},
+            {"id": "b", "domain": "conversation", "status": "skipped", "source_count": 8},
+            {"id": "c", "domain": "conversation", "status": "skipped", "source_count": 8},
+        ],
+        distilled_count=4,
+    )
+    out = tmp_path / "bootstrap_report.md"
+    report.write_markdown(out)
+    text = out.read_text(encoding="utf-8")
+    assert "已处理完" not in text
+    assert "未覆盖" in text
+    assert "skipped 2" in text
+    assert report.knowledge_written == 4
+    assert "- git 提交信号: 619" in text
+    assert "- git 摘要:" in text
+    assert text.count("- git:") == 0
 
 
 def test_write_markdown_caps_conflict_samples_and_counts(tmp_path):
@@ -90,7 +127,8 @@ async def test_bootstrap_writes_markdown_report(tmp_path, monkeypatch, capsys):
     text = md_path.read_text(encoding="utf-8")
     for heading in _HEADINGS:
         assert heading in text
-    assert "pack_list" in text
+    assert "## 下一步" not in text
+    assert "pack_list" not in text
     assert "Cursor" not in text
     assert "弹出抉择" not in text
 
@@ -108,8 +146,8 @@ def test_render_terminal_shows_judge_line(tmp_path):
     assert "judge=host" in text
     assert "12" in text
     assert "host_judge_queue" not in text
-    assert "1." in text
-    assert "pack_list" in text
+    assert "选哪一项" not in text
+    assert "pack_list" not in text
 
 
 def test_render_terminal_shows_local_relearn_line(tmp_path):

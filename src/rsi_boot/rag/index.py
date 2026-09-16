@@ -11,6 +11,9 @@ from rsi_boot.rag.chunker import chunk_text
 
 # Pulled from knowledge/retriever.py — in-memory invert, not SQLite FTS.
 _CJK_RUN = re.compile(r"[一-鿿　-〿＀-￯]+")
+_ASCII_TERM = re.compile(r"^[a-z0-9][a-z0-9_-]{2,}$")
+_HAN_TERM = re.compile(r"[\u4e00-\u9fff]")
+_DEFAULT_MIN_SCORE_RATIO = 0.25
 
 
 def tokenize(text: str) -> list[str]:
@@ -77,14 +80,75 @@ def build_index(docs: list[MemoryDoc]) -> dict:
     }
 
 
+def _ascii_strong_terms(index: dict, query: str) -> set[str]:
+    idf: dict[str, float] = index.get("idf") or {}
+    weights: dict[str, float] = {}
+    for term in tokenize(query):
+        if _ASCII_TERM.match(term) and term in idf:
+            weights[term] = idf[term]
+    if not weights:
+        return set()
+    ranked = sorted(weights.values())
+    cutoff = ranked[len(ranked) // 2] * 0.75
+    return {term for term, weight in weights.items() if weight >= cutoff}
+
+
+def _cjk_query_terms(index: dict, query: str) -> set[str]:
+    idf: dict[str, float] = index.get("idf") or {}
+    return {
+        term for term in tokenize(query)
+        if len(term) >= 2 and _HAN_TERM.search(term) is not None and term in idf
+    }
+
+
+def strong_query_terms(index: dict, query: str) -> set[str]:
+    """用于弱命中过滤：较稀有的 ASCII 查询词 ∪ 出现在语料中的 CJK 查询词。"""
+    return _ascii_strong_terms(index, query) | _cjk_query_terms(index, query)
+
+
+def _doc_has_any_term(index: dict, doc_id: str, terms: set[str]) -> bool:
+    postings: dict[str, dict[str, int]] = index.get("postings") or {}
+    return any(doc_id in postings.get(term, {}) for term in terms)
+
+
+def _drop_weak_hits(
+    index: dict,
+    query: str,
+    ranked: list[tuple[str, float]],
+    *,
+    min_score_ratio: float,
+) -> list[tuple[str, float]]:
+    """去掉只靠高频弱词撑起来的命中，也不用弱分硬凑满桶。"""
+    if not ranked:
+        return []
+    ascii_strong = _ascii_strong_terms(index, query)
+    cjk_terms = _cjk_query_terms(index, query)
+    if ascii_strong or cjk_terms:
+        ranked = [
+            (doc_id, score)
+            for doc_id, score in ranked
+            if (
+                (cjk_terms and _doc_has_any_term(index, doc_id, cjk_terms))
+                or (ascii_strong and _doc_has_any_term(index, doc_id, ascii_strong))
+            )
+        ]
+    if not ranked:
+        return []
+    floor = ranked[0][1] * min_score_ratio
+    return [(doc_id, score) for doc_id, score in ranked if score >= floor]
+
+
 def search(
     index: dict,
     query: str,
     *,
     types: set[str] | None = None,
     top_n: int = 5,
+    drop_weak: bool = True,
+    min_score_ratio: float = _DEFAULT_MIN_SCORE_RATIO,
 ) -> list[tuple[str, float]]:
-    """只按词袋/IDF 打分。实现中不得出现 `doc.title == query`。"""
+    """只按词袋/IDF 打分。实现中不得出现 `doc.title == query`。
+    drop_weak 默认打开：强词过滤 + 相对顶分门槛，禁止项检索应传 False。"""
     scores: dict[str, float] = {}
     postings: dict[str, dict[str, int]] = index["postings"]
     idf: dict[str, float] = index["idf"]
@@ -102,6 +166,10 @@ def search(
                 continue
             scores[doc_id] = scores.get(doc_id, 0.0) + weight * tf
     ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    if drop_weak:
+        ranked = _drop_weak_hits(
+            index, query, ranked, min_score_ratio=min_score_ratio,
+        )
     return ranked[:top_n]
 
 

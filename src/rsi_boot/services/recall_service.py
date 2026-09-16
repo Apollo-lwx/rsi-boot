@@ -34,6 +34,20 @@ _SEARCH_TYPES = frozenset({
     "gene_case", "teaching_case", "episode",
 })
 _CASE_ORDER = ("prohibition", "convention", "documentation", "teaching_case", "gene_case", "episode")
+_PEER_SCORE_RATIO = 0.2
+
+
+def _peer_floor_hits(
+    ranked: list[tuple[str, float]],
+    global_top: float,
+    *,
+    ratio: float = _PEER_SCORE_RATIO,
+) -> list[tuple[str, float]]:
+    """gene/teaching/episode 不得用远低于全局顶分的弱分凑满桶。"""
+    if not ranked or global_top <= 0:
+        return list(ranked)
+    floor = global_top * ratio
+    return [(doc_id, score) for doc_id, score in ranked if score >= floor]
 
 
 class RecallService:
@@ -97,28 +111,43 @@ class RecallService:
 
         prohibitions = [
             by_id[doc_id]
-            for doc_id, _score in search(index, expanded, types={"prohibition"}, top_n=_RECALL_SCAN_LIMIT)
+            for doc_id, _score in search(
+                index, expanded, types={"prohibition"},
+                top_n=_RECALL_SCAN_LIMIT, drop_weak=False,
+            )
             if doc_id in by_id
         ]
+        item_ranked = search(index, expanded, types=_ITEM_TYPES, top_n=limit)
+        teach_ranked = search(index, expanded, types={"teaching_case"}, top_n=limit)
+        gene_ranked = search(index, expanded, types={"gene_case"}, top_n=limit)
+        episode_ranked = search(index, expanded, types={"episode"}, top_n=limit)
+        global_top = 0.0
+        for ranked in (item_ranked, teach_ranked, gene_ranked):
+            if ranked:
+                global_top = max(global_top, ranked[0][1])
+        item_ranked = _peer_floor_hits(item_ranked, global_top)
+        teach_ranked = _peer_floor_hits(teach_ranked, global_top)
+        gene_ranked = _peer_floor_hits(gene_ranked, global_top)
+        episode_ranked = _peer_floor_hits(episode_ranked, global_top)
         items = [
             by_id[doc_id]
-            for doc_id, _score in search(index, expanded, types=_ITEM_TYPES, top_n=limit)
+            for doc_id, _score in item_ranked
             if doc_id in by_id
         ]
         teaching = [
             by_id[doc_id]
-            for doc_id, _score in search(index, expanded, types={"teaching_case"}, top_n=limit)
+            for doc_id, _score in teach_ranked
             if doc_id in by_id
         ]
         teach_ids = {doc.id for doc in teaching}
         genes = [
             by_id[doc_id]
-            for doc_id, _score in search(index, expanded, types={"gene_case"}, top_n=limit)
+            for doc_id, _score in gene_ranked
             if doc_id in by_id and doc_id not in teach_ids
         ]
         yaml_episodes = [
             by_id[doc_id]
-            for doc_id, _score in search(index, expanded, types={"episode"}, top_n=limit)
+            for doc_id, _score in episode_ranked
             if doc_id in by_id
         ]
         event_episodes = self._episodes_from_events(store, task, expanded)
@@ -192,7 +221,7 @@ class RecallService:
         docs: List[MemoryDoc] = []
         teaching_ids: set[str] = set()
         for typ in _CASE_ORDER:
-            for doc in store.list_official(typ):
+            for doc in store.list_official(typ, skip_harvest=True):
                 if doc.status != "active" or doc.type not in _SEARCH_TYPES:
                     continue
                 if doc.type in _ITEM_TYPES or doc.type == "prohibition":

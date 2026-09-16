@@ -124,6 +124,20 @@ def test_holder_match_skips_path_only(tmp_path: Path):
     assert _is_holder_cmdline(module, tmp_path) is True
 
 
+def test_holder_match_cursor_mcp_without_project_path(tmp_path: Path):
+    """Cursor MCP is `python -m rsi_boot serve` with RSI_PROJECT_ROOT in env only."""
+    cursor_mcp = (
+        r"C:\Users\AH\AppData\Local\Programs\Python\Python312\python.exe "
+        r"-m rsi_boot serve"
+    )
+    other = tmp_path.parent / "other-proj"
+    foreign = f'python -m rsi_boot serve --project-root "{other}"'
+    bootstrap = f"python -m rsi_boot bootstrap --consent --host-judge --project-root {tmp_path}"
+    assert _is_holder_cmdline(cursor_mcp, tmp_path) is True
+    assert _is_holder_cmdline(foreign, tmp_path) is False
+    assert _is_holder_cmdline(bootstrap, tmp_path) is False
+
+
 def test_readme_migrate_then_serve_and_wipe():
     readme = Path(__file__).resolve().parents[1] / "README.md"
     text = readme.read_text(encoding="utf-8")

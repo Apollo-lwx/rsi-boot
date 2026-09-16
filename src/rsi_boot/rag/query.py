@@ -86,11 +86,13 @@ def expand_query(
     task: str, *, role: str | None = None, rsi_dir: Path | None = None,
 ) -> tuple[str, str, float]:
     """返回 (expanded_text, intent, confidence)。
-    expanded = 原文 + 意图名 + INTENT_SYNONYMS + preserve_spans 抽出的 SQL。
+    expanded = 原文 + `intent:<意图名>` + INTENT_SYNONYMS + preserve_spans 抽出的 SQL。
+    意图名必须带 `intent:` 前缀入袋，避免 `explain` 等意图词撞上领域文档。
     不得把 expanded 设成某条 title。terms.yaml 只追加，不删内置。"""
     intent, confidence = detect_intent(task, role=role)
-    parts = [task, intent]
-    seen = {task, intent}
+    intent_tag = f"intent:{intent}"
+    parts = [task, intent_tag]
+    seen = {task, intent, intent_tag}
     for key, syns in _merged_synonyms(rsi_dir).items():
         if not _key_in_text(task, key):
             continue

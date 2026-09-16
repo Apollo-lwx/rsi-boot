@@ -43,8 +43,9 @@ _DECISIONS_BODY = (
     "用户说重新学习时按 rsi-relearn：先 rsi wipe --yes（要清文件记忆），"
     "再 rsi bootstrap --consent --host-judge。"
     "看到「必须指定 --host-judge 或 --local-judge」就加 --host-judge 重跑，不要改用 --local-judge。"
-    "学完用 rsi_learn pack_list / pack_open 读源，rsi_knowledge_search 后 rsi_knowledge_add，pack_done；"
-    "再用 rsi_knowledge_review 批准本 run。未批准不得声称召回可用。"
+    "学完用 rsi_learn pack_list 的 lanes 按板块并行蒸完本轮全部 pending，"
+    "再 rsi_knowledge_review 批准本 run。未批准不得声称召回可用。不要停到下次再学。"
+    "蒸馏中途禁止 mcp_auth：RSI 无登录，工具失败就重试 rsi_learn，不要给用户弹授权。"
     "rsi_conflicts 只处理短知识 id（可选带 bootstrap_run_id）。"
 )
 

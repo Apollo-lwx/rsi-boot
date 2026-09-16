@@ -107,7 +107,9 @@ class Runtime:
         if self._index is None:
             import json
 
-            docs = [d for d in self.store.list_official() if d.status == "active"]
+            docs = [
+                d for d in self.store.list_official(skip_harvest=True) if d.status == "active"
+            ]
             self._index = build_index(docs)
             cache = self.store.rsi_dir / "cache"
             cache.mkdir(parents=True, exist_ok=True)

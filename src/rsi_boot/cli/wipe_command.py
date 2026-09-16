@@ -19,12 +19,6 @@ WIPE_TREES = ("memory", "logs", "cache", "audit", "state")
 WIPE_LEFTOVER = ("rsi.db", "rsi.db-wal", "rsi.db-shm", "manifest.json")
 KEEP_NAMES = ("identity.json",)
 
-# 只认 rsi 可执行文件 / rsi serve / 包模块，避免误杀路径里带 rsi-boot 的 Cursor/pytest
-_HOLDER_RE = re.compile(
-    r"(?:^|[\\/\s\"'])rsi(?:\.exe)?(?:\s|\"'|$)|\brsi_boot\b|\brsi serve\b",
-    re.IGNORECASE,
-)
-
 _YES_HINT = lambda lang: t("WIPE_HINT", lang)
 
 
@@ -32,14 +26,34 @@ def _norm(path: Path | str) -> str:
     return os.path.normcase(str(Path(path).resolve()))
 
 
+_SERVE_RE = re.compile(
+    r"rsi(?:\.exe)?\s+serve|\brsi_boot\b.*\bserve\b",
+    re.IGNORECASE,
+)
+_PROJECT_ROOT_RE = re.compile(
+    r"--project-root(?:\s+|=)(?:\"([^\"]+)\"|'([^']+)'|(\S+))",
+    re.IGNORECASE,
+)
+
+
+def _cmdline_project_root(cmdline: str) -> str | None:
+    match = _PROJECT_ROOT_RE.search(cmdline)
+    if match is None:
+        return None
+    return next((group for group in match.groups() if group), None)
+
+
 def _is_holder_cmdline(cmdline: str, project_root: Path) -> bool:
-    if not cmdline:
+    if not cmdline or not _SERVE_RE.search(cmdline):
         return False
-    root = _norm(project_root)
-    hay = os.path.normcase(cmdline)
-    if root not in hay:
-        return False
-    return bool(_HOLDER_RE.search(cmdline))
+    specified = _cmdline_project_root(cmdline)
+    if specified:
+        try:
+            return _norm(specified) == _norm(project_root)
+        except OSError:
+            return False
+    # Cursor MCP: `python -m rsi_boot serve` with RSI_PROJECT_ROOT in env only.
+    return True
 
 
 def _windows_process_rows() -> list[tuple[int, str]]:

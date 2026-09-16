@@ -1,57 +1,21 @@
 # RSI Boot
 
-个人本地 MCP 工具：**宿主模型（Cursor 等）的程序性记忆层**。
-把交互中验证有效的经验、约定与禁止项沉淀为记忆，经审批后自动注入宿主规则文件
-（`.cursor/rules/rsi-*.mdc` + `AGENTS.md` 托管块），并在任务开始前经 `rsi_recall` 召回——
-下次同类任务自动规避已踩过的坑。**零 API Key**：主链路无模型调用，生成全部透传宿主模型；
-数据落在当前工作目录的 `.rsi/`（和 Superpowers 的 `.superpowers/` 一样：一个工作区一份）。
+宿主模型（Cursor 等）的本地记忆层。把对话里验证过的约定、禁止项和修复经验沉淀下来，经审批后注入规则文件，并在下次任务前召回。零 API Key，主链路不调用模型；数据只落在当前仓库的 `.rsi/`。
 
 ## 安装
 
+需要 Python 3.10+。在本仓库根目录：
+
 ```bash
 pip install -e .
-```
-
-## 快速上手
-
-```bash
-# 1. 初始化用户配置（~/.rsi/config.yaml）；项目记忆在工作目录 .rsi/
 rsi init
-
-# 2. 冒烟：记忆召回（零 Key，无需任何配置）
-rsi recall "帮我审查这段 Python 代码"
-
-# 3. 添加记忆并验证召回（FTS5 + CJK bigram）
-rsi knowledge add --title "项目约定" --content "本项目统一使用 snake_case 命名"
-rsi recall "本项目的命名约定是什么"
-
-# 4. 项目自学习：只写阅读包，不把原文当知识
-rsi bootstrap --dry-run          # 预览将生成的阅读包，不写盘
-rsi bootstrap --local-judge      # 终端采集阅读包（不开冲突）
-rsi bootstrap --local-judge --force   # 已 done 的包改回 pending
-rsi bootstrap --include .auto-learn   # 默认不扫 .worktrees/.auto-learn/.superpowers/任意 artifacts/，按需加回
-
-# 5. 若工作区仍有旧版 rsi.db，先迁到文件记忆
-rsi memory migrate
-
-# 6. 启动 MCP stdio server（接入 Cursor 等客户端）
-rsi serve
 ```
 
-对话里重新学习走 `--host-judge`；自己敲终端用 `--local-judge`（只写阅读包，不开冲突）。两者必须且只能给一个，`--dry-run` 除外。
+`rsi init` 只写用户配置 `~/.rsi/config.yaml`。项目记忆在各仓库的 `.rsi/`，第一次启动 MCP 或 bootstrap 时创建。
 
-采集结束后按报告「下一步」编号走：`rsi_learn pack_list` → `pack_open` → 蒸馏短知识 → `pack_done` → `rsi_knowledge_review` 批准本 run。未批准不得声称召回可用。
-约定（convention）获准后只进召回，**不会**写成 `rsi-convention-*.mdc` 规则文件。
+## 接到 Cursor
 
-**重新学习：** `--force` 只忽略指纹，**不会**把旧版溢出归档（无 `bootstrap_run_id`）救回 `active`。曾用旧逻辑学过、记忆几乎全是归档时，先清文件记忆再学（删除 `.rsi` 下 `memory/` `logs/` `cache/` `audit/` `state/` 与 `manifest.json`，残留 `rsi.db*` 也会删；`identity.json` 会保留）：
-
-```bash
-# 在该项目根目录。若 Cursor 会立刻把 MCP 拉回来，先在 Settings → MCP 关掉 rsi-boot
-rsi wipe --yes
-rsi bootstrap --local-judge
-```
-
-## MCP 客户端配置（Cursor 示例）
+在**要用记忆的那个项目**的 `.cursor/mcp.json` 加：
 
 ```json
 {
@@ -67,47 +31,72 @@ rsi bootstrap --local-judge
 }
 ```
 
-`rsi` 可以全局安装。Cursor 用户级 `mcp.json` 里 **`args` 中的 `${workspaceFolder}` 经常不展开**（会落到字面路径，记忆串库）。工作区请走环境变量 `RSI_PROJECT_ROOT`，或依赖 Cursor 注入的 `WORKSPACE_FOLDER_PATHS` / `CURSOR_WORKSPACE_ROOT`。未展开的 `${…}` 会被忽略并回落这些变量。每个窗口仍会在**该仓库**下创建自己的 `.rsi/`，和 Superpowers 的 `.superpowers/` 一样。
+然后 Settings → MCP 确认 `rsi-boot` 已启用。改过本仓库代码后要重载该 MCP。
 
-暴露工具（v3.0）：
+不要配用户级 `mcp.json`：那里 `args` 里的 `${workspaceFolder}` 经常不展开，会把记忆串到别的仓库。工作区只走环境变量 `RSI_PROJECT_ROOT`，或依赖 Cursor 注入的 `WORKSPACE_FOLDER_PATHS` / `CURSOR_WORKSPACE_ROOT`。
 
-| 工具 | 说明 |
-|------|------|
-| `rsi_recall` | 记忆召回入口：任务开始前调用，禁止项置顶 + 相关经验（召回臂 Thompson 调参） |
-| `rsi_feedback` | 采纳反馈（accepted/applied/modified/copied/referenced/ignored/rejected + 评分/评语）；rejected+评语将提炼为禁止项 |
-| `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_review` | 记忆管理与提取草稿审批；add/review/delete 触发规则文件重写 |
-| `rsi_review` | Harness 改进提案（模板化生成 + 静态门禁）与配置快照 |
-| `rsi_conflicts` | 学习记忆与你手写规则的冲突查询与裁决（user_wins/memory_wins/coexist） |
-| `rsi_stats` | 记忆使用统计：触达/采纳率/禁止项遵循率/提案通过率（JSON/CSV 导出） |
+## 在对话里学习
 
-> v3.0 起 `rsi_query` 退役：RSI Boot 不再自己调用 LLM 生成答案，专注做记忆层。
-> 原模型调用链（Pipeline/质量评判/LLM 提取等）归档为附录 C 可选增强，默认关闭。
+接好 MCP 后不要自己去终端跑 `rsi`。对当前项目窗口里的代理说即可。
 
-## 配置链
+| 你说 | 代理做的 |
+|------|----------|
+| 第一次学这个项目 | `rsi bootstrap --consent --host-judge` → `rsi_learn` 蒸完全部 pending → `rsi_knowledge_review` 批准本 run |
+| 重新学习 | 先 `rsi wipe --yes` 清记忆，再按上面重新学 |
 
-包内 `default.yaml` → `~/.rsi/config.yaml` → 项目根 `rsi-boot.yaml` → 请求参数（受保护路径除外）。
-`RSI_HOME` 只覆盖**用户配置**目录（默认 `~/.rsi`：`config.yaml`、可选 skills）。项目记忆、画像、归档都在工作目录 `.rsi/`（`memory/` / `identity.json` / `state/`），打开另一个仓库就是另一份，不会串。若 MCP 不是从仓库根启动，设环境变量 `RSI_PROJECT_ROOT`，或把 server 配在项目 `.cursor/mcp.json` 里以保证 cwd 为工作区。旧版 `.rsi/rsi.db` 先跑 `rsi memory migrate` 再 `rsi serve`。`rsi serve` 运行期间配置文件变更自动热加载（last-good-wins）。
+看到「必须指定 `--host-judge` 或 `--local-judge`」就加 `--host-judge` 重跑，不要改用 `--local-judge`（那条只给终端自己采集用）。`rsi wipe --yes` 会删掉该项目 `.rsi` 下的 `memory/` `logs/` `cache/` `audit/` `state/` 与 `manifest.json`，保留 `identity.json`；若提示文件被占用，先在 Settings → MCP 关掉 `rsi-boot` 再重跑。
 
-主链路零配置可用。可选增强（`enhance.*`，需自配模型 Key）见 `~/.rsi/config.yaml` 示例：
-`enhance.embedding`（向量检索）、`enhance.extract_llm`（LLM 知识提取）、`enhance.proposal_llm`、
-`enhance.gate_replay`（回放回归门禁）、`enhance.intent_llm`、`enhance.conflict_llm`。
-环境变量白名单：`RSI_OPENAI_API_KEY` / `OPENAI_API_KEY`、`RSI_OPENAI_BASE_URL` / `OPENAI_BASE_URL`（仅增强层使用）。
+学完看 `.rsi/bootstrap_report.md` 的板块清单，pending=0 并经 `rsi_knowledge_review` 批准后才算召回可用。约定获准后只进召回，不会写成 `rsi-convention-*.mdc` 规则文件。
 
-安全要点：项目 `rsi-boot.yaml` 禁止明文密钥（发现即拒绝启动）；`~/.rsi/config.yaml` 中可用 `env:VAR_NAME` 引用环境变量；
-日志落库前执行十条规则脱敏；注入宿主上下文前过三道闸（脱敏 + 审批闸门 + 注入黑名单）；
-超 90 天日志自动归档到项目 `.rsi/archive/YYYYMM.jsonl` 后删除。
+## 终端冒烟
 
-## 角色支持
+不经对话、只调 CLI 时用。写盘必须带 `--host-judge` 或 `--local-judge` 其中一个；`--dry-run` 除外。
 
-请求携带 `role` 字段启用角色意图（`test` / `pm` 内置）：角色意图优先匹配，未命中走通用意图兜底。
-新角色通过 `config/roles/<role>.yaml` + `config/role_templates/` 纯配置扩展，无需改代码。
+```bash
+rsi recall "帮我审查这段 Python 代码"
+rsi knowledge add --title "项目约定" --content "本项目统一使用 snake_case 命名"
+rsi recall "本项目的命名约定是什么"
+
+rsi bootstrap --dry-run
+rsi bootstrap --local-judge
+rsi bootstrap --local-judge --force
+
+# 旧版 .rsi/rsi.db 先迁移
+rsi memory migrate
+
+# 一般由 Cursor 拉起，不必手跑
+rsi serve
+```
+
+## MCP 工具
+
+| 工具 | 干什么 |
+|------|--------|
+| `rsi_recall` | 任务开始前召回：禁止项置顶 + 约定/文档/gene/teaching |
+| `rsi_feedback` | 采纳反馈；rejected+评语会提炼为禁止项 |
+| `rsi_learn` | 阅读包 pack_list / pack_open / pack_done，teach_catch / teach_record，Session 审计 |
+| `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_review` | 记忆管理与审批；蒸馏条须带 `pack_id` |
+| `rsi_conflicts` | 短知识冲突查询与裁决 |
+| `rsi_memory` | 记忆索引 / 打开 / 重建 / 关系图 |
+| `rsi_review` | Harness 改进提案与配置快照 |
+| `rsi_stats` | 记忆使用统计 |
+
+RSI 无 OAuth。蒸馏中途不要调 `mcp_auth`、不要给用户弹授权。
+
+## 配置
+
+配置链：包内 `default.yaml` → `~/.rsi/config.yaml` → 项目根 `rsi-boot.yaml` → 请求参数。
+
+`RSI_HOME` 只覆盖用户配置目录（默认 `~/.rsi`）。项目记忆、画像、归档都在工作目录 `.rsi/`，打开另一个仓库就是另一份，不会串。主链路零配置可用；可选增强（向量检索、LLM 提取等，需自配模型 Key）见 `~/.rsi/config.yaml` 示例。
+
+项目 `rsi-boot.yaml` 禁止明文密钥，发现即拒绝启动。日志落库前脱敏；注入宿主上下文前过审批闸门与黑名单；超 90 天日志自动归档到 `.rsi/archive/YYYYMM.jsonl`。
 
 ## 开发
 
 ```bash
 pip install -e ".[dev]"
 python -m pytest
-python scripts/export_schemas.py   # 由 Pydantic 模型重新生成 schemas/*.json
+python scripts/export_schemas.py
 ```
 
-设计文档见 `docs/`（PRD / Spec / Plans；v3.x 为当前权威，v2.6 已冻结存档）。
+设计文档见 `docs/`。

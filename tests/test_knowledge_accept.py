@@ -185,6 +185,29 @@ async def test_accept_releases_conversation_faq_documentation(tmp_path):
         await rt.close()
 
 
+async def test_review_bootstrap_run_id_approves_distilled(tmp_path):
+    root = tmp_path / "proj"
+    root.mkdir()
+    run_id = "run-distill-review"
+    _write_run(root, run_id)
+    rt = await build_runtime(project_root=root)
+    try:
+        distilled_id = await _add(
+            rt.knowledge, title="模块依赖禁止项", project_id=rt.project_id,
+            content_type="prohibition", source_url=".cursor/skills/gateway-jdbc/SKILL.md",
+            tags=["signal:distilled", f"bootstrap_run_id:{run_id}", "pack_id:skills-0000"],
+        )
+        result = await knowledge_review_tool.handle(rt, {
+            "action": "approve",
+            "bootstrap_run_id": run_id,
+        })
+        assert result["status"] == "success"
+        assert result["processed"] == 1
+        assert _status_of(rt, distilled_id) == "active"
+    finally:
+        await rt.close()
+
+
 async def test_review_bootstrap_run_id_includes_faq(tmp_path):
     root = tmp_path / "proj"
     root.mkdir()

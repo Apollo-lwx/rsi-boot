@@ -133,6 +133,96 @@ async def test_conflict_scan_skips_harvest_docs(tmp_path):
     assert not any(r.get("item_id") == harvest_id for r in rows)
 
 
+def test_list_official_skip_harvest_does_not_parse_body(tmp_path, monkeypatch):
+    store = MemoryStore(tmp_path / ".rsi")
+    harvest_id = uuid.uuid4().hex
+    keep_id = uuid.uuid4().hex
+    _write(store, _doc(
+        id=harvest_id, title="代码骨架摘要",
+        content=("旧采集正文 " * 400),
+        tags=["signal:docs"],
+    ))
+    _write(store, _doc(
+        id=keep_id, title="认证失败重试三次",
+        content="登录失败后最多重试三次再锁定",
+        tags=["signal:distilled"],
+    ))
+    parsed: list[str] = []
+    real = MemoryStore._safe_load
+
+    def spy(self, path):
+        parsed.append(Path(path).name)
+        return real(self, path)
+
+    monkeypatch.setattr(MemoryStore, "_safe_load", spy)
+    docs = store.list_official("documentation", skip_harvest=True)
+    ids = {d.id for d in docs}
+    assert harvest_id not in ids
+    assert keep_id in ids
+    assert not any(harvest_id[:8] in name for name in parsed)
+
+
+def test_first_read_does_not_hydrate_unrelated_harvest(tmp_path, monkeypatch):
+    store = MemoryStore(tmp_path / ".rsi")
+    harvest_id = uuid.uuid4().hex
+    keep_id = uuid.uuid4().hex
+    _write(store, _doc(
+        id=harvest_id, title="代码骨架摘要",
+        content=("旧采集正文 " * 400),
+        tags=["signal:docs"],
+    ))
+    _write(store, _doc(
+        id=keep_id, type="convention", title="日志用 UTC",
+        content="日志时间一律用 UTC",
+    ))
+    parsed: list[str] = []
+    real = MemoryStore._safe_load
+
+    def spy(self, path):
+        parsed.append(Path(path).name)
+        return real(self, path)
+
+    monkeypatch.setattr(MemoryStore, "_safe_load", spy)
+    fresh = MemoryStore(tmp_path / ".rsi")
+    got = fresh.read(keep_id)
+    assert got.id == keep_id
+    assert not any(harvest_id[:8] in name for name in parsed)
+
+
+def test_prune_catalog_does_not_parse_harvest_bodies(tmp_path, monkeypatch):
+    from rsi_boot.memory.graph import add_edge, load_catalog, prune_catalog
+
+    store = MemoryStore(tmp_path / ".rsi")
+    harvest_id = uuid.uuid4().hex
+    keep_id = uuid.uuid4().hex
+    missing = uuid.uuid4().hex
+    _write(store, _doc(
+        id=harvest_id, title="代码骨架摘要",
+        content=("旧采集正文 " * 400),
+        tags=["signal:docs"],
+    ))
+    _write(store, _doc(
+        id=keep_id, title="认证失败重试三次",
+        content="登录失败后最多重试三次再锁定",
+        tags=["signal:distilled"],
+    ))
+    add_edge(store.rsi_dir, harvest_id, keep_id, "cites")
+    add_edge(store.rsi_dir, keep_id, missing, "cites")
+    parsed: list[str] = []
+    real = MemoryStore._safe_load
+
+    def spy(self, path):
+        parsed.append(Path(path).name)
+        return real(self, path)
+
+    monkeypatch.setattr(MemoryStore, "_safe_load", spy)
+    prune_catalog(store.rsi_dir, store)
+    edges = load_catalog(store.rsi_dir)["edges"]
+    assert any(e.get("from") == harvest_id and e.get("to") == keep_id for e in edges)
+    assert not any(e.get("to") == missing for e in edges)
+    assert not any(harvest_id[:8] in name for name in parsed)
+
+
 async def test_bootstrap_sets_harvest_warning_without_deleting(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_HOME", str(tmp_path / ".rsi-home"))
     root = tmp_path / "proj"
