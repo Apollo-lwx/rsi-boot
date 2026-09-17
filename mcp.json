@@ -2,7 +2,10 @@
   "mcpServers": {
     "rsi-boot": {
       "command": "rsi",
-      "args": ["serve"]
+      "args": ["serve"],
+      "env": {
+        "RSI_PROJECT_ROOT": "${workspaceFolder}"
+      }
     }
   }
 }

@@ -35,7 +35,7 @@ rsi init
 
 然后 Settings → MCP 确认 `rsi-boot` 已启用。改过本仓库代码后要重载该 MCP。
 
-不要配用户级 `mcp.json`：那里 `args` 里的 `${workspaceFolder}` 经常不展开，会把记忆串到别的仓库。工作区只走环境变量 `RSI_PROJECT_ROOT`，或依赖 Cursor 注入的 `WORKSPACE_FOLDER_PATHS` / `CURSOR_WORKSPACE_ROOT`。
+不要配用户级 `mcp.json`：那里 `args` 里的 `${workspaceFolder}` 经常不展开，会把记忆串到别的仓库。工作区绑定顺序：`RSI_PROJECT_ROOT`（项目级 mcp.json，推荐，显式契约）→ MCP `roots/list`（插件形态下由 Cursor 自动应答）→ Cursor 注入的 `WORKSPACE_FOLDER_PATHS` → 进程 cwd。
 
 ## 在对话里学习
 

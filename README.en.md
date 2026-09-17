@@ -35,7 +35,7 @@ In the `.cursor/mcp.json` of **the project you want memory for**, add:
 
 Then go to Settings → MCP and confirm `rsi-boot` is enabled. Reload the MCP after changing this repository's code.
 
-Do **not** configure a user-level `mcp.json`: `${workspaceFolder}` in `args` often goes unexpanded there, which leaks memory across repos. Workspace binding uses only the `RSI_PROJECT_ROOT` env var, or the `WORKSPACE_FOLDER_PATHS` / `CURSOR_WORKSPACE_ROOT` variables injected by Cursor.
+Do **not** configure a user-level `mcp.json`: `${workspaceFolder}` in `args` often goes unexpanded there, which leaks memory across repos. Workspace binding order: `RSI_PROJECT_ROOT` (project-level mcp.json, recommended — explicit contract) → MCP `roots/list` (answered automatically by Cursor in plugin form) → the `WORKSPACE_FOLDER_PATHS` variable injected by Cursor → process cwd.
 
 ## Learning in conversation
 

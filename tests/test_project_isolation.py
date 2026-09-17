@@ -21,8 +21,10 @@ from rsi_boot.data.sqlite import SQLiteClient
 from rsi_boot.project import (
     WORKSPACE_PROJECT_ID,
     load_or_create_identity,
+    pinned_serve_root,
     project_scope,
     resolve_project_root,
+    resolve_serve_root,
 )
 from rsi_boot.services.legacy_migrate import (
     _journal_path,
@@ -119,6 +121,37 @@ def test_vscode_cwd_not_trusted_as_workspace(tmp_path, monkeypatch):
     plain = tmp_path / "plain"
     plain.mkdir()
     assert resolve_project_root(cwd=plain) == plain.resolve()
+
+
+def test_pinned_serve_root_explicit_and_env(tmp_path, monkeypatch):
+    """显式锚点（--project-root / RSI_PROJECT_ROOT）优先于 MCP roots，且不会被 roots 盖过。"""
+    explicit = tmp_path / "explicit"
+    explicit.mkdir()
+    env_root = tmp_path / "env-root"
+    env_root.mkdir()
+    monkeypatch.setenv("RSI_PROJECT_ROOT", str(env_root))
+    # 显式参数优先于 env
+    assert pinned_serve_root(explicit) == explicit.resolve()
+    assert pinned_serve_root(None) == env_root.resolve()
+    monkeypatch.delenv("RSI_PROJECT_ROOT")
+    assert pinned_serve_root(None) is None
+    # 未展开的字面占位符（用户级/插件 mcp.json 不插值时）不得成为锚点
+    monkeypatch.setenv("RSI_PROJECT_ROOT", "${workspaceFolder}")
+    assert pinned_serve_root(None) is None
+
+
+def test_resolve_serve_root_prefers_first_file_root(tmp_path):
+    """roots/list：取首个可解析的 file 根；空列表或不可解析条目落 fallback。"""
+    fallback = tmp_path / "fallback"
+    fallback.mkdir()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    uri = workspace.resolve().as_uri()
+    assert resolve_serve_root([uri], fallback) == workspace.resolve()
+    # 非 file / 不存在的路径被跳过
+    assert resolve_serve_root(["sftp://remote/x", uri], fallback) == workspace.resolve()
+    assert resolve_serve_root([], fallback) == fallback.resolve()
+    assert resolve_serve_root(["not-a-dir-at-all-zzz"], fallback) == fallback.resolve()
 
 
 def test_ide_workspace_file_uri(tmp_path, monkeypatch):

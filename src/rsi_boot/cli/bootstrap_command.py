@@ -408,5 +408,5 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
     if args.then_start:
         from ..__main__ import run_serve
 
-        return await run_serve(project_root, watch=False)
+        return await run_serve(project_root, watch=False, pinned=Path(project_root))
     return 0

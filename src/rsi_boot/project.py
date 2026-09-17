@@ -191,6 +191,35 @@ def resolve_project_root(
     return start
 
 
+def pinned_serve_root(explicit: Optional[Path]) -> Optional[Path]:
+    """serve 的显式锚点：`--project-root` 或 `RSI_PROJECT_ROOT` 环境变量。
+
+    两者皆无返回 None —— 工作区改由 MCP roots（客户端握手后 roots/list）决定。
+    显式锚点永远优先于 roots：项目级 mcp.json 的 RSI_PROJECT_ROOT 是文档化契约。
+    """
+    if explicit is not None and not _is_unexpanded_placeholder(explicit):
+        return Path(explicit).resolve()
+    raw = os.environ.get("RSI_PROJECT_ROOT")
+    if raw:
+        path = _path_from_uri_or_text(raw)
+        if path is not None:
+            return path
+    return None
+
+
+def resolve_serve_root(roots: Iterable[str], fallback: Path) -> Path:
+    """从 roots/list 返回的 URI 列表取首个可解析的 file 根；没有则落 fallback。
+
+    roots 是客户端声明的当前窗口工作区边界（协议级、按窗口隔离），
+    比进程 cwd 与 IDE 注入环境变量更可信；非 file 或不可解析的条目跳过。
+    """
+    for uri in roots or []:
+        path = _path_from_uri_or_text(str(uri))
+        if path is not None:
+            return path
+    return Path(fallback).resolve()
+
+
 @dataclass(frozen=True)
 class ProjectIdentity:
     project_id: str

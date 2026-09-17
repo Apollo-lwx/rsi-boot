@@ -113,7 +113,7 @@ async def test_watch_rewrites_inject_when_memory_yaml_changes(tmp_path):
 def test_run_serve_watch_rewrites_inject():
     from rsi_boot import __main__
 
-    src = inspect.getsource(__main__.run_serve)
+    src = inspect.getsource(__main__.ServeSession)
     assert "on_memory_yaml_change" in src
     helper = inspect.getsource(__main__.on_memory_yaml_change)
     assert "invalidate_index" in helper

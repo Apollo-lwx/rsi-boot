@@ -14,7 +14,6 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 
 from .. import __version__
-from ..services.log_service import LogService
 from ..services.stats_service import StatsService
 from ..ux.messages import TOOL_DESC
 from .tools import (
@@ -36,13 +35,19 @@ logger = logging.getLogger(__name__)
 _INSTRUCTIONS = TOOL_DESC["recall"]
 
 
-def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server:
-    """runtime 为 bootstrap.Runtime（持有热加载后的当前组件）"""
+def build_server(session: Any) -> Server:
+    """session 为 __main__.ServeSession（首个请求时按 MCP roots 定锚并构建 runtime）"""
     # initialize 握手：声明版本与能力说明（§7 协议契约，P1.15）
     server: Server = Server("rsi-boot", version=__version__, instructions=_INSTRUCTIONS)
 
     @server.list_tools()
     async def list_tools() -> list[types.Tool]:
+        # 握手后客户端立刻拉工具清单：借此时机定锚工作区并构建 runtime，
+        # 保证注入产物在 agent 读 AGENTS.md 前落盘；构建失败不阻塞工具清单返回。
+        try:
+            await session.ensure_started(server)
+        except Exception:
+            logger.exception("runtime 构建失败（list_tools 仍返回工具清单）")
         return [
             types.Tool(name=recall_tool.TOOL_NAME,
                        description=recall_tool.TOOL_DESCRIPTION,
@@ -82,6 +87,9 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextContent]:
         try:
+            runtime = await session.ensure_started(server)
+            logs = runtime.logs
+            feedback_secret = runtime.feedback_secret
             if name == recall_tool.TOOL_NAME:
                 payload = await recall_tool.handle(runtime, arguments)
             elif name == feedback_tool.TOOL_NAME:
@@ -116,11 +124,8 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
     return server
 
 
-async def serve(runtime: Any, logs: LogService, feedback_secret: str) -> None:
-    server = build_server(runtime, logs, feedback_secret)
-    runtime.feedback_worker.start()  # §4.2 异步反馈消费，随 serve 启停
-    try:
-        async with stdio_server() as (read_stream, write_stream):
-            await server.run(read_stream, write_stream, server.create_initialization_options())
-    finally:
-        await runtime.feedback_worker.stop()
+async def serve(session: Any) -> None:
+    """stdio 传输；runtime 由 session 在首个请求时按 roots 定锚后构建（随 session.stop 收尾）。"""
+    server = build_server(session)
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(read_stream, write_stream, server.create_initialization_options())

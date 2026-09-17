@@ -14,7 +14,7 @@ from .bootstrap import build_runtime, detect_user_id, rsi_home
 from .common.logger import setup_cli_logging, setup_logging
 from .common.stdio import ensure_utf8_stdio
 from .core.models import KnowledgeItem
-from .project import resolve_project_root
+from .project import pinned_serve_root, resolve_project_root, resolve_serve_root
 from .ux.lang import locale_lang
 from .ux.messages import t
 
@@ -60,48 +60,114 @@ def on_memory_yaml_change(runtime: object, _path: Path) -> None:
             loop.create_task(rewrite)
 
 
-async def run_serve(project_root: Path, *, watch: bool = False) -> int:
+class ServeSession:
+    """serve 运行态持有器：runtime 延迟到首个 MCP 请求才构建，以便用 roots/list 定锚工作区。
+
+    绑定顺序：`--project-root` / `RSI_PROJECT_ROOT`（pinned，显式契约）
+    > MCP roots（客户端声明的窗口工作区，协议级）
+    > IDE 注入环境变量 / cwd（fallback，进程启动时解析）。
+    若 fallback 解析错误（如插件形态下 cwd 是 Cursor 用户目录），
+    延迟构建保证错误的根不会落盘任何 .rsi/ 或注入产物。
+    """
+
+    def __init__(self, *, pinned: Path | None, fallback: Path, watch: bool) -> None:
+        self.pinned = pinned
+        self.fallback = Path(fallback).resolve()
+        self.watch = watch
+        self.runtime = None
+        self.root: Path | None = None
+        self._scheduler = None
+        self._tasks: list[asyncio.Task] = []
+        self._started = False
+        self._lock = asyncio.Lock()
+
+    async def ensure_started(self, server: object = None):
+        """首个 MCP 请求（list_tools / call_tool）时构建 runtime；幂等。"""
+        if self._started:
+            return self.runtime
+        async with self._lock:
+            if self._started:
+                return self.runtime
+            root = self.pinned or self.fallback
+            if self.pinned is None and server is not None:
+                root = await self._root_from_client(server)
+            await self._start(root)
+            self._started = True
+            return self.runtime
+
+    async def _root_from_client(self, server: object) -> Path:
+        """向客户端发 roots/list；客户端无 roots 能力或查询失败则保持 fallback。"""
+        try:
+            result = await server.request_context.session.list_roots()
+        except Exception:
+            logging.getLogger(__name__).info(
+                "客户端 roots 能力不可用，工作区保持环境解析：%s", self.fallback
+            )
+            return self.fallback
+        uris = [str(root.uri) for root in result.roots]
+        root = resolve_serve_root(uris, self.fallback)
+        if root != self.fallback:
+            logging.getLogger(__name__).info(
+                "工作区由 MCP roots 绑定：%s（环境解析为 %s）", root, self.fallback
+            )
+        return root
+
+    async def _start(self, root: Path) -> None:
+        from .memory.watch import YamlWatcher
+        from .scheduler.manager import SchedulerManager
+
+        logging.getLogger(__name__).info("工作区 %s → %s", root, root / ".rsi")
+        self.root = root
+        self.runtime = await build_runtime(project_root=root)
+        self.runtime.feedback_worker.start()  # §4.2 异步反馈消费
+        await self.runtime.injector.rewrite(self.runtime.project_id or "")
+        archive_dir = root / ".rsi" / "archive"
+        self._scheduler = SchedulerManager(
+            archive_dir, store=self.runtime.store, profiles=self.runtime.profiles,
+            extractor_provider=lambda: self.runtime.extractor,
+            proposal_engine_provider=lambda: self.runtime.proposal_engine,
+            conflict_detector_provider=lambda: self.runtime.conflict_detector,
+            project_ids=[self.runtime.project_id] if self.runtime.project_id else [],
+        )
+        self._scheduler.start()
+        self._tasks.append(asyncio.create_task(self.runtime.watcher.watch_loop()))
+        if self.watch:
+            watcher = YamlWatcher(
+                root / ".rsi" / "memory",
+                on_change=lambda path: on_memory_yaml_change(self.runtime, path),
+            )
+            self._tasks.append(asyncio.create_task(watcher.watch_loop()))
+
+    async def stop(self) -> None:
+        for task in self._tasks:
+            task.cancel()
+        self._tasks.clear()
+        if self._scheduler is not None:
+            await self._scheduler.stop()
+            self._scheduler = None
+        if self.runtime is not None:
+            await self.runtime.close()
+            self.runtime = None
+
+
+async def run_serve(project_root: Path, *, watch: bool = False, pinned: Path | None = None) -> int:
     """File-only serve: startup inject, optional YAML watch, no sqlite."""
     from .api.mcp_server import serve
-    from .memory.watch import YamlWatcher
-    from .scheduler.manager import SchedulerManager
 
-    logging.getLogger(__name__).info("工作区 %s → %s", project_root, project_root / ".rsi")
-    runtime = await build_runtime(project_root=project_root)
-    await runtime.injector.rewrite(runtime.project_id or "")
-    archive_dir = project_root / ".rsi" / "archive"
-    scheduler = SchedulerManager(
-        archive_dir, store=runtime.store, profiles=runtime.profiles,
-        extractor_provider=lambda: runtime.extractor,
-        proposal_engine_provider=lambda: runtime.proposal_engine,
-        conflict_detector_provider=lambda: runtime.conflict_detector,
-        project_ids=[runtime.project_id] if runtime.project_id else [],
-    )
-    scheduler.start()
-    config_watch = asyncio.create_task(runtime.watcher.watch_loop())
-    yaml_task = None
-    if watch:
-        watcher = YamlWatcher(
-            project_root / ".rsi" / "memory",
-            on_change=lambda path: on_memory_yaml_change(runtime, path),
-        )
-        yaml_task = asyncio.create_task(watcher.watch_loop())
+    session = ServeSession(pinned=pinned, fallback=project_root, watch=watch)
     try:
-        await serve(runtime, runtime.logs, runtime.feedback_secret)
+        await serve(session)
     finally:
-        config_watch.cancel()
-        if yaml_task is not None:
-            yaml_task.cancel()
-        await scheduler.stop()
-        await runtime.close()
+        await session.stop()
     return 0
 
 
 async def cmd_serve(args: argparse.Namespace) -> int:
     setup_logging("INFO" if getattr(args, "verbose", False) else "WARNING")
     explicit = Path(args.project_root) if getattr(args, "project_root", None) else None
+    pinned = pinned_serve_root(explicit)
     project_root = resolve_project_root(explicit=explicit)
-    return await run_serve(project_root, watch=bool(getattr(args, "watch", False)))
+    return await run_serve(project_root, watch=bool(getattr(args, "watch", False)), pinned=pinned)
 
 
 async def cmd_recall(args: argparse.Namespace) -> int:
