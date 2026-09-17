@@ -41,6 +41,30 @@ Then go to Settings → MCP and confirm `rsi-boot` is enabled. Reload the MCP af
 
 Do **not** configure a user-level `mcp.json`: `${workspaceFolder}` in `args` often goes unexpanded there, which leaks memory across repos. Workspace binding order: `RSI_PROJECT_ROOT` (project-level mcp.json, recommended — explicit contract) → MCP `roots/list` (answered automatically by Cursor in plugin form) → the `WORKSPACE_FOLDER_PATHS` variable injected by Cursor → process cwd.
 
+## Other hosts
+
+### Qoder
+
+This repository is also a Qoder plugin: the `.qoder-plugin/plugin.json` manifest plus the root `mcp.json` (the same MCP config shared with the Cursor plugin) — zip it to distribute. To wire it up manually, either:
+
+```bash
+qoder mcp add rsi-boot -- rsi serve
+```
+
+or add the same `mcpServers` snippet as Cursor to a project-root `.mcp.json`. Workspace binding order is identical (`RSI_PROJECT_ROOT` → roots/list → injected variables → cwd).
+
+### Codex
+
+Codex has no plugin bundle format; MCP servers live in TOML: user-level `~/.codex/config.toml`, or project-level `.codex/config.toml` (loaded only from trusted directories):
+
+```toml
+[mcp_servers.rsi-boot]
+command = "rsi"
+args = ["serve"]
+```
+
+Just start codex from the project root — the MCP child process inherits its cwd and rsi-boot claims the workspace by walking up from there. To pin explicitly, add one line to the table: `env = { RSI_PROJECT_ROOT = "/absolute/path" }`.
+
 ## Learning in conversation
 
 Once the MCP is connected, don't run `rsi` in a terminal yourself — just talk to the agent in the project window.
