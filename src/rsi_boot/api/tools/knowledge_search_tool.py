@@ -19,7 +19,6 @@ INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "query": {"type": "string", "description": "检索查询"},
-        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "role": {"type": "string", "description": "角色过滤"},
         "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "description": "返回条数上限"},
     },

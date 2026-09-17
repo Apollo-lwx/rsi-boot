@@ -17,7 +17,6 @@ INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "id": {"type": "string", "description": "知识条目 ID"},
-        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
     },
     "required": ["id"],
 }

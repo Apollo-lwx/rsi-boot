@@ -21,9 +21,9 @@ from .tools import (
     conflicts_tool,
     feedback_tool,
     knowledge_add_tool,
+    knowledge_delete_tool,
     knowledge_review_tool,
     knowledge_search_tool,
-    knowledge_tool,
     learn_tool,
     memory_tool,
     recall_tool,
@@ -56,9 +56,9 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
             types.Tool(name=knowledge_search_tool.TOOL_NAME,
                        description=knowledge_search_tool.TOOL_DESCRIPTION,
                        inputSchema=knowledge_search_tool.INPUT_SCHEMA),
-            types.Tool(name=knowledge_tool.TOOL_NAME,
-                       description=knowledge_tool.TOOL_DESCRIPTION,
-                       inputSchema=knowledge_tool.INPUT_SCHEMA),
+            types.Tool(name=knowledge_delete_tool.TOOL_NAME,
+                       description=knowledge_delete_tool.TOOL_DESCRIPTION,
+                       inputSchema=knowledge_delete_tool.INPUT_SCHEMA),
             types.Tool(name=knowledge_review_tool.TOOL_NAME,
                        description=knowledge_review_tool.TOOL_DESCRIPTION,
                        inputSchema=knowledge_review_tool.INPUT_SCHEMA),
@@ -90,8 +90,8 @@ def build_server(runtime: Any, logs: LogService, feedback_secret: str) -> Server
                 payload = await knowledge_add_tool.handle(runtime.knowledge, arguments)
             elif name == knowledge_search_tool.TOOL_NAME:
                 payload = await knowledge_search_tool.handle(runtime.knowledge, arguments)
-            elif name == knowledge_tool.TOOL_NAME:
-                payload = await knowledge_tool.handle(runtime.knowledge, arguments)
+            elif name == knowledge_delete_tool.TOOL_NAME:
+                payload = await knowledge_delete_tool.handle(runtime.knowledge, arguments)
             elif name == knowledge_review_tool.TOOL_NAME:
                 payload = await knowledge_review_tool.handle(runtime, arguments)
             elif name == review_tool.TOOL_NAME:

@@ -17,7 +17,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from ...memory.store import MemoryStore
 from ...ux.messages import TOOL_DESC
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,6 @@ INPUT_SCHEMA: dict[str, Any] = {
                      "snapshot_list", "snapshot_switch", "snapshot_export"],
             "description": "操作类型",
         },
-        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "proposal_id": {"type": "string", "description": "提案 ID（approve/reject/rollback）"},
         "status": {"type": "string", "description": "list 状态过滤"},
         "reason": {"type": "string", "description": "reject/rollback 理由"},
@@ -45,22 +43,13 @@ INPUT_SCHEMA: dict[str, Any] = {
 }
 
 
-async def handle(
-    runtime: Any, arguments: dict[str, Any], store: MemoryStore | None = None,
-) -> dict[str, Any]:
+async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     action = str(arguments.get("action", ""))
-    if store is not None:
-        from ...learning.proposal_engine import ProposalEngine
-        from ...learning.snapshot_store import SnapshotStore
-        engine = ProposalEngine(store=store)
-        snapshots = SnapshotStore(store=store)
-        project_id = str(arguments.get("project_id") or "")
-    else:
-        from ...project import tool_project_id
+    from ...project import tool_project_id
 
-        project_id = tool_project_id(runtime, arguments)
-        engine = runtime.proposal_engine
-        snapshots = runtime.snapshots
+    project_id = tool_project_id(runtime, arguments)
+    engine = runtime.proposal_engine
+    snapshots = runtime.snapshots
 
     if action == "list":
         items = await engine.list_proposals(project_id, status=arguments.get("status") or None)

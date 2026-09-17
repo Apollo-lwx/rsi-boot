@@ -46,7 +46,6 @@ INPUT_SCHEMA: dict[str, Any] = {
         },
         "content_type": {"type": "string", "description": "批量审批时按内容类型过滤（convention/architecture/faq/documentation）"},
         "include_archived": {"type": "boolean", "description": "批量审批时包含 archived（bootstrap 限量溢出）条目"},
-        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "action": {
             "type": "string",
             "enum": ["approve", "reject", "skip"],

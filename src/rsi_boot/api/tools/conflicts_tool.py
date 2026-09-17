@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...memory.store import MemoryStore
 from ...ux.messages import TOOL_DESC
 
 TOOL_NAME = "rsi_conflicts"
@@ -15,8 +14,6 @@ INPUT_SCHEMA: dict[str, Any] = {
     "properties": {
         "action": {"type": "string", "enum": ["list", "resolve", "scan", "explain"],
                    "description": "list=查询冲突（默认） resolve=裁决 scan=立即扫描 explain=只读展开"},
-        "project_id": {"type": "string", "maxLength": 128,
-                       "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "status": {"type": "string", "default": "open",
                    "description": "list 过滤：open/user_wins/memory_wins/keep_peer/keep_item/coexist/closed/all"},
         "bootstrap_run_id": {"type": "string", "maxLength": 128,
@@ -56,18 +53,11 @@ INPUT_SCHEMA: dict[str, Any] = {
 }
 
 
-async def handle(
-    runtime: Any, arguments: dict[str, Any], store: MemoryStore | None = None,
-) -> dict[str, Any]:
-    if store is not None:
-        from ...injector.conflict import ConflictDetector
-        detector = ConflictDetector(store=store, project_root=store.rsi_dir.parent)
-        project_id = str(arguments.get("project_id") or "")
-    else:
-        detector = runtime.conflict_detector
-        from ...project import tool_project_id
+async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+    detector = runtime.conflict_detector
+    from ...project import tool_project_id
 
-        project_id = tool_project_id(runtime, arguments)
+    project_id = tool_project_id(runtime, arguments)
     action = str(arguments.get("action") or "list")
 
     if action == "scan":

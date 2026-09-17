@@ -1,4 +1,8 @@
-"""rsi_query 工具（§5.1）：核心查询入口。"""
+"""rsi_query 工具（v3.0 起退役）：主链路无生成环节，不在 MCP Server 注册。
+
+按 2026-09-13 readable-memory-rag-dag 设计「保持磁盘存在、不接线」，
+本文件仅作存档保留；如需恢复请在 mcp_server.build_server 登记。
+"""
 
 from __future__ import annotations
 

@@ -19,7 +19,6 @@ INPUT_SCHEMA: dict[str, Any] = {
     "properties": {
         "title": {"type": "string", "description": "条目标题"},
         "content": {"type": "string", "description": "条目正文"},
-        "project_id": {"type": "string", "description": "已废弃：由当前工作区绑定，传入值忽略"},
         "tags": {"type": "array", "items": {"type": "string"}, "description": "标签"},
         "roles": {"type": "array", "items": {"type": "string"}, "description": "适用角色，空=通用"},
         "domain": {"type": "string", "description": "领域"},

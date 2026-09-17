@@ -4,7 +4,7 @@ import csv
 import json
 from datetime import datetime, timedelta, timezone
 
-from rsi_boot.api.tools import knowledge_tool
+from rsi_boot.api.tools import knowledge_delete_tool
 from rsi_boot.core.models import KnowledgeItem
 from rsi_boot.memory.logstore import append_event, iter_events
 from rsi_boot.memory.store import MemoryStore
@@ -56,14 +56,14 @@ async def test_knowledge_delete_tool(store, tmp_path):
     service = KnowledgeService(store=store, project_root=tmp_path)
     item_id = await service.add(KnowledgeItem(project_id="p1", title="t", content="c"))
 
-    ok = await knowledge_tool.handle(service, {"id": item_id, "project_id": "p1"})
+    ok = await knowledge_delete_tool.handle(service, {"id": item_id, "project_id": "p1"})
     assert ok["status"] == "success"
     assert store.read(item_id).status == "archived"
 
-    missing = await knowledge_tool.handle(service, {"project_id": "p1"})
+    missing = await knowledge_delete_tool.handle(service, {"project_id": "p1"})
     assert missing["status"] == "error"
 
-    again = await knowledge_tool.handle(service, {"id": "0" * 32, "project_id": "p1"})
+    again = await knowledge_delete_tool.handle(service, {"id": "0" * 32, "project_id": "p1"})
     assert again["status"] == "error"
 
 

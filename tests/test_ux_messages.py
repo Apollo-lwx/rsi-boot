@@ -42,9 +42,9 @@ def test_list_tools_uses_module_tool_descriptions():
         conflicts_tool,
         feedback_tool,
         knowledge_add_tool,
+        knowledge_delete_tool,
         knowledge_review_tool,
         knowledge_search_tool,
-        knowledge_tool,
         learn_tool,
         memory_tool,
         recall_tool,
@@ -56,14 +56,14 @@ def test_list_tools_uses_module_tool_descriptions():
     src = inspect.getsource(mcp_server.build_server)
     for name in (
         "recall_tool", "feedback_tool", "knowledge_add_tool", "knowledge_search_tool",
-        "knowledge_tool", "knowledge_review_tool", "review_tool", "conflicts_tool",
+        "knowledge_delete_tool", "knowledge_review_tool", "review_tool", "conflicts_tool",
         "stats_tool", "learn_tool", "memory_tool",
     ):
         assert f"{name}.TOOL_DESCRIPTION" in src
     assert feedback_tool.TOOL_DESCRIPTION == TOOL_DESC["feedback"]
     assert knowledge_add_tool.TOOL_DESCRIPTION == TOOL_DESC["knowledge_add"]
     assert knowledge_search_tool.TOOL_DESCRIPTION == TOOL_DESC["knowledge_search"]
-    assert knowledge_tool.TOOL_DESCRIPTION == TOOL_DESC["knowledge_delete"]
+    assert knowledge_delete_tool.TOOL_DESCRIPTION == TOOL_DESC["knowledge_delete"]
     assert knowledge_review_tool.TOOL_DESCRIPTION == TOOL_DESC["review"]
     assert review_tool.TOOL_DESCRIPTION == TOOL_DESC["harness"]
     assert stats_tool.TOOL_DESCRIPTION == TOOL_DESC["stats"]
