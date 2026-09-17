@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rsi-boot": {
+      "command": "rsi",
+      "args": ["serve"]
+    }
+  }
+}

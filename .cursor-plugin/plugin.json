@@ -1,0 +1,10 @@
+{
+  "name": "rsi-boot",
+  "version": "0.1.0",
+  "description": "Local memory layer for AI coding hosts: distills verified conventions, prohibitions and repair lessons, injects them as reviewed rules, and recalls them before the next task. Zero API keys on the main path.",
+  "author": {
+    "name": "many_money_money_money"
+  },
+  "license": "MIT",
+  "keywords": ["mcp", "memory", "self-improvement", "knowledge", "cursor"]
+}
