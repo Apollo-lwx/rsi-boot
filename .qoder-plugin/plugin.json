@@ -1,0 +1,14 @@
+{
+  "name": "rsi-boot",
+  "version": "0.1.0",
+  "description": "Local memory layer for AI coding hosts: distills verified conventions, prohibitions and repair lessons, injects them as reviewed rules, and recalls them before the next task. Zero API keys on the main path.",
+  "displayName": "RSI Boot",
+  "author": {
+    "name": "wenxing luo"
+  },
+  "license": "MIT",
+  "keywords": ["mcp", "memory", "self-improvement", "knowledge", "qoder"],
+  "homepage": "https://github.com/Apollo-lwx/rsi-boot",
+  "repository": "https://github.com/Apollo-lwx/rsi-boot",
+  "mcpServers": "./mcp.json"
+}

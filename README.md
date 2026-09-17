@@ -41,6 +41,30 @@ rsi init
 
 不要配用户级 `mcp.json`：那里 `args` 里的 `${workspaceFolder}` 经常不展开，会把记忆串到别的仓库。工作区绑定顺序：`RSI_PROJECT_ROOT`（项目级 mcp.json，推荐，显式契约）→ MCP `roots/list`（插件形态下由 Cursor 自动应答）→ Cursor 注入的 `WORKSPACE_FOLDER_PATHS` → 进程 cwd。
 
+## 接到其他宿主
+
+### Qoder
+
+本仓库同时是 Qoder 插件：`.qoder-plugin/plugin.json` 清单 + 根目录 `mcp.json`（与 Cursor 插件共用同一份 MCP 配置），打 zip 即可分发。手动接的话二选一：
+
+```bash
+qoder mcp add rsi-boot -- rsi serve
+```
+
+或在项目根 `.mcp.json` 加与 Cursor 相同的 `mcpServers` 片段。工作区绑定顺序与 Cursor 一致（`RSI_PROJECT_ROOT` → roots/list → 注入变量 → cwd）。
+
+### Codex
+
+Codex 没有插件包格式，MCP 走 TOML 配置：用户级 `~/.codex/config.toml`，或项目级 `.codex/config.toml`（需目录已被信任）：
+
+```toml
+[mcp_servers.rsi-boot]
+command = "rsi"
+args = ["serve"]
+```
+
+从项目根目录启动 codex 即可——MCP 子进程继承 cwd，rsi-boot 按 cwd 向上认领工作区。要显式钉死就在表里加一行：`env = { RSI_PROJECT_ROOT = "/绝对/路径" }`。
+
 ## 在对话里学习
 
 接好 MCP 后不要自己去终端跑 `rsi`。对当前项目窗口里的代理说即可。
