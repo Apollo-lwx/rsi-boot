@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>rsi-boot logo</title>
+  <desc>Recursive self-improvement: an open ring closing into an upward arrow.</desc>
+  <rect width="512" height="512" rx="112" fill="#171A21"/>
+  <path d="M 330.6 167.1 A 116 116 0 1 1 181.4 167.1 L 256 88 L 330.6 167.1"
+        fill="none" stroke="#F3ECDC" stroke-width="36"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
