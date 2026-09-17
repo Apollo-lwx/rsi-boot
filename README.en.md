@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/logo.svg" alt="rsi-boot logo" width="120">
+</div>
+
 # RSI Boot
 
 [简体中文](README.md) | English
