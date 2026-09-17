@@ -26,3 +26,4 @@ tests/eval/reports/
 .cursor/
 .superpowers/
 docs/
+output/
