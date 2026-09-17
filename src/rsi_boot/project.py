@@ -23,7 +23,9 @@ WORKSPACE_PROJECT_ID = "local"
 
 _PROJECT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
-#: Cursor / VS Code 给全局 MCP 注入的工作区（cwd 经常不是仓库根）
+#: Cursor / VS Code 给全局 MCP 注入的工作区（cwd 经常不是仓库根）。
+#: 注意 VSCODE_CWD 刻意不在列：它是编辑器进程自身的 cwd（如安装目录），
+#: agent 终端会继承到与工作区无关的值，信任它曾把 .rsi 误绑到编辑器目录。
 _IDE_WORKSPACE_ENV = (
     "RSI_PROJECT_ROOT",
     "WORKSPACE_FOLDER_PATHS",
@@ -32,7 +34,6 @@ _IDE_WORKSPACE_ENV = (
     "CURSOR_WORKSPACE",
     "CURSOR_PROJECT_DIR",
     "VSCODE_WORKSPACE",
-    "VSCODE_CWD",
 )
 
 
@@ -175,6 +176,7 @@ def resolve_project_root(
     if explicit is not None and not _is_unexpanded_placeholder(explicit):
         return Path(explicit).resolve()
     for ide_root in iter_ide_workspace_paths():
+        logger.info("工作区由 IDE 注入环境变量解析：%s（cwd=%s）", ide_root, cwd or Path.cwd())
         return ide_root
     start = Path(cwd or Path.cwd()).resolve()
     try:

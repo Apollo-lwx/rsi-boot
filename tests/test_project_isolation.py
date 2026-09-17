@@ -103,6 +103,24 @@ def test_ide_workspace_env_beats_wrong_cwd(tmp_path, monkeypatch):
     assert resolve_project_root(cwd=fake_cwd) == workspace.resolve()
 
 
+def test_vscode_cwd_not_trusted_as_workspace(tmp_path, monkeypatch):
+    """VSCODE_CWD 是编辑器进程自身 cwd（如 D:\\tools\\cursor），不是工作区指示器；
+    agent 终端继承它时不得盖过 cwd 认领，否则记忆会写进编辑器安装目录。"""
+    editor_dir = tmp_path / "cursor-editor"
+    editor_dir.mkdir()
+    workspace = tmp_path / "real-repo"
+    nested = workspace / "src"
+    nested.mkdir(parents=True)
+    (workspace / ".rsi").mkdir()
+    monkeypatch.setenv("VSCODE_CWD", str(editor_dir))
+    # cwd 向上有已认领 .rsi/：认领工作区，而不是编辑器目录
+    assert resolve_project_root(cwd=nested) == workspace.resolve()
+    # cwd 无 .rsi/：落 cwd 本身，同样不得落编辑器目录
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    assert resolve_project_root(cwd=plain) == plain.resolve()
+
+
 def test_ide_workspace_file_uri(tmp_path, monkeypatch):
     workspace = tmp_path / "repo"
     workspace.mkdir()
