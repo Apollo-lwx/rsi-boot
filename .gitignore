@@ -21,3 +21,8 @@ build/
 .pytest-*
 # 评测跑批产物（源码与 datasets/ 保留，报告不入库）
 tests/eval/reports/
+
+# 本地会话与注入产物（RSI 注入器自动维护，不入库）
+.cursor/
+.superpowers/
+docs/

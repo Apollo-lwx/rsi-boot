@@ -100,5 +100,3 @@ pip install -e ".[dev]"
 python -m pytest
 python scripts/export_schemas.py
 ```
-
-Design documents live in `docs/`.

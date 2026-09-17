@@ -100,5 +100,3 @@ pip install -e ".[dev]"
 python -m pytest
 python scripts/export_schemas.py
 ```
-
-设计文档见 `docs/`。
