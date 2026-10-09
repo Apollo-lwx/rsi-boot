@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from .blocklist import is_blocked
+from ..memory.tree import TREE_TYPES
 from .targets import (
     MAX_FILE_CHARS,
     MAX_TOTAL_CHARS,
@@ -107,7 +108,66 @@ class RuleInjector:
                     content_type="skill", domain=rel,
                 )
             )
+        bundle.catalog, bundle.tree_lines = self._load_catalog_and_tree()
         return bundle
+
+    #: 目录覆盖的类型：正文不进宿主上下文，但标题+简述被动可见（详情走 rsi_recall）
+    _CATALOG_TYPES = TREE_TYPES
+
+    def _load_catalog_and_tree(
+        self, cap: int = 40
+    ) -> tuple[List[MemoryRow], List[str]]:
+        """一次扫描同时产出：扁平记忆目录（标题+简述，封顶 cap 条）与层级知识树
+        （按 domain 分段的板块计数）。简述只取显式 description（正文一律不进宿主上下文，
+        详情走 rsi_recall / rsi_explore）；命中注入黑名单的条目两处均跳过。
+
+        catalog 排序（review S4）：早期实现按 TREE_TYPES 顺序 + 文件名字母序取 cap，
+        结果 documentation 若条目多就会占满槽位，teaching/gene/episode 永远进不来。
+        改成"每类保底 1 条 + 剩余按 updated_at（缺则 created_at）全局倒序"，
+        兼顾新鲜度与板块可见性；tree 用全量 docs。
+        """
+        store = self._store
+        all_docs: List[Any] = []
+        per_type: dict[str, list] = {typ: [] for typ in self._CATALOG_TYPES}
+        for typ in self._CATALOG_TYPES:
+            for doc in store.list_official(typ, skip_harvest=True):
+                if doc.status != "active":
+                    continue
+                summary = " ".join((doc.description or "").split())[:80]
+                if is_blocked(f"{doc.title}\n{summary}"):
+                    continue
+                all_docs.append(doc)
+                per_type[typ].append(doc)
+
+        def sort_key(doc) -> tuple[str, str]:
+            ts = str(getattr(doc, "updated_at", "") or getattr(doc, "created_at", "") or "")
+            return (ts, str(getattr(doc, "id", "") or ""))
+
+        seed: List[Any] = []
+        chosen_ids: set = set()
+        for typ in self._CATALOG_TYPES:
+            bucket = per_type[typ]
+            if not bucket:
+                continue
+            pick = max(bucket, key=sort_key)
+            seed.append(pick)
+            chosen_ids.add(pick.id)
+        rest = [d for d in all_docs if d.id not in chosen_ids]
+        ordered = seed + sorted(rest, key=sort_key, reverse=True)
+
+        rows: List[MemoryRow] = []
+        for doc in ordered[:cap]:
+            summary = " ".join((doc.description or "").split())[:80]
+            rows.append(
+                MemoryRow(
+                    id=doc.id, title=doc.title, content=summary,
+                    content_type=str(doc.type or ""), domain=doc.domain,
+                )
+            )
+        from ..memory.tree import build_tree, render_lines
+
+        tree_lines = render_lines(build_tree(all_docs)) if all_docs else []
+        return rows, tree_lines
 
     def _adoption_times(self, docs: List[MemoryDoc]) -> Dict[str, str]:
         times: Dict[str, str] = {}

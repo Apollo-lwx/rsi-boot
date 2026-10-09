@@ -103,6 +103,7 @@ rsi serve
 | 工具 | 干什么 |
 |------|--------|
 | `rsi_recall` | 任务开始前召回：禁止项置顶 + 约定/文档/gene/teaching |
+| `rsi_explore` | 按 domain 板块下钻浏览知识树（空 path 列顶层板块+计数，传 path 列成员条目标题/简述/id，并附本节点条目的图谱关联 related 与冲突 conflicts） |
 | `rsi_feedback` | 采纳反馈；rejected+评语会提炼为禁止项 |
 | `rsi_learn` | 阅读包 pack_list / pack_open / pack_done，teach_catch / teach_record，Session 审计 |
 | `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_review` | 记忆管理与审批；蒸馏条须带 `pack_id` |

@@ -103,6 +103,7 @@ rsi serve
 | Tool | What it does |
 |------|--------------|
 | `rsi_recall` | Pre-task recall: prohibitions first, plus conventions / docs / gene / teaching |
+| `rsi_explore` | Drill the knowledge tree by domain module (empty path lists top modules with counts; a path lists member items title/brief/id plus graph-based related / conflicts edges for that node) |
 | `rsi_feedback` | Adoption feedback; rejected+comment is distilled into a prohibition |
 | `rsi_learn` | Reading packs (pack_list / pack_open / pack_done), teach_catch / teach_record, session audit |
 | `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_review` | Memory management and review; distilled entries must carry a `pack_id` |

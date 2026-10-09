@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from pathlib import Path
@@ -94,6 +95,16 @@ class KnowledgeService:
         content = item.content or ""
         if len(content) > 1500:
             return self._invalid("KNOWLEDGE_TOO_LONG")
+        # 元数据长度护栏（review S3）：条件字段/来源/域过短可控，避免绕过 content 上限
+        for attr, cap in (
+            ("source_url", 500),
+            ("trigger_condition", 500),
+            ("expiry_condition", 500),
+            ("domain", 200),
+        ):
+            value = getattr(item, attr, None)
+            if isinstance(value, str) and len(value) > cap:
+                return self._invalid("KNOWLEDGE_TOO_LONG")
         if (item.title or "") in HARVEST_TITLES:
             return self._invalid("KNOWLEDGE_HARVEST_TITLE")
         tags = list(item.tags or [])
@@ -118,6 +129,8 @@ class KnowledgeService:
             tags=list(item.tags),
             roles=list(item.roles),
             source=item.source_url or None,
+            trigger_condition=item.trigger_condition,
+            expiry_condition=item.expiry_condition,
             extra=extra,
         )
         src = item.source_url or ""
@@ -213,6 +226,8 @@ class KnowledgeService:
             domain=doc.domain,
             tags=list(doc.tags),
             status=doc.status,
+            trigger_condition=doc.trigger_condition,
+            expiry_condition=doc.expiry_condition,
         )
 
     def _read_reviewable(self, item_id: str) -> MemoryDoc | None:
@@ -223,6 +238,29 @@ class KnowledgeService:
         if doc.status not in _REVIEWABLE_STATUSES:
             return None
         return doc
+
+    def find_promotion_duplicates(
+        self, item_id: str, *, threshold: float = 0.6
+    ) -> list[dict[str, Any]]:
+        """晋升前自检：待晋升条目与同类型已正式项的近重复候选（纯读，不改任何状态）。
+        检测不可用（损坏 YAML / 未知类型等）时 fail-open 返回 []，绝不因此阻断主链路。"""
+        from ..learning.dedup import find_near_duplicates
+
+        try:
+            doc = self._store.read(item_id)
+            return find_near_duplicates(
+                self._store,
+                title=doc.title,
+                content=doc.content,
+                content_type=doc.type,
+                exclude_id=doc.id,
+                threshold=threshold,
+            )
+        except FileNotFoundError:
+            return []
+        except Exception:  # 检测异常不得阻断审批：记日志后放行（fail-open）
+            logger.warning("find_promotion_duplicates failed for %s", item_id, exc_info=True)
+            return []
 
     async def review_approve(self, item_id: str) -> dict[str, Any]:
         store = self._store
@@ -301,11 +339,22 @@ class KnowledgeService:
         bootstrap_run_id: Optional[str] = None,
         exclude_bootstrap: bool = False,
         source_url: Optional[str] = None,
+        block_duplicates: bool = False,
+        dedup_threshold: float = 0.6,
     ) -> dict[str, Any]:
         allowed = ("pending_review", "archived") if include_archived else ("pending_review",)
         id_set = set(ids) if ids else None
         marker = f"bootstrap_run_id:{bootstrap_run_id}" if bootstrap_run_id else None
         processed = 0
+        deferred: List[dict[str, Any]] = []
+        # review I4：批量晋升时把候选池一次性预载到内存，逐条走 pool_check/pool_add，
+        # 避免 find_promotion_duplicates 内部 K×M 次 list_official+YAML 重解析；
+        # 池本身的构建与逐条 tokenize 都丢进 asyncio.to_thread，不阻塞 MCP 事件循环。
+        pool: dict[str, list[dict[str, Any]]] | None = None
+        if approve and block_duplicates:
+            from ..learning.dedup import build_promotion_pool
+
+            pool = await asyncio.to_thread(build_promotion_pool, self._store)
         for doc in list(self._store.list_all()):
             if doc.status not in allowed:
                 continue
@@ -326,11 +375,31 @@ class KnowledgeService:
             if source_url is not None and self._doc_source_url(doc) != source_url:
                 continue
             if approve:
+                # 晋升前近重复自检（顺序审批天然覆盖同批互重：先晋升者已入正式库）
+                if pool is not None:
+                    from ..learning.dedup import pool_check
+
+                    dups = await asyncio.to_thread(
+                        pool_check, pool, doc, threshold=dedup_threshold,
+                    )
+                    if dups:
+                        deferred.append({"id": doc.id, "possible_duplicates": dups})
+                        continue
                 await self.review_approve(doc.id)
+                if pool is not None:
+                    from ..learning.dedup import pool_add
+
+                    await asyncio.to_thread(pool_add, pool, doc)
             else:
                 await self.review_reject(doc.id)
             processed += 1
-        return {"processed": processed, "new_status": "active" if approve else "archived"}
+        result: dict[str, Any] = {
+            "processed": processed,
+            "new_status": "active" if approve else "archived",
+        }
+        if deferred:
+            result["deferred_duplicates"] = deferred
+        return result
 
     async def review_batch(
         self,
@@ -343,16 +412,20 @@ class KnowledgeService:
         bootstrap_run_id: Optional[str] = None,
         exclude_bootstrap: bool = False,
         source_url: Optional[str] = None,
+        block_duplicates: bool = False,
+        dedup_threshold: float = 0.6,
     ) -> dict[str, Any]:
         """批量审批（bootstrap 队列洪水场景）：默认处理全部 pending_review；
         ids 给定时只处理这些条目；content_type 过滤；include_archived 含限量溢出条目。
         bootstrap_run_id / exclude_bootstrap / source_url 隔离日常 auto-extract 与本轮抽取。
-        返回 {processed, new_status}"""
+        block_duplicates=True 时晋升前拦下近重复（返回体附 deferred_duplicates）。
+        返回 {processed, new_status[, deferred_duplicates]}"""
         del project_id
         return await self._review_batch_store(
             approve, ids=ids, content_type=content_type,
             include_archived=include_archived, bootstrap_run_id=bootstrap_run_id,
             exclude_bootstrap=exclude_bootstrap, source_url=source_url,
+            block_duplicates=block_duplicates, dedup_threshold=dedup_threshold,
         )
 
     async def delete(self, item_id: str, project_id: str) -> bool:

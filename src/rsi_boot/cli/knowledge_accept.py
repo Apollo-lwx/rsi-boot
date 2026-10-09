@@ -182,7 +182,11 @@ async def accept_bootstrap_extracts(
         db_hint,
     )
     processed = 0
+    deferred_total = 0
     new_status = "rejected" if reject else "active"
+    from ..learning.dedup import promote_block_config
+
+    block_dupes, dup_threshold = promote_block_config(getattr(runtime, "config", None))
     if rid:
         ids = await _extract_ids(runtime, rid)
         if ids:
@@ -191,11 +195,17 @@ async def accept_bootstrap_extracts(
                 approve=not reject,
                 ids=ids,
                 bootstrap_run_id=rid,
+                block_duplicates=(not reject and block_dupes),
+                dedup_threshold=dup_threshold,
             )
             processed = int(result["processed"])
             new_status = str(result["new_status"])
+            dd = result.get("deferred_duplicates")
+            deferred_total = len(dd) if isinstance(dd, list) else 0
             decisions = getattr(runtime, "decisions", None)
-            if decisions is not None and processed:
+            # 卡片关闭：处理过至少一条 且 本轮没有 deferred 遗留
+            # （否则剩下的 pending 条目失去 run 归属，后续按 bootstrap_run_id 审批再也捞不到）
+            if decisions is not None and processed and not deferred_total:
                 decisions.close(f"extract:{rid}")
     conflicts_resolved = 0
     if rid and conflicts in ("tend", "coexist"):
@@ -209,6 +219,7 @@ async def accept_bootstrap_extracts(
     return {
         "processed": processed,
         "new_status": new_status,
+        "deferred_total": deferred_total,
         "conflicts_resolved": conflicts_resolved,
         "run_id": rid,
     }
@@ -220,11 +231,16 @@ async def run_knowledge_accept(
     result = await accept_bootstrap_extracts(
         runtime, run_id=run_id, reject=reject, conflicts=conflicts,
     )
-    if result["processed"] == 0:
+    if result["processed"] == 0 and not result.get("deferred_total"):
         print("本轮无抽取项")
     else:
         verb = "拒绝" if reject else "放行"
         print(f"已{verb}本轮抽取 {result['processed']} 条")
+    if result.get("deferred_total"):
+        print(
+            f"暂缓 {result['deferred_total']} 条（近重复，需人工裁决；"
+            "开 rsi_knowledge_review 单条审批或调 rsi_conflicts）"
+        )
     if result.get("conflicts_resolved"):
         print(f"已裁决冲突 {result['conflicts_resolved']} 组")
     return 0

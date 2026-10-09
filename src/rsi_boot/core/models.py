@@ -150,6 +150,11 @@ class KnowledgeItem(BaseModel):
     embedding: Optional[List[float]] = None
     source_url: Optional[str] = None
     status: str = "active"
+    # 前提/失效条件（与 MemoryDoc 对齐，供召回时提示宿主复核）
+    # 长度校验放在 KnowledgeService._add_to_store：宿主越界输入要回落成
+    # 结构化 error（KNOWLEDGE_TOO_LONG），不能让 Pydantic ValidationError 冒到 MCP 层。
+    trigger_condition: Optional[str] = None
+    expiry_condition: Optional[str] = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
