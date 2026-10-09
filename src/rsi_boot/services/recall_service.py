@@ -250,13 +250,27 @@ class RecallService:
 
     @staticmethod
     def _prohibition_payload(doc: MemoryDoc) -> Dict[str, Any]:
-        return {
+        payload: Dict[str, Any] = {
             "id": doc.id,
             "title": doc.title,
             "content": doc.content,
             "domain": doc.domain,
             "source_path": doc.path,
         }
+        condition = RecallService._condition(doc)
+        if condition:
+            payload["condition"] = condition
+        return payload
+
+    @staticmethod
+    def _condition(doc: MemoryDoc) -> Dict[str, Any]:
+        """前提/失效条件提示：命中记忆附带条件时，宿主须先核验前提是否仍成立再遵守。"""
+        cond: Dict[str, Any] = {}
+        if doc.trigger_condition:
+            cond["must_hold"] = doc.trigger_condition
+        if doc.expiry_condition:
+            cond["may_expire_when"] = doc.expiry_condition
+        return cond
 
     @staticmethod
     def _item_payload(doc: MemoryDoc, heading: str = "") -> Dict[str, Any]:
@@ -268,6 +282,9 @@ class RecallService:
             "source_path": doc.path,
             "heading": heading,
         }
+        condition = RecallService._condition(doc)
+        if condition:
+            payload["condition"] = condition
         extra = doc.extra or {}
         nested = doc.payload or {}
         for key in ("weight", "conflict_open"):
@@ -296,7 +313,7 @@ class RecallService:
     @staticmethod
     def _case_payload(doc: MemoryDoc, heading: str = "") -> Dict[str, Any]:
         weight, role = RecallService._case_weight_and_role(doc)
-        return {
+        payload: Dict[str, Any] = {
             "id": doc.id,
             "title": doc.title,
             "content": doc.content,
@@ -305,6 +322,10 @@ class RecallService:
             "weight": weight,
             "role": role,
         }
+        condition = RecallService._condition(doc)
+        if condition:
+            payload["condition"] = condition
+        return payload
 
     @staticmethod
     def _suggestion_rows(

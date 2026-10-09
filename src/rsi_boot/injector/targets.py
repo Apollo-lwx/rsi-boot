@@ -20,6 +20,8 @@ MAX_FILE_CHARS = 4000
 MAX_TOTAL_CHARS = 32 * 1024
 MAX_DECISIONS_CHARS = 800
 MAX_CLOSEOUT_CHARS = 800
+#: 轻量记忆目录（仅标题+一句话，详情走 rsi_recall）预算，控制被动可见的 token 成本
+MAX_CATALOG_CHARS = 1500
 
 #: 收工纪律（teach / audit / closeout），托管块内独立小节，≤800 字
 _CLOSEOUT_BODY = (
@@ -30,6 +32,7 @@ _CLOSEOUT_BODY = (
     "修了用户可见的 bug（成功也算）必须 teach_record，lesson 含 wrong_action 与 correct_fix。\n"
     "未 audit_finish 前不得改业务代码。\n"
     "最终总结照抄 closeout 路径，或写跳过原因。\n"
+    "用了 rsi_recall 命中项，收工前必须 rsi_feedback（带 feedback_token）上报 accepted 或 rejected。\n"
     "Catch then record. Do not edit product code before the audit is finished. "
     "Copy closeout paths into the final summary.\n"
 )
@@ -47,6 +50,7 @@ _DECISIONS_BODY = (
     "再 rsi_knowledge_review 批准本 run。未批准不得声称召回可用。不要停到下次再学。"
     "蒸馏中途禁止 mcp_auth：RSI 无登录，工具失败就重试 rsi_learn，不要给用户弹授权。"
     "rsi_conflicts 只处理短知识 id（可选带 bootstrap_run_id）。"
+    "用了 rsi_recall 的输出后，收工前必须用其 feedback_token 调 rsi_feedback 上报 accepted（采纳）或 rejected——不上报学习闭环收不到信号。"
 )
 
 #: domain → globs 映射（宿主按 globs 挂载；未映射领域为空 = 通用经验，靠 description 触发）
@@ -74,6 +78,10 @@ class MemoryBundle:
     prohibitions: List[MemoryRow] = field(default_factory=list)
     conventions: List[MemoryRow] = field(default_factory=list)  # 含 legacy 'experience'
     skills: List[MemoryRow] = field(default_factory=list)  # name/description/path only
+    # 轻量记忆目录：标题 + 一句话（content 存简述，非正文），被动可见、详情走 rsi_recall
+    catalog: List[MemoryRow] = field(default_factory=list)
+    # 层级知识树渲染行（域节点名 + 计数 + rsi_explore 下钻提示），对标 Qoder 模块树
+    tree_lines: List[str] = field(default_factory=list)
     inject_conventions: bool = True
 
 
@@ -96,6 +104,20 @@ def _mdc(description: str, globs: str, always_apply: bool, body: str) -> str:
         f"---\ndescription: {description}\nglobs: {globs}\n"
         f"alwaysApply: {'true' if always_apply else 'false'}\n---\n\n{body}\n"
     )
+
+
+def _catalog_lines(rows: List[MemoryRow], budget: int = MAX_CATALOG_CHARS) -> List[str]:
+    """标题 + 一句话简述的目录行，按 budget 裁剪；正文细节留给 rsi_recall。"""
+    lines: List[str] = []
+    used = 0
+    for r in rows:
+        desc = " ".join((r.content or "").split())
+        line = f"- {r.title}：{desc}" if desc else f"- {r.title}"
+        if used + len(line) > budget:
+            break
+        lines.append(line)
+        used += len(line)
+    return lines
 
 
 class RuleTarget(Protocol):
@@ -131,6 +153,22 @@ class CursorRuleTarget:
             content = _mdc(row.title, "", True, body)
             produced[f"rsi-prohibition-{row.id[:8]}.mdc"] = (content, row.id)
             total += len(content)
+
+        # 轻量记忆目录（被动可见）：标题+简述常驻宿主上下文，详情走 rsi_recall
+        if bundle.catalog:
+            cat_body = "\n".join(_catalog_lines(bundle.catalog))
+            cat_content = _mdc("RSI 记忆目录（详情用 rsi_recall 召回）", "", True, cat_body)
+            if total + len(cat_content) <= MAX_TOTAL_CHARS:
+                produced["rsi-catalog.mdc"] = (cat_content, None)
+                total += len(cat_content)
+
+        # 层级知识树（对标 Qoder 模块树）：域节点+计数被动可见，下钻用 rsi_explore
+        if bundle.tree_lines:
+            tree_body = "\n".join(bundle.tree_lines)
+            tree_content = _mdc("RSI 知识树（rsi_explore 下钻 · rsi_recall 召回详情）", "", True, tree_body)
+            if total + len(tree_content) <= MAX_TOTAL_CHARS:
+                produced["rsi-tree.mdc"] = (tree_content, None)
+                total += len(tree_content)
 
         by_domain: Dict[str, List[MemoryRow]] = {}
         for row in bundle.conventions if bundle.inject_conventions else []:
@@ -216,6 +254,14 @@ class AgentsMdTarget:
             for r in bundle.skills:
                 path = r.domain or ""
                 lines.append(f"- **{r.title}**：{r.content}（{path}）")
+            lines.append("")
+        if bundle.catalog:
+            lines.append("## 记忆目录（详情用 rsi_recall 召回）")
+            lines += _catalog_lines(bundle.catalog)
+            lines.append("")
+        if bundle.tree_lines:
+            lines.append("## 知识树（板块计数；下钻用 rsi_explore，召回用 rsi_recall）")
+            lines += bundle.tree_lines
             lines.append("")
         closeout = _CLOSEOUT_BODY[:MAX_CLOSEOUT_CHARS].rstrip()
         tail = f"{closeout}\n\n{self.END}"

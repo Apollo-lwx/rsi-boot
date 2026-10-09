@@ -273,6 +273,14 @@ TOOL_DESC = {
         "graph returns mermaid text. "
         "打开或检索记忆文件。index 列目录，open 按 id 读全文，reindex 重建缓存，graph 返回 mermaid 文本。"
     ),
+    "explore": (
+        "Navigate the knowledge tree by domain module. Empty path lists top-level modules with counts; "
+        "pass a path (e.g. backend or backend/api) to drill down and list member items (title/brief/id), "
+        "plus graph edges (related / conflicts) touching this node's items. "
+        "Use rsi_recall to pull full content after you find the node you want. "
+        "按领域板块浏览知识树：空 path 列顶层板块与计数；传 path（如 backend 或 backend/api）下钻列出成员条目"
+        "（标题/简述/id）并附本节点条目的图谱关联（related）与冲突（conflicts）；需要正文用 rsi_recall。"
+    ),
     "review": (
         "Approve pending norms: approve moves to official dirs and injects prohibitions; "
         "reject archives. Does not create new bodies. Approved conventions are recall-only "

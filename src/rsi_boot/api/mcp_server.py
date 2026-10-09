@@ -18,6 +18,7 @@ from ..services.stats_service import StatsService
 from ..ux.messages import TOOL_DESC
 from .tools import (
     conflicts_tool,
+    explore_tool,
     feedback_tool,
     knowledge_add_tool,
     knowledge_delete_tool,
@@ -52,6 +53,9 @@ def build_server(session: Any) -> Server:
             types.Tool(name=recall_tool.TOOL_NAME,
                        description=recall_tool.TOOL_DESCRIPTION,
                        inputSchema=recall_tool.INPUT_SCHEMA),
+            types.Tool(name=explore_tool.TOOL_NAME,
+                       description=explore_tool.TOOL_DESCRIPTION,
+                       inputSchema=explore_tool.INPUT_SCHEMA),
             types.Tool(name=feedback_tool.TOOL_NAME,
                        description=feedback_tool.TOOL_DESCRIPTION,
                        inputSchema=feedback_tool.INPUT_SCHEMA),
@@ -92,6 +96,8 @@ def build_server(session: Any) -> Server:
             feedback_secret = runtime.feedback_secret
             if name == recall_tool.TOOL_NAME:
                 payload = await recall_tool.handle(runtime, arguments)
+            elif name == explore_tool.TOOL_NAME:
+                payload = await explore_tool.handle(runtime, arguments)
             elif name == feedback_tool.TOOL_NAME:
                 payload = await feedback_tool.handle(logs, feedback_secret, arguments, worker=runtime.feedback_worker)
             elif name == knowledge_add_tool.TOOL_NAME:

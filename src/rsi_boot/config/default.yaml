@@ -33,6 +33,12 @@ feedback:
   # 个人工具可接受；持久密钥可在 ~/.rsi/config.yaml 配 feedback.secret_key）
   secret_key: ""
 
+dedup:
+  # 记忆间近重复治理（改进点 3）。零 Key：rag 词袋 Jaccard 重叠。
+  block_on_promote: false       # true = 晋升(rsi_knowledge_review approve)前强制拦下近重复，不自动写第二条；
+                                # false = 仅随响应回传 possible_duplicates 供宿主裁决（非阻断）
+  overlap_threshold: 0.6        # 判定「疑似近重复」的词袋 Jaccard 下限（0~1）
+
 logging:
   level: INFO
   file: ""                      # 空 = 仅 stderr；建议 ~/.rsi/rsi.log

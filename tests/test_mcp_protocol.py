@@ -53,7 +53,7 @@ async def test_tools_list(tmp_path):
         names = {t.name for t in tools}
         # v3.0 工具族（§6）：rsi_query 退役，rsi_recall / rsi_conflicts 新增
         assert names == {
-            "rsi_recall", "rsi_feedback",
+            "rsi_recall", "rsi_explore", "rsi_feedback",
             "rsi_knowledge_add", "rsi_knowledge_search", "rsi_knowledge_delete",
             "rsi_knowledge_review",
             "rsi_review", "rsi_conflicts", "rsi_stats",

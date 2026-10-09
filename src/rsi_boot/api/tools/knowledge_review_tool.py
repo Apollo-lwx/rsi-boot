@@ -25,6 +25,23 @@ logger = logging.getLogger(__name__)
 TOOL_NAME = "rsi_knowledge_review"
 TOOL_DESCRIPTION = TOOL_DESC["review"]
 
+_MAX_DEFERRED_IN_RESPONSE = 20
+
+
+def _cap_deferred(result: dict[str, Any]) -> dict[str, Any]:
+    """把 service 返回的 deferred_duplicates 截断至 20 条，另附 deferred_total 全量计数。
+    避免 block_on_promote 命中量大时把上百条候选整段塞进宿主上下文。"""
+    if not isinstance(result, dict):
+        return result
+    dd = result.get("deferred_duplicates")
+    if not isinstance(dd, list):
+        return result
+    out = dict(result)
+    out["deferred_total"] = len(dd)
+    if len(dd) > _MAX_DEFERRED_IN_RESPONSE:
+        out["deferred_duplicates"] = dd[:_MAX_DEFERRED_IN_RESPONSE]
+    return out
+
 INPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -85,11 +102,19 @@ def _log_review(store: Any, *, action: str, ids: list[str], processed: int, boot
     )
 
 
+def _dedup_config(runtime_or_knowledge: Any) -> tuple[bool, float]:
+    """晋升近重复治理开关（改进点 3 强约束版）：见 learning.dedup.promote_block_config。"""
+    from ...learning.dedup import promote_block_config
+
+    return promote_block_config(getattr(runtime_or_knowledge, "config", None))
+
+
 async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[str, Any]:
     knowledge = getattr(runtime_or_knowledge, "knowledge", runtime_or_knowledge)
     decisions = getattr(runtime_or_knowledge, "decisions", None)
     store = getattr(runtime_or_knowledge, "store", getattr(knowledge, "_store", None))
     project_id = tool_project_id(runtime_or_knowledge, arguments)
+    block_dupes, dup_threshold = _dedup_config(runtime_or_knowledge)
     action = str(arguments.get("action", ""))
     if action == "skip":
         decision_id = str(arguments.get("id") or "")
@@ -113,8 +138,9 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
         tags = await _tags_of(knowledge, ids)
         result = await knowledge.review_batch(
             project_id, approve, ids=ids, bootstrap_run_id=bootstrap_run_id,
+            block_duplicates=(approve and block_dupes), dedup_threshold=dup_threshold,
         )
-        if result.get("processed"):
+        if result.get("processed") and not result.get("deferred_duplicates"):
             await close_extract_runs(
                 decisions, tags, store=store, project_id=project_id,
             )
@@ -125,11 +151,12 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
             processed=int(result.get("processed") or 0),
             bootstrap_run_id=bootstrap_run_id or "",
         )
-        return {"status": "success", **result}
+        return {"status": "success", **_cap_deferred(result)}
 
     if arguments.get("all_pending") or (bootstrap_run_id and not arguments.get("id")):
         content_type = arguments.get("content_type") or None
         include_archived = bool(arguments.get("include_archived"))
+        block_batch = approve and block_dupes
         extract_ids: list[str] = []
         if bootstrap_run_id:
             extract_ids = await _extract_ids(runtime_or_knowledge, bootstrap_run_id)
@@ -140,6 +167,7 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
                     content_type=content_type,
                     include_archived=include_archived,
                     bootstrap_run_id=bootstrap_run_id,
+                    block_duplicates=block_batch, dedup_threshold=dup_threshold,
                 )
             else:
                 result = {
@@ -152,8 +180,9 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
                 content_type=content_type,
                 include_archived=include_archived,
                 exclude_bootstrap=True,
+                block_duplicates=block_batch, dedup_threshold=dup_threshold,
             )
-        if result.get("processed") and bootstrap_run_id:
+        if result.get("processed") and bootstrap_run_id and not result.get("deferred_duplicates"):
             await close_extract_runs(
                 decisions, [json.dumps([f"bootstrap_run_id:{bootstrap_run_id}"])],
                 store=store, project_id=project_id,
@@ -165,11 +194,32 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
             processed=int(result.get("processed") or 0),
             bootstrap_run_id=bootstrap_run_id or "",
         )
-        return {"status": "success", **result}
+        return {"status": "success", **_cap_deferred(result)}
 
     item_id = str(arguments.get("id", ""))
     if not item_id:
         return {"status": "error", "message": "缺少审批目标：id / ids / all_pending 三选一"}
+    # 强约束版：block_on_promote 开启时，晋升前先自检近重复，命中则暂缓（不写第二条）。
+    if approve and block_dupes:
+        dups = knowledge.find_promotion_duplicates(item_id, threshold=dup_threshold)
+        if dups:
+            try:
+                current = store.read(item_id).status if store is not None else "pending_review"
+            except Exception:
+                current = "pending_review"
+            _log_review(
+                store, action="defer", ids=[item_id], processed=0,
+                bootstrap_run_id=bootstrap_run_id or "",
+            )
+            return {
+                "status": "success",
+                "id": item_id,
+                "approved": False,
+                "requires_adjudication": True,
+                "possible_duplicates": dups,
+                "new_status": current,
+                "message": "疑似与已有记忆重复，已暂缓晋升；请先用 rsi_conflicts 裁决（合并/替换/并存）后再审批",
+            }
     tags = await _tags_of(knowledge, [item_id])
     new_status = await knowledge.review(item_id, project_id, approve=approve)
     if new_status is None:
@@ -184,4 +234,20 @@ async def handle(runtime_or_knowledge: Any, arguments: dict[str, Any]) -> dict[s
         processed=1,
         bootstrap_run_id=bootstrap_run_id or "",
     )
-    return {"status": "success", "id": item_id, "new_status": new_status}
+    payload: dict[str, Any] = {"status": "success", "id": item_id, "new_status": new_status}
+    # 晋升后近重复自检（改进点 3）：approve 转 active 后，用该条在同类型正式记忆里
+    # 找近邻（排除自身），命中即回传候选供宿主裁决；不阻断已完成的审批。
+    if approve and new_status == "active" and store is not None:
+        try:
+            from ...learning.dedup import find_near_duplicates
+
+            doc = store.read(item_id)
+            dups = find_near_duplicates(
+                store, title=doc.title, content=doc.content,
+                content_type=doc.type, exclude_id=doc.id, threshold=dup_threshold,
+            )
+            if dups:
+                payload["possible_duplicates"] = dups
+        except FileNotFoundError:
+            pass
+    return payload

@@ -270,6 +270,34 @@ def _doc_domain(path: str) -> str:
     return "docs"
 
 
+def infer_domain(path: str, *, root: Path | str | None = None) -> str:
+    """从来源路径推断板块域（供 rsi_knowledge_add 在宿主未显式给 domain 时补全，
+    让新增条目也能进层级知识树而非落进 general）。复用 _doc_domain 规则，与 bootstrap
+    对文档源的取域口径一致。
+
+    拒绝输入的三种形态：`signal:` 令牌 / URL（含 `://`）/ 空串。绝对路径需要传 `root`
+    才能相对化，未传 root 或相对化失败 → 返回 ""（宁可回落 general 也不污染板块）。
+    越界路径（`..` 起始）也返回 ""。
+    """
+    posix = _posix_rel(path)
+    if not posix or posix.startswith("signal:") or "://" in posix:
+        return ""
+    # 绝对路径（Unix `/...` 或 Windows `X:\...`）：需要 root 相对化，否则放弃
+    if posix.startswith("/") or re.match(r"^[A-Za-z]:", posix):
+        if root is None:
+            return ""
+        try:
+            posix = Path(posix).resolve().relative_to(Path(root).resolve()).as_posix()
+        except (ValueError, OSError, RuntimeError):
+            return ""
+        if not posix:
+            return ""
+    if posix == ".." or posix.startswith("../"):
+        return ""
+    return _doc_domain(posix)
+
+
+
 def _conversation_domain(path: str) -> str:
     high = _high_value_domain(path)
     if high:
