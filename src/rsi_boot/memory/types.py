@@ -29,16 +29,19 @@ class MemoryDoc(BaseModel):
     title: str = Field(max_length=120)
     content: str = Field(max_length=20000)
     status: str = "active"
-    domain: str | None = Field(default=None, max_length=200)
+    # 长度护栏在 KnowledgeService._add_to_store 写入侧拦，读侧不再拒绝旧数据：
+    # 若在 MemoryDoc 上直接设 max_length，历史条目一旦超长会在 store.read 时抛
+    # ValidationError，让整个记忆库都读不出来。
+    domain: str | None = None
     tags: list[str] = Field(default_factory=list)
     roles: list[str] = Field(default_factory=list)
-    source: str | None = Field(default=None, max_length=500)
+    source: str | None = None
     description: str | None = None
     # 前提条件：这条记忆在什么前提下成立（如「仅当使用 MyBatis 时」）。
     # 召回命中时若前提不再成立，宿主应视为存疑而非无条件遵守。
-    trigger_condition: str | None = Field(default=None, max_length=500)
+    trigger_condition: str | None = None
     # 失效条件：什么情况下该记忆应视为过时（如「迁移到 JPA 后作废」）。
-    expiry_condition: str | None = Field(default=None, max_length=500)
+    expiry_condition: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
     refs: list[str] = Field(default_factory=list)
