@@ -2,6 +2,38 @@ import pytest
 
 
 @pytest.mark.asyncio
+async def test_invert_index_persist_is_opt_in(tmp_path, monkeypatch):
+    """运行时 invert_index 默认不落盘；仅 persist=True 才写缓存快照（且已瘦身）。"""
+    import json
+    from pathlib import Path
+
+    from rsi_boot.api.tools.learn_tool import handle as learn_handle
+    from rsi_boot.bootstrap import build_runtime
+
+    monkeypatch.setenv("RSI_LANG", "zh")
+    rt = await build_runtime(project_root=tmp_path)
+    try:
+        await learn_handle(rt, {
+            "action": "teach_record",
+            "lesson": {
+                "wrong_action": "SELECT *",
+                "correct_fix": "列出列名",
+                "error_signature": "select-star",
+            },
+        })
+        cache_file = Path(tmp_path) / ".rsi" / "cache" / "inverted.json"
+        assert rt.invert_index()["n"] >= 1
+        assert not cache_file.exists()
+        rt.invalidate_index()
+        rt.invert_index(persist=True)
+        assert cache_file.is_file()
+        snapshot = json.loads(cache_file.read_text(encoding="utf-8"))
+        assert "idf" not in snapshot and "chunks" not in snapshot
+    finally:
+        await rt.close()
+
+
+@pytest.mark.asyncio
 async def test_memory_open_by_id(tmp_path, monkeypatch):
     monkeypatch.setenv("RSI_LANG", "zh")
     from rsi_boot.api.tools.learn_tool import handle as learn_handle

@@ -222,3 +222,23 @@ def test_cache_wipe_reindex_top5_overlap(tmp_path, monkeypatch, capsys):
     union = set(top1) | set(top2)
     overlap = (len(set(top1) & set(top2)) / len(union)) if union else 1.0
     assert overlap >= 0.8
+
+
+def test_serialize_index_roundtrip_equivalent(tmp_path):
+    """落盘快照去掉 idf/chunks 冗余后，读回检索结果与全量索引一致。"""
+    from rsi_boot.rag.index import build_index, search, serialize_index
+
+    store = MemoryStore(tmp_path / ".rsi")
+    docs = []
+    for i, title in enumerate(["禁止 SELECT 星号", "列名字段清单", "缓存失效策略"]):
+        docs.append(_write(store, MemoryDoc(
+            id=f"{i + 1:08x}{'b' * 24}",
+            type="convention",
+            title=title,
+            content=f"{title} 必须写明适用条件",
+        )))
+    full = build_index(docs)
+    slim = json.loads(serialize_index(full))
+    assert "idf" not in slim and "chunks" not in slim
+    for query in ("SELECT 星号", "缓存 失效", "字段 清单"):
+        assert search(full, query, top_n=3) == search(slim, query, top_n=3)

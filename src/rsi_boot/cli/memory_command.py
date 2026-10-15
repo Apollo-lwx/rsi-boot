@@ -15,7 +15,7 @@ from rsi_boot.cli.progress import Progress
 from rsi_boot.memory.graph import render_mermaid
 from rsi_boot.memory.store import MemoryStore
 from rsi_boot.project import resolve_project_root
-from rsi_boot.rag.index import build_index
+from rsi_boot.rag.index import build_index, serialize_index
 from rsi_boot.services.memory_migrate import MemoryMigrateHalfError, migrate_workspace
 from rsi_boot.ux.lang import locale_lang
 from rsi_boot.ux.messages import t
@@ -141,7 +141,7 @@ def _cmd_reindex(args: argparse.Namespace, lang: str) -> int:
     cache = store.rsi_dir / "cache"
     cache.mkdir(parents=True, exist_ok=True)
     (cache / "inverted.json").write_text(
-        json.dumps(index, ensure_ascii=False),
+        serialize_index(index),
         encoding="utf-8",
     )
     print(t("REINDEX_DONE", lang))

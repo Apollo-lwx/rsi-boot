@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections import defaultdict
@@ -47,6 +48,25 @@ def index_text(doc: MemoryDoc) -> str:
     if doc.payload:
         parts.append(_flatten_payload(doc.payload))
     return "\n\n".join(p for p in parts if p)
+
+
+def ensure_idf(index: dict) -> dict:
+    """惰性补齐 idf：落盘快照会省略可由 postings+n 反推的 idf，读取时在此重算并缓存。"""
+    if index.get("idf") is None:
+        postings = index.get("postings") or {}
+        n = index.get("n") or 0
+        index["idf"] = {
+            term: math.log((n + 1) / (len(df) + 1)) + 1.0
+            for term, df in postings.items()
+        }
+    return index
+
+
+def serialize_index(index: dict) -> str:
+    """落盘快照：省略 idf（可由 postings 反推）与 chunks（只服务内存 best_heading），
+    读回时 search/best_heading 通过 ensure_idf 自动补齐，检索结果不变。"""
+    slim = {k: v for k, v in index.items() if k not in ("idf", "chunks")}
+    return json.dumps(slim, ensure_ascii=False)
 
 
 def build_index(docs: list[MemoryDoc]) -> dict:
@@ -150,6 +170,7 @@ def search(
     """只按词袋/IDF 打分。实现中不得出现 `doc.title == query`。
     drop_weak 默认打开：强词过滤 + 相对顶分门槛，禁止项检索应传 False。"""
     scores: dict[str, float] = {}
+    ensure_idf(index)
     postings: dict[str, dict[str, int]] = index["postings"]
     idf: dict[str, float] = index["idf"]
     doc_type: dict[str, str] = index["doc_type"]
@@ -178,6 +199,7 @@ def best_heading(index: dict, doc_id: str, query: str) -> str:
     chunks = index.get("chunks") or []
     if not chunks:
         return ""
+    ensure_idf(index)
     idf: dict[str, float] = index.get("idf") or {}
     qtf: dict[str, int] = defaultdict(int)
     for term in tokenize(query):

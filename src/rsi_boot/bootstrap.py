@@ -103,20 +103,24 @@ class Runtime:
     def invalidate_index(self) -> None:
         self._index = None
 
-    def invert_index(self) -> dict[str, Any]:
+    def invert_index(self, *, persist: bool = False) -> dict[str, Any]:
         if self._index is None:
-            import json
-
             docs = [
                 d for d in self.store.list_official(skip_harvest=True) if d.status == "active"
             ]
             self._index = build_index(docs)
-            cache = self.store.rsi_dir / "cache"
-            cache.mkdir(parents=True, exist_ok=True)
-            (cache / "inverted.json").write_text(
-                json.dumps(self._index, ensure_ascii=False),
-                encoding="utf-8",
-            )
+            # 倒排索引只在内存中供本进程检索；运行时搜索（recall_service）另建索引，
+            # 从不回读此文件。故默认不落盘，避免在 .rsi/cache 里反复产出大 JSON。
+            # 仅显式 reindex 需要留档时 persist=True 才写（快照已去 idf/chunks 冗余）。
+            if persist:
+                from .rag.index import serialize_index
+
+                cache = self.store.rsi_dir / "cache"
+                cache.mkdir(parents=True, exist_ok=True)
+                (cache / "inverted.json").write_text(
+                    serialize_index(self._index),
+                    encoding="utf-8",
+                )
         return self._index
 
     def _apply_config(self, config: dict[str, Any]) -> None:
