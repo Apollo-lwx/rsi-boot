@@ -111,6 +111,7 @@ rsi serve
 | `rsi_memory` | Memory index / open / rebuild / relationship graph |
 | `rsi_review` | Harness improvement proposals and config snapshots |
 | `rsi_stats` | Memory usage statistics |
+| `rsi_impact` | Value/impact panel for evangelism: injected cost (chars + est. tokens), recall compaction, adoption/compliance, a time curve, and an A/B token-savings calculator (savings are only produced from a user-supplied host before/after comparison — never invented) |
 
 RSI has no OAuth. Do not call `mcp_auth` mid-distillation, and never pop an authorization prompt at the user.
 

@@ -32,6 +32,11 @@ STRINGS = {
     },
     "REINDEX_TITLE": {"zh": "重建索引：{root}", "en": "Rebuilding index: {root}"},
     "REINDEX_DONE": {"zh": "索引已重建", "en": "Index rebuilt"},
+    "IMPACT_LINE_COST": {"zh": "成本：每轮注入 {chars} 字符 ≈ {tokens} token（估算）", "en": "cost: injected {chars} chars ≈ {tokens} tokens/turn (est.)"},
+    "IMPACT_LINE_RECALL": {"zh": "召回：{recalls} 次·命中率 {hit}%·按需只暴露全库 {exposure}%", "en": "recall: {recalls} calls·hit {hit}%·exposes only {exposure}% of corpus"},
+    "IMPACT_LINE_SAVED": {"zh": "省 token：每任务省 {saved}（{pct}%，宿主实测）", "en": "saved: {saved} tokens/task ({pct}%, host-measured)"},
+    "IMPACT_LINE_NO_AB": {"zh": "省 token：未提供用前/用后对照，不输出省量（避免编造）", "en": "saved: no before/after input, no savings reported (never invented)"},
+    "IMPACT_EXPORTED": {"zh": "已导出：{path}", "en": "exported: {path}"},
     "BOOTSTRAP_DONE": {"zh": "学习完成", "en": "Learning complete"},
     "DURATION": {"zh": "总耗时 {duration}", "en": "elapsed {duration}"},
     "ELAPSED": {"zh": "已用 {duration}", "en": "elapsed {duration}"},
@@ -318,6 +323,18 @@ TOOL_DESC = {
         "Memory usage stats: period=day/week/month summaries of reach, adoption, "
         "prohibition follow-through, and proposal pass rate. "
         "记忆使用统计：period=day/week/month 汇总触达/采纳/禁止项遵循/提案通过率。"
+    ),
+    "impact": (
+        "Value/impact panel for evangelism: injected cost (chars + est tokens), recall value "
+        "(hit rate + on-demand exposure vs full corpus), behavioral gains (adoption, compliance, "
+        "proposal pass), a time curve, and an A/B token-savings calculator. Honesty: RSI cannot "
+        "see the host's real token usage, so 'tokens saved' is ONLY produced from a user-supplied "
+        "before/after comparison (ab={baseline:{tokens,tasks},treatment:{tokens,tasks}}); without it "
+        "no savings number is invented. export=true writes a one-page markdown to ~/.rsi/exports/. "
+        "价值/影响力面板（供宣讲）：注入成本（字符+token 估算）、召回价值（命中率与按需暴露 vs 全库）、"
+        "行为收益（采纳/合规/提案通过率）、时间曲线，以及一个 A/B 省 token 计算器。诚实原则：RSI 看不到"
+        "宿主真实 token 用量，‘省了多少’只在用户喂入用前/用后对照（ab 参数）时才产出，否则不编造任何"
+        "省量；export=true 导出一页纸 markdown。"
     ),
     "conflicts": (
         "List or resolve suspected conflicts. Three kinds: "
