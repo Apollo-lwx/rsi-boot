@@ -21,7 +21,7 @@ from rsi_boot.memory.paths import official_dir, pending_dir
 from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc, type_from_legacy
 from rsi_boot.project import project_rsi_dir
-from rsi_boot.rag.index import build_index
+from rsi_boot.rag.index import build_index, serialize_index
 from rsi_boot.ux.lang import locale_lang
 from rsi_boot.ux.messages import t
 
@@ -383,7 +383,7 @@ def _write_index(rsi_dir: Path, docs: list[MemoryDoc]) -> None:
     cache = rsi_dir / "cache"
     cache.mkdir(parents=True, exist_ok=True)
     (cache / "inverted.json").write_text(
-        json.dumps(index, ensure_ascii=False),
+        serialize_index(index),
         encoding="utf-8",
     )
 
