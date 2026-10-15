@@ -273,7 +273,7 @@ class RecallService:
         condition = RecallService._condition(doc)
         if condition:
             payload["condition"] = condition
-        return payload
+        return RecallService._apply_flags(payload, doc)
 
     @staticmethod
     def _condition(doc: MemoryDoc) -> Dict[str, Any]:
@@ -284,6 +284,15 @@ class RecallService:
         if doc.expiry_condition:
             cond["may_expire_when"] = doc.expiry_condition
         return cond
+
+    @staticmethod
+    def _apply_flags(payload: Dict[str, Any], doc: MemoryDoc) -> Dict[str, Any]:
+        """降置信标记：该条目曾被拒/低分反馈，宿主应存疑而非无条件遵守。"""
+        from ..learning.governance import is_low_confidence
+
+        if is_low_confidence(doc):
+            payload["low_confidence"] = True
+        return payload
 
     @staticmethod
     def _item_payload(doc: MemoryDoc, heading: str = "") -> Dict[str, Any]:
@@ -305,7 +314,7 @@ class RecallService:
                 payload[key] = extra[key]
             elif key in nested:
                 payload[key] = nested[key]
-        return payload
+        return RecallService._apply_flags(payload, doc)
 
     @staticmethod
     def _case_weight_and_role(doc: MemoryDoc) -> tuple[int, str]:
@@ -338,7 +347,7 @@ class RecallService:
         condition = RecallService._condition(doc)
         if condition:
             payload["condition"] = condition
-        return payload
+        return RecallService._apply_flags(payload, doc)
 
     @staticmethod
     def _suggestion_rows(

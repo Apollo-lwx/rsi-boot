@@ -58,6 +58,14 @@ STRINGS = {
         "zh": "蒸馏条必须带 bootstrap_run_id 标签",
         "en": "Distilled items need a bootstrap_run_id tag",
     },
+    "KNOWLEDGE_UPDATE_EMPTY": {
+        "zh": "update 需至少一个可改字段，且 content 不得为空",
+        "en": "update needs at least one editable field and a non-empty content",
+    },
+    "KNOWLEDGE_MERGE_NEED_TWO": {
+        "zh": "merge 需至少两个存在的条目 id",
+        "en": "merge needs at least two existing item ids",
+    },
     "LEARN_NEED_ACTION": {
         "zh": "请指定动作：teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote / pack_list / pack_open / pack_done",
         "en": "Specify an action: teach_catch / teach_record / skip / rubric / audit_start / audit_probes / audit_report / audit_finish / extract / promote / pack_list / pack_open / pack_done",
@@ -312,6 +320,15 @@ TOOL_DESC = {
     "knowledge_delete": (
         "Delete a knowledge item (deletion right). "
         "删除指定知识条目（删除权）。"
+    ),
+    "knowledge_update": (
+        "Update an existing memory in place by id (title/content/tags/roles/domain/description/"
+        "trigger_condition/expiry_condition) — prefer updating over re-adding duplicates. "
+        "action=merge combines near-duplicates: keep the more complete one, archive the rest "
+        "(recoverable, not hard-deleted) and record a supersedes edge. Preserves id and location. "
+        "按 id 原地更新已有记忆（改 title/content/tags/roles/domain/description/前提与失效条件），"
+        "改优于新建重复。action=merge 合并近重复：保留更完整者、其余归档（可恢复非硬删）并写 supersedes 边；"
+        "保留 id 与所在目录。"
     ),
     "harness": (
         "Harness improvement proposals: list/approve/reject/rollback/generate "

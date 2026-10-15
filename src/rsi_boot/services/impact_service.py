@@ -123,6 +123,10 @@ class ImpactService:
         trend = self._stats._trend_store(period, project_id)
         return {"source": "events", "points": trend}
 
+    def dormancy(self, *, unused_days: int = 30, limit: int = 20) -> Dict[str, Any]:
+        """失活候选：长期未被召回命中且未编辑的正式条目（只读，供宣讲时讲维护纪律）。"""
+        return self._stats._stale_store(unused_days, limit)
+
     def snapshot_now(self, project_id: Optional[str]) -> Dict[str, Any]:
         """把当前窗口聚合成一条日快照（机会式钩子与 rsi impact 均可调）。同日只落第一条。"""
         comp = self.compaction("week", project_id)
@@ -163,6 +167,7 @@ class ImpactService:
             },
             "token_savings_ab": self.ab_savings(ab),
             "curve": self.curve(period, project_id),
+            "dormancy": self.dormancy(),
         }
         payload["headline"] = self._headline(payload)
         payload["caveats"] = self._caveats(payload)
@@ -230,6 +235,16 @@ class ImpactService:
             lines.append("- 未采集 A/B 用量，故不输出省 token 数字（避免编造）。采集方法：")
             for step in ab.get("how", []):
                 lines.append(f"  - {step}")
+        dorm = payload.get("dormancy") or {}
+        lines += [
+            "",
+            "## 库健康（失活候选，只读）",
+            "",
+            f"- 长期未召回且未编辑（>{dorm.get('unused_days', 30)} 天）：{dorm.get('total', 0)} 条"
+            "，建议用 rsi_knowledge_update merge / rsi_knowledge_delete 收敛",
+        ]
+        for c in (dorm.get("candidates") or [])[:10]:
+            lines.append(f"  - {c['title']}（{c['type']}，上次命中 {c.get('last_hit') or '从未'}）")
         lines += ["", "## 曲线", "", f"数据源：{payload['curve']['source']}，共 {len(payload['curve']['points'])} 个点。", "", "## 口径与免责声明", ""]
         for c in payload["caveats"]:
             lines.append(f"- {c}")
