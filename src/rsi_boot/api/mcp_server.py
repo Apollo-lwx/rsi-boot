@@ -25,6 +25,7 @@ from .tools import (
     knowledge_delete_tool,
     knowledge_review_tool,
     knowledge_search_tool,
+    knowledge_update_tool,
     learn_tool,
     memory_tool,
     recall_tool,
@@ -69,6 +70,9 @@ def build_server(session: Any) -> Server:
             types.Tool(name=knowledge_delete_tool.TOOL_NAME,
                        description=knowledge_delete_tool.TOOL_DESCRIPTION,
                        inputSchema=knowledge_delete_tool.INPUT_SCHEMA),
+            types.Tool(name=knowledge_update_tool.TOOL_NAME,
+                       description=knowledge_update_tool.TOOL_DESCRIPTION,
+                       inputSchema=knowledge_update_tool.INPUT_SCHEMA),
             types.Tool(name=knowledge_review_tool.TOOL_NAME,
                        description=knowledge_review_tool.TOOL_DESCRIPTION,
                        inputSchema=knowledge_review_tool.INPUT_SCHEMA),
@@ -110,6 +114,8 @@ def build_server(session: Any) -> Server:
                 payload = await knowledge_search_tool.handle(runtime.knowledge, arguments)
             elif name == knowledge_delete_tool.TOOL_NAME:
                 payload = await knowledge_delete_tool.handle(runtime.knowledge, arguments)
+            elif name == knowledge_update_tool.TOOL_NAME:
+                payload = await knowledge_update_tool.handle(runtime.knowledge, arguments)
             elif name == knowledge_review_tool.TOOL_NAME:
                 payload = await knowledge_review_tool.handle(runtime, arguments)
             elif name == review_tool.TOOL_NAME:

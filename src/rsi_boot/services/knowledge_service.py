@@ -435,3 +435,121 @@ class KnowledgeService:
             return False
         await self._notify_change(self._scope(project_id))
         return True
+
+    # ---- 原地更新 / 合并（对标 Qoder「update 优于新建、合并保留更完整者」）----
+    # 更新只在写入侧做长度护栏（与 _add_to_store 同口径），读侧不拒绝旧数据。
+    _UPDATE_FIELD_CAPS = {
+        "domain": 200,
+        "description": 500,
+        "trigger_condition": 500,
+        "expiry_condition": 500,
+    }
+
+    def _validate_update(self, doc: MemoryDoc, fields: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """返回 error dict 或 None。短知识正文沿用 1500 上限，案例类放宽到 20000。"""
+        if "content" in fields:
+            cap = 1500 if doc.type in _SHORT_KNOWLEDGE else 20000
+            if len(str(fields["content"] or "")) > cap:
+                return self._invalid("KNOWLEDGE_TOO_LONG")
+        if "title" in fields and len(str(fields["title"] or "")) > 120:
+            return self._invalid("KNOWLEDGE_TOO_LONG")
+        for attr, cap in self._UPDATE_FIELD_CAPS.items():
+            value = fields.get(attr)
+            if isinstance(value, str) and len(value) > cap:
+                return self._invalid("KNOWLEDGE_TOO_LONG")
+        return None
+
+    async def update(self, item_id: str, fields: dict[str, Any]) -> dict[str, Any]:
+        """按 id 原地改字段：保留 id/created_at/所在目录，只覆盖传入的标量/列表字段。
+        未知 id 返回 not_found；无有效字段返回 invalid。写回触发注入重写。"""
+        allowed = (
+            "title", "content", "tags", "roles", "domain",
+            "description", "trigger_condition", "expiry_condition",
+        )
+        patch = {k: fields[k] for k in allowed if k in fields}
+        if not patch:
+            return {"status": "error", "code": "invalid",
+                    "message": t("KNOWLEDGE_UPDATE_EMPTY", locale_lang())}
+        doc = await asyncio.to_thread(self._safe_read, item_id)
+        if doc is None:
+            return {"status": "error", "code": "not_found",
+                    "message": t("NOT_FOUND", locale_lang(), id=item_id)}
+        if "content" in patch and not str(patch["content"] or "").strip():
+            return {"status": "error", "code": "invalid",
+                    "message": t("KNOWLEDGE_UPDATE_EMPTY", locale_lang())}
+        err = self._validate_update(doc, patch)
+        if err is not None:
+            return err
+        if "tags" in patch:
+            patch["tags"] = [str(x) for x in (patch["tags"] or [])]
+        if "roles" in patch:
+            patch["roles"] = [str(x) for x in (patch["roles"] or [])]
+        updated = await asyncio.to_thread(self._write_update, doc, patch)
+        await self._notify_change(self.bound_project_id or "")
+        return {
+            "status": "success",
+            "updated": sorted(patch),
+            "data": {"id": updated.id, "title": updated.title, "type": updated.type,
+                     "domain": updated.domain, "path": updated.path,
+                     "updated_at": updated.updated_at},
+        }
+
+    def _safe_read(self, item_id: str) -> Optional[MemoryDoc]:
+        try:
+            return self._store.read(item_id)
+        except (FileNotFoundError, ValueError):
+            return None
+
+    def _write_update(self, doc: MemoryDoc, patch: dict[str, Any]) -> MemoryDoc:
+        """就地写回原路径（不重命名：记忆按文件内 id 认领，标题变了文件名 slug 滞后无碍）。"""
+        dest = self._store.rsi_dir / doc.path if doc.path else official_dir(
+            self._store.rsi_dir, doc.type) / memory_filename(doc.title, doc.id)
+        return self._store.write(doc.model_copy(update=patch), dest=dest)
+
+    async def merge(self, ids: List[str], keep_id: Optional[str] = None) -> dict[str, Any]:
+        """合并近重复：保留更完整者（缺省取正文最长/最新），其余归档（非硬删，可恢复），
+        keeper 记 merged_from 并各写一条 supersedes 边。不做正文自动拼接以免越界/串味。"""
+        uniq = list(dict.fromkeys(str(i).strip().lower() for i in (ids or []) if str(i).strip()))
+        if len(uniq) < 2:
+            return {"status": "error", "code": "invalid",
+                    "message": t("KNOWLEDGE_MERGE_NEED_TWO", locale_lang())}
+        docs: dict[str, MemoryDoc] = {}
+        for i in uniq:
+            d = await asyncio.to_thread(self._safe_read, i)
+            if d is not None:
+                docs[i] = d
+        if len(docs) < 2:
+            return {"status": "error", "code": "not_found",
+                    "message": t("KNOWLEDGE_MERGE_NEED_TWO", locale_lang())}
+        if keep_id:
+            keep_id = keep_id.strip().lower()
+            if keep_id not in docs:
+                return {"status": "error", "code": "not_found",
+                        "message": t("NOT_FOUND", locale_lang(), id=keep_id)}
+        else:
+            keep_id = max(docs.values(), key=lambda d: (len(d.content or ""), d.updated_at or "")).id
+        keeper = docs[keep_id]
+        losers = [d for i, d in docs.items() if i != keep_id]
+        result = await asyncio.to_thread(self._merge_store, keeper, losers)
+        await self._notify_change(self.bound_project_id or "")
+        return {
+            "status": "success",
+            "kept": keep_id,
+            "archived": result["archived"],
+            "edges": result["edges"],
+        }
+
+    def _merge_store(self, keeper: MemoryDoc, losers: List[MemoryDoc]) -> dict[str, Any]:
+        from ..memory.graph import add_edge
+
+        store = self._store
+        merged = [dict(x) for x in (keeper.extra or {}).get("merged_from") or []]
+        for loser in losers:
+            store.move(loser.id, _archive_dir(store))
+            add_edge(store.rsi_dir, keeper.id, loser.id, "supersedes")
+            merged.append({"id": loser.id, "title": loser.title})
+        extra = dict(keeper.extra or {})
+        extra["merged_from"] = merged
+        self._store.write(keeper.model_copy(update={"extra": extra}),
+                          dest=store.rsi_dir / keeper.path)
+        return {"archived": [l.id for l in losers], "edges": len(losers)}

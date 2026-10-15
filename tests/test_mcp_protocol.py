@@ -56,6 +56,7 @@ async def test_tools_list(tmp_path):
             "rsi_recall", "rsi_explore", "rsi_feedback",
             "rsi_knowledge_add", "rsi_knowledge_search", "rsi_knowledge_delete",
             "rsi_knowledge_review",
+            "rsi_knowledge_update",
             "rsi_review", "rsi_conflicts", "rsi_stats", "rsi_impact",
             "rsi_learn", "rsi_memory",
         }

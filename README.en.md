@@ -106,7 +106,7 @@ rsi serve
 | `rsi_explore` | Drill the knowledge tree by domain module (empty path lists top modules with counts; a path lists member items title/brief/id plus graph-based related / conflicts edges for that node) |
 | `rsi_feedback` | Adoption feedback; rejected+comment is distilled into a prohibition |
 | `rsi_learn` | Reading packs (pack_list / pack_open / pack_done), teach_catch / teach_record, session audit |
-| `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_review` | Memory management and review; distilled entries must carry a `pack_id` |
+| `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_update` / `rsi_knowledge_review` | Memory management and review; `rsi_knowledge_update` edits an entry in place (prefer updating over re-adding duplicates) and `merge` combines near-duplicates (keeps the more complete one, archives the rest, records a supersedes edge); distilled entries must carry a `pack_id` |
 | `rsi_conflicts` | Query and adjudicate conflicts between short knowledge items |
 | `rsi_memory` | Memory index / open / rebuild / relationship graph |
 | `rsi_review` | Harness improvement proposals and config snapshots |

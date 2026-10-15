@@ -181,6 +181,19 @@ class FeedbackWorker:
             qresult = await self._quality.judge_negative_feedback(event.feedback_token)
             if qresult is not None:
                 await self._logs.refresh_quality_score(event.feedback_token, qresult.quality_score)
+        # 治理回流（对标 Qoder 反思）：被拒/低分的召回把命中正式条目降置信，
+        # 下轮 recall 回传 low_confidence 供宿主存疑。旁路 fail-open，绝不打断反馈处理。
+        if retrieved and (event.action == "rejected"
+                          or (event.rating is not None and event.rating <= 2)):
+            try:
+                from ..learning.governance import mark_low_confidence
+
+                await asyncio.to_thread(
+                    mark_low_confidence, self._store, retrieved,
+                    event.comment or event.action,
+                )
+            except Exception:  # noqa: BLE001 - 治理为旁路观测，任何异常不影响反馈主流程
+                logger.warning("low_confidence 回流失败 action=%s", event.action, exc_info=True)
 
     async def _apply_reward_store(self, project_id: str, strategy_name: str, reward: float) -> None:
         path = self._store.rsi_dir / "state" / "arms.yaml"

@@ -11,6 +11,7 @@ v3.0 口径重写：主链路零模型调用，不再统计 token/成本；数�
 from __future__ import annotations
 
 import csv
+import asyncio
 import json
 import logging
 import os
@@ -66,6 +67,55 @@ class StatsService:
             self._write_csv(path, payload)
         logger.info("记忆使用统计已导出：%s", path)
         return path
+
+    async def stale_candidates(
+        self, *, unused_days: int = 30, limit: int = 50,
+    ) -> Dict[str, Any]:
+        """失活候选：长期未被召回命中且未编辑的正式条目（只读、供宿主批量归档）。"""
+        return await asyncio.to_thread(self._stale_store, unused_days, limit)
+
+    def _stale_store(self, unused_days: int, limit: int) -> Dict[str, Any]:
+        from ..memory.harvest import is_harvest_doc
+
+        unused_days = max(1, int(unused_days or 30))
+        limit = max(1, int(limit or 50))
+        now = datetime.now(timezone.utc)
+        cutoff = (now - timedelta(days=unused_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # 每个 id 的最后一次命中时间（扫全量 recall 事件）
+        last_hit: Dict[str, str] = {}
+        for ev in iter_events(self._store.rsi_dir, kinds={"recall"}):
+            ts = self._event_ts(ev)
+            if not ts:
+                continue
+            for rid in ev.get("retrieved") or []:
+                if isinstance(rid, str) and (rid not in last_hit or ts > last_hit[rid]):
+                    last_hit[rid] = ts
+        candidates: List[Dict[str, Any]] = []
+        for doc in self._store.list_official(skip_harvest=True):
+            if doc.status != "active" or is_harvest_doc(doc):
+                continue
+            hit = last_hit.get(doc.id)
+            edited = doc.updated_at or doc.created_at or ""
+            marker = max(hit or "", edited)  # 最近一次被碰（命中或编辑）
+            if marker and marker >= cutoff:
+                continue
+            try:
+                ref = datetime.fromisoformat(marker.replace("Z", "+00:00")) if marker else None
+                age_days = (now - ref).days if ref else None
+            except ValueError:
+                age_days = None
+            candidates.append({
+                "id": doc.id, "title": doc.title, "type": doc.type,
+                "domain": doc.domain, "updated_at": edited or None,
+                "last_hit": hit, "unused_days": age_days,
+            })
+        candidates.sort(key=lambda c: c["updated_at"] or "")
+        return {
+            "unused_days": unused_days,
+            "total": len(candidates),
+            "truncated": len(candidates) > limit,
+            "candidates": candidates[:limit],
+        }
 
     @staticmethod
     def _write_csv(path: Path, payload: Dict[str, Any]) -> None:

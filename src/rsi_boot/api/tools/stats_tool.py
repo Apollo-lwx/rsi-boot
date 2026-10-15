@@ -25,6 +25,10 @@ INPUT_SCHEMA: dict[str, Any] = {
                      "description": "分组维度：intent 或召回臂 arm"},
         "format": {"type": "string", "enum": ["json", "csv"], "description": "导出格式（默认 json）"},
         "export": {"type": "boolean", "description": "true 时导出到 ~/.rsi/exports/ 并返回路径"},
+        "include_stale": {"type": "boolean",
+                          "description": "true 时附失活候选（长期未召回且未编辑的正式条目，只读）"},
+        "stale_days": {"type": "integer", "minimum": 1, "maximum": 365,
+                       "description": "失活判定天数（默认 30）"},
     },
     "required": ["period"],
 }
@@ -58,6 +62,9 @@ async def handle(stats: Optional[StatsService], arguments: dict[str, Any]) -> di
     }
     if group_by:
         payload["groups"] = await stats.grouped(period, group_by, project_id)
+    if bool(arguments.get("include_stale")):
+        days = int(arguments.get("stale_days") or 30)
+        payload["stale"] = await stats.stale_candidates(unused_days=days)
 
     if bool(arguments.get("export")) or fmt == "csv":
         path = await stats.export(payload, fmt, period)
