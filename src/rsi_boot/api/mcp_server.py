@@ -20,6 +20,7 @@ from .tools import (
     conflicts_tool,
     explore_tool,
     feedback_tool,
+    impact_tool,
     knowledge_add_tool,
     knowledge_delete_tool,
     knowledge_review_tool,
@@ -80,6 +81,9 @@ def build_server(session: Any) -> Server:
             types.Tool(name=stats_tool.TOOL_NAME,
                        description=stats_tool.TOOL_DESCRIPTION,
                        inputSchema=stats_tool.INPUT_SCHEMA),
+            types.Tool(name=impact_tool.TOOL_NAME,
+                       description=impact_tool.TOOL_DESCRIPTION,
+                       inputSchema=impact_tool.INPUT_SCHEMA),
             types.Tool(name=learn_tool.TOOL_NAME,
                        description=learn_tool.TOOL_DESCRIPTION,
                        inputSchema=learn_tool.INPUT_SCHEMA),
@@ -116,6 +120,8 @@ def build_server(session: Any) -> Server:
                 stats = StatsService(store=runtime.store)
                 stats.bound_project_id = runtime.project_id
                 payload = await stats_tool.handle(stats, arguments)
+            elif name == impact_tool.TOOL_NAME:
+                payload = await impact_tool.handle(runtime, arguments)
             elif name == learn_tool.TOOL_NAME:
                 payload = await learn_tool.handle(runtime, arguments)
             elif name == memory_tool.TOOL_NAME:

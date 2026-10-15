@@ -111,6 +111,7 @@ rsi serve
 | `rsi_memory` | 记忆索引 / 打开 / 重建 / 关系图 |
 | `rsi_review` | Harness 改进提案与配置快照 |
 | `rsi_stats` | 记忆使用统计 |
+| `rsi_impact` | 价值/影响力面板（供宣讲）：注入成本（字符+token 估算）、召回压缩比、采纳/合规、时间曲线，以及 A/B 省 token 计算器（省量仅由用户喂入的宿主用前/用后对照得出，绝不编造） |
 
 RSI 无 OAuth。蒸馏中途不要调 `mcp_auth`、不要给用户弹授权。
 

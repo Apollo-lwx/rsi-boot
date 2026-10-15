@@ -141,6 +141,10 @@ class StatsService:
                 merged["comment"] = comment
         return merged
 
+    def recall_events(self, period: str, project_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """公开别名：窗口内已并入 feedback 的召回事件（供 ImpactService 复用，免重造窗口/连接逻辑）。"""
+        return self._recall_events(period, project_id)
+
     def _recall_events(self, period: str, project_id: Optional[str]) -> List[Dict[str, Any]]:
         start = self.window_start(period)
         feedback_by_token = self._feedback_by_token()

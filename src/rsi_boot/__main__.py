@@ -357,6 +357,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_learn = sub.add_parser("learn", help=t("CLI_LEARN_HELP", loc))
     _add_verbose(p_learn)
     p_learn.add_argument("argv", nargs=argparse.REMAINDER)
+
+    p_impact = sub.add_parser(
+        "impact",
+        help="价值/影响力面板：注入成本、召回价值、采纳/合规、曲线与 A/B 省 token 计算（供宣讲）",
+    )
+    _add_verbose(p_impact)
+    p_impact.add_argument("argv", nargs=argparse.REMAINDER)
     return parser
 
 
@@ -396,6 +403,15 @@ def main() -> None:
         setup_cli_logging(getattr(args, "verbose", False))
         try:
             sys.exit(run_learn(list(getattr(args, "argv", []) or [])))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "impact":
+        from .cli.impact_command import run_impact
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_impact(list(getattr(args, "argv", []) or [])))
         except KeyboardInterrupt:
             sys.exit(130)
 

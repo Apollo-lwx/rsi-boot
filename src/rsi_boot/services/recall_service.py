@@ -180,6 +180,7 @@ class RecallService:
         if hits:
             event["excerpt"] = "\n".join(doc.title for doc in hits)
         append_event(store.rsi_dir, event)
+        self._maybe_snapshot(project_id)
 
         cards = await collect_decision_cards(
             store, project_id, project_root=self._project_root,
@@ -216,6 +217,18 @@ class RecallService:
             "decisions": decisions,
             "retrieved": retrieved,
         }
+
+    def _maybe_snapshot(self, project_id: Optional[str]) -> None:
+        """机会式日快照：每天第一条召回顺带落一次日聚合（攒长期曲线，无常驻进程）。
+        先廉价判当天是否已落过，落过了就直接返回，绝不为快照重复全库扫。fail-open。"""
+        try:
+            from ..metrics.snapshot import has_today
+            if has_today(self._store.rsi_dir):
+                return
+            from .impact_service import ImpactService
+            ImpactService(self._store, project_root=self._project_root).snapshot_now(project_id)
+        except Exception:  # 快照是旁路观测，任何异常都不得影响召回主链路
+            pass
 
     def _store_search_docs(self, store: MemoryStore, role: Optional[str]) -> List[MemoryDoc]:
         docs: List[MemoryDoc] = []
