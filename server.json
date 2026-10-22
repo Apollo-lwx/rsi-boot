@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Apollo-lwx/rsi-boot",
+  "title": "RSI Boot",
+  "description": "Repo-bound memory and self-improving harness for AI coding agents — zero API keys.",
+  "repository": {
+    "url": "https://github.com/Apollo-lwx/rsi-boot",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "rsi-boot",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeHint": "uvx",
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "serve",
+          "description": "Start the MCP stdio server"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "RSI_PROJECT_ROOT",
+          "description": "Workspace to bind memory to. Optional: falls back to MCP roots and the server working directory when unset.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
