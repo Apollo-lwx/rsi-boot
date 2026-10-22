@@ -31,12 +31,14 @@ Agent 记忆很多人都在做。RSI Boot 要解决的是另外两件事：**har
 
 ## 安装
 
-需要 Python 3.10+。在本仓库根目录：
+需要 Python 3.10+：
 
 ```bash
-pip install -e .
+pip install rsi-boot
 rsi init
 ```
+
+要改源码则克隆本仓库，按[开发](#开发)一节用可编辑安装。
 
 `rsi init` 只写用户配置 `~/.rsi/config.yaml`。项目记忆在各仓库的 `.rsi/`，第一次启动 MCP 或 bootstrap 时创建。
 

@@ -9,6 +9,22 @@ description = "Repo-bound MCP with recursive self-improvement (Harness-RSI) — 
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+authors = [
+    { name = "wenxing luo" },
+]
+keywords = ["mcp", "agent-memory", "harness", "self-improvement", "knowledge-base", "repo-bound", "cursor", "claude-code", "codex"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
 dependencies = [
     "pydantic>=2.6",
     "PyYAML>=6.0",
@@ -34,6 +50,11 @@ vec = [
 anthropic = [
     "anthropic>=0.40",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Apollo-lwx/rsi-boot"
+Repository = "https://github.com/Apollo-lwx/rsi-boot"
+Issues = "https://github.com/Apollo-lwx/rsi-boot/issues"
 
 [project.scripts]
 rsi = "rsi_boot.__main__:main"

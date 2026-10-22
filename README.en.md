@@ -31,12 +31,14 @@ One MCP server (`rsi serve`) plugs into Cursor, Qoder, and Codex; the status lin
 
 ## Installation
 
-Requires Python 3.10+. From the root of this repository:
+Requires Python 3.10+:
 
 ```bash
-pip install -e .
+pip install rsi-boot
 rsi init
 ```
+
+To hack on the source instead, clone this repo and use the editable install described in [Development](#development).
 
 `rsi init` only writes the user-level config `~/.rsi/config.yaml`. Project memory lives in each repo's `.rsi/`, created on the first MCP startup or bootstrap run.
 
