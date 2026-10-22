@@ -10,13 +10,14 @@ import os
 import sys
 from pathlib import Path
 
-from .bootstrap import build_runtime, detect_user_id, rsi_home
 from .common.logger import setup_cli_logging, setup_logging
 from .common.stdio import ensure_utf8_stdio
-from .core.models import KnowledgeItem
 from .project import pinned_serve_root, resolve_project_root, resolve_serve_root
 from .ux.lang import locale_lang
 from .ux.messages import t
+
+# 注意：.bootstrap / .core.models 不在这里顶层导入——它们会拖入 pydantic/openai 等重依赖，
+# 拖慢 rsi statusline 这类宿主高频 spawn 的轻命令。各 handler 内部按需局部导入。
 
 
 def _print_json(payload: object) -> None:
@@ -25,6 +26,8 @@ def _print_json(payload: object) -> None:
 
 
 async def cmd_init(args: argparse.Namespace) -> int:
+    from .bootstrap import rsi_home
+
     setup_cli_logging(getattr(args, "verbose", False))
     home = rsi_home()
     home.mkdir(parents=True, exist_ok=True)
@@ -34,6 +37,9 @@ async def cmd_init(args: argparse.Namespace) -> int:
     if not config_file.exists():
         config_file.write_text(
             "# RSI Boot 用户级配置（合并于包内 default.yaml 之上，§2.5）\n"
+            "# lang: zh                 # 界面语言 zh/en；优先级：命令行 --lang > RSI_LANG > 本键 > 系统语言\n"
+            "# statusline_style: mixed  # 状态栏文案风格 mixed/serious/healing/geek/lucky/buddy\n"
+            "# 项目级覆盖：在 <工作区>/.rsi/config.yaml 写同名键（statusline_style/lang），优先级高于本文件\n"
             "# v3.0 主链路零 API Key；以下增强项按需开启（Spec v3.0 附录 C）：\n"
             "# enhance:\n"
             "#   embedding: true        # 混合检索\n"
@@ -113,6 +119,7 @@ class ServeSession:
         return root
 
     async def _start(self, root: Path) -> None:
+        from .bootstrap import build_runtime
         from .memory.watch import YamlWatcher
         from .scheduler.manager import SchedulerManager
 
@@ -172,6 +179,8 @@ async def cmd_serve(args: argparse.Namespace) -> int:
 
 async def cmd_recall(args: argparse.Namespace) -> int:
     """调试：执行一次记忆召回（v3.0 起替代原 query 冒烟——主链路无生成环节）"""
+    from .bootstrap import build_runtime, detect_user_id
+
     setup_cli_logging(getattr(args, "verbose", False))
     runtime = await build_runtime(project_root=resolve_project_root())
     try:
@@ -203,6 +212,9 @@ async def cmd_migrate(args: argparse.Namespace) -> int:
 
 
 async def cmd_knowledge(args: argparse.Namespace) -> int:
+    from .bootstrap import build_runtime
+    from .core.models import KnowledgeItem
+
     setup_cli_logging(getattr(args, "verbose", False))
     runtime = await build_runtime(project_root=resolve_project_root())
     try:
@@ -364,6 +376,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_verbose(p_impact)
     p_impact.add_argument("argv", nargs=argparse.REMAINDER)
+
+    p_status = sub.add_parser(
+        "statusline",
+        help="宿主状态栏渲染（Claude Code / Cursor CLI statusLine，stdin 喂会话 JSON）",
+    )
+    # 显式注册而非 REMAINDER 透传：argparse 会拒绝子命令后未注册的选项（learn 同病），
+    # 宿主配置里的 command 字符串必须可靠可解析
+    p_status.add_argument("--lang", dest="statusline_lang", choices=["zh", "en"], default=None,
+                          help="覆盖叙述语言（默认 RSI_LANG / 系统语言）")
+    p_status.add_argument("--no-rsi", dest="statusline_no_rsi", action="store_true",
+                          help="不显示 RSI 统计段")
+    p_status.add_argument("--no-quip", dest="statusline_no_quip", action="store_true",
+                          help="不显示随机文案")
+    p_status.add_argument("--plain", dest="statusline_plain", action="store_true",
+                          help="禁用颜色与 emoji")
+    p_status.add_argument("--style", dest="statusline_style_flag",
+                          choices=["mixed", "serious", "healing", "geek", "lucky", "buddy"],
+                          default=None,
+                          help="文案风格（默认 RSI_STATUSLINE_STYLE / config.yaml / mixed）")
+    p_status.add_argument("--validate-quips", dest="statusline_validate", nargs="?",
+                          const="", default=None, metavar="PATH",
+                          help="校验用户文案文件（默认 ~/.rsi/quips.json）后退出")
+    p_status.add_argument("argv", nargs=argparse.REMAINDER)
     return parser
 
 
@@ -412,6 +447,31 @@ def main() -> None:
         setup_cli_logging(getattr(args, "verbose", False))
         try:
             sys.exit(run_impact(list(getattr(args, "argv", []) or [])))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "statusline":
+        from .cli.statusline_command import run_statusline
+
+        argv = list(getattr(args, "argv", []) or [])
+        if getattr(args, "statusline_lang", None):
+            argv += ["--lang", args.statusline_lang]
+        if getattr(args, "statusline_style_flag", None):
+            argv += ["--style", args.statusline_style_flag]
+        for flag, dest in (
+            ("--no-rsi", "statusline_no_rsi"),
+            ("--no-quip", "statusline_no_quip"),
+            ("--plain", "statusline_plain"),
+        ):
+            if getattr(args, dest, False):
+                argv.append(flag)
+        if getattr(args, "statusline_validate", None) is not None:
+            argv.append("--validate-quips")
+            if args.statusline_validate:
+                argv.append(args.statusline_validate)
+        try:
+            # 宿主高频 spawn：不走 setup_cli_logging（避免 stderr 噪音被标成 error）
+            sys.exit(run_statusline(argv))
         except KeyboardInterrupt:
             sys.exit(130)
 

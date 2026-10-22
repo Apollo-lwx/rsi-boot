@@ -65,6 +65,63 @@ args = ["serve"]
 
 从项目根目录启动 codex 即可——MCP 子进程继承 cwd，rsi-boot 按 cwd 向上认领工作区。要显式钉死就在表里加一行：`env = { RSI_PROJECT_ROOT = "/绝对/路径" }`。
 
+## 状态栏（可选）
+
+`rsi statusline` 给宿主 CLI 渲染底部状态栏：模型、上下文余量、token 统计（in/out/cache）、花费、RSI 今日召回与采纳率，外加一条定期轮换的随机文案。Claude Code 与 Cursor CLI 通用（两家的 statusLine 都会把会话 JSON 从 stdin 喂进来，本命令解析后单行输出，带 ANSI 颜色与 emoji）。
+
+Claude Code（`~/.claude/settings.json`）：
+
+```json
+{
+  "statusLine": { "type": "command", "command": "rsi statusline" }
+}
+```
+
+Cursor CLI（`~/.cursor/cli-config.json`）：
+
+```json
+{
+  "statusLine": { "type": "command", "command": "rsi statusline" }
+}
+```
+
+效果示例：
+
+```
+🧠 Kimi K3 │ 📊 上下文余 71% │ ⛽ in 12.3k · out 1.8k · cache 96k │ 💰 $0.42 │ 🐾 RSI 召回 3 · 采纳 92% │ 给你比个心❤
+```
+
+### 选文案风格
+
+三种配法并列，按场景任选（优先级：`--style` > 环境变量 > 项目级 > 用户级）：
+
+```jsonc
+// ① 跟着宿主走：直接写进 statusLine 的 command（最直观，不动任何 config.yaml）
+{ "statusLine": { "type": "command", "command": "rsi statusline --style buddy" } }
+```
+
+```yaml
+# ② 项目级（按仓库定风格，跨宿主共享）：<工作区>/.rsi/config.yaml
+# ③ 用户级（全局默认）：~/.rsi/config.yaml
+statusline_style: buddy
+```
+
+六档预设：`mixed` 混搭（默认）、`buddy` 陪伴搭子（WorkBuddy 风：陪伴/安抚/治愈/祝福）、`serious` 严肃专业（只出通用陪伴与金句，不见猫咪玄学）、`healing` 治愈可爱、`geek` 极客梗、`lucky` 玄学好运。改完即生效，无需重启——状态栏每次刷新都会重读。语言键 `lang` 在 config.yaml 里走同一条优先级链。
+
+注意：状态栏不是 MCP server，不由 mcp.json 管理（那是 `rsi serve` 记忆服务的配置），所以风格只能配在 statusLine 的 command 或 config.yaml 里。
+
+### 说明：
+
+- token 明细来自 transcript（Claude Code）或 `context_window` 字段（Cursor CLI）；上下文窗口默认 200k，`exceeds_200k_tokens` 时按 1M，可用 `RSI_STATUSLINE_CTX_WINDOW` 覆盖。
+- 文案三层供给：**用户文案文件**（`~/.rsi/quips.json`，板块非空即整体替换内置池）> 手写池（130+ 条，质量下限）+ 模板造句器（约 200 种组合，按组合空间加权）。用户文案由宿主模型在对话中生成（对它说「生成状态栏文案」即可，风格规范内嵌在文件头），写完跑 `rsi statusline --validate-quips` 校验口径与去重。
+- 风格按主题（core/motto/kudos/fortune/geek/dry/healing/food/cat/game/hype/slack/offwork/weather）打标过滤；场景池（早安/深夜/告急/久坐/夸夸）功能性文案不受风格限制。
+- 轮换与防重：默认 45 秒一换（`RSI_STATUSLINE_QUIP_SECONDS` 可调，如 5），同桶内不闪烁；`~/.rsi/state/statusline_quips.json` 记录每会话最近 300 条已播，自动避开重复。
+- 场景专属池：早安（06–11 点）、深夜（23–06 点）、上下文告急（≤15%）、久坐提醒（会话 ≥45 分钟，`RSI_STATUSLINE_REST_MINUTES` 可调，0 关闭）、RSI 高采纳夸夸。
+- RSI 段从 cwd 向上找 `.rsi/logs/events.jsonl` 统计今日数据，找不到就静默省略。
+- 语言只显示一种，解析链：`--lang` → `RSI_LANG` → 项目 `.rsi/config.yaml` → 用户 `~/.rsi/config.yaml` → 系统语言。想固定就写一行 `lang: zh`（项目级优先）。
+- 选项：`--lang zh|en`、`--no-rsi`、`--no-quip`、`--plain`（去颜色与 emoji）；`NO_COLOR` 只关颜色。
+- 冷启动约 250ms，满足宿主 ≥300ms 刷新间隔；命令永不非零退出，异常时兜底输出一行。
+
 ## 在对话里学习
 
 接好 MCP 后不要自己去终端跑 `rsi`。对当前项目窗口里的代理说即可。
