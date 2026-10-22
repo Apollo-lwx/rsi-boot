@@ -73,11 +73,20 @@ rsi init
 
 ### Claude Code
 
+插件市场方式（推荐，可随仓库更新）：
+
+```text
+/plugin marketplace add Apollo-lwx/rsi-boot
+/plugin install rsi-boot@rsi-boot
+```
+
+或一条命令直接装 MCP：
+
 ```bash
 claude mcp add rsi-boot -- uvx --from rsi-boot rsi serve
 ```
 
-一条命令接入（默认装入当前项目作用域，工作区按 roots/cwd 自动认领）。状态栏集成见下文「状态栏（可选）」。
+工作区按 roots/cwd 自动认领。状态栏集成见下文「状态栏（可选）」。
 
 ### Qoder
 

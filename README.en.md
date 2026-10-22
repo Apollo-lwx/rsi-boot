@@ -71,11 +71,20 @@ Do **not** configure a user-level `mcp.json`: `${workspaceFolder}` in `args` oft
 
 ### Claude Code
 
+Plugin marketplace (recommended — updates with the repo):
+
+```text
+/plugin marketplace add Apollo-lwx/rsi-boot
+/plugin install rsi-boot@rsi-boot
+```
+
+Or add the MCP server directly with one command:
+
 ```bash
 claude mcp add rsi-boot -- uvx --from rsi-boot rsi serve
 ```
 
-One command and done (installed into the current project's scope; the workspace is claimed automatically via roots/cwd). See the status line section below for the Claude Code statusLine integration.
+The workspace is claimed automatically via roots/cwd. See the status line section below for the Claude Code statusLine integration.
 
 ### Qoder
 

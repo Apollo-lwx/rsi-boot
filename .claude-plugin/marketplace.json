@@ -1,0 +1,14 @@
+{
+  "name": "rsi-boot",
+  "description": "Repo-bound Harness-RSI: memory follows the project across hosts, zero API keys on the main path.",
+  "owner": {
+    "name": "wenxing luo"
+  },
+  "plugins": [
+    {
+      "name": "rsi-boot",
+      "source": "./",
+      "description": "Repo-bound memory and a self-improving harness for AI coding agents — zero API keys on the main path."
+    }
+  ]
+}

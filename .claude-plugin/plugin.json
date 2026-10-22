@@ -1,0 +1,12 @@
+{
+  "name": "rsi-boot",
+  "version": "0.1.1",
+  "description": "Repo-bound memory and a self-improving harness for AI coding agents. Memory lives in the project's .rsi/ and follows it across Cursor, Claude Code, Codex, Qoder and VS Code. Zero API keys on the main path.",
+  "author": {
+    "name": "wenxing luo"
+  },
+  "homepage": "https://github.com/Apollo-lwx/rsi-boot",
+  "repository": "https://github.com/Apollo-lwx/rsi-boot",
+  "license": "MIT",
+  "keywords": ["mcp", "agent-memory", "self-improvement", "harness", "repo-bound"]
+}
