@@ -6,7 +6,28 @@
 
 [简体中文](README.md) | English
 
-A local memory layer for host models (Cursor, etc.). It distills conventions, prohibitions, and repair lessons that have been verified in conversations, injects them into rule files after review, and recalls them before the next task. Zero API keys — the main path makes no model calls; all data lives in the current repo's `.rsi/`.
+Plenty of tools already store agent memory. RSI Boot is built for two other jobs: **a harness that improves as you use it**, and **memory that travels with the repo so switching hosts does not mean re-teaching the project**.
+
+The main path needs no API key and makes no model calls. Conventions, prohibitions, repair lessons, and harness slots live only in the current repo's `.rsi/`, and are recalled on demand before the next task.
+
+## Not another memory plugin
+
+**rsi-harness (Harness-RSI)**
+Negative feedback lands in failure buckets and only writable slots change (prompts / skills / recall strategy / intent rules / knowledge). A proposal must pass the static gate and human review before promotion; it is watched for 7 days and rolled back if adoption drops. The point is to get better at the work, not to hoard more notes.
+
+**Follows the project**
+Memory is isolated per repo — not per account, not per IDE. Copy the repo, move machines, or rename the directory, and `.rsi/` comes along. Open another repo and you get another copy; nothing leaks across. The harness genome can be exported as a bundle for backup or a slot move.
+
+**Host-portable**
+One MCP server (`rsi serve`) plugs into Cursor, Qoder, and Codex; the status line speaks both Claude Code and Cursor CLI. Injection writes `.cursor/rules` plus an `AGENTS.md` managed block that every host already reads, so you do not re-explain the project when you switch tools.
+
+| | Host-native memory | Cloud memory (Mem0 and the like) | Generic local memory MCP | RSI Boot |
+|---|---|---|---|---|
+| Data follows | the account / the host | the cloud user | depends | **the current repo** |
+| Switch Cursor / Claude Code / Codex | start over | only if that host is wired | usually store-and-recall | **the same `.rsi/`** |
+| Harness self-improvement | no | no | weak or none | **propose → gate → observe → roll back** |
+| API key on the main path | bound to the host | required | often | **none** |
+| Write gate | the model decides | server-side policy | rare | **review + prohibitions + conflict rulings** |
 
 ## Installation
 
@@ -165,6 +186,7 @@ rsi serve
 | `rsi_learn` | Reading packs (pack_list / pack_open / pack_done), teach_catch / teach_record, session audit |
 | `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_update` / `rsi_knowledge_review` | Memory management and review; `rsi_knowledge_update` edits an entry in place (prefer updating over re-adding duplicates) and `merge` combines near-duplicates (keeps the more complete one, archives the rest, records a supersedes edge); distilled entries must carry a `pack_id` |
 | `rsi_conflicts` | Query and adjudicate conflicts between short knowledge items |
+| `rsi_memory_health` | Flag incorrect or stale memories: contradicting comment polarity opens `incorrect`, a changed source that lost the title phrase opens `stale_source`; only `resolve` archives — scan never writes the official store |
 | `rsi_memory` | Memory index / open / rebuild / relationship graph |
 | `rsi_review` | Harness improvement proposals and config snapshots |
 | `rsi_stats` | Memory usage statistics |

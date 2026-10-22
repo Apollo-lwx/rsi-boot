@@ -1,18 +1,20 @@
 ---
 name: rsi-boot
-description: Local, zero-API-key memory layer for AI coding hosts. Recall project conventions, prohibitions and past repair lessons before a task (rsi_recall/rsi_explore), distill verified learnings after fixing bugs or being corrected (rsi_learn, rsi_knowledge_add), and gate rule injection behind review (rsi_review, rsi_knowledge_review). All data stays on your machine in the repo's .rsi/ folder; the main path makes no network calls and needs no API key. Use when you want persistent project memory, self-improvement, avoiding repeated mistakes, or mention RSI, recall, distill, teach, closeout. Triggers: memory, conventions, prohibitions, lessons, recall, distill, inject rules.
+description: Repo-bound Harness-RSI for AI coding hosts — not just another agent memory. Improve the harness from failures (rsi_review), keep memory in the repo's .rsi/ so it follows the project across Cursor/Qoder/Codex/Claude Code, recall conventions and prohibitions before a task (rsi_recall/rsi_explore), and distill verified lessons after a fix (rsi_learn, rsi_knowledge_add). Main path needs no API key and makes no network calls. Use when you want harness self-improvement, project-portable memory, switching hosts without re-teaching, or mention RSI, recall, distill, teach, closeout. Triggers: memory, harness, conventions, prohibitions, lessons, recall, distill, inject rules, migrate project.
 license: MIT
-tags: [memory, self-improvement, mcp, knowledge, local-first, recall, distill]
+tags: [harness, memory, self-improvement, mcp, knowledge, local-first, portable, recall, distill]
 metadata:
   version: "0.1.0"
   mcp-server: rsi-boot
 ---
 
-# RSI Boot — Local Memory Layer for AI Coding Hosts
+# RSI Boot — Harness-RSI that Follows the Project
 
-RSI Boot gives a coding agent **persistent, project-local memory**: it recalls the
-relevant conventions, prohibitions and past repair lessons *before* a task and
-distills newly verified learnings *after* it.
+Plenty of tools already store agent memory. RSI Boot does two other jobs: **rsi-harness**
+improves prompts, skills and recall strategy from failures; **memory lives in the
+repo's `.rsi/`** so it travels with the project when you move machines or switch
+Cursor / Qoder / Codex / Claude Code. It still recalls conventions and prohibitions
+*before* a task and distills verified lessons *after* it.
 
 **Privacy / security:** the main path is **fully local and offline**. It needs **no
 API key**, opens **no connections**, and writes **only** inside the repo's own `.rsi/`
@@ -81,6 +83,7 @@ business code before the audit is finished.** Record outcomes with `rsi_feedback
 | `rsi_knowledge_add` / `_update` / `_delete` | Manage knowledge items |
 | `rsi_knowledge_review` / `rsi_review` | Approve (inject) or reject pending items |
 | `rsi_conflicts` | Detect contradictory memories |
+| `rsi_memory_health` | Scan / list / explain / resolve incorrect or stale official memories |
 | `rsi_feedback` | Record acceptance of a recalled item (`accepted`) |
 | `rsi_impact` / `rsi_stats` | Measure token savings and memory health |
 
