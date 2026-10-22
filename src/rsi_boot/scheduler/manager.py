@@ -33,9 +33,11 @@ class SchedulerManager:
         proposal_engine_provider: Optional[Any] = None,
         conflict_detector_provider: Optional[Any] = None,
         project_ids: Optional[List[str]] = None,
+        project_root: Optional[Path] = None,
         **_ignored: Any,
     ):
         self._store = store
+        self._project_root = project_root
         self._archive_dir = archive_dir
         self._profiles = profiles
         self._extractor_provider = extractor_provider
@@ -99,7 +101,22 @@ class SchedulerManager:
                 logger.warning("发现 %d 个用户规则疑似冲突（项目 %s），请用 rsi_conflicts 裁决",
                                result["detected"], project_id)
 
+    async def _scan_memory_health(self) -> None:
+        if self._store is None or self._project_root is None:
+            return
+        from ..learning.memory_health import MemoryHealth
+
+        project_id = self._project_ids[0] if self._project_ids else ""
+        try:
+            result = MemoryHealth(self._store).scan(self._project_root, project_id=project_id)
+        except Exception:
+            logger.exception("记忆健康扫描失败（下周期重试）")
+            return
+        if any(result.get(key) for key in ("opened", "refreshed", "closed")):
+            logger.info("记忆健康扫描：%s", result)
+
     async def _run_harness_cycle(self) -> None:
+        await self._scan_memory_health()
         engine = self._proposal_engine_provider() if self._proposal_engine_provider else None
         if engine is None:
             return

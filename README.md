@@ -6,7 +6,28 @@
 
 简体中文 | [English](README.en.md)
 
-宿主模型（Cursor 等）的本地记忆层。把对话里验证过的约定、禁止项和修复经验沉淀下来，经审批后注入规则文件，并在下次任务前召回。零 API Key，主链路不调用模型；数据只落在当前仓库的 `.rsi/`。
+Agent 记忆很多人都在做。RSI Boot 要解决的是另外两件事：**harness 会跟着用、跟着改**，以及**记忆跟着仓库走、换宿主不重学**。
+
+主链路零 API Key，不调用模型。约定、禁止项、修复经验和 harness 槽位都只落在当前仓库的 `.rsi/`，下次任务前按需召回。
+
+## 和「又一个记忆插件」差在哪
+
+**rsi-harness（Harness-RSI）**
+负反馈进失败桶，只改可写槽位（提示词 / 技能 / 召回策略 / 意图规则 / 知识）。提案过静态门禁和人工确认才晋升，观察 7 天，采纳率掉就回滚。越用越会干活，不是越记越多。
+
+**跟随项目迁移**
+记忆按仓库隔离，不跟账号、不跟 IDE。仓库拷走、换机器、换目录，`.rsi/` 一起走；打开另一个仓库就是另一份，不会串。Harness 基因组可导出 bundle，跨项目备份或迁槽位。
+
+**多平台兼容**
+同一套 MCP（`rsi serve`）接 Cursor、Qoder、Codex；状态栏同时吃 Claude Code 与 Cursor CLI。规则注入走 `.cursor/rules` 和各宿主都认的 `AGENTS.md` 托管块，换工具不用把项目史再讲一遍。
+
+| | 宿主自带记忆 | 云端记忆（Mem0 一类） | 通用本地记忆 MCP | RSI Boot |
+|---|---|---|---|---|
+| 数据跟谁走 | 跟账号 / 跟宿主 | 跟云端用户 | 看实现 | **跟当前仓库** |
+| 换 Cursor / Claude Code / Codex | 重学 | 对方接得上才有 | 多数只做存取 | **同一份 `.rsi/`** |
+| Harness 自改进 | 无 | 无 | 无或弱 | **提案 → 门禁 → 观察 → 回滚** |
+| 主链路 API Key | 绑宿主 | 要 | 常要 | **不要** |
+| 写入闸门 | 模型自觉 | 服务端策略 | 少 | **审批 + 禁止项 + 冲突裁决** |
 
 ## 安装
 
@@ -165,6 +186,7 @@ rsi serve
 | `rsi_learn` | 阅读包 pack_list / pack_open / pack_done，teach_catch / teach_record，Session 审计 |
 | `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_update` / `rsi_knowledge_review` | 记忆管理与审批；`rsi_knowledge_update` 支持原地改字段（改优于新建重复）与 `merge` 合并近重复（保留更完整者、其余归档并写 supersedes 边）；蒸馏条须带 `pack_id` |
 | `rsi_conflicts` | 短知识冲突查询与裁决 |
+| `rsi_memory_health` | 错误/过时记忆发现与裁决：评语极性打脸开 `incorrect`，来源失效开 `stale_source`；`resolve` 才能归档，扫描本身不动正式库 |
 | `rsi_memory` | 记忆索引 / 打开 / 重建 / 关系图 |
 | `rsi_review` | Harness 改进提案与配置快照 |
 | `rsi_stats` | 记忆使用统计 |

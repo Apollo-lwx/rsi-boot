@@ -485,6 +485,9 @@ class KnowledgeService:
         if "roles" in patch:
             patch["roles"] = [str(x) for x in (patch["roles"] or [])]
         updated = await asyncio.to_thread(self._write_update, doc, patch)
+        from ..learning.memory_health import close_awaiting_edits
+
+        await asyncio.to_thread(close_awaiting_edits, self._store, updated.id)
         await self._notify_change(self.bound_project_id or "")
         return {
             "status": "success",
