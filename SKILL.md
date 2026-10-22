@@ -2,6 +2,7 @@
 name: rsi-boot
 description: Local, zero-API-key memory layer for AI coding hosts. Recall project conventions, prohibitions and past repair lessons before a task (rsi_recall/rsi_explore), distill verified learnings after fixing bugs or being corrected (rsi_learn, rsi_knowledge_add), and gate rule injection behind review (rsi_review, rsi_knowledge_review). All data stays on your machine in the repo's .rsi/ folder; the main path makes no network calls and needs no API key. Use when you want persistent project memory, self-improvement, avoiding repeated mistakes, or mention RSI, recall, distill, teach, closeout. Triggers: memory, conventions, prohibitions, lessons, recall, distill, inject rules.
 license: MIT
+tags: [memory, self-improvement, mcp, knowledge, local-first, recall, distill]
 metadata:
   version: "0.1.0"
   mcp-server: rsi-boot
@@ -13,9 +14,11 @@ RSI Boot gives a coding agent **persistent, project-local memory**: it recalls t
 relevant conventions, prohibitions and past repair lessons *before* a task and
 distills newly verified learnings *after* it.
 
-**Privacy / security:** the main path runs entirely on your machine. It makes **no
-external network calls and requires no API key**; all data lives in the repo's
-`.rsi/` directory. There are no external hosts to declare.
+**Privacy / security:** the main path is **fully local and offline**. It needs **no
+API key**, opens **no connections**, and writes **only** inside the repo's own `.rsi/`
+directory; the only thing it runs is its own local MCP server (`rsi serve`). There is
+nothing external to declare or reach. See [`SECURITY.md`](./SECURITY.md) for the full
+permissions statement and the explanation of the `evil.sh` test-only reference.
 
 This skill tells you **when and how to drive the rsi-boot MCP tools**; it does not
 reimplement them.
