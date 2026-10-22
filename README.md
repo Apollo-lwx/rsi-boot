@@ -2,6 +2,7 @@
   <img src="assets/logo.svg" alt="rsi-boot logo" width="120">
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=rsi-boot&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJyc2ktYm9vdCIsInJzaSIsInNlcnZlIl19)
+[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-0078d7?logo=visualstudiocode&logoColor=white)](vscode:mcp/install?%7B%22name%22%3A%22rsi-boot%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22rsi-boot%22%2C%22rsi%22%2C%22serve%22%5D%7D)
 </div>
 
 <!-- mcp-name: io.github.Apollo-lwx/rsi-boot -->
@@ -70,6 +71,14 @@ rsi init
 
 ## 接到其他宿主
 
+### Claude Code
+
+```bash
+claude mcp add rsi-boot -- uvx --from rsi-boot rsi serve
+```
+
+一条命令接入（默认装入当前项目作用域，工作区按 roots/cwd 自动认领）。状态栏集成见下文「状态栏（可选）」。
+
 ### Qoder
 
 本仓库同时是 Qoder 插件：`.qoder-plugin/plugin.json` 清单 + 根目录 `mcp.json`（与 Cursor 插件共用同一份 MCP 配置），打 zip 即可分发。手动接的话二选一：
@@ -82,7 +91,13 @@ qoder mcp add rsi-boot -- rsi serve
 
 ### Codex
 
-Codex 没有插件包格式，MCP 走 TOML 配置：用户级 `~/.codex/config.toml`，或项目级 `.codex/config.toml`（需目录已被信任）：
+一行命令接入（推荐）：
+
+```bash
+codex mcp add rsi-boot -- uvx --from rsi-boot rsi serve
+```
+
+或手写 TOML 配置：用户级 `~/.codex/config.toml`，或项目级 `.codex/config.toml`（需目录已被信任）：
 
 ```toml
 [mcp_servers.rsi-boot]

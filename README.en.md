@@ -2,6 +2,7 @@
   <img src="assets/logo.svg" alt="rsi-boot logo" width="120">
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=rsi-boot&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJyc2ktYm9vdCIsInJzaSIsInNlcnZlIl19)
+[![Install in VS Code](https://img.shields.io/badge/Install%20in-VS%20Code-0078d7?logo=visualstudiocode&logoColor=white)](vscode:mcp/install?%7B%22name%22%3A%22rsi-boot%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22rsi-boot%22%2C%22rsi%22%2C%22serve%22%5D%7D)
 </div>
 
 # RSI Boot
@@ -68,6 +69,14 @@ Do **not** configure a user-level `mcp.json`: `${workspaceFolder}` in `args` oft
 
 ## Other hosts
 
+### Claude Code
+
+```bash
+claude mcp add rsi-boot -- uvx --from rsi-boot rsi serve
+```
+
+One command and done (installed into the current project's scope; the workspace is claimed automatically via roots/cwd). See the status line section below for the Claude Code statusLine integration.
+
 ### Qoder
 
 This repository is also a Qoder plugin: the `.qoder-plugin/plugin.json` manifest plus the root `mcp.json` (the same MCP config shared with the Cursor plugin) — zip it to distribute. To wire it up manually, either:
@@ -80,7 +89,13 @@ or add the same `mcpServers` snippet as Cursor to a project-root `.mcp.json`. Wo
 
 ### Codex
 
-Codex has no plugin bundle format; MCP servers live in TOML: user-level `~/.codex/config.toml`, or project-level `.codex/config.toml` (loaded only from trusted directories):
+One-command setup (recommended):
+
+```bash
+codex mcp add rsi-boot -- uvx --from rsi-boot rsi serve
+```
+
+Or write TOML yourself: user-level `~/.codex/config.toml`, or project-level `.codex/config.toml` (loaded only from trusted directories):
 
 ```toml
 [mcp_servers.rsi-boot]
