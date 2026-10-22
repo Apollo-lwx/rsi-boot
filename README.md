@@ -1,5 +1,7 @@
 <div align="center">
   <img src="assets/logo.svg" alt="rsi-boot logo" width="120">
+
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=rsi-boot&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJyc2ktYm9vdCIsInJzaSIsInNlcnZlIl19)
 </div>
 
 <!-- mcp-name: io.github.Apollo-lwx/rsi-boot -->
