@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from ..common.argv_run import run_git
+
 logger = logging.getLogger(__name__)
 
 _CONVENTIONAL_RE = re.compile(r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+?\))?!?:\s")
@@ -73,18 +75,14 @@ class GitInsights:
 
 
 def _run_git(project_root: Path, args: List[str], retries: int = 3) -> Optional[str]:
-    """git 子进程（只读）；失败指数退避重试 3 次，最终失败返回 None（§10.9.9）"""
+    """git 子进程（只读白名单）；失败指数退避重试 3 次，最终失败返回 None（§10.9.9）"""
     for attempt in range(retries):
         try:
-            out = subprocess.run(
-                ["git", *args],
-                cwd=project_root, capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=60,
-            )
+            out = run_git(project_root, args, timeout=60)
             if out.returncode == 0:
                 return out.stdout
             raise subprocess.CalledProcessError(out.returncode, out.args, out.stdout, out.stderr)
-        except (OSError, subprocess.SubprocessError) as exc:
+        except (OSError, subprocess.SubprocessError, ValueError) as exc:
             if attempt < retries - 1:
                 time.sleep(2 ** attempt)
             else:

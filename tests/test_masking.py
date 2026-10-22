@@ -79,6 +79,15 @@ def test_mask_messages_dual_scan():
 def test_disabled_rules():
     masking.configure({"masking": {"disabled_rules": ["email"]}})
     assert "admin@example.com" in mask_text("admin@example.com")
+    masking.configure(None)
+
+
+def test_secret_rules_stay_on_when_disabled():
+    masking.configure({"masking": {"disabled_rules": ["openai_key", "email"]}})
+    try:
+        assert "sk-****" in mask_text("sk-" + "a" * 24)
+    finally:
+        masking.configure(None)
 
 
 def test_extra_rules():

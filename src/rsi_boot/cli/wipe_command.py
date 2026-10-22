@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from ..common.argv_run import run_argv
 from ..project import project_rsi_dir, resolve_project_root
 from ..ux.lang import locale_lang
 from ..ux.messages import t
@@ -56,18 +57,17 @@ def _is_holder_cmdline(cmdline: str, project_root: Path) -> bool:
     return True
 
 
+_WIN_PROCESS_LIST = (
+    "Get-CimInstance Win32_Process | "
+    "ForEach-Object { '{0}\t{1}' -f $_.ProcessId, $_.CommandLine }"
+)
+
+
 def _windows_process_rows() -> list[tuple[int, str]]:
-    script = (
-        "Get-CimInstance Win32_Process | "
-        "ForEach-Object { '{0}\t{1}' -f $_.ProcessId, $_.CommandLine }"
-    )
     try:
-        completed = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", script],
-            capture_output=True,
-            text=True,
+        completed = run_argv(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", _WIN_PROCESS_LIST],
             timeout=30,
-            check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
         return []
@@ -83,13 +83,7 @@ def _windows_process_rows() -> list[tuple[int, str]]:
 
 def _posix_process_rows() -> list[tuple[int, str]]:
     try:
-        completed = subprocess.run(
-            ["ps", "-ax", "-o", "pid=,command="],
-            capture_output=True,
-            text=True,
-            timeout=15,
-            check=False,
-        )
+        completed = run_argv(["ps", "-ax", "-o", "pid=,command="], timeout=15)
     except (OSError, subprocess.TimeoutExpired):
         return []
     rows: list[tuple[int, str]] = []
@@ -106,14 +100,10 @@ def _posix_process_rows() -> list[tuple[int, str]]:
 
 def _terminate_pid(pid: int) -> bool:
     try:
+        if pid <= 0:
+            return False
         if sys.platform == "win32":
-            completed = subprocess.run(
-                ["taskkill", "/F", "/PID", str(pid)],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
+            completed = run_argv(["taskkill", "/F", "/PID", str(int(pid))], timeout=10)
             return completed.returncode == 0
         os.kill(pid, 9)
         return True

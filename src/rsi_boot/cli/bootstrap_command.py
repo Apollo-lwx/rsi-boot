@@ -36,6 +36,7 @@ from ..scanner.report import BootstrapReport
 from ..scanner.signal_discovery import (
     EXCLUDED_DIRS,
     discover_signals,
+    is_private_chat_path,
     parse_include_dirs,
     plan_scopes,
     should_skip_dir,
@@ -243,8 +244,10 @@ def _collect_pack_inputs(
             for path in _iter_skill_md(project_root):
                 rel = _rel_src(path, project_root)
                 skills.append({"path": rel, "name": path.parent.name})
-        if plan.get("conversation"):
+        if plan.get("conversation") and getattr(args, "consent", False):
             for path in signals["conversation"].files:
+                if is_private_chat_path(path):
+                    continue
                 conversations.append({"path": _rel_src(path, project_root)})
 
     return (

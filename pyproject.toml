@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rsi-boot"
-version = "0.1.1"
+version = "0.1.2"
 description = "Repo-bound MCP with recursive self-improvement (Harness-RSI) — memory follows the project across hosts, and the harness gets better as you use it."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,10 +28,10 @@ classifiers = [
 dependencies = [
     "pydantic>=2.6",
     "PyYAML>=6.0",
-    "Jinja2>=3.1",
+    "Jinja2>=3.1.6",
     "aiosqlite>=0.19",
     "openai>=1.30",
-    "mcp>=1.2",
+    "mcp>=1.30.0,<2",
     "cachetools>=5.3",
     "watchfiles>=0.21",
     "numpy>=1.26",

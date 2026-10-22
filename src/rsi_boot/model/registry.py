@@ -7,8 +7,7 @@ deepseek* → DeepSeek（OpenAI 兼容端点）；其余默认 OpenAI 兼容。
 from __future__ import annotations
 
 import logging
-import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from .providers.base import ModelProvider
 from .providers.mock import MockProvider
@@ -40,7 +39,7 @@ class ModelRegistry:
 
                 cfg = self._provider_config("anthropic")
                 self._providers[key] = AnthropicProvider(
-                    api_key=cfg.get("api_key") or os.environ.get("ANTHROPIC_API_KEY"),
+                    api_key=cfg.get("api_key"),
                     base_url=cfg.get("base_url"),
                 )
             return self._providers[key]
@@ -52,7 +51,7 @@ class ModelRegistry:
 
                 cfg = self._provider_config("deepseek")
                 self._providers[key] = DeepSeekProvider(
-                    api_key=cfg.get("api_key") or os.environ.get("DEEPSEEK_API_KEY"),
+                    api_key=cfg.get("api_key"),
                     base_url=cfg.get("base_url"),
                 )
             return self._providers[key]

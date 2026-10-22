@@ -84,6 +84,29 @@ def test_include_dot_slash_reopens_excluded_dir(tmp_path: Path):
     assert any(p.startswith(".auto-learn/") for p in paths)
 
 
+def test_private_chats_are_never_collected(tmp_path: Path):
+    root = tmp_path
+    (root / "README.md").write_text("# Demo\n\nhello\n", encoding="utf-8")
+    transcript = root / "agent-transcripts"
+    transcript.mkdir()
+    (transcript / "session.md").write_text("# chat\n\n决定迁移\n", encoding="utf-8")
+    cursor = root / ".cursor"
+    (cursor / "knowledge").mkdir(parents=True)
+    (cursor / "notes.md").write_text("# scratch\n\n问答笔记\n", encoding="utf-8")
+    (cursor / "chat.jsonl").write_text('{"role":"user"}\n', encoding="utf-8")
+    (cursor / "knowledge" / "guide.md").write_text("# 知识\n\n正文\n", encoding="utf-8")
+    signals = discover_signals(root, include=["agent-transcripts"])
+    docs = {p.relative_to(root).as_posix() for p in signals["docs"].files}
+    conversation = {p.relative_to(root).as_posix() for p in signals["conversation"].files}
+    everything = docs | conversation
+    assert "README.md" in docs
+    assert ".cursor/knowledge/guide.md" in docs
+    assert ".cursor/notes.md" not in docs
+    assert ".cursor/notes.md" in conversation
+    assert "agent-transcripts/session.md" not in everything
+    assert ".cursor/chat.jsonl" not in everything
+
+
 def test_source_path_excluded_filters_leftover_noise():
     assert source_path_excluded(".auto-learn/gap/audit.md", [])
     assert not source_path_excluded(".auto-learn/gap/audit.md", [".auto-learn"])

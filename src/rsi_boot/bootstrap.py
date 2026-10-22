@@ -17,6 +17,7 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Optional
 
+from .common.argv_run import run_git
 from .config.loader import ConfigWatcher
 from .core import masking
 from .feedback.implicit_tracker import FeedbackWorker
@@ -222,15 +223,12 @@ async def build_runtime(db_path: Optional[Path] = None, project_root: Optional[P
 
 
 def detect_user_id() -> str:
-    """§7.2：user_id 取 git config user.email，缺省 local"""
+    """§7.2：user_id 取 git config user.email，缺省 local。只读，不启动 shell。"""
     try:
-        out = subprocess.run(
-            ["git", "config", "user.email"],
-            capture_output=True, text=True, timeout=5,
-        )
-        email = out.stdout.strip()
+        out = run_git(Path.cwd(), ["config", "user.email"], timeout=5)
+        email = (out.stdout or "").strip()
         if email:
             return email
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, ValueError):
         pass
     return "local"

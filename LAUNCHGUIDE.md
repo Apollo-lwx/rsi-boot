@@ -13,7 +13,7 @@ Built for developers and teams who use AI coding agents daily and want per-proje
 ## Setup Requirements
 - No environment variables or API keys are required on the main path.
 - `RSI_PROJECT_ROOT` (recommended): absolute path of the workspace whose memory this server should bind to. In a project-level `.cursor/mcp.json`, use `"${workspaceFolder}"`. Do not set it in a user-level config, where `${workspaceFolder}` may not expand.
-- Optional: a model key (e.g. `OPENAI_API_KEY`) only if you enable LLM-enhanced extraction or vector search in `~/.rsi/config.yaml`. Everything works without it.
+- Optional LLM features stay off until you enable them in `~/.rsi/config.yaml` and set `api_key: env:YOUR_VAR` yourself. The server does not read provider key variables on its own. Everything works without a key.
 - Requires Python 3.10+. Install from PyPI with `pip install rsi-boot` (or run it directly with `uvx --from rsi-boot rsi serve`), then add the `rsi serve` MCP configuration to your project.
 
 ## Category

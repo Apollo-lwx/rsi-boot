@@ -38,6 +38,11 @@ MASKING_RULES: List[MaskingRule] = [
     MaskingRule("password_field", re.compile(r"(?i)(password|passwd|pwd|secret)\s*[:=]\s*[\"']?[^\s\"']{4,}"), r"\1=****"),
 ]
 
+# 密钥类规则不能被 disabled_rules 关掉，避免敏感信息处理变成可关闭项。
+_LOCKED_SECRET_RULES = frozenset({
+    "openai_key", "aws_akid", "github_token", "slack_token", "jwt", "private_key", "password_field",
+})
+
 # 默认规则集（无配置时使用）；configure() 后指向定制规则集
 _active_rules: List[MaskingRule] = MASKING_RULES
 
@@ -46,7 +51,7 @@ def configure(config: Optional[dict[str, Any]] = None) -> None:
     """按配置定制规则集：disabled_rules 禁用、extra_rules 追加（§8.1 可配置规则）"""
     global _active_rules
     masking_cfg = (config or {}).get("masking", {})
-    disabled = set(masking_cfg.get("disabled_rules", []))
+    disabled = set(masking_cfg.get("disabled_rules", [])) - _LOCKED_SECRET_RULES
     rules = [r for r in MASKING_RULES if r.name not in disabled]
     for extra in masking_cfg.get("extra_rules", []):
         rules.append(MaskingRule(extra["name"], re.compile(extra["pattern"]), extra["replacement"]))

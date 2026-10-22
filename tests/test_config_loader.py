@@ -26,6 +26,15 @@ def test_env_ref_resolved_in_user_config(tmp_path, monkeypatch):
     assert config["enhance"]["model"]["api_key"] == "sk-resolved-key-value"
 
 
+def test_ambient_provider_key_is_not_imported(tmp_path, monkeypatch):
+    monkeypatch.setenv("RSI_HOME", str(tmp_path / "empty-home"))
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-ambient-value")
+    monkeypatch.setenv("RSI_OPENAI_API_KEY", "sk-prefixed-value")
+    config = load_config()
+    model = (config.get("enhance") or {}).get("model") or {}
+    assert "api_key" not in model
+
+
 def test_env_ref_missing_var_rejected(tmp_path, monkeypatch):
     rsi_home = tmp_path / ".rsi"
     rsi_home.mkdir()

@@ -1,9 +1,9 @@
 """对话上下文扫描（§10.9.2/§10.9.6，P2.6）：历史决策与常见问题模式提取。
 
 仅提取问题和模式，不导入个人信息（§10.9.6 设计原则）。
-需用户显式同意（--consent），未同意时整个维度不进入扫描计划（§10.9.7 隐私同意）。
+需用户显式同意（--consent）。未传入 consent=True 时本函数不打开任何文件。
 来源：CHANGELOG*/HISTORY*/RELEASE_NOTES*（决策记录）+ .cursor/.vscode 下的
-Markdown 笔记（问答模式）。.json 类 IDE 状态文件不解析（噪声高、隐私风险）。
+Markdown 笔记（问答模式）。对话记录目录、jsonl 和 IDE 状态文件不解析。
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
+from .signal_discovery import is_private_chat_path
 from .validator import read_text_tolerant
 
 logger = logging.getLogger(__name__)
@@ -53,12 +54,21 @@ def _extract_from_text(text: str, rel: str) -> List[ConversationPattern]:
     return patterns[:_MAX_PATTERNS_PER_FILE]
 
 
-def scan_conversations(project_root: Path, files: List[Path]) -> List[ConversationPattern]:
-    """批量提取对话模式；单文件失败跳过（§10.9.9）"""
+def scan_conversations(
+    project_root: Path,
+    files: List[Path],
+    *,
+    consent: bool = False,
+) -> List[ConversationPattern]:
+    """批量提取对话模式；未同意或命中对话记录路径时不读取文件内容。"""
+    if not consent:
+        return []
     patterns: List[ConversationPattern] = []
     for path in files:
         if path.suffix.lower() not in {".md", ".txt", ".rst"}:
             continue  # IDE .json 状态文件不解析（噪声/隐私）
+        if is_private_chat_path(path):
+            continue
         rel = str(path.relative_to(project_root))
         try:
             text = read_text_tolerant(path)

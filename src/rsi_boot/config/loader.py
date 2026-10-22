@@ -47,22 +47,31 @@ def _contains_plaintext_key(value: Any) -> bool:
     return False
 
 
+def _resolve_api_key_refs(node: Any, source: Path) -> None:
+    """只解析用户写明的 api_key: env:VAR / ${VAR}。不读取任何固定变量名。"""
+    if isinstance(node, dict):
+        api_key = node.get("api_key")
+        if isinstance(api_key, str):
+            match = _ENV_REF.match(api_key.strip())
+            if match:
+                var_name = match.group(1)
+                resolved = os.environ.get(var_name)
+                if not resolved:
+                    raise ConfigError(f"{source} 引用的环境变量 {var_name} 未设置")
+                node["api_key"] = resolved
+        for value in node.values():
+            if isinstance(value, (dict, list)):
+                _resolve_api_key_refs(value, source)
+    elif isinstance(node, list):
+        for item in node:
+            if isinstance(item, (dict, list)):
+                _resolve_api_key_refs(item, source)
+
+
 def _resolve_env_refs(config: dict[str, Any], source: Path) -> dict[str, Any]:
     """api_key 支持引用环境变量名：`env:MY_KEY` 或 `${MY_KEY}`（§8.2）。
-    v3.0：Key 仅在增强层使用，路径为 enhance.model.api_key"""
-    enhance = config.get("enhance")
-    model_cfg = enhance.get("model") if isinstance(enhance, dict) else None
-    if not isinstance(model_cfg, dict):
-        return config
-    api_key = model_cfg.get("api_key")
-    if isinstance(api_key, str):
-        match = _ENV_REF.match(api_key.strip())
-        if match:
-            var_name = match.group(1)
-            resolved = os.environ.get(var_name)
-            if not resolved:
-                raise ConfigError(f"{source} 引用的环境变量 {var_name} 未设置")
-            model_cfg["api_key"] = resolved
+    仅当用户配置里写了该引用才读取对应变量，不扫描固定的供应商变量名。"""
+    _resolve_api_key_refs(config, source)
     return config
 
 
@@ -132,11 +141,8 @@ def load_config(project_root: Optional[Path] = None) -> dict[str, Any]:
 
     merged = merge_configs(layers)
 
-    # 环境变量覆盖（仅白名单键，防止意外覆盖关键路径）；v3.0：写入增强层命名空间
-    api_key = os.environ.get(f"{ENV_PREFIX}OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
-    if api_key:
-        merged.setdefault("enhance", {}).setdefault("model", {})["api_key"] = api_key
-    base_url = os.environ.get(f"{ENV_PREFIX}OPENAI_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
+    # 端点不是密钥。只接受本工具自己的 RSI_OPENAI_BASE_URL，不读取供应商默认变量。
+    base_url = os.environ.get(f"{ENV_PREFIX}OPENAI_BASE_URL")
     if base_url:
         merged.setdefault("enhance", {}).setdefault("model", {})["base_url"] = base_url
 

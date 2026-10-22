@@ -56,5 +56,5 @@ enhance:
     default: gpt-4o-mini        # 增强层 LLM 调用的默认模型
     timeout_s: 60
     max_retries: 3              # 指数退避 full jitter（base=1s, cap=30s，§5.3）
-    # api_key: env:OPENAI_API_KEY   # 仅用户级配置；项目配置禁止明文 Key（§8.2）
+    # api_key: env:RSI_LLM_API_KEY  # 仅用户级配置里写明的引用才会读取；项目配置禁止明文 Key（§8.2）
     # base_url: https://...

@@ -1,6 +1,6 @@
 """DeepSeek Provider（§1.1，P4.1）：OpenAI 兼容端点，仅切换 base_url 与 Key。
 
-API Key：model.providers.deepseek.api_key 或环境变量 DEEPSEEK_API_KEY。
+API Key 只来自 model.providers.deepseek.api_key（可用 env:变量名 引用）。
 复用 openai SDK，无新增依赖。
 """
 
@@ -23,7 +23,7 @@ class DeepSeekProvider(OpenAIProvider):
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         if not api_key:
             raise ModelProviderError(
-                "缺少 DeepSeek API Key（环境变量 DEEPSEEK_API_KEY 或 "
-                "~/.rsi/config.yaml model.providers.deepseek.api_key）"
+                "缺少 DeepSeek API Key（~/.rsi/config.yaml "
+                "model.providers.deepseek.api_key）"
             )
         super().__init__(api_key=api_key, base_url=base_url or DEEPSEEK_BASE_URL)
