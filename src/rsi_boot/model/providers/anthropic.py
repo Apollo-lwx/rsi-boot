@@ -2,8 +2,8 @@
 
 与 OpenAI 的接口差异：system 消息走独立参数（不进 messages）、max_tokens 必填、
 usage 字段为 input_tokens/output_tokens。SDK 为可选依赖（pip install rsi-boot[anthropic]），
-未安装时在构造期给出明确错误。API Key：model.providers.anthropic.api_key 或环境变量
-ANTHROPIC_API_KEY。
+未安装时在构造期给出明确错误。API Key 只来自配置
+model.providers.anthropic.api_key（可用 env:变量名 引用，不会自动读取环境变量）。
 """
 
 from __future__ import annotations
@@ -27,8 +27,8 @@ class AnthropicProvider:
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         if not api_key:
             raise ModelProviderError(
-                "缺少 Anthropic API Key（环境变量 ANTHROPIC_API_KEY 或 "
-                "~/.rsi/config.yaml model.providers.anthropic.api_key）"
+                "缺少 Anthropic API Key（~/.rsi/config.yaml "
+                "model.providers.anthropic.api_key，或 enhance.model 下的同名键）"
             )
         try:
             from anthropic import AsyncAnthropic  # 延迟导入，可选依赖

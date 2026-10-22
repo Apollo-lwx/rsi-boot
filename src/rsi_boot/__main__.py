@@ -45,7 +45,7 @@ async def cmd_init(args: argparse.Namespace) -> int:
             "#   embedding: true        # 混合检索\n"
             "#   extract_llm: true      # LLM 知识提取\n"
             "#   model:\n"
-            "#     api_key: env:OPENAI_API_KEY\n",
+            "#     api_key: env:RSI_LLM_API_KEY\n",
             encoding="utf-8",
         )
 
@@ -290,7 +290,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_boot.add_argument("--then-start", action="store_true", help="学习完成后启动服务")
     p_boot.add_argument("--force", action="store_true", help="忽略 manifest 指纹全量重学")
     p_boot.add_argument("--strict", action="store_true", help="严格模式：任何验证失败即中断")
-    p_boot.add_argument("--allow-sensitive", action="store_true", help="敏感内容脱敏后写入（默认跳过）")
+    p_boot.add_argument(
+        "--allow-sensitive", action="store_true",
+        help="命中密钥的切片默认丢弃；此开关只保留脱敏副本，不会写入原文",
+    )
     p_boot.add_argument("--max-file-size", default="1MB", help="单文件大小上限，如 1MB")
     p_boot.add_argument("--max-commits", type=int, default=500, help="Git 历史上限（P2.6 生效）")
     p_boot.add_argument(

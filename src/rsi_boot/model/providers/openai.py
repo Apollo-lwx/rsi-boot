@@ -18,7 +18,10 @@ class OpenAIProvider:
 
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         if not api_key:
-            raise ModelProviderError("缺少 OpenAI API Key（环境变量 OPENAI_API_KEY 或 ~/.rsi/config.yaml model.api_key）")
+            raise ModelProviderError(
+                "缺少 OpenAI API Key（在 ~/.rsi/config.yaml 的 enhance.model.api_key 配置；"
+                "需要引用环境变量时写成 env:变量名）"
+            )
         from openai import AsyncOpenAI  # 延迟导入，未使用时不要求依赖
 
         self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)

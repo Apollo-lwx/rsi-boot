@@ -57,8 +57,8 @@ def test_registry_mock_prefix(base_config):
     assert registry.get_provider("mock-8k") is registry.get_provider("mock")  # 同 key 复用
 
 
-def test_registry_deepseek_requires_key(base_config, monkeypatch):
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+def test_registry_deepseek_ignores_ambient_env(base_config, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     registry = ModelRegistry(base_config)
     with pytest.raises(ModelProviderError, match="DeepSeek API Key"):
         registry.get_provider("deepseek-chat")
@@ -66,15 +66,22 @@ def test_registry_deepseek_requires_key(base_config, monkeypatch):
 
 def test_registry_deepseek_base_url(base_config, monkeypatch):
     pytest.importorskip("openai")
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    registry = ModelRegistry(base_config)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    cfg = {
+        **base_config,
+        "model": {
+            **base_config["model"],
+            "providers": {"deepseek": {"api_key": "test-key"}},
+        },
+    }
+    registry = ModelRegistry(cfg)
     provider = registry.get_provider("deepseek-reasoner")
     assert provider.name == "deepseek"
     assert str(provider._client.base_url).startswith("https://api.deepseek.com")
 
 
-def test_registry_anthropic_requires_key(base_config, monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+def test_registry_anthropic_ignores_ambient_env(base_config, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     registry = ModelRegistry(base_config)
     with pytest.raises(ModelProviderError, match="Anthropic API Key"):
         registry.get_provider("claude-3-5-sonnet")
@@ -82,7 +89,7 @@ def test_registry_anthropic_requires_key(base_config, monkeypatch):
 
 def test_registry_openai_default(base_config, monkeypatch):
     pytest.importorskip("openai")
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     cfg = {**base_config, "model": {**base_config["model"], "api_key": "test-key"}}
     registry = ModelRegistry(cfg)
     assert registry.get_provider("gpt-4o-mini").name == "openai"

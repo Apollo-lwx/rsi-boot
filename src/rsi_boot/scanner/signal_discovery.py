@@ -19,6 +19,12 @@ EXCLUDED_DIRS = frozenset({
     ".vite-cache", ".cache", ".turbo", ".next", ".nuxt", "coverage", ".parcel-cache",
     ".worktrees", ".auto-learn", ".superpowers", "artifacts",
 })
+# 对话记录目录永不进入扫描，--include 也不能加回。
+_PRIVATE_CHAT_DIRS = frozenset({"agent-transcripts", "agent-transcript"})
+_CHAT_SUFFIXES = {".jsonl", ".db", ".sqlite", ".sqlite3"}
+_IDE_ROOTS = {".cursor", ".vscode"}
+_IDE_PROJECT_PARTS = {"rules", "skills", "knowledge", "audit", "audit-result"}
+_NOTE_EXTS = {".md", ".txt", ".rst"}
 _EXCLUDED_CF = frozenset(name.casefold() for name in EXCLUDED_DIRS)
 
 
@@ -71,6 +77,29 @@ def _covered_by_include(rel: str, blocked: str, include: Iterable[str]) -> bool:
             if inc_n.startswith(rel_cf + "/") or rel_cf == inc_n or rel_cf.startswith(inc_n + "/"):
                 return True
     return False
+
+
+def is_private_chat_path(path: Path) -> bool:
+    """IDE 对话记录与库文件不采集。仓库里的规则、技能和知识笔记不算对话记录。"""
+    parts = {part.casefold() for part in path.parts}
+    if parts & _PRIVATE_CHAT_DIRS:
+        return True
+    return bool(parts & _IDE_ROOTS) and path.suffix.lower() in _CHAT_SUFFIXES
+
+
+def _is_decision_log(stem: str, ext: str) -> bool:
+    if ext not in _NOTE_EXTS:
+        return False
+    return stem in {"changelog", "history", "release_notes"} or stem.startswith(
+        ("changelog", "history", "release_notes")
+    )
+
+
+def _is_ide_private_note(parts: set[str], ext: str) -> bool:
+    """`.cursor` / `.vscode` 下的散落笔记。规则、技能、知识库仍走文档/配置通道。"""
+    if ext not in _NOTE_EXTS or not (parts & _IDE_ROOTS):
+        return False
+    return not (parts & _IDE_PROJECT_PARTS)
 
 
 def should_skip_dir(name: str, rel_posix: str, include: Iterable[str]) -> bool:
@@ -131,6 +160,8 @@ def _walk_files(
         rel_parent = Path(dirpath).relative_to(root)
         keep: List[str] = []
         for name in dirnames:
+            if name.casefold() in _PRIVATE_CHAT_DIRS:
+                continue
             child = name if str(rel_parent) == "." else (rel_parent / name).as_posix()
             if should_skip_dir(name, child, allowed):
                 continue
@@ -169,7 +200,12 @@ def discover_signals(
         stem = path.stem.lower()
         ext = path.suffix.lower()
 
-        if ext in _DOC_EXTS or stem in _DOC_NAMES or "docs" in parts or "wiki" in parts:
+        if is_private_chat_path(path):
+            continue
+        ide_note = _is_ide_private_note(parts, ext)
+        if ide_note or _is_decision_log(stem, ext):
+            signals["conversation"].files.append(path)
+        if not ide_note and (ext in _DOC_EXTS or stem in _DOC_NAMES or "docs" in parts or "wiki" in parts):
             signals["docs"].files.append(path)
         if ext in _CODE_EXTS:
             signals["code"].files.append(path)
@@ -185,8 +221,6 @@ def discover_signals(
             (signals["ci"] if "workflows" in parts else signals["templates"]).files.append(path)
         if name.startswith(("jenkinsfile", ".gitlab-ci")) or ".circleci" in parts:
             signals["ci"].files.append(path)
-        if ".cursor" in parts or ".vscode" in parts or stem in {"changelog", "history", "release_notes"}:
-            signals["conversation"].files.append(path)
 
     git_dir = root / ".git"
     signals["git"].present = git_dir.is_dir()

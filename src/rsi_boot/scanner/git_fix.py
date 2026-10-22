@@ -7,6 +7,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from ..common.argv_run import run_git
+
 _FIX_WORD = re.compile(
     r"(?:^|[^a-z0-9])(?:fix|hotfix|bug|revert)(?:[^a-z0-9]|$)|"
     r"^fix(\(.+?\))?!?:|"
@@ -25,21 +27,17 @@ def list_fix_commits(project_root: Path, max_commits: int = 500) -> list[dict[st
     if not (root / ".git").exists():
         return []
     try:
-        out = subprocess.run(
+        out = run_git(
+            root,
             [
-                "git", "log", "--all", f"-n{max_commits}",
+                "log", "--all", f"-n{max_commits}",
                 "--name-only", "--format=%h%x00%s",
             ],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
             timeout=60,
         )
         if out.returncode != 0:
             return []
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, ValueError):
         return []
 
     results: list[dict[str, Any]] = []

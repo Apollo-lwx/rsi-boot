@@ -17,12 +17,13 @@ The main path runs entirely on the user's machine and requests **no permissions*
 
 | Capability | Requested | Notes |
 | --- | --- | --- |
-| Outbound network access | **No** | Runs offline; the main path makes no external calls and needs no API key. |
-| Command / process execution | **No** | The skill never invokes a system shell or spawns processes. |
+| Outbound network access | **No on the main path** | The default path makes no external calls. Optional enhance-layer model calls happen only after the user turns that layer on and writes an `api_key` value in `~/.rsi/config.yaml`. |
+| Command / process execution | **Fixed argv only** | Read-only `git` (allowlisted subcommands) and, for `rsi wipe`, a fixed process listing. `shell` is never enabled and arguments are not interpolated into a shell string. |
 | Browser control | **No** | No browser is opened or automated. |
-| Environment-variable reads | **Own config only** | Reads only its own `RSI_*` settings (e.g. `RSI_HOME`, `RSI_PROJECT_ROOT`); it does not harvest the user's environment for secrets. |
+| Environment-variable reads | **Own settings, plus an explicit reference** | Reads `RSI_*` settings (e.g. `RSI_HOME`, `RSI_PROJECT_ROOT`). A provider key is read only when the user config contains `api_key: env:VAR_NAME` or `${VAR_NAME}`. Well-known provider key variables are not read on their own. |
 | Filesystem writes | **Scoped** | Only inside the repo's own `.rsi/` directory. |
-| API keys / secrets | **No** | Zero API keys on the main path; nothing sensitive is collected. |
+| API keys / secrets | **Not on the main path** | Chunks that match secret rules are dropped. `--allow-sensitive` keeps a redacted copy only. Those secret rules cannot be disabled. |
+| Conversation context | **Off unless `--consent`** | Changelog-style decision notes and loose IDE markdown are listed only with `--consent`. `agent-transcripts` directories and IDE `.jsonl` / database chat logs are never opened. |
 
 The **only** executable involved is the skill's own local MCP server, run as
 `rsi serve` (installed via `pip install rsi-boot`). Launching its own server is

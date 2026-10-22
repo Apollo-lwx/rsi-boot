@@ -139,7 +139,8 @@ def test_conversation_patterns(tmp_path):
         "其他普通段落不含信号。\n",
         encoding="utf-8",
     )
-    patterns = scan_conversations(tmp_path, [changelog])
+    assert scan_conversations(tmp_path, [changelog]) == []
+    patterns = scan_conversations(tmp_path, [changelog], consent=True)
     kinds = {p.kind for p in patterns}
     assert "decision" in kinds
     assert "question" in kinds
@@ -149,7 +150,7 @@ def test_conversation_patterns(tmp_path):
 def test_conversation_skips_json(tmp_path):
     state = tmp_path / "state.json"
     state.write_text('{"chat": "决定迁移"}', encoding="utf-8")
-    assert scan_conversations(tmp_path, [state]) == []
+    assert scan_conversations(tmp_path, [state], consent=True) == []
 
 
 # ---------- correlation_engine ----------
