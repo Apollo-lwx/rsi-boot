@@ -12,13 +12,20 @@ from rsi_boot.rag.chunker import chunk_text
 
 # Pulled from knowledge/retriever.py — in-memory invert, not SQLite FTS.
 _CJK_RUN = re.compile(r"[一-鿿　-〿＀-￯]+")
+_ASCII_SPLIT = re.compile(r"[^0-9A-Za-z_\-\s]+")
+_INTENT_TOKEN = re.compile(r"intent:[0-9A-Za-z_-]+")
 _ASCII_TERM = re.compile(r"^[a-z0-9][a-z0-9_-]{2,}$")
 _HAN_TERM = re.compile(r"[\u4e00-\u9fff]")
 _DEFAULT_MIN_SCORE_RATIO = 0.25
 
 
 def tokenize(text: str) -> list[str]:
-    """CJK 连续段切 bigram（单字保留），非 CJK 段按空白取词，统一小写。"""
+    """CJK 连续段切 bigram（单字保留）。
+
+    其余标点改成空白再按空白取词，词内的 - 与 _ 保留，统一小写。
+    这样 sunrise?、Melanie:、foo() 能和正文里的 sunrise、melanie、foo 对上。
+    intent:explain 整段保留，避免意图名变成裸词去撞 EXPLAIN 文档。
+    """
     terms: list[str] = []
     for run in _CJK_RUN.finditer(text):
         chunk = run.group(0)
@@ -26,8 +33,23 @@ def tokenize(text: str) -> list[str]:
             terms.append(chunk)
         else:
             terms.extend(chunk[i : i + 2] for i in range(len(chunk) - 1))
-    for word in _CJK_RUN.sub(" ", text).split():
-        terms.append(word.lower())
+    held: list[str] = []
+
+    def _hold(match: re.Match[str]) -> str:
+        held.append(match.group(0).lower())
+        return f" intenthold{len(held) - 1} "
+
+    remainder = _INTENT_TOKEN.sub(_hold, _CJK_RUN.sub(" ", text))
+    remainder = _ASCII_SPLIT.sub(" ", remainder)
+    for word in remainder.split():
+        peeled = word.strip("-")
+        if not peeled:
+            continue
+        lower = peeled.lower()
+        if lower.startswith("intenthold") and lower[10:].isdigit():
+            terms.append(held[int(lower[10:])])
+            continue
+        terms.append(lower)
     return terms
 
 
