@@ -25,7 +25,7 @@ def test_tool_desc_bilingual():
     required = (
         "recall", "learn", "memory", "review", "feedback",
         "knowledge_add", "knowledge_search", "knowledge_delete",
-        "harness", "stats", "conflicts",
+        "harness", "stats", "conflicts", "memory_health",
     )
     for key in required:
         text = TOOL_DESC[key]
@@ -47,6 +47,7 @@ def test_list_tools_uses_module_tool_descriptions():
         knowledge_search_tool,
         learn_tool,
         memory_tool,
+        memory_health_tool,
         recall_tool,
         review_tool,
         stats_tool,
@@ -57,7 +58,7 @@ def test_list_tools_uses_module_tool_descriptions():
     for name in (
         "recall_tool", "feedback_tool", "knowledge_add_tool", "knowledge_search_tool",
         "knowledge_delete_tool", "knowledge_review_tool", "review_tool", "conflicts_tool",
-        "stats_tool", "learn_tool", "memory_tool",
+        "stats_tool", "learn_tool", "memory_tool", "memory_health_tool",
     ):
         assert f"{name}.TOOL_DESCRIPTION" in src
     assert feedback_tool.TOOL_DESCRIPTION == TOOL_DESC["feedback"]
@@ -71,6 +72,7 @@ def test_list_tools_uses_module_tool_descriptions():
     assert recall_tool.TOOL_DESCRIPTION == TOOL_DESC["recall"]
     assert learn_tool.TOOL_DESCRIPTION == TOOL_DESC["learn"]
     assert memory_tool.TOOL_DESCRIPTION == TOOL_DESC["memory"]
+    assert memory_health_tool.TOOL_DESCRIPTION == TOOL_DESC["memory_health"]
     assert "添加知识条目" not in src
     assert "记忆使用统计" not in src
     assert "rsi_query" not in src

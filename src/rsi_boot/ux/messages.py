@@ -374,6 +374,17 @@ TOOL_DESC = {
         "③ explain（conflict_id 必填）=只读展开两侧摘录与各 option 影响，不改库。"
         "用户要展开说明时先 explain，不要关掉抉择卡。"
     ),
+    "memory_health": (
+        "Memory health findings: scan/list/explain/resolve. "
+        "scan attributes a rejected or low-rated recall to every retrieved id, "
+        "opens incorrect when comment polarity contradicts the memory, "
+        "and opens stale_source when a changed source file no longer contains the title phrase. "
+        "resolve is archive, revise, keep, or snooze. Scan never archives by itself. "
+        "记忆健康发现：scan/list/explain/resolve。"
+        "scan 把拒绝或低分记到本次召回的每一条记忆上；"
+        "评语极性与记忆相反时开 incorrect，来源已变且标题短语不在文件中时开 stale_source。"
+        "resolve 取 archive、revise、keep、snooze。扫描本身不会归档。"
+    ),
 }
 
 

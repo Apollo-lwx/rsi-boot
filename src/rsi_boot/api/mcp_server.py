@@ -1,5 +1,5 @@
 """MCP stdio server（Spec v3.0 §6）：对外暴露 rsi_recall / rsi_feedback / rsi_knowledge_* /
-rsi_review / rsi_conflicts / rsi_stats / rsi_learn / rsi_memory 工具族。
+rsi_review / rsi_conflicts / rsi_memory_health / rsi_stats / rsi_learn / rsi_memory 工具族。
 v3.0 起 rsi_query 退役（主链路无生成环节）。
 """
 
@@ -27,6 +27,7 @@ from .tools import (
     knowledge_search_tool,
     knowledge_update_tool,
     learn_tool,
+    memory_health_tool,
     memory_tool,
     recall_tool,
     review_tool,
@@ -91,6 +92,9 @@ def build_server(session: Any) -> Server:
             types.Tool(name=learn_tool.TOOL_NAME,
                        description=learn_tool.TOOL_DESCRIPTION,
                        inputSchema=learn_tool.INPUT_SCHEMA),
+            types.Tool(name=memory_health_tool.TOOL_NAME,
+                       description=memory_health_tool.TOOL_DESCRIPTION,
+                       inputSchema=memory_health_tool.INPUT_SCHEMA),
             types.Tool(name=memory_tool.TOOL_NAME,
                        description=memory_tool.TOOL_DESCRIPTION,
                        inputSchema=memory_tool.INPUT_SCHEMA),
@@ -130,6 +134,8 @@ def build_server(session: Any) -> Server:
                 payload = await impact_tool.handle(runtime, arguments)
             elif name == learn_tool.TOOL_NAME:
                 payload = await learn_tool.handle(runtime, arguments)
+            elif name == memory_health_tool.TOOL_NAME:
+                payload = await memory_health_tool.handle(runtime, arguments)
             elif name == memory_tool.TOOL_NAME:
                 payload = await memory_tool.handle(runtime, arguments)
             else:

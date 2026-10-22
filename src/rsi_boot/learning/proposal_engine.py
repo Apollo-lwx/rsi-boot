@@ -180,6 +180,9 @@ class ProposalEngine:
             if event.get("kind") == "feedback" and token:
                 feedback_by_token[str(token)] = event
 
+        from .memory_health import incorrect_evidence_tokens
+
+        consumed = incorrect_evidence_tokens(self._store.rsi_dir)
         buckets: Dict[str, FailureBucket] = {}
         for event in events:
             if event.get("kind") not in (None, "recall"):
@@ -215,7 +218,8 @@ class ProposalEngine:
             arm = str(event.get("arm") or event.get("strategy_name") or "default")
             bucket = buckets.setdefault(str(group_key), FailureBucket(intent="recall", strategy_name=arm))
             bucket.log_ids.append(str(event.get("id") or ""))
-            if action == "rejected":
+            held = bool(token) and str(token) in consumed
+            if action == "rejected" and not held:
                 bucket.signals["rejected"] = bucket.signals.get("rejected", 0) + 1
                 if comment:
                     bucket.comments.append(str(comment))
