@@ -5,10 +5,11 @@ This document answers the Agensi 8-point security review directly. Read it along
 
 ## What this skill is
 
-rsi-boot is a **local, zero-API-key memory layer** for AI coding hosts (Cursor, Qoder,
-etc. — "host" here always means the coding agent, never a network endpoint). It stores
-project conventions, prohibitions and repair lessons on your machine under the repo's
-`.rsi/` directory, and recalls/distills them through a set of `rsi_*` MCP tools.
+rsi-boot is a **local, zero-API-key Harness-RSI** for AI coding hosts (Cursor, Qoder,
+Codex, Claude Code — "host" here always means the coding agent, never a network
+endpoint). Memory and harness slots live on your machine under the current repo's
+`.rsi/` so they follow the project across hosts, and are recalled/distilled through
+a set of `rsi_*` MCP tools.
 
 ## Permissions requested: none
 

@@ -1,10 +1,10 @@
 {
   "name": "rsi-boot",
   "version": "0.1.0",
-  "description": "Local memory layer for AI coding hosts: distills verified conventions, prohibitions and repair lessons, injects them as reviewed rules, and recalls them before the next task. Zero API keys on the main path.",
+  "description": "Repo-bound Harness-RSI for AI coding hosts: the harness improves from failures; memory lives in the repo's .rsi/ and follows the project across Cursor, Qoder, Codex and Claude Code. Zero API keys on the main path.",
   "author": {
     "name": "wenxing luo"
   },
   "license": "MIT",
-  "keywords": ["mcp", "memory", "self-improvement", "knowledge", "cursor"]
+  "keywords": ["mcp", "harness", "memory", "self-improvement", "portable", "knowledge", "cursor"]
 }

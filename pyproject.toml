@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rsi-boot"
 version = "0.1.0"
-description = "Personal local MCP tool with recursive self-improvement (Harness-RSI) — the more you use it, the better it knows you."
+description = "Repo-bound MCP with recursive self-improvement (Harness-RSI) — memory follows the project across hosts, and the harness gets better as you use it."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
