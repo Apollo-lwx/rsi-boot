@@ -153,6 +153,13 @@ class RecallService:
         event_episodes = self._episodes_from_events(store, task, expanded)
         episodes = self._merge_episodes(yaml_episodes, event_episodes)
         skills = self._store_skill_catalog(store)
+        from ..learning.memory_health import attach_health, demote_for_health, recall_index
+
+        health_index = recall_index(store.rsi_dir)
+        prohibitions = demote_for_health(prohibitions, health_index)
+        items = demote_for_health(items, health_index)
+        teaching = demote_for_health(teaching, health_index)
+        genes = demote_for_health(genes, health_index)
         hits = prohibitions + items + genes + teaching
         latency_ms = int((time.monotonic() - started) * 1000)
 
@@ -193,17 +200,29 @@ class RecallService:
             decisions = [picked.asdict()]
 
         teaching_rows = [
-            self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
+            attach_health(
+                self._case_payload(doc, heading=best_heading(index, doc.id, expanded)),
+                doc, health_index,
+            )
             for doc in teaching
         ]
         gene_rows = [
-            self._case_payload(doc, heading=best_heading(index, doc.id, expanded))
+            attach_health(
+                self._case_payload(doc, heading=best_heading(index, doc.id, expanded)),
+                doc, health_index,
+            )
             for doc in genes
         ]
         return {
-            "prohibitions": [self._prohibition_payload(doc) for doc in prohibitions],
+            "prohibitions": [
+                attach_health(self._prohibition_payload(doc), doc, health_index)
+                for doc in prohibitions
+            ],
             "items": [
-                self._item_payload(doc, heading=best_heading(index, doc.id, expanded))
+                attach_health(
+                    self._item_payload(doc, heading=best_heading(index, doc.id, expanded)),
+                    doc, health_index,
+                )
                 for doc in items
             ],
             "gene_cases": gene_rows,

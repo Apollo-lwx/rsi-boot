@@ -18,6 +18,7 @@ _KIND_PRIORITY = {
     "daily_conflict": 0,
     "bootstrap_conflict": 1,
     "bootstrap_extract": 2,
+    "memory_health": 3,
 }
 _EXCERPT_MAX = 200
 _DEFAULT_SUPPRESS_S = 86400.0
@@ -324,6 +325,9 @@ async def _collect_decision_cards_store(
         extracts = [_doc_as_item(doc) for doc in iter_run_extracts(store, run_id)]
         if extracts:
             cards.append(_extract_card(run_id, extracts))
+    from ..learning.memory_health import health_decision_cards
+
+    cards.extend(health_decision_cards(store))
     return cards
 
 

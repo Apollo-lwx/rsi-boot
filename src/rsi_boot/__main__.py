@@ -135,6 +135,7 @@ class ServeSession:
             proposal_engine_provider=lambda: self.runtime.proposal_engine,
             conflict_detector_provider=lambda: self.runtime.conflict_detector,
             project_ids=[self.runtime.project_id] if self.runtime.project_id else [],
+            project_root=root,
         )
         self._scheduler.start()
         self._tasks.append(asyncio.create_task(self.runtime.watcher.watch_loop()))
