@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rsi-boot"
-version = "0.1.0"
+version = "0.1.1"
 description = "Repo-bound MCP with recursive self-improvement (Harness-RSI) — memory follows the project across hosts, and the harness gets better as you use it."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -58,6 +58,7 @@ Issues = "https://github.com/Apollo-lwx/rsi-boot/issues"
 
 [project.scripts]
 rsi = "rsi_boot.__main__:main"
+rsi-boot = "rsi_boot.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rsi_boot"]

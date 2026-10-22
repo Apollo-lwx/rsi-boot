@@ -2,6 +2,8 @@
   <img src="assets/logo.svg" alt="rsi-boot logo" width="120">
 </div>
 
+<!-- mcp-name: io.github.Apollo-lwx/rsi-boot -->
+
 # RSI Boot
 
 简体中文 | [English](README.en.md)
