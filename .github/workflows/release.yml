@@ -22,9 +22,10 @@ jobs:
           PKG=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           SRV=$(python3 -c "import json; print(json.load(open('server.json'))['version'])")
           SPKG=$(python3 -c "import json; print(json.load(open('server.json'))['packages'][0]['version'])")
-          echo "tag=$TAG pyproject=$PKG server.json=$SRV server.json.pkg=$SPKG"
-          [ "$TAG" = "$PKG" ] && [ "$TAG" = "$SRV" ] && [ "$TAG" = "$SPKG" ] \
-            || { echo "::error::version mismatch: bump pyproject.toml and server.json to $TAG first"; exit 1; }
+          CCP=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          echo "tag=$TAG pyproject=$PKG server.json=$SRV server.json.pkg=$SPKG plugin.json=$CCP"
+          [ "$TAG" = "$PKG" ] && [ "$TAG" = "$SRV" ] && [ "$TAG" = "$SPKG" ] && [ "$TAG" = "$CCP" ] \
+            || { echo "::error::version mismatch: bump pyproject.toml, server.json and .claude-plugin/plugin.json to $TAG first"; exit 1; }
 
       - uses: actions/setup-python@v5
         with:
