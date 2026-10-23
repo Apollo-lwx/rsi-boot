@@ -66,6 +66,11 @@ def on_memory_yaml_change(runtime: object, _path: Path) -> None:
             loop.create_task(rewrite)
 
 
+# roots/list 查询超时：内省沙箱/非标客户端可能永不应答 roots/list，无超时会挂死
+# list_tools（工具枚举超时，Glama 等扫描器直接判 F）；正常宿主的应答在毫秒级。
+_ROOTS_QUERY_TIMEOUT_S = 5.0
+
+
 class ServeSession:
     """serve 运行态持有器：runtime 延迟到首个 MCP 请求才构建，以便用 roots/list 定锚工作区。
 
@@ -102,12 +107,15 @@ class ServeSession:
             return self.runtime
 
     async def _root_from_client(self, server: object) -> Path:
-        """向客户端发 roots/list；客户端无 roots 能力或查询失败则保持 fallback。"""
+        """向客户端发 roots/list；无 roots 能力、查询失败、或超时未答（内省沙箱常见）则保持 fallback。"""
         try:
-            result = await server.request_context.session.list_roots()
+            result = await asyncio.wait_for(
+                server.request_context.session.list_roots(),
+                timeout=_ROOTS_QUERY_TIMEOUT_S,
+            )
         except Exception:
             logging.getLogger(__name__).info(
-                "客户端 roots 能力不可用，工作区保持环境解析：%s", self.fallback
+                "客户端 roots 不可用或超时未答，工作区保持环境解析：%s", self.fallback
             )
             return self.fallback
         uris = [str(root.uri) for root in result.roots]

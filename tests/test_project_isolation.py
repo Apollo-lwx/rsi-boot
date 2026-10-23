@@ -541,3 +541,64 @@ def test_identity_json_written(tmp_path):
     payload = json.loads((root / ".rsi" / "identity.json").read_text(encoding="utf-8"))
     assert ident.project_id == WORKSPACE_PROJECT_ID
     assert payload["project_id"] == WORKSPACE_PROJECT_ID
+
+
+async def test_root_from_client_timeout_falls_back(tmp_path, monkeypatch):
+    """客户端永不应答 roots/list（内省沙箱场景，如 Glama 扫描器）：_root_from_client 必须
+    在超时后落 fallback，不得挂死 list_tools——该挂死曾致工具枚举超时、被 Glama 判 F。"""
+    import asyncio
+
+    import rsi_boot.__main__ as main_mod
+    from rsi_boot.__main__ import ServeSession
+
+    monkeypatch.setattr(main_mod, "_ROOTS_QUERY_TIMEOUT_S", 0.2)
+
+    fallback = tmp_path / "fallback"
+    fallback.mkdir()
+    session = ServeSession(pinned=None, fallback=fallback, watch=False)
+
+    class _NeverAnswerSession:
+        async def list_roots(self):
+            await asyncio.sleep(3600)
+
+    class _Ctx:
+        session = _NeverAnswerSession()
+
+    class _Server:
+        request_context = _Ctx()
+
+    root = await asyncio.wait_for(session._root_from_client(_Server()), timeout=5)
+    assert root == fallback.resolve()
+
+
+async def test_root_from_client_uses_answered_roots(tmp_path, monkeypatch):
+    """客户端正常应答 roots/list：仍绑定到首个可解析 file 根（防改坏正常链路）。"""
+    import rsi_boot.__main__ as main_mod
+    from rsi_boot.__main__ import ServeSession
+
+    monkeypatch.setattr(main_mod, "_ROOTS_QUERY_TIMEOUT_S", 1.0)
+
+    fallback = tmp_path / "fallback"
+    fallback.mkdir()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    session = ServeSession(pinned=None, fallback=fallback, watch=False)
+
+    class _Root:
+        uri = workspace.resolve().as_uri()
+
+    class _Result:
+        roots = [_Root()]
+
+    class _AnswerSession:
+        async def list_roots(self):
+            return _Result()
+
+    class _Ctx:
+        session = _AnswerSession()
+
+    class _Server:
+        request_context = _Ctx()
+
+    root = await session._root_from_client(_Server())
+    assert root == workspace.resolve()
