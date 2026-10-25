@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "rsi-boot": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "rsi-boot", "rsi", "serve"],
+      "timeout": 30000
+    }
+  }
+}

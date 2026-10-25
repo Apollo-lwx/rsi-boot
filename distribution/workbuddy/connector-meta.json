@@ -1,0 +1,24 @@
+{
+  "name": "RSI Boot",
+  "name_zh": "RSI Boot 仓库记忆",
+  "name_en": "RSI Boot",
+  "description": "Helps the AI remember this repo: rules to follow, things not to do, and how past bugs were fixed.",
+  "description_zh": "让 AI 记住这个仓库怎么写代码：要遵守的写法、不能做的事、以前的 bug 是怎么改的。下次打开这个项目会照着做，换编辑器也不用重讲。",
+  "description_en": "Helps the AI remember this repo: rules to follow, things not to do, and how past bugs were fixed.",
+  "source": "rsi-boot",
+  "type": "mcp",
+  "version": "0.1.1",
+  "minWorkbuddyVersion": "4.24.0",
+  "examples_zh": [
+    "我们这个仓库函数名用下划线，别写成驼峰，你记下",
+    "动手前先告诉我，这个项目有哪些规矩不能破",
+    "这个崩溃是没判空造成的，记下来，以后别再这么写",
+    "支付日志里不能打卡号，我以前跟你说过，还记得吗"
+  ],
+  "examples_en": [
+    "Function names in this repo use snake_case, not camelCase. Remember that",
+    "Before you start, tell me which rules in this project must not be broken",
+    "That crash was a missing null check. Remember it so we don't write it that way again",
+    "I told you before not to put card numbers in payment logs. Do you still remember?"
+  ]
+}
