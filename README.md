@@ -11,9 +11,11 @@
 
 简体中文 | [English](README.en.md)
 
-Agent 记忆很多人都在做。RSI Boot 要解决的是另外两件事：**harness 会跟着用、跟着改**，以及**记忆跟着仓库走、换宿主不重学**。
+> **Agent 的工程记忆，不是对话记忆：跟着仓库走、换宿主不重学、越用越会干活。**
 
-主链路零 API Key，不调用模型。约定、禁止项、修复经验和 harness 槽位都只落在当前仓库的 `.rsi/`，下次任务前按需召回。
+Cursor 在 2.1 删掉了 Memories，新会话对你的项目一无所知；Claude Code 的记忆锁在本机、不跟 git、团队没法共享；云记忆要 Key、要服务，记忆还跟账号走。
+
+RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `.rsi/`，跟 git 一起走：装一次，Cursor / Claude Code / Codex / Qoder 通用。负反馈进失败桶，改进提案过静态门禁与人工确认、观察 7 天、掉采纳率自动回滚——不是越记越多，是越用越会干活。主链路零 API Key，不调用模型。
 
 ## 和「又一个记忆插件」差在哪
 
@@ -33,6 +35,10 @@ Agent 记忆很多人都在做。RSI Boot 要解决的是另外两件事：**har
 | Harness 自改进 | 无 | 无 | 无或弱 | **提案 → 门禁 → 观察 → 回滚** |
 | 主链路 API Key | 绑宿主 | 要 | 常要 | **不要** |
 | 写入闸门 | 模型自觉 | 服务端策略 | 少 | **审批 + 禁止项 + 冲突裁决** |
+
+## 公开基准（进行中）
+
+效果不该靠嘴说。RepoMem Bench 用同一批真实仓库任务做三组对照（无上下文 / 仅 AGENTS.md / 先跑 RSI Boot），比一次通过率、token 消耗与约定违反次数；任务集、方法与原始结果全部公开，欢迎复跑。见 [benchmark/](benchmark/)。**结果出来之前，我们不引用任何数字。**
 
 ## 安装
 
@@ -115,6 +121,10 @@ args = ["serve"]
 ```
 
 从项目根目录启动 codex 即可——MCP 子进程继承 cwd，rsi-boot 按 cwd 向上认领工作区。要显式钉死就在表里加一行：`env = { RSI_PROJECT_ROOT = "/绝对/路径" }`。
+
+### WorkBuddy
+
+连接器市场上架材料在 [`distribution/workbuddy/`](distribution/workbuddy/)。打包和提交流程写在该目录的 README，这里不展开平台规范。
 
 ## 状态栏（可选）
 

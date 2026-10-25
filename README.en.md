@@ -9,9 +9,11 @@
 
 [简体中文](README.md) | English
 
-Plenty of tools already store agent memory. RSI Boot is built for two other jobs: **a harness that improves as you use it**, and **memory that travels with the repo so switching hosts does not mean re-teaching the project**.
+> **Engineering memory for agents, not chat memory: it travels with the repo, survives host switches, and gets better as you use it.**
 
-The main path needs no API key and makes no model calls. Conventions, prohibitions, repair lessons, and harness slots live only in the current repo's `.rsi/`, and are recalled on demand before the next task.
+Cursor removed Memories in 2.1 — new chats know nothing about your project. Claude Code's memory lives on one machine, outside git, and can't be shared with your team. Cloud memory asks for keys and servers, and follows your account.
+
+RSI Boot keeps conventions, prohibitions, repair lessons, and harness slots in the repo's `.rsi/`, traveling with git: install once, use it from Cursor, Claude Code, Codex, and Qoder. Negative feedback lands in failure buckets; improvement proposals pass a static gate and human review, are watched for 7 days, and roll back automatically if adoption drops — not more notes, better work. The main path needs no API key and makes no model calls.
 
 ## Not another memory plugin
 
@@ -31,6 +33,10 @@ One MCP server (`rsi serve`) plugs into Cursor, Qoder, and Codex; the status lin
 | Harness self-improvement | no | no | weak or none | **propose → gate → observe → roll back** |
 | API key on the main path | bound to the host | required | often | **none** |
 | Write gate | the model decides | server-side policy | rare | **review + prohibitions + conflict rulings** |
+
+## Public benchmark (in progress)
+
+Claims need receipts. RepoMem Bench runs the same set of real-repo tasks under three arms (no context / AGENTS.md only / RSI Boot bootstrapped) and compares first-attempt pass rate, token spend, and convention violations. Tasks, methodology, and raw results are public — reruns welcome. See [benchmark/](benchmark/). **Until results land, we cite no numbers.**
 
 ## Installation
 
@@ -113,6 +119,10 @@ args = ["serve"]
 ```
 
 Just start codex from the project root — the MCP child process inherits its cwd and rsi-boot claims the workspace by walking up from there. To pin explicitly, add one line to the table: `env = { RSI_PROJECT_ROOT = "/absolute/path" }`.
+
+### WorkBuddy
+
+Marketplace connector files live in [`distribution/workbuddy/`](distribution/workbuddy/). Pack and submit steps are in that directory's README.
 
 ## Status line (optional)
 
