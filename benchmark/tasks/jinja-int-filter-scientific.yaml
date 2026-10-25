@@ -1,0 +1,37 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit（jinja #1984）的父提交
+schema: repomem-task/v1
+id: jinja-int-filter-scientific
+status: validated    # 2026-10-23 两步法通过
+quality: issue
+
+repo:
+  url: https://github.com/pallets/jinja
+  ref: 20be10e566a505cc47bdec5fa6ad56d5fbdfb4ae
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：int 过滤器对科学计数法字符串处理不当。
+  `{{ '1e10000' | int }}` 这类超出 float 表示范围的值转换结果错误，
+  应当回退到默认值 0（字符串 "0"）。
+  请修复 int 过滤器对科学计数法的解析逻辑，
+  同时保持既有用例（'32.32'→32、'12345678901234567890'→原值等）不变。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest trio pytest-trio    # async 测试模块硬依赖 trio
+
+verify: python -m pytest tests/ -q
+verify_patch: jinja-int-filter-scientific.verify.patch
+gold_patch: jinja-int-filter-scientific.gold.patch
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 src/ 下的实现，不改测试

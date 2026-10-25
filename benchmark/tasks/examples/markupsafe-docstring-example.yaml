@@ -1,0 +1,35 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# 状态 draft：需先跑 --validate 验证（克隆 + setup + pristine verify 通过）才进得分集
+schema: repomem-task/v1
+id: markupsafe-docstring-example
+status: validated    # 2026-10-23 --validate 通过（克隆+venv+pristine verify 全绿）
+
+repo:
+  url: https://github.com/pallets/markupsafe
+  ref: "3.0.2"            # tag；runner 会把 resolved SHA 写进结果
+
+stack: [python]
+isolate: venv        # setup/verify 在仓库内 .repomem-venv/ 独立环境执行，不污染调用者
+
+prompt: |
+  为 src/markupsafe/__init__.py 中的 escape_silent() 补充 docstring 使用示例，
+  风格与 escape() 现有的 doctest 示例（>>> 风格）保持一致。
+  不得改变任何函数签名与运行时行为，完成后确保仓库测试套件全部通过。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest
+
+verify: python -m pytest tests/ -q
+
+# 约定违反的机械判定：diff 触碰以下路径即计一次违反（文档任务不应改实现）
+forbidden_paths:
+  - src/markupsafe/_speedups.c
+  - src/markupsafe/_native.py
+
+# B 组（AGENTS.md 臂）注入的静态上下文；A 组不注入，C 组用 rsi bootstrap 产物代替
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - docstring 示例统一用 doctest（>>>）风格，与既有函数保持一致
+  - 文档类任务不要改动 C 扩展与原生实现文件

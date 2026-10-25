@@ -1,0 +1,36 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit（jinja #2029）的父提交
+schema: repomem-task/v1
+id: jinja-missing-pickle
+status: validated    # 2026-10-23 两步法通过
+quality: issue
+
+repo:
+  url: https://github.com/pallets/jinja
+  ref: ba8847a466d0f3ad622502f86e819737a4b9fdc7
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：jinja2.utils 的 missing 单例在 pickle 序列化/反序列化
+  （任意协议）或 copy.copy 之后会产生新对象，导致 `x is missing`
+  判断失效。请让 missing 在 pickle 与 copy 之后仍保持单例语义。
+  不要改动测试目录。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest trio pytest-trio    # async 测试模块硬依赖 trio
+
+verify: python -m pytest tests/ -q
+verify_patch: jinja-missing-pickle.verify.patch
+gold_patch: jinja-missing-pickle.gold.patch
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 src/ 下的实现，不改测试

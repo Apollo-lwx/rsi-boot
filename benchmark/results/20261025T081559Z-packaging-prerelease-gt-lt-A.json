@@ -1,0 +1,34 @@
+{
+  "run_id": "20261025T081559Z-packaging-prerelease-gt-lt-A",
+  "benchmark": "repomem-bench/v0",
+  "task": "packaging-prerelease-gt-lt",
+  "arm": "A",
+  "arm_setup": "none",
+  "backend": "manual",
+  "repo": {
+    "url": "https://github.com/pypa/packaging",
+    "ref": "a716c52b5f3ca9b4a512f538b80ced8ee01b2775",
+    "resolved_sha": "a716c52b5f3ca9b4a512f538b80ced8ee01b2775"
+  },
+  "model": null,
+  "started_at": "2026-10-25T08:09:54.444467+00:00",
+  "duration_s": 365.0,
+  "verify": {
+    "command": "python -m pytest tests/ -q",
+    "exit_code": 0,
+    "passed": true,
+    "verify_duration_s": 65.2,
+    "verify_patch": "packaging-prerelease-gt-lt.verify.patch"
+  },
+  "tokens": null,
+  "num_turns": null,
+  "cost_usd": null,
+  "files_changed": [
+    "src/packaging/specifiers.py",
+    "tests/test_specifiers.py"
+  ],
+  "forbidden_violations": [
+    "tests/test_specifiers.py"
+  ],
+  "backend_raw_tail": null
+}

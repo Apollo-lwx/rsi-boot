@@ -1,0 +1,35 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+schema: repomem-task/v1
+id: packaging-docstring-example
+status: validated    # 2026-10-23 --validate 通过
+quality: smoke        # 管线冒烟用：区分度低；正式得分集需换真实 issue 级任务
+
+repo:
+  url: https://github.com/pypa/packaging
+  ref: "24.2"
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  为 src/packaging/tags.py 中 sys_tags() 函数补充 docstring 使用示例，
+  doctest（>>>）风格（可用 next() 取首个 tag 演示，避免输出不确定内容）。
+  不得改变任何函数签名与运行时行为，完成后确保测试套件全部通过。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest pretend      # pretend 极小，防测试文件引用缺失
+
+verify: python -m pytest tests/ -q
+
+forbidden_paths:
+  - tests/
+  - .github/
+  - src/packaging/_manylinux.py
+  - src/packaging/_musllinux.py
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - docstring 示例统一用 doctest（>>>）风格，输出必须确定可复现
+  - 文档类任务不要改动 tests/ 与 CI 配置

@@ -1,0 +1,34 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# 状态 draft：需先跑 --validate 验证（克隆 + setup + pristine verify 通过）才进得分集
+schema: repomem-task/v1
+id: pflag-example-test
+status: draft        # 待验证：本机暂无 Go 工具链，--validate 留到有 Go 的环境执行
+
+repo:
+  url: https://github.com/spf13/pflag
+  ref: v1.0.5            # tag；runner 会把 resolved SHA 写进结果
+
+stack: [go]
+
+prompt: |
+  为本仓库添加 Go 的 Example 函数（example_test.go，若已存在则追加），
+  演示 StringVarP 的典型用法，输出用 // Output: 注释校验。
+  风格遵循 Go 官方 example 惯例与本仓库现有代码风格，
+  完成后确保 go test ./... 全部通过（Example 输出会被实际执行校验）。
+
+setup:
+  - go mod download
+
+verify: go test ./...
+
+# Example 函数属新增测试文件；改动既有实现文件即计约定违反
+forbidden_paths:
+  - string.go
+  - flag.go
+
+# B 组（AGENTS.md 臂）注入的静态上下文；A 组不注入，C 组用 rsi bootstrap 产物代替
+agents_md: |
+  # Project Instructions
+  - 测试命令：`go test ./...`
+  - 示例代码走 Go 官方 Example 惯例（example_test.go + // Output: 校验）
+  - 本任务只新增/修改测试与示例文件，不改既有实现

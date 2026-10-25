@@ -1,0 +1,37 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit（jinja #1852）的父提交
+schema: repomem-task/v1
+id: jinja-fstring-codegen
+status: validated    # 2026-10-23 两步法通过（注意：async 测试需 trio + pytest-trio）
+quality: issue
+
+repo:
+  url: https://github.com/pallets/jinja
+  ref: 48b0687e05a5466a91cd5812d604fa37ad0943b4
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：当模板的名字包含花括号（例如 DictLoader 里的 "{bad}"）时，
+  代码生成阶段会错误地把模板名当作 f-string 处理，渲染时抛出
+  `NameError: 'bad' is not defined`；正确行为是按普通模板名转义，
+  渲染时因未定义的变量而抛出 jinja2.UndefinedError。
+  请修复代码生成器对模板名的处理。不要改动测试目录。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest trio pytest-trio    # async 测试模块硬依赖 trio
+
+verify: python -m pytest tests/ -q
+verify_patch: jinja-fstring-codegen.verify.patch
+gold_patch: jinja-fstring-codegen.gold.patch
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 src/ 下的实现，不改测试

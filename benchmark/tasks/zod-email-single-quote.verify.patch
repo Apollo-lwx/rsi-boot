@@ -1,0 +1,12 @@
+diff --git a/src/__tests__/string.test.ts b/src/__tests__/string.test.ts
+index 6530b6be..5b4e5dc4 100644
+--- a/src/__tests__/string.test.ts
++++ b/src/__tests__/string.test.ts
+@@ -64,6 +64,7 @@ test("email validations", () => {
+     `work+user@mail.com`,
+     `tom@test.te-st.com`,
+     `something@subdomain.domain-with-hyphens.tld`,
++    `common'name@domain.com`,
+     `francois@etu.inp-n7.fr`,
+   ];
+   const invalidEmails = [

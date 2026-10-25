@@ -1,0 +1,31 @@
+{
+  "run_id": "20261025T082033Z-mi-windowed-invalid-size-B",
+  "benchmark": "repomem-bench/v0",
+  "task": "mi-windowed-invalid-size",
+  "arm": "B",
+  "arm_setup": "agents_md injected",
+  "backend": "manual",
+  "repo": {
+    "url": "https://github.com/more-itertools/more-itertools",
+    "ref": "e4d2a4a2a97246a73856754b2c4866d7f41d4875",
+    "resolved_sha": "e4d2a4a2a97246a73856754b2c4866d7f41d4875"
+  },
+  "model": null,
+  "started_at": "2026-10-25T08:17:38.943800+00:00",
+  "duration_s": 174.5,
+  "verify": {
+    "command": "python -m pytest tests/ -q",
+    "exit_code": 0,
+    "passed": true,
+    "verify_duration_s": 41.9,
+    "verify_patch": "mi-windowed-invalid-size.verify.patch"
+  },
+  "tokens": null,
+  "num_turns": null,
+  "cost_usd": null,
+  "files_changed": [
+    "more_itertools/more.py"
+  ],
+  "forbidden_violations": [],
+  "backend_raw_tail": null
+}

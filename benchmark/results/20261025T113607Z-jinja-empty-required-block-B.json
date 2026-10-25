@@ -1,0 +1,31 @@
+{
+  "run_id": "20261025T113607Z-jinja-empty-required-block-B",
+  "benchmark": "repomem-bench/v0",
+  "task": "jinja-empty-required-block",
+  "arm": "B",
+  "arm_setup": "agents_md injected",
+  "backend": "manual",
+  "repo": {
+    "url": "https://github.com/pallets/jinja",
+    "ref": "37f5b058ee4aaa01994ae4d378fc015bde484933",
+    "resolved_sha": "37f5b058ee4aaa01994ae4d378fc015bde484933"
+  },
+  "model": null,
+  "started_at": "2026-10-25T11:34:24.384753+00:00",
+  "duration_s": 102.8,
+  "verify": {
+    "command": "python -m pytest tests/ -q",
+    "exit_code": 0,
+    "passed": true,
+    "verify_duration_s": 4.0,
+    "verify_patch": "jinja-empty-required-block.verify.patch"
+  },
+  "tokens": null,
+  "num_turns": null,
+  "cost_usd": null,
+  "files_changed": [
+    "src/jinja2/parser.py"
+  ],
+  "forbidden_violations": [],
+  "backend_raw_tail": null
+}

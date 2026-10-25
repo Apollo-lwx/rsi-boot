@@ -1,0 +1,42 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit 的父提交；verify_patch / gold_patch
+# 均来自该真实 commit，agent 不可见。
+schema: repomem-task/v1
+id: packaging-metadata-error-message
+status: validated    # 2026-10-23 两步法通过：测试补丁在未修复代码 FAIL；gold 修复后 PASS
+quality: issue        # 真实 issue 级（区分度由 --validate 两步法证明）
+
+repo:
+  url: https://github.com/pypa/packaging
+  ref: 2b06f90cbe2ffbde64ea23ca36c96c35e2aca05a
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：访问非法 dynamic 元数据字段时的报错信息没有信息量。
+
+  `Metadata.from_raw({"dynamic": ["keywords"]}, validate=False).dynamic`
+  抛出 InvalidMetadata 时，报错信息列出的是全部候选字段列表，
+  而不是具体违规的那个字段名，用户无法定位问题。
+
+  请让报错信息包含具体违规字段名（形如 `'keywords' is not allowed`），
+  且信息中不应再出现整段字段列表。不要改动测试目录。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest pretend
+
+verify: python -m pytest tests/ -q
+verify_patch: packaging-metadata-error-message.verify.patch    # 判分测试，验证时注入
+gold_patch: packaging-metadata-error-message.gold.patch        # 参考修复，仅 --validate
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 src/ 下的实现，不改测试
+  - 报错信息中用 !r 格式化字段名

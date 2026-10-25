@@ -1,0 +1,24 @@
+diff --git a/tests/test_utils.py b/tests/test_utils.py
+index 7b58af1..86e0f04 100644
+--- a/tests/test_utils.py
++++ b/tests/test_utils.py
+@@ -1,3 +1,4 @@
++import copy
+ import pickle
+ import random
+ from collections import deque
+@@ -183,3 +184,14 @@ def test_consume():
+     consume(x)
+     with pytest.raises(StopIteration):
+         next(x)
++
++
++@pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
++def test_pickle_missing(protocol: int) -> None:
++    """Test that missing can be pickled while remaining a singleton."""
++    assert pickle.loads(pickle.dumps(missing, protocol)) is missing
++
++
++def test_copy_missing() -> None:
++    """Test that missing can be copied while remaining a singleton."""
++    assert copy.copy(missing) is missing

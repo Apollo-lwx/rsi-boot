@@ -1,0 +1,42 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit 的父提交；verify_patch（测试补丁，判分用）
+# 与 gold_patch（参考修复，仅 --validate 用）均来自该真实 commit，agent 不可见。
+schema: repomem-task/v1
+id: packaging-prerelease-gt-lt
+status: validated    # 2026-10-23 两步法通过：测试补丁在未修复代码 FAIL；gold 修复后 PASS
+quality: issue        # 真实 issue 级（区分度由 --validate 两步法证明）
+
+repo:
+  url: https://github.com/pypa/packaging
+  ref: a716c52b5f3ca9b4a512f538b80ced8ee01b2775
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：带预发布版本的 `>` / `<` 说明符行为不符合预期。
+
+  按 PEP 440 语义，说明符的版本里出现预发布段时应视为允许预发布，
+  但当前 `Specifier(">1.0.dev1").prereleases` 返回 False（应为 True），
+  这导致 `SpecifierSet(">3.0.0a7")` 无法匹配 `3.0.0a8`、
+  `SpecifierSet("<3.0.0a8")` 无法匹配 `3.0.0a7` 等一连串过滤错误。
+
+  请定位并修复 `>` 与 `<` 说明符对预发布版本的判定逻辑。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest pretend
+
+verify: python -m pytest tests/ -q
+verify_patch: packaging-prerelease-gt-lt.verify.patch    # 判分测试，验证时注入
+gold_patch: packaging-prerelease-gt-lt.gold.patch        # 参考修复，仅 --validate
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 src/ 下的实现，不改测试
+  - 预发布判定需与 PEP 440 语义保持一致

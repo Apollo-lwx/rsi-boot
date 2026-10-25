@@ -1,0 +1,39 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit（zod #2889）的父提交；
+# verify_patch / gold_patch 取自该 commit 的 src/__tests__/ 与 src/types.ts 部分。
+schema: repomem-task/v1
+id: zod-email-single-quote
+status: validated    # 2026-10-23 两步法通过：测试补丁在未修复代码 FAIL；gold 修复后 PASS
+quality: issue        # 真实 issue 级（区分度由 --validate 两步法证明）
+
+repo:
+  url: https://github.com/colinhacks/zod
+  ref: 81d2e894c7813066173da4a716320b9fcf08e6c8
+
+stack: [typescript]
+
+prompt: |
+  用户报告：包含单引号的合法邮箱地址无法通过 z.string().email() 校验。
+
+  例如 alice.o'connor@example.com 按 RFC 5321 是合法邮箱，但当前被误判为
+  invalid_string。请修复 email 校验正则，让单引号邮箱通过校验，
+  同时保持其余邮箱规则行为不变。
+
+setup:
+  - npm install --ignore-scripts
+
+verify: npx jest --config ./configs/ts-jest.config.json
+verify_patch: zod-email-single-quote.verify.patch    # 判分测试，验证时注入
+gold_patch: zod-email-single-quote.gold.patch        # 参考修复，仅 --validate
+
+forbidden_paths:
+  - src/__tests__/
+  - deno/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`npx jest --config ./configs/ts-jest.config.json`
+  - 修复只动 src/ 下的实现，不改测试
+  - deno/lib 是构建生成的镜像目录，不要手工修改
+  - 代码风格遵循仓库 prettier 配置

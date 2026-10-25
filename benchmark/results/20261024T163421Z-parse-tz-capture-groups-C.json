@@ -1,0 +1,31 @@
+{
+  "run_id": "20261024T163421Z-parse-tz-capture-groups-C",
+  "benchmark": "repomem-bench/v0",
+  "task": "parse-tz-capture-groups",
+  "arm": "C",
+  "arm_setup": "rsi bootstrap --local-judge ok + .mcp.json",
+  "backend": "manual",
+  "repo": {
+    "url": "https://github.com/r1chardj0n3s/parse",
+    "ref": "0d2d28fbccf023d0485be21aaccc95de88e92eaa",
+    "resolved_sha": "0d2d28fbccf023d0485be21aaccc95de88e92eaa"
+  },
+  "model": null,
+  "started_at": "2026-10-24T16:28:33.845940+00:00",
+  "duration_s": 347.7,
+  "verify": {
+    "command": "python -m pytest tests/ -q",
+    "exit_code": 0,
+    "passed": true,
+    "verify_duration_s": 2.2,
+    "verify_patch": "parse-tz-capture-groups.verify.patch"
+  },
+  "tokens": null,
+  "num_turns": null,
+  "cost_usd": null,
+  "files_changed": [
+    "parse/__init__.py"
+  ],
+  "forbidden_violations": [],
+  "backend_raw_tail": null
+}

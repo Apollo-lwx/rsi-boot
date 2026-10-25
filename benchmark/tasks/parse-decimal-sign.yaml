@@ -1,0 +1,40 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit（parse #250 相关）的父提交
+schema: repomem-task/v1
+id: parse-decimal-sign
+status: validated    # 2026-10-24 两步法通过
+quality: issue-hard
+
+repo:
+  url: https://github.com/r1chardj0n3s/parse
+  ref: 8059e320eccf40d750843006dd2ef25197bbff74
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：{:d}（Decimal 类型）与浮点格式无法解析带符号或特殊值。
+
+  Decimal 类型不接受正负号（如 "-1.23"、"+4.56" 解析失败或结果错误），
+  且 {:f}/{:F} 浮点格式不支持 nan 与 inf（大小写均应接受）。
+  请让 Decimal 类型支持符号、让浮点格式支持 nan/inf，同时保持其余类型行为不变。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest pytest-cov typing-extensions    # addopts 带 --cov；check_typing.py 需 typing_extensions
+
+# 判分只跑行为断言（test_parse.py）；官方 test_pattern.py 的「精确正则串」断言
+# 属过规格化（行为等价的实现会被误判），已从判分补丁剔除——agent 若全量跑
+# 看到该旧断言失败属预期，正确做法是保留它（B/C 组代理均做对了）。
+verify: python -m pytest tests/test_parse.py -q
+verify_patch: parse-decimal-sign.verify.patch
+gold_patch: parse-decimal-sign.gold.patch
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 parse/ 下的实现，不改测试

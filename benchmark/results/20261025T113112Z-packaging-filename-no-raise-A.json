@@ -1,0 +1,31 @@
+{
+  "run_id": "20261025T113112Z-packaging-filename-no-raise-A",
+  "benchmark": "repomem-bench/v0",
+  "task": "packaging-filename-no-raise",
+  "arm": "A",
+  "arm_setup": "none",
+  "backend": "manual",
+  "repo": {
+    "url": "https://github.com/pypa/packaging",
+    "ref": "b509bef6a4573595b23a97ecbfe569000918157f",
+    "resolved_sha": "b509bef6a4573595b23a97ecbfe569000918157f"
+  },
+  "model": null,
+  "started_at": "2026-10-25T11:25:11.228061+00:00",
+  "duration_s": 361.3,
+  "verify": {
+    "command": "python -m pytest tests/ -q",
+    "exit_code": 0,
+    "passed": true,
+    "verify_duration_s": 78.1,
+    "verify_patch": "packaging-filename-no-raise.verify.patch"
+  },
+  "tokens": null,
+  "num_turns": null,
+  "cost_usd": null,
+  "files_changed": [
+    "src/packaging/utils.py"
+  ],
+  "forbidden_violations": [],
+  "backend_raw_tail": null
+}

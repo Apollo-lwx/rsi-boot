@@ -1,0 +1,40 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit（parse #263）的父提交
+schema: repomem-task/v1
+id: parse-tz-capture-groups
+status: validated    # 2026-10-24 两步法通过（注意测试依赖 pytest-cov + typing-extensions）
+quality: issue-hard
+
+repo:
+  url: https://github.com/r1chardj0n3s/parse
+  ref: 0d2d28fbccf023d0485be21aaccc95de88e92eaa
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：用含 %z 的日期时间格式解析时，后续字段的结果错位。
+
+  例如 parse("{:%Y-%m-%d %H:%M:%S%z}|{}", "2020-03-04 05:06:07+0200|abc"），
+  %z 会在生成的正则中额外产生捕获组，但字段的组索引没有把它们计入，
+  导致 %z 之后每个字段取到的值都错位（fixed[1] 拿不到 "abc"）。
+  命名日期字段（{dt:...%z}）后面的字段同样受影响。
+
+  请修复 %z 引入捕获组的索引核算问题。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest pytest-cov typing-extensions    # addopts 带 --cov；check_typing.py 需 typing_extensions
+
+verify: python -m pytest tests/ -q
+verify_patch: parse-tz-capture-groups.verify.patch
+gold_patch: parse-tz-capture-groups.gold.patch
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 parse/ 下的实现，不改测试

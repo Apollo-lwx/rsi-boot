@@ -1,0 +1,34 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+schema: repomem-task/v1
+id: itsdangerous-docstring-example
+status: validated    # 2026-10-23 --validate 通过（注意：2.2.0 测试需 freezegun）
+quality: smoke        # 管线冒烟用：区分度低；正式得分集需换真实 issue 级任务
+
+repo:
+  url: https://github.com/pallets/itsdangerous
+  ref: "2.2.0"
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  为 src/itsdangerous/serializer.py 中 Serializer 类的 dumps() 方法补充
+  docstring 使用示例，doctest（>>>）风格，与项目现有文档风格保持一致。
+  不得改变任何函数签名与运行时行为，完成后确保测试套件全部通过。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest freezegun    # 2.2.0 的 timed 测试依赖 freezegun
+
+verify: python -m pytest tests/ -q
+
+forbidden_paths:
+  - tests/
+  - .github/
+  - src/itsdangerous/timed.py
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - docstring 示例统一用 doctest（>>>）风格
+  - 文档类任务不要改动 tests/ 与 CI 配置

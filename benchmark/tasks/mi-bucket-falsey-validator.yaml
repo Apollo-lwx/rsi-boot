@@ -1,0 +1,39 @@
+# RepoMem Bench 任务 · schema repomem-task/v1
+# SWE-bench 式构造：base 为真实修复 commit（more-itertools #1308）的父提交
+schema: repomem-task/v1
+id: mi-bucket-falsey-validator
+status: validated    # 2026-10-24 两步法通过
+quality: issue-hard    # 刻意选的非著名仓库+隐晦语义，期望 A 组失败以区分上下文价值
+
+repo:
+  url: https://github.com/more-itertools/more-itertools
+  ref: 1ea82a711c69f590054987b5cb194157f8ce8ac4
+
+stack: [python]
+isolate: venv
+
+prompt: |
+  用户报告：bucket() 的 validator 参数有缺陷。
+
+  当传入的 validator 可调用对象本身是「假值」（例如一个实现了 __call__
+  的空集合子类实例，bool(validator) 为 False）时，它会被错误地丢弃并
+  替换为默认 validator；预期是假值可调用对象同样应被尊重为有效 validator。
+
+  请修复 bucket() 对 validator 的处理。
+
+setup:
+  - python -m pip install -e .
+  - python -m pip install pytest
+
+verify: python -m pytest tests/ -q
+verify_patch: mi-bucket-falsey-validator.verify.patch
+gold_patch: mi-bucket-falsey-validator.gold.patch
+
+forbidden_paths:
+  - tests/
+  - .github/
+
+agents_md: |
+  # Project Instructions
+  - 测试命令：`python -m pytest tests/ -q`
+  - 修复只动 more_itertools/ 下的实现，不改测试
