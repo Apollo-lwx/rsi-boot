@@ -1,5 +1,6 @@
 # RSI Boot 本地数据
 .rsi/
+.workbuddy/
 
 # Python
 __pycache__/
@@ -17,10 +18,14 @@ build/
 .tmp-*/
 .tmp-*
 *.log
+distribution/**/*.zip
 
 .pytest-*
 # 评测跑批产物（源码与 datasets/ 保留，报告不入库）
 tests/eval/reports/
+
+# RepoMem Bench 本地克隆工作区（任务与结果入库，克隆产物不入库）
+benchmark/.workdir/
 
 # 本地会话与注入产物（RSI 注入器自动维护，不入库）
 .cursor/
