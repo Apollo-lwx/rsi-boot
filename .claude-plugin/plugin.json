@@ -1,6 +1,6 @@
 {
   "name": "rsi-boot",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Repo-bound memory and a self-improving harness for AI coding agents. Memory lives in the project's .rsi/ and follows it across Cursor, Claude Code, Codex, Qoder and VS Code. Zero API keys on the main path.",
   "author": {
     "name": "wenxing luo"
