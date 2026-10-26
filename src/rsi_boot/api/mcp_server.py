@@ -7,8 +7,11 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+import sys
+from io import TextIOWrapper
+from typing import Any, AsyncIterator
 
+import anyio
 import mcp.types as types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -148,8 +151,36 @@ def build_server(session: Any) -> Server:
     return server
 
 
+class _TolerantStdin:
+    """丢弃空行与非法 JSON-RPC 行的 stdin 过滤器。
+
+    官方 SDK 的 stdin_reader 把解析异常当消息送进 session，会直接终止
+    会话；Glama/Smithery 扫描器常在请求尾部补空行（探针
+    blank-line-kills-stdio 复现），此处静默丢弃噪声行保会话。
+    """
+
+    def __init__(self, real: AsyncIterator[str]) -> None:
+        self._real = real
+
+    def __aiter__(self) -> AsyncIterator[str]:
+        return self._gen()
+
+    async def _gen(self) -> AsyncIterator[str]:
+        async for line in self._real:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                types.JSONRPCMessage.model_validate_json(stripped)
+            except Exception:
+                logger.debug("stdio: drop unparseable line (%d chars)", len(line))
+                continue
+            yield line
+
+
 async def serve(session: Any) -> None:
     """stdio 传输；runtime 由 session 在首个请求时按 roots 定锚后构建（随 session.stop 收尾）。"""
     server = build_server(session)
-    async with stdio_server() as (read_stream, write_stream):
+    stdin = anyio.wrap_file(TextIOWrapper(sys.stdin.buffer, encoding="utf-8", errors="replace"))
+    async with stdio_server(stdin=_TolerantStdin(stdin)) as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())
