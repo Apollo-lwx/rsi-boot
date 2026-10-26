@@ -258,6 +258,26 @@ STRINGS = {
         "zh": "feedback_token 签名校验失败",
         "en": "feedback_token signature check failed",
     },
+    "WEB_UI_OPENED": {
+        "zh": "记忆大屏已开启：{url} 。关掉请再调用 rsi_web_ui，action 用 close。",
+        "en": "Memory dashboard is on: {url}. Call rsi_web_ui with action close to stop it.",
+    },
+    "WEB_UI_CLOSED": {
+        "zh": "记忆大屏已关闭，这个地址不能再访问。",
+        "en": "Memory dashboard is off. That address is no longer reachable.",
+    },
+    "WEB_UI_LISTENING": {
+        "zh": "记忆大屏正在监听：{url}",
+        "en": "Memory dashboard is listening: {url}",
+    },
+    "WEB_UI_IDLE": {
+        "zh": "记忆大屏未开启。",
+        "en": "Memory dashboard is not running.",
+    },
+    "WEB_UI_BAD_ACTION": {
+        "zh": "action 只能是 open、close 或 status",
+        "en": "action must be open, close, or status",
+    },
 }
 
 # list_tools：中英并列，不走 t()。改字必须同步测试。
@@ -373,6 +393,17 @@ TOOL_DESC = {
         "coexist=两侧转/保持可用且不再提醒；"
         "③ explain（conflict_id 必填）=只读展开两侧摘录与各 option 影响，不改库。"
         "用户要展开说明时先 explain，不要关掉抉择卡。"
+    ),
+    "web_ui": (
+        "Open or close the local memory dashboard. action=open (default) binds 127.0.0.1 "
+        "and returns url (path /dashboard) plus snapshot_url (/api/snapshot). "
+        "action=close stops the listener so the page is unreachable. action=status only reports "
+        "whether it is listening. Do not change rsi serve startup args; the page stays down "
+        "until this tool is opened. Show the returned url to the user. "
+        "开关本机记忆大屏。action=open（默认）只绑 127.0.0.1，返回 url（路径 /dashboard）"
+        "和 snapshot_url（/api/snapshot）。action=close 关掉监听，页面即不可访问。"
+        "action=status 只查询是否在听。不要改 rsi serve 的启动参数；没调用 open 之前没有页面。"
+        "把返回的 url 告诉用户。"
     ),
     "memory_health": (
         "Memory health findings: scan/list/explain/resolve. "

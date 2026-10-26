@@ -86,6 +86,7 @@ business code before the audit is finished.** Record outcomes with `rsi_feedback
 | `rsi_memory_health` | Scan / list / explain / resolve incorrect or stale official memories |
 | `rsi_feedback` | Record acceptance of a recalled item (`accepted`) |
 | `rsi_impact` / `rsi_stats` | Measure token savings and memory health |
+| `rsi_web_ui` | Open or close the local memory dashboard (`open` / `close` / `status`). No serve startup flag; the page is unreachable until `open` |
 
 ## Discipline (must follow)
 

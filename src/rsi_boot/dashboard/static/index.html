@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RSI-BOOT · 项目记忆数据大屏</title>
+<style>
+  :root {
+    --bg: #06101F;
+    --panel: #0B1224;
+    --tile: #0E1A30;
+    --line: rgba(33,211,238,0.12);
+    --text: #EAF2FF;
+    --muted: #8FA3C7;
+    --dim: #5E7196;
+    --cyan: #21D3EE;
+    --track: #16243D;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    min-height: 100vh;
+    background:
+      radial-gradient(900px 600px at 10% 0%, rgba(33,211,238,0.08), transparent),
+      radial-gradient(900px 700px at 90% 100%, rgba(154,102,242,0.08), transparent),
+      var(--bg);
+  }
+  button, input { font: inherit; color: inherit; }
+  .mono { font-family: "JetBrains Mono", Consolas, "Courier New", ui-monospace, monospace; }
+  .page { padding: 20px 24px 32px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .mark {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #21D3EE, #9A66F2);
+    color: #06101F; font-weight: 700; font-size: 18px;
+  }
+  h1 { margin: 0; font-size: 25px; font-weight: 600; line-height: 1.2; }
+  .sub { margin: 2px 0 0; color: var(--dim); font-size: 13px; }
+  .tools { display: flex; align-items: center; gap: 16px; }
+  .ranges { display: flex; border: 1px solid rgba(33,211,238,0.25); border-radius: 999px; padding: 4px; background: var(--panel); }
+  .ranges button {
+    border: 0; background: transparent; color: var(--muted);
+    border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px;
+  }
+  .ranges button.on { background: rgba(33,211,238,0.85); color: #06101F; font-weight: 600; }
+  .clock { text-align: right; }
+  .clock .time { font-size: 18px; color: #9DB2D9; }
+  .live { color: #34D399; font-size: 13px; margin-top: 2px; }
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 16px; }
+  .kpi, .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  }
+  .kpi { text-align: left; padding: 16px; cursor: pointer; border-radius: 12px; }
+  .kpi:hover { border-color: rgba(33,211,238,0.4); }
+  .kpi .label { color: var(--muted); font-size: 14px; }
+  .kpi .value { font-size: 34px; font-weight: 700; margin-top: 4px; line-height: 1.1; }
+  .kpi .delta { font-size: 12px; margin-top: 6px; }
+  .board { display: grid; grid-template-columns: 3fr 6fr 3fr; gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .panel { padding: 16px; }
+  .panel h3 { margin: 0; font-size: 17px; font-weight: 600; }
+  .ptitle { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .bar { width: 4px; height: 16px; border-radius: 4px; background: #22d3ee; }
+  .legend-row, .meta-row, .prog-top { display: flex; justify-content: space-between; gap: 8px; }
+  .legend-row { align-items: center; font-size: 12px; margin-bottom: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  .muted { color: var(--muted); }
+  .dim { color: var(--dim); }
+  .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .right { text-align: right; }
+  .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .prog { margin-bottom: 12px; }
+  .prog-top { font-size: 13px; margin-bottom: 4px; }
+  .track { height: 12px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .track > i { display: block; height: 100%; border-radius: 999px; }
+  .track.thin { height: 10px; }
+  .tiles { display: grid; gap: 8px; text-align: center; }
+  .tiles.g3 { grid-template-columns: repeat(3, 1fr); }
+  .tiles.g4 { grid-template-columns: repeat(4, 1fr); }
+  .tile { background: var(--tile); border-radius: 8px; padding: 8px; }
+  .tile b { display: block; font-size: 16px; font-weight: 500; }
+  .tile span { color: var(--muted); font-size: 11px; }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 48px; margin-top: 12px; }
+  .spark i { flex: 1; border-radius: 3px 3px 0 0; min-height: 6px; display: block; }
+  .center-note { text-align: center; font-size: 11px; color: var(--dim); margin-top: 8px; }
+  .chart { width: 100%; height: 260px; display: block; }
+  .legend { display: flex; gap: 16px; margin-bottom: 4px; font-size: 12px; color: var(--muted); }
+  .legend i { width: 12px; height: 4px; border-radius: 4px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+  .bars { display: flex; align-items: flex-end; gap: 12px; height: 200px; margin-top: 8px; }
+  .bars .colb { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+  .bars .num { font-size: 12px; margin-bottom: 4px; }
+  .bars .stick { width: 100%; border-radius: 6px 6px 0 0; min-height: 4px; }
+  .bars .name { font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; line-height: 1.3; }
+  .meta { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+  .panel { overflow: hidden; }
+  .feed { list-style: none; margin: 0; padding: 0; font-size: 13px; color: var(--muted); }
+  .feed li { display: flex; gap: 8px; margin-bottom: 8px; min-width: 0; }
+  .feed li span:last-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .empty { color: var(--muted); font-size: 13px; }
+  .mask {
+    position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal {
+    width: 920px; max-width: 92vw; max-height: 86vh; overflow: auto;
+    background: var(--panel); border: 1px solid rgba(33,211,238,0.2); border-radius: 16px; padding: 24px;
+  }
+  .modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+  .modal .big { font-size: 48px; font-weight: 700; line-height: 1; }
+  .x {
+    border: 1px solid rgba(33,211,238,0.2); background: transparent; color: var(--muted);
+    border-radius: 8px; padding: 4px 12px; cursor: pointer;
+  }
+  .x:hover { color: white; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .sec { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .note { color: var(--dim); font-size: 12px; margin-top: 16px; line-height: 1.6; }
+  .pend { display: flex; align-items: center; gap: 12px; background: var(--tile); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .err { padding: 48px 24px; text-align: center; color: var(--muted); }
+  @media (max-width: 1100px) {
+    .kpis { grid-template-columns: repeat(3, 1fr); }
+    .board, .split, .tiles.g4 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .kpi .value { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div id="app" class="page"><p class="empty">正在读取 .rsi/ …</p></div>
+<script>
+const RANGES = [
+  { key: "7d", label: "近7天", days: 7 },
+  { key: "30d", label: "近30天", days: 30 },
+  { key: "12m", label: "近12月", days: 365 },
+  { key: "all", label: "全部", days: 99999 }
+];
+const FB_ORDER = [
+  ["applied", "applied 采纳", "#34D399"],
+  ["accepted", "accepted 接受", "#21D3EE"],
+  ["referenced", "referenced 引用", "#9A66F2"],
+  ["modified", "modified 修改", "#60A5FA"],
+  ["ignored", "ignored 忽略", "#FBBF24"],
+  ["rejected", "rejected 拒绝", "#FB7185"]
+];
+const state = { raw: null, range: "12m", selected: null };
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+function paint(color) {
+  return /^#[0-9A-Fa-f]{6}$/.test(color || "") ? color : "#5E7196";
+}
+function num(value) {
+  return Number(value || 0).toLocaleString("zh-CN");
+}
+function sliceSeries(raw, key) {
+  const spec = RANGES.find((item) => item.key === key) || RANGES[2];
+  const series = raw.series || [];
+  return series.slice(Math.max(0, series.length - spec.days));
+}
+function viewOf(raw, range) {
+  const series = sliceSeries(raw, range);
+  const sum = (field) => series.reduce((acc, row) => acc + (row[field] || 0), 0);
+  const total = raw.memory.total || 0;
+  const donut = (raw.memory.categories || []).map((row) => ({
+    label: row.label,
+    count: row.value,
+    value: total ? +(row.value / total * 100).toFixed(1) : 0,
+    color: paint(row.color)
+  }));
+  return {
+    series,
+    labels: series.map((row) => String(row.date || "").slice(5)),
+    recallArr: series.map((row) => row.recall || 0),
+    feedbackArr: series.map((row) => row.feedback || 0),
+    total,
+    recallEvents: sum("recall"),
+    hits: sum("hits"),
+    adoption: raw.feedback.adoptionPct || 0,
+    health: raw.meta.healthPct || 0,
+    pending: raw.meta.pendingReview || 0,
+    donut,
+    status: raw.memory.status || [],
+    domains: raw.domains || [],
+    feedback: raw.feedback || { breakdown: {}, total: 0, adopted: 0, adoptionPct: 0 },
+    recent: raw.recent || []
+  };
+}
+function repoName(raw) {
+  const repo = String(raw.meta.repo || "");
+  const parts = repo.replace(/[\\/]+$/, "").split(/[\\/]/);
+  return parts[parts.length - 1] || repo || "—";
+}
+function activeCount(raw) {
+  const row = (raw.memory.status || []).find((item) => item.label === "active");
+  return row ? row.value : 0;
+}
+function kpisOf(raw, data) {
+  return [
+    { key: "total", label: "记忆总量 Total Memory", value: num(data.total), delta: "active " + num(activeCount(raw)) + " 条", tone: "white" },
+    { key: "recall", label: "区间召回 Recall", value: num(data.recallEvents), delta: "命中 " + num(data.hits) + " 条", tone: "white" },
+    { key: "adoption", label: "采纳率 Adoption", value: data.adoption + "%", delta: "反馈 " + num(data.feedback.total) + " 条", tone: "white" },
+    { key: "hits", label: "累计命中 Hits", value: num(data.hits), delta: "避免重复注入上下文", tone: "cyan" },
+    { key: "health", label: "知识健康度 Health", value: data.health + "%", delta: "● active 占比", tone: "white" },
+    { key: "pending", label: "待审 Pending", value: num(data.pending), delta: "pending_review", tone: "amber" }
+  ];
+}
+function toneColor(tone) {
+  if (tone === "cyan") return "#21D3EE";
+  if (tone === "amber") return "#FBBF24";
+  return "#EAF2FF";
+}
+function clockText() {
+  return new Date().toLocaleString("zh-CN", { hour12: false });
+}
+
+function donut(segments, total) {
+  const size = 116, stroke = 16;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  let acc = 0;
+  const rings = segments.map((seg) => {
+    const len = c * (seg.value || 0) / 100;
+    const node = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${paint(seg.color)}" stroke-width="${stroke}" stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-acc}"></circle>`;
+    acc += len;
+    return node;
+  }).join("");
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <g transform="rotate(-90 ${size / 2} ${size / 2})">
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#16243D" stroke-width="${stroke}"></circle>
+      ${rings}
+    </g>
+    <text x="50%" y="47%" text-anchor="middle" fill="#EAF2FF" font-size="22" font-weight="700" font-family="Consolas, monospace">${esc(num(total))}</text>
+    <text x="50%" y="64%" text-anchor="middle" fill="#8FA3C7" font-size="11">条记忆</text>
+  </svg>`;
+}
+function progress(label, value, color, pct) {
+  const width = Math.max(0, Math.min(100, Number(pct) || 0));
+  return `<div class="prog">
+    <div class="prog-top"><span class="muted">${esc(label)}</span><span class="mono">${esc(Math.round(Number(value) || 0))} · ${esc(width)}%</span></div>
+    <div class="track"><i style="width:${width}%;background:${paint(color)}"></i></div>
+  </div>`;
+}
+function areaChart(labels, recall, feedback) {
+  if (!labels.length) return `<p class="empty">这个区间还没有召回或反馈。</p>`;
+  const W = 820, H = 260, padX = 16, padY = 18;
+  const n = labels.length;
+  const maxR = Math.max(...recall, ...feedback, 1) * 1.18;
+  const x = (i) => padX + (n === 1 ? (W - 2 * padX) / 2 : i * (W - 2 * padX) / (n - 1));
+  const y = (v) => H - padY - v / maxR * (H - 2 * padY);
+  const line = (arr) => arr.map((v, i) => `${i ? "L" : "M"} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+  const area = `${line(recall)} L ${x(n - 1).toFixed(1)} ${H - padY} L ${x(0).toFixed(1)} ${H - padY} Z`;
+  const step = Math.max(1, Math.ceil(n / 8));
+  const texts = labels.map((lb, i) => {
+    if (i % step !== 0 && i !== n - 1) return "";
+    return `<text x="${x(i).toFixed(1)}" y="${H - 2}" fill="#5E7196" font-size="11" text-anchor="middle">${esc(lb)}</text>`;
+  }).join("");
+  const grid = [0.25, 0.5, 0.75].map((g) => {
+    const gy = H - padY - g * (H - 2 * padY);
+    return `<line x1="${padX}" y1="${gy}" x2="${W - padX}" y2="${gy}" stroke="#16243D"></line>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart">
+    <defs><linearGradient id="recallFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#21D3EE" stop-opacity="0.35"></stop>
+      <stop offset="100%" stop-color="#21D3EE" stop-opacity="0"></stop>
+    </linearGradient></defs>
+    ${grid}
+    <path d="${area}" fill="url(#recallFill)"></path>
+    <path d="${line(recall)}" fill="none" stroke="#21D3EE" stroke-width="2.5"></path>
+    <path d="${line(feedback)}" fill="none" stroke="#9A66F2" stroke-width="2.5" stroke-dasharray="5 4"></path>
+    ${texts}
+  </svg>`;
+}
+function bars(rows) {
+  const max = Math.max(...rows.map((row) => row.value), 1);
+  return `<div class="bars">${rows.map((row) => `<div class="colb">
+    <div class="mono num">${esc(row.value)}</div>
+    <div class="stick" style="height:${row.value / max * 100}%;background:${paint(row.color)}"></div>
+    <div class="name">${esc(row.label)}</div>
+  </div>`).join("")}</div>`;
+}
+function gauge(value) {
+  const shown = Math.max(0, Math.min(100, Number(value) || 0));
+  const r = 80, cx = 100, cy = 105;
+  const circ = Math.PI * r;
+  const len = circ * shown / 100;
+  return `<svg viewBox="0 0 200 120" style="width:200px">
+    <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#21D3EE"></stop>
+      <stop offset="100%" stop-color="#34D399"></stop>
+    </linearGradient></defs>
+    <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="#16243D" stroke-width="14" stroke-linecap="round"></path>
+    <path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${len} ${circ - len}"></path>
+    <text x="${cx}" y="${cy - 14}" text-anchor="middle" fill="#EAF2FF" font-size="30" font-weight="700" font-family="Consolas, monospace">${esc(shown)}%</text>
+  </svg>`;
+}
+function panel(title, body) {
+  return `<section class="panel"><div class="ptitle"><span class="bar"></span><h3>${esc(title)}</h3></div>${body}</section>`;
+}
+function tile(label, value, color) {
+  return `<div class="tile"><b class="mono" style="color:${paint(color)}">${esc(value)}</b><span>${esc(label)}</span></div>`;
+}
+
+function modal(kpi, raw, data) {
+  const rs = raw.recallStats || {};
+  const fb = raw.feedback || { breakdown: {}, total: 0, adopted: 0, adoptionPct: 0 };
+  const st = raw.memory.status || [];
+  const pending = raw.pendingItems || [];
+  const hits = rs.hits || 0;
+  const domSum = (rs.byDomain || []).reduce((acc, row) => acc + row.value, 0) || 1;
+  const catRows = (rs.byCategory || []).concat([{ label: "已淘汰 / 未映射", value: rs.unmappedHits || 0, color: "#5E7196" }]);
+  let body = "";
+  let note = "";
+  if (kpi.key === "recall" || kpi.key === "hits") {
+    body = `<div class="tiles g4" style="margin-bottom:16px">
+      ${tile("召回事件", num(rs.events), "#21D3EE")}
+      ${tile("命中（候选）条数", num(rs.hits), "#34D399")}
+      ${tile("均次命中", rs.avgPerEvent || 0, "#9A66F2")}
+      ${tile("单次范围", (rs.minPerEvent || 0) + "~" + (rs.maxPerEvent || 0), "#FBBF24")}
+    </div><div class="split"><div><div class="sec">命中按记忆类型分布</div>
+      ${catRows.map((row) => progress(row.label, row.value, row.color, hits ? (row.value / hits * 100).toFixed(1) : 0)).join("")}
+    </div><div><div class="sec">命中按记忆模块 Top ${(rs.byDomain || []).length}</div>
+      ${(rs.byDomain || []).map((row) => progress(row.label === "unknown" ? "未标注 domain" : row.label, row.value, "#9A66F2", (row.value / domSum * 100).toFixed(1))).join("") || `<p class="empty">还没有可映射的命中。</p>`}
+    </div></div>`;
+    const unmappedPct = hits ? ((rs.unmappedHits || 0) / hits * 100).toFixed(1) : "0.0";
+    note = `口径说明：命中 = 每次 recall 检索到的候选记忆条数（单次 ${rs.minPerEvent || 0}~${rs.maxPerEvent || 0} 条），${rs.events || 0} 次召回合计 ${num(hits)} 条；其中 ${unmappedPct}% 的候选 ID 已不在当前记忆库。类型 / 模块分布按全部事件统计。`;
+  } else if (kpi.key === "adoption") {
+    const rows = Object.keys(fb.breakdown || {}).sort((a, b) => (fb.breakdown[b] || 0) - (fb.breakdown[a] || 0));
+    const colors = Object.fromEntries(FB_ORDER.map(([key, , color]) => [key, color]));
+    body = `<div class="tiles g4" style="margin-bottom:16px">
+      ${tile("反馈总数", num(fb.total), "#21D3EE")}
+      ${tile("已采纳", num(fb.adopted), "#34D399")}
+      ${tile("采纳率", (fb.adoptionPct || 0) + "%", "#9A66F2")}
+      ${tile("未采纳", num((fb.total || 0) - (fb.adopted || 0)), "#FBBF24")}
+    </div><div class="split"><div><div class="sec">反馈动作构成</div>
+      ${rows.map((name) => progress(name, fb.breakdown[name], colors[name] || "#5E7196", fb.total ? (fb.breakdown[name] / fb.total * 100).toFixed(1) : 0)).join("") || `<p class="empty">还没有反馈。</p>`}
+    </div><div><div class="sec">采纳口径</div>
+      <p class="muted" style="font-size:13px;line-height:1.7">采纳 = applied（直接应用） + accepted（接受） + referenced（引用） + modified（修改后应用）；ignored（忽略）与 rejected（拒绝）不计入采纳。当前 ${fb.adopted || 0} / ${fb.total || 0} = ${fb.adoptionPct || 0}%。</p>
+    </div></div>`;
+    note = "口径说明：采纳率基于 feedback 事件统计，按全部事件口径计算。";
+  } else if (kpi.key === "health") {
+    const find = (name) => (st.find((row) => row.label === name) || {}).value || 0;
+    body = `<div class="tiles g4" style="margin-bottom:16px">
+      ${tile("记忆总量", num(data.total), "#21D3EE")}
+      ${tile("active", num(find("active")), "#34D399")}
+      ${tile("pending_review", num(find("pending_review")), "#FBBF24")}
+      ${tile("archived", num(find("archived")), "#9A66F2")}
+    </div><div class="split"><div><div class="sec">记忆状态分布</div>
+      ${st.map((row) => progress(row.label, row.value, row.color, data.total ? (row.value / data.total * 100).toFixed(1) : 0)).join("") || `<p class="empty">还没有记忆。</p>`}
+    </div><div><div class="sec">健康度口径</div>
+      <p class="muted" style="font-size:13px;line-height:1.7">知识健康度 = active 记忆 / 全部记忆。当前 ${num(find("active"))} / ${num(data.total)} = ${data.health}%；pending_review 为待人工审核条目，archived 为已归档条目。</p>
+    </div></div>`;
+    note = "口径说明：状态按文件所在目录计算，memory/pending 为待审，memory/archive 为已归档，其余为 active。";
+  } else if (kpi.key === "pending") {
+    body = `<div class="sec">待审条目清单（pending_review）</div>` + (pending.length ? pending.map((item) => `<div class="pend">
+      <span class="dot" style="background:${item.type === "prohibition" ? "#FB7185" : "#FBBF24"}"></span>
+      <span class="grow">${esc(item.title)}</span>
+      <span class="dim" style="font-size:11px">${esc(item.type)}</span>
+      <span class="dim" style="font-size:11px">${esc(item.domain)}</span>
+      <span class="mono dim" style="font-size:11px">${esc(item.updated)}</span>
+    </div>`).join("") : `<p class="empty">当前没有待审条目。</p>`);
+    note = `口径说明：待审条目来自 memory/pending 下的记忆，共 ${pending.length} 条，需人工审核后转为 active 或 archived。`;
+  } else {
+    body = `<div class="split"><div><div class="sec">按记忆类型分布</div>
+      ${data.donut.map((row) => progress(row.label, row.count, row.color, row.value)).join("") || `<p class="empty">还没有记忆。</p>`}
+    </div><div><div class="sec">记忆模块 Top ${data.domains.length}</div>
+      ${data.domains.map((row) => progress(row.label, row.value, "#21D3EE", data.total ? (row.value / data.total * 100).toFixed(1) : 0)).join("") || `<p class="empty">记忆还没有 domain。</p>`}
+    </div></div>`;
+    note = `口径说明：按当前记忆库的构成统计，加总 = ${num(data.total)} 条记忆。`;
+  }
+  const deltaColor = kpi.tone === "amber" ? "#FBBF24" : "#34D399";
+  return `<div class="mask" id="mask">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div>
+          <div class="muted" style="font-size:14px">${esc(kpi.label)}</div>
+          <div class="mono big">${esc(kpi.value)}</div>
+          <div style="color:${deltaColor};font-size:12px;margin-top:4px">${esc(kpi.delta)}</div>
+        </div>
+        <button class="x" id="close" type="button">✕ 关闭</button>
+      </div>
+      ${body}
+      <div class="note">${esc(note)}</div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const raw = state.raw;
+  const data = viewOf(raw, state.range);
+  const kpis = kpisOf(raw, data);
+  const recallAll = (raw.series || []).reduce((acc, row) => acc + (row.recall || 0), 0);
+  const avgHits = recallAll ? +((raw.meta.recallTotalHits || 0) / recallAll).toFixed(1) : 0;
+  const last21 = (raw.series || []).slice(-21);
+  const maxHits = Math.max(1, ...last21.map((row) => row.hits || 0));
+  const fbRows = FB_ORDER.map(([key, label, color]) => ({
+    label, value: (data.feedback.breakdown || {})[key] || 0, color
+  }));
+  const domainMax = (data.domains[0] && data.domains[0].value) || 1;
+  const kindColor = { recall: "#21D3EE", feedback: "#34D399", review: "#9A66F2", learn: "#FBBF24" };
+  const html = `
+    <header>
+      <div class="brand">
+        <div class="mark mono">R</div>
+        <div>
+          <h1>RSI-BOOT · 项目记忆数据大屏</h1>
+          <p class="sub">仓库 .rsi/ 里的记忆和数据，在本机被看见</p>
+        </div>
+      </div>
+      <div class="tools">
+        <div class="ranges">${RANGES.map((item) => `<button type="button" data-range="${item.key}" class="${state.range === item.key ? "on" : ""}">${item.label}</button>`).join("")}</div>
+        <div class="clock">
+          <div class="mono time" id="clock">${esc(clockText())}</div>
+          <div class="live">● 真实 .rsi/ 快照 · 本机</div>
+        </div>
+      </div>
+    </header>
+    <div class="kpis">${kpis.map((kpi, index) => `<button class="kpi" type="button" data-kpi="${index}">
+      <div class="label">${esc(kpi.label)}</div>
+      <div class="mono value" style="color:${toneColor(kpi.tone)}">${esc(kpi.value)}</div>
+      <div class="delta" style="color:${kpi.tone === "amber" ? "#FBBF24" : "#34D399"}">${esc(kpi.delta)}</div>
+    </button>`).join("")}</div>
+    <div class="board">
+      <div class="col">
+        ${panel("记忆类型分布", `<div class="donut-wrap">${donut(data.donut, data.total)}<div style="width:100%">${data.donut.map((row) => `<div class="legend-row"><span class="swatch" style="background:${paint(row.color)}"></span><span class="muted grow">${esc(row.label)}</span><span class="mono">${esc(row.count)} 条 · ${esc(row.value)}%</span></div>`).join("") || `<p class="empty">还没有记忆文件。</p>`}</div></div>`)}
+        ${panel("记忆状态分布", (data.status.map((row) => progress(row.label, row.value, row.color, data.total ? (row.value / data.total * 100).toFixed(1) : 0)).join("")) || `<p class="empty">还没有记忆文件。</p>`)}
+        ${panel("召回效率", `<div class="tiles g3">
+          ${tile("累计命中", num(raw.meta.recallTotalHits), "#21D3EE")}
+          ${tile("召回事件", num(recallAll), "#9A66F2")}
+          ${tile("均次命中", avgHits, "#34D399")}
+        </div><div class="spark">${last21.map((row) => `<i title="${esc(row.date)} · ${row.hits || 0}" style="height:${Math.max(6, (row.hits || 0) / maxHits * 100)}%;background:${row.hits ? "#21D3EE" : "#16243D"};opacity:.85"></i>`).join("")}</div><div class="center-note">近 21 天召回命中量分布</div>`)}
+        ${panel("数据快照", `<div class="meta">
+          <div class="meta-row"><span class="muted">数据源</span><span class="mono right grow" title="${esc(raw.meta.repo)}">${esc(repoName(raw))}</span></div>
+          <div class="meta-row"><span class="muted">统计跨度</span><span class="mono">${esc(raw.meta.spanStart || "—")} ~ ${esc(raw.meta.spanEnd || "—")}</span></div>
+          <div class="meta-row"><span class="muted">事件总数</span><span class="mono">${esc(num(raw.meta.eventTotal))} 条</span></div>
+          <div class="meta-row"><span class="muted">快照生成</span><span class="mono">${esc(raw.meta.generatedAt || "")}</span></div>
+          <div class="live">● 本机 · 零 API Key · 关闭工具后不可访问</div>
+        </div>`)}
+      </div>
+      <div class="col">
+        ${panel("召回 & 反馈趋势", `<div class="legend"><span><i style="background:#21D3EE"></i>召回次数</span><span><i style="background:#9A66F2"></i>反馈次数</span></div>${areaChart(data.labels, data.recallArr, data.feedbackArr)}`)}
+        ${panel("反馈采纳分布", `${bars(fbRows)}<div class="tiles g3" style="margin-top:12px">
+          ${tile("采纳率", data.feedback.adoptionPct + "%", "#34D399")}
+          ${tile("反馈总数", num(data.feedback.total), "#21D3EE")}
+          ${tile("已采纳", num(data.feedback.adopted), "#9A66F2")}
+        </div>`)}
+        ${panel("记忆模块 Top（按 domain）", data.domains.length ? `<div class="split">${data.domains.map((row) => `<div class="prog"><div class="prog-top"><span class="muted grow">${esc(row.label)}</span><span class="mono">${esc(row.value)}</span></div><div class="track thin"><i style="width:${row.value / domainMax * 100}%;background:#21D3EE"></i></div></div>`).join("")}</div>` : `<p class="empty">记忆还没有标注 domain。</p>`)}
+      </div>
+      <div class="col">
+        ${panel("知识健康度", `<div style="display:flex;flex-direction:column;align-items:center">${gauge(data.health)}<div class="tiles g3" style="width:100%;margin-top:8px">
+          ${tile("记忆总量", num(data.total), "#34D399")}
+          ${tile("active", num(activeCount(raw)), "#21D3EE")}
+          ${tile("待审", num(data.pending), "#9A66F2")}
+        </div></div>`)}
+        ${panel("近期活动（真实事件流）", data.recent.length ? `<ul class="feed">${data.recent.map((row) => `<li><span style="color:${kindColor[row.kind] || "#FBBF24"}">›</span><span>${esc(row.text)}</span></li>`).join("")}</ul>` : `<p class="empty">还没有 recall / feedback 事件。</p>`)}
+      </div>
+    </div>
+    ${state.selected ? modal(state.selected, raw, data) : ""}
+  `;
+  document.getElementById("app").innerHTML = html;
+  document.querySelectorAll("[data-range]").forEach((node) => {
+    node.addEventListener("click", () => {
+      state.range = node.getAttribute("data-range");
+      render();
+    });
+  });
+  document.querySelectorAll("[data-kpi]").forEach((node) => {
+    node.addEventListener("click", () => {
+      state.selected = kpis[Number(node.getAttribute("data-kpi"))];
+      render();
+    });
+  });
+  const close = document.getElementById("close");
+  const mask = document.getElementById("mask");
+  if (close) close.addEventListener("click", () => { state.selected = null; render(); });
+  if (mask) mask.addEventListener("click", (event) => {
+    if (event.target === mask) { state.selected = null; render(); }
+  });
+}
+
+async function boot() {
+  try {
+    const response = await fetch("/api/snapshot", { cache: "no-store" });
+    if (!response.ok) throw new Error("snapshot " + response.status);
+    state.raw = await response.json();
+    render();
+    setInterval(() => {
+      const node = document.getElementById("clock");
+      if (node) node.textContent = clockText();
+    }, 1000);
+  } catch (err) {
+    document.getElementById("app").innerHTML = `<div class="err">读不到快照。确认 rsi_web_ui 仍是 open。<br>${esc(err.message || err)}</div>`;
+  }
+}
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && state.selected) {
+    state.selected = null;
+    render();
+  }
+});
+boot();
+</script>
+</body>
+</html>

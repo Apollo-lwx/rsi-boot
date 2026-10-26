@@ -58,7 +58,7 @@ async def test_tools_list(tmp_path):
             "rsi_knowledge_review",
             "rsi_knowledge_update",
             "rsi_review", "rsi_conflicts", "rsi_stats", "rsi_impact",
-            "rsi_learn", "rsi_memory", "rsi_memory_health",
+            "rsi_learn", "rsi_memory", "rsi_memory_health", "rsi_web_ui",
         }
         for tool in tools:
             assert tool.inputSchema["type"] == "object"

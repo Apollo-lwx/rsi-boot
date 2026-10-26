@@ -63,6 +63,9 @@ rsi-boot = "rsi_boot.__main__:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/rsi_boot"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/rsi_boot/dashboard/static/index.html" = "rsi_boot/dashboard/static/index.html"
+
 # 包内数据：src/rsi_boot/config/（default.yaml、intent_rules.yaml、templates/、skills/）
 # 与 src/rsi_boot/migrations/（001_init.sql 等）随包分发，对应 Spec §11 的顶层 config/ 与 migrations/
 

@@ -194,6 +194,20 @@ statusline_style: buddy
 - 选项：`--lang zh|en`、`--no-rsi`、`--no-quip`、`--plain`（去颜色与 emoji）；`NO_COLOR` 只关颜色。
 - 冷启动约 250ms，满足宿主 ≥300ms 刷新间隔；命令永不非零退出，异常时兜底输出一行。
 
+## 记忆大屏
+
+不用改 `rsi serve` 的启动参数。对当前项目窗口里的代理说「打开记忆大屏」，代理调用工具 `rsi_web_ui`（`action` 为 `open`）后，本机才会监听；说「关掉记忆大屏」（`action` 为 `close`）后，下面这个地址立刻访问不到。
+
+默认示例路由（端口被占用时，以工具返回的 `url` 为准）：
+
+```text
+http://127.0.0.1:18765/dashboard
+```
+
+同一进程里的数据接口是 `http://127.0.0.1:18765/api/snapshot`，也只在大屏开着时才有。页面读的是当前仓库 `.rsi/`，不需要 API Key。
+
+![RSI 记忆大屏](assets/dashboard-preview.png)
+
 ## 在对话里学习
 
 接好 MCP 后不要自己去终端跑 `rsi`。对当前项目窗口里的代理说即可。
@@ -242,6 +256,7 @@ rsi serve
 | `rsi_review` | Harness 改进提案与配置快照 |
 | `rsi_stats` | 记忆使用统计 |
 | `rsi_impact` | 价值/影响力面板（供宣讲）：注入成本（字符+token 估算）、召回压缩比、采纳/合规、时间曲线，以及 A/B 省 token 计算器（省量仅由用户喂入的宿主用前/用后对照得出，绝不编造） |
+| `rsi_web_ui` | 开关本机记忆大屏。`open` 后才监听 `http://127.0.0.1:18765/dashboard`，`close` 后不可访问。不改 `rsi serve` 启动参数 |
 
 RSI 无 OAuth。蒸馏中途不要调 `mcp_auth`、不要给用户弹授权。
 

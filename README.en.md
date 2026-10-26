@@ -192,6 +192,20 @@ Note: the status line is not an MCP server and is not governed by mcp.json (that
 - Flags: `--lang zh|en`, `--no-rsi`, `--no-quip`, `--plain` (no colors or emoji); `NO_COLOR` disables colors only.
 - Cold start is ~250ms, within the host's ≥300ms refresh cadence; the command always exits 0 and falls back to a minimal line on error.
 
+## Memory dashboard
+
+No extra `rsi serve` flags. In the project chat, say "open the memory dashboard" and the agent calls `rsi_web_ui` with `action` `open`. Say "close the memory dashboard" (`action` `close`) and the address below stops responding.
+
+Default route (if the port is taken, use the `url` the tool returns):
+
+```text
+http://127.0.0.1:18765/dashboard
+```
+
+The data route on that same process is `http://127.0.0.1:18765/api/snapshot`, and it exists only while the dashboard is open. The page reads the current repo's `.rsi/` and needs no API key.
+
+![RSI memory dashboard](assets/dashboard-preview.png)
+
 ## Learning in conversation
 
 Once the MCP is connected, don't run `rsi` in a terminal yourself — just talk to the agent in the project window.
@@ -240,6 +254,7 @@ rsi serve
 | `rsi_review` | Harness improvement proposals and config snapshots |
 | `rsi_stats` | Memory usage statistics |
 | `rsi_impact` | Value/impact panel for evangelism: injected cost (chars + est. tokens), recall compaction, adoption/compliance, a time curve, and an A/B token-savings calculator (savings are only produced from a user-supplied host before/after comparison — never invented) |
+| `rsi_web_ui` | Open or close the local memory dashboard. `open` listens on `http://127.0.0.1:18765/dashboard`; `close` makes that address unreachable. No `rsi serve` startup flag |
 
 RSI has no OAuth. Do not call `mcp_auth` mid-distillation, and never pop an authorization prompt at the user.
 
