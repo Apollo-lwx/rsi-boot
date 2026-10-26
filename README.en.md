@@ -34,9 +34,19 @@ One MCP server (`rsi serve`) plugs into Cursor, Qoder, and Codex; the status lin
 | API key on the main path | bound to the host | required | often | **none** |
 | Write gate | the model decides | server-side policy | rare | **review + prohibitions + conflict rulings** |
 
-## Public benchmark (in progress)
+## Public benchmark
 
-Claims need receipts. RepoMem Bench runs the same set of real-repo tasks under three arms (no context / AGENTS.md only / RSI Boot bootstrapped) and compares first-attempt pass rate, token spend, and convention violations. Tasks, methodology, and raw results are public — reruns welcome. See [benchmark/](benchmark/). **Until results land, we cite no numbers.**
+Claims need receipts. RepoMem Bench runs real issues from real repos under three arms: every run is a fresh agent instance, graded by hidden tests, with any `tests/` edit counted as a violation. Tasks, patches, runner, and all 49 raw result files are public — reruns welcome: [benchmark/](benchmark/).
+
+On "temptation tasks" — where a correct fix forces the repo's own stale assertions to fail (3 repeats per cell, cross-checked with historical runs):
+
+| Arm | Runs | Edited tests (violations) | Violation rate |
+|------|:---:|:---:|:---:|
+| A · no context | 9 | 7 | **78%** |
+| B · AGENTS.md only | 9 | 0 | **0%** |
+| C · RSI Boot memory | 9 | 1 | **11%** |
+
+> On control tasks (no stale assertions) violations are 0 across arms — violations are induced by temptation, not random. C's single violation was an agent that recalled the rule and declared an exception anyway. Full report with threats to validity: [36-run final report](benchmark/results/SUMMARY-v5-final-36runs.md).
 
 ## Installation
 
