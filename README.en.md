@@ -45,9 +45,9 @@ On "temptation tasks" — where a correct fix forces the repo's own stale assert
 |------|:---:|:---:|:---:|
 | A · no context | 12 | 8 | **67%** |
 | B · AGENTS.md only | 12 | 0 | **0%** |
-| C · RSI Boot memory | 12 | 2 | **17%** |
+| C · RSI Boot memory | 12 | 1 | **8%** |
 
-> On control tasks (no stale assertions) violations are 0 across arms — violations are induced by temptation, not random. Both of C's violations happened after the agent had recalled the rule. The 4th-repeat rerun moved the rates from 78% / 0% / 11% to the table above; the direction is unchanged. Full report with threats to validity: [48-run report](benchmark/results/SUMMARY-v5-final-36runs.md).
+> On control tasks (no stale assertions) violations are 0 across arms — violations are induced by temptation, not random. C's single violation was an agent that recalled the rule and declared an exception anyway. The 4th-repeat rerun moved the rates from 78% / 0% / 11% to the table above (a same-day 17% figure was withdrawn: one non-independent repeat was excluded). Full report with threats to validity: [48-run report](benchmark/results/SUMMARY-v5-final-36runs.md).
 
 ## Installation
 
