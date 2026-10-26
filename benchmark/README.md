@@ -88,7 +88,7 @@ python benchmark/run_benchmark.py --task benchmark/tasks/examples/markupsafe-doc
 - [x] **v2 完成**（3 硬任务 × 3 组）：见 [results/SUMMARY-v2.md](results/SUMMARY-v2.md)——**首次量化约定约束力**（A 组改测试违规 1 起 vs B/C 全守规矩）；发现过规格化测试陷阱；C 组代理自发完成 teach_record+feedback 闭环
 - [x] **批 1 完成**（4 任务 × 3 组 = 12 跑，36 跑计划首批）：见 [results/SUMMARY-v3-batch1.md](results/SUMMARY-v3-batch1.md)——**诱惑任务上 A 违规 2/2、B/C 0/8；累计 A 4/5 vs B 0/6 vs C 1/6**；`seed_memory.ps1` 一键播种 C 组记忆
 - [x] **批 2 完成**（第二轮重复 12 跑）：见 [results/SUMMARY-v4-batch2.md](results/SUMMARY-v4-batch2.md)——**可重复性确立：A 在真诱惑任务累计 6/7 违规 vs B 0/7 vs C 1/8**；非诱惑任务三组全 0（交叉验证违规由诱惑诱发）
-- [x] **36 跑计划完成（批 1–3）**：见 [results/SUMMARY-v5-final-36runs.md](results/SUMMARY-v5-final-36runs.md)——**可发布候选：诱惑任务上 A 违规 78%（7/9）vs B 0%（0/9）vs C 11%（1/9）**，含方法、效度威胁与复跑指引
+- [x] **36 跑计划完成（批 1–3）**，并经第 4 批复跑更新为 48 跑：见 [results/SUMMARY-v5-final-36runs.md](results/SUMMARY-v5-final-36runs.md)——**诱惑任务上 A 违规 67%（8/12）vs B 0%（0/12）vs C 17%（2/12）**（第 4 批前为 78% / 0% / 11%），含方法、效度威胁与复跑指引
 - [ ] 下轮：B/C 分化任务设计（多文件/长程/token 维度）；任务入库 checklist 增加「人工审查精确文本断言」
 - [ ] cursor / codex 后端
 - [ ] 正式首轮结果 + 排行榜

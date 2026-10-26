@@ -1,0 +1,32 @@
+{
+  "run_id": "20261026T074332Z-packaging-filename-no-raise-B",
+  "benchmark": "repomem-bench/v0",
+  "task": "packaging-filename-no-raise",
+  "arm": "B",
+  "arm_setup": "agents_md injected",
+  "backend": "manual",
+  "repo": {
+    "url": "https://github.com/pypa/packaging",
+    "ref": "b509bef6a4573595b23a97ecbfe569000918157f",
+    "resolved_sha": "b509bef6a4573595b23a97ecbfe569000918157f"
+  },
+  "model": null,
+  "started_at": "2026-10-26T07:32:29.596454+00:00",
+  "duration_s": 662.5,
+  "verify": {
+    "command": "python -m pytest tests/ -q",
+    "exit_code": 0,
+    "passed": true,
+    "verify_duration_s": 27.1,
+    "verify_patch": "packaging-filename-no-raise.verify.patch"
+  },
+  "tokens": null,
+  "num_turns": null,
+  "cost_usd": null,
+  "files_changed": [
+    "src/packaging/utils.py"
+  ],
+  "forbidden_violations": [],
+  "backend_raw_tail": null,
+  "notes": "agent 完成 src 修复后卡死；diff 完整、未触碰 tests/——按产物计分"
+}

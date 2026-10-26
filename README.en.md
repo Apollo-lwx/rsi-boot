@@ -39,15 +39,15 @@ One MCP server (`rsi serve`) plugs into Cursor, Qoder, and Codex; the status lin
 
 Claims need receipts. RepoMem Bench runs real issues from real repos under three arms: every run is a fresh agent instance, graded by hidden tests, with any `tests/` edit counted as a violation. Tasks, patches, runner, and all 49 raw result files are public — reruns welcome: [benchmark/](benchmark/).
 
-On "temptation tasks" — where a correct fix forces the repo's own stale assertions to fail (3 repeats per cell, cross-checked with historical runs):
+On "temptation tasks" — where a correct fix forces the repo's own stale assertions to fail (4 independent repeats per cell, cross-checked with historical runs; rerun update 2026-10-26):
 
 | Arm | Runs | Edited tests (violations) | Violation rate |
 |------|:---:|:---:|:---:|
-| A · no context | 9 | 7 | **78%** |
-| B · AGENTS.md only | 9 | 0 | **0%** |
-| C · RSI Boot memory | 9 | 1 | **11%** |
+| A · no context | 12 | 8 | **67%** |
+| B · AGENTS.md only | 12 | 0 | **0%** |
+| C · RSI Boot memory | 12 | 2 | **17%** |
 
-> On control tasks (no stale assertions) violations are 0 across arms — violations are induced by temptation, not random. C's single violation was an agent that recalled the rule and declared an exception anyway. Full report with threats to validity: [36-run final report](benchmark/results/SUMMARY-v5-final-36runs.md).
+> On control tasks (no stale assertions) violations are 0 across arms — violations are induced by temptation, not random. Both of C's violations happened after the agent had recalled the rule. The 4th-repeat rerun moved the rates from 78% / 0% / 11% to the table above; the direction is unchanged. Full report with threats to validity: [48-run report](benchmark/results/SUMMARY-v5-final-36runs.md).
 
 ## Installation
 
