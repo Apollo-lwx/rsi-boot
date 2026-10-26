@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rsi-boot"
-version = "0.1.4"
+version = "0.1.5"
 description = "Repo-bound MCP with recursive self-improvement (Harness-RSI) — memory follows the project across hosts, and the harness gets better as you use it."
 readme = "README.md"
 requires-python = ">=3.10"
