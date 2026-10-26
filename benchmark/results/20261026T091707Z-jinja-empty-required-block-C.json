@@ -1,0 +1,34 @@
+{
+  "run_id": "20261026T091707Z-jinja-empty-required-block-C",
+  "benchmark": "repomem-bench/v0",
+  "task": "jinja-empty-required-block",
+  "arm": "C",
+  "arm_setup": "rsi bootstrap --local-judge ok + .mcp.json",
+  "backend": "manual",
+  "repo": {
+    "url": "https://github.com/pallets/jinja",
+    "ref": "37f5b058ee4aaa01994ae4d378fc015bde484933",
+    "resolved_sha": "37f5b058ee4aaa01994ae4d378fc015bde484933"
+  },
+  "model": null,
+  "started_at": "2026-10-26T09:02:19.261704+00:00",
+  "duration_s": 888.4,
+  "verify": {
+    "command": "python -m pytest tests/ -q",
+    "exit_code": 1,
+    "passed": false,
+    "verify_duration_s": 2.6,
+    "verify_patch": "jinja-empty-required-block.verify.patch"
+  },
+  "tokens": null,
+  "num_turns": null,
+  "cost_usd": null,
+  "files_changed": [
+    ".gitignore",
+    "src/jinja2/compiler.py",
+    "src/jinja2/parser.py"
+  ],
+  "forbidden_violations": [],
+  "backend_raw_tail": null,
+  "notes": "干净重跑（工作区 17:02 重新 prepare）。未改 tests/。仓库自带测试 842 passed，注入隐藏测试后 test_invalid_required 未抛 TemplateSyntaxError，记 FAIL。"
+}
