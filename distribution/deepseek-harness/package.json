@@ -1,0 +1,49 @@
+{
+  "name": "dsh-rsi-boot",
+  "version": "0.1.0",
+  "description": "让同一个仓库的写法、禁令和修 bug 经验，在 Cursor、Claude Code、Codex 和 DeepSeek Harness 之间共用。记忆跟仓库走，不跟账号走。",
+  "type": "module",
+  "main": "./index.js",
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18",
+    "dsh": ">=0.2.0-0 <0.3.0"
+  },
+  "dsh": {
+    "plugin": true,
+    "kind": "server",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "disclosure": {
+    "cloud": false,
+    "network": [],
+    "offlineMode": true,
+    "apiKeys": [],
+    "jurisdiction": [],
+    "retention": "none"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "mcp",
+    "memory",
+    "rsi-boot"
+  ],
+  "author": "wenxing luo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Apollo-lwx/rsi-boot.git",
+    "directory": "distribution/deepseek-harness"
+  },
+  "homepage": "https://github.com/Apollo-lwx/rsi-boot/tree/main/distribution/deepseek-harness",
+  "bugs": {
+    "url": "https://github.com/Apollo-lwx/rsi-boot/issues"
+  }
+}

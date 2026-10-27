@@ -12,9 +12,9 @@
 
 > **Engineering memory for agents, not chat memory: it travels with the repo, survives host switches, and gets better as you use it.**
 
-Cursor removed Memories in 2.1 — new chats know nothing about your project. Claude Code's memory lives on one machine, outside git, and can't be shared with your team. Cloud memory asks for keys and servers, and follows your account.
+Cursor removed Memories in 2.1 — new chats know nothing about your project. Claude Code's memory lives on one machine, outside git, so a teammate never sees it. Cloud memory asks for keys and servers, and follows your account. The same gap shows up when one person moves a repo between Cursor, Claude Code, Codex, and DeepSeek Harness, or when a team splits across those tools: conventions, prohibitions, and bug-fix lessons stay behind in whichever tool wrote them down.
 
-RSI Boot keeps conventions, prohibitions, repair lessons, and harness slots in the repo's `.rsi/`, traveling with git: install once, use it from Cursor, Claude Code, Codex, and Qoder. Negative feedback lands in failure buckets; improvement proposals pass a static gate and human review, are watched for 7 days, and roll back automatically if adoption drops — not more notes, better work. The main path needs no API key and makes no model calls.
+RSI Boot keeps conventions, prohibitions, repair lessons, and harness slots in the repo's `.rsi/`, traveling with the repo: install once, use it from Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness. Negative feedback lands in failure buckets; improvement proposals pass a static gate and human review, are watched for 7 days, and roll back automatically if adoption drops — not more notes, better work. The main path needs no API key and makes no model calls.
 
 ## Not another memory plugin
 
@@ -24,13 +24,17 @@ Negative feedback lands in failure buckets and only writable slots change (promp
 **Follows the project**
 Memory is isolated per repo — not per account, not per IDE. Copy the repo, move machines, or rename the directory, and `.rsi/` comes along. Open another repo and you get another copy; nothing leaks across. The harness genome can be exported as a bundle for backup or a slot move.
 
-**Host-portable**
-One MCP server (`rsi serve`) plugs into Cursor, Qoder, and Codex; the status line speaks both Claude Code and Cursor CLI. Injection writes `.cursor/rules` plus an `AGENTS.md` managed block that every host already reads, so you do not re-explain the project when you switch tools.
+**One project memory across AI tools and teammates**
+One MCP server (`rsi serve`) plugs into Cursor, Qoder, Codex, and DeepSeek Harness; the status line speaks both Claude Code and Cursor CLI. What gets shared is project memory for this repo: how names are written, rules such as "never log card numbers", and how a past null-pointer was fixed. Chat transcripts are not part of it.
+
+Approved conventions are written into the `AGENTS.md` managed block at the repo root, and into `.cursor/rules`. Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness all read that block when they open the repo. With the MCP server connected, recall reads the same `.rsi/`: a prohibition noted in Cursor in the morning is what DeepSeek Harness, or a teammate on Codex, reads from this repo later.
+
+Teammates get the full recall text when the repo contains the same `.rsi/`. Learning adds `.rsi/` to `.gitignore` by default, so logs and cache stay on the machine that created them. To hand the memory over, put the approved files under `.rsi/memory` in version control. Once git ignores the `.rsi/` directory itself, files inside it stay untracked until that ignore rule is narrowed. `AGENTS.md` lives at the repo root and is what everyone already pulls; the managed block comes with it.
 
 | | Host-native memory | Cloud memory (Mem0 and the like) | Generic local memory MCP | RSI Boot |
 |---|---|---|---|---|
 | Data follows | the account / the host | the cloud user | depends | **the current repo** |
-| Switch Cursor / Claude Code / Codex | start over | only if that host is wired | usually store-and-recall | **the same `.rsi/`** |
+| Switch AI tools or teammates | start over, each copy private | only if that host is wired | usually store-and-recall | **the same `.rsi/` and `AGENTS.md`** |
 | Harness self-improvement | no | no | weak or none | **propose → gate → observe → roll back** |
 | API key on the main path | bound to the host | required | often | **none** |
 | Write gate | the model decides | server-side policy | rare | **review + prohibitions + conflict rulings** |
@@ -134,6 +138,10 @@ Just start codex from the project root — the MCP child process inherits its cw
 ### WorkBuddy
 
 Marketplace connector files live in [`distribution/workbuddy/`](distribution/workbuddy/). Pack and submit steps are in that directory's README.
+
+### DeepSeek Harness
+
+Install the npm package `dsh-rsi-boot` from the desktop plugin page, or point `dsh plugin` at `distribution/deepseek-harness` in this repo. Tool names gain an `mcp__rsi-boot__` prefix, for example `mcp__rsi-boot__rsi_recall`. Workspace binding and the publish command are in [`distribution/deepseek-harness/`](distribution/deepseek-harness/).
 
 ## Status line (optional)
 

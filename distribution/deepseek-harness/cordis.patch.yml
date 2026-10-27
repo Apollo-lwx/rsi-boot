@@ -1,0 +1,21 @@
+# 把本机的 `rsi serve` 接进 DeepSeek Harness。
+# 工具名形如 mcp__rsi-boot__rsi_recall。
+# 不写 RSI_PROJECT_ROOT、不写 cwd：桌面端的 MCP 客户端不会回报当前窗口，
+# 写死一个目录会让所有会话共用一份记忆。请从仓库目录启动 Harness，
+# 或按本目录 README 用同 id 覆盖 cwd。
+- insert:
+    - id: mcp-rsi-boot
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: rsi-boot
+        transport: stdio
+        command: rsi
+        args:
+          - serve
+        env:
+          PYTHONUNBUFFERED: "1"
+          PYTHONIOENCODING: utf-8
+        failOnStartupError: false
+        toolCallTimeoutMs: 300000
+    - id: dsh-rsi-boot
+      name: dsh-rsi-boot

@@ -14,9 +14,9 @@
 
 > **Agent 的工程记忆，不是对话记忆：跟着仓库走、换宿主不重学、越用越会干活。**
 
-Cursor 在 2.1 删掉了 Memories，新会话对你的项目一无所知；Claude Code 的记忆锁在本机、不跟 git、团队没法共享；云记忆要 Key、要服务，记忆还跟账号走。
+Cursor 在 2.1 删掉了 Memories，新会话对你的项目一无所知；Claude Code 的记忆锁在本机、不跟 git，换一个同事就对不上；云记忆要 Key、要服务，记忆还跟账号走。同一个人换着 Cursor、Claude Code、Codex、DeepSeek Harness 写同一个仓库，或者团队里各用各的工具，写法、禁止项和修 bug 的经验也各记各的。
 
-RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `.rsi/`，跟 git 一起走：装一次，Cursor / Claude Code / Codex / Qoder 通用。负反馈进失败桶，改进提案过静态门禁与人工确认、观察 7 天、掉采纳率自动回滚——不是越记越多，是越用越会干活。主链路零 API Key，不调用模型。
+RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `.rsi/`，跟仓库走：装一次，Cursor / Claude Code / Codex / Qoder / DeepSeek Harness 通用。负反馈进失败桶，改进提案过静态门禁与人工确认、观察 7 天、掉采纳率自动回滚——不是越记越多，是越用越会干活。主链路零 API Key，不调用模型。
 
 ## 和「又一个记忆插件」差在哪
 
@@ -26,13 +26,17 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 **跟随项目迁移**
 记忆按仓库隔离，不跟账号、不跟 IDE。仓库拷走、换机器、换目录，`.rsi/` 一起走；打开另一个仓库就是另一份，不会串。Harness 基因组可导出 bundle，跨项目备份或迁槽位。
 
-**多平台兼容**
-同一套 MCP（`rsi serve`）接 Cursor、Qoder、Codex；状态栏同时吃 Claude Code 与 Cursor CLI。规则注入走 `.cursor/rules` 和各宿主都认的 `AGENTS.md` 托管块，换工具不用把项目史再讲一遍。
+**跨 AI 工具、多人共用一份项目记忆**
+同一套 MCP（`rsi serve`）接 Cursor、Qoder、Codex 和 DeepSeek Harness；状态栏同时吃 Claude Code 与 Cursor CLI。要共用的是这个仓库的项目记忆：函数名怎么写、支付日志里不能打卡号、上次空指针是怎么修的。聊天记录不在这里面。
+
+核准后的约定写进仓库根的 `AGENTS.md` 托管块，也写进 `.cursor/rules`。Cursor、Claude Code、Codex、Qoder、DeepSeek Harness 打开同一份仓库，都会读到这段托管块。接上 MCP 之后，召回读的是同一份 `.rsi/`：上午在 Cursor 里记下的禁止项，晚上换 DeepSeek Harness、或者同事换 Codex 打开这个仓库，读到的是同一条。
+
+同事要拿到召回用的全文，仓库里得有同一份 `.rsi/`。学习默认把 `.rsi/` 写进 `.gitignore`，日志和缓存留在本机。交给同事时，把核准过的 `.rsi/memory` 纳入版本库；Git 一旦忽略了整个 `.rsi/` 目录，里面的文件需要改忽略规则才能再提交。`AGENTS.md` 在仓库根，提交后大家拉下来就能读到托管块。
 
 | | 宿主自带记忆 | 云端记忆（Mem0 一类） | 通用本地记忆 MCP | RSI Boot |
 |---|---|---|---|---|
 | 数据跟谁走 | 跟账号 / 跟宿主 | 跟云端用户 | 看实现 | **跟当前仓库** |
-| 换 Cursor / Claude Code / Codex | 重学 | 对方接得上才有 | 多数只做存取 | **同一份 `.rsi/`** |
+| 换 AI 工具、换同事 | 重学，各记各的 | 对方接得上才有 | 多数只做存取 | **同一份 `.rsi/` 与 `AGENTS.md`** |
 | Harness 自改进 | 无 | 无 | 无或弱 | **提案 → 门禁 → 观察 → 回滚** |
 | 主链路 API Key | 绑宿主 | 要 | 常要 | **不要** |
 | 写入闸门 | 模型自觉 | 服务端策略 | 少 | **审批 + 禁止项 + 冲突裁决** |
@@ -136,6 +140,10 @@ args = ["serve"]
 ### WorkBuddy
 
 连接器市场上架材料在 [`distribution/workbuddy/`](distribution/workbuddy/)。打包和提交流程写在该目录的 README，这里不展开平台规范。
+
+### DeepSeek Harness
+
+桌面端插件页安装 npm 包 `dsh-rsi-boot`（或用 `dsh plugin` 从本仓库的 `distribution/deepseek-harness` 安装）。装好后工具名带 `mcp__rsi-boot__` 前缀，例如 `mcp__rsi-boot__rsi_recall`。工作区怎么绑、发布命令写在 [`distribution/deepseek-harness/`](distribution/deepseek-harness/)。
 
 ## 状态栏（可选）
 
