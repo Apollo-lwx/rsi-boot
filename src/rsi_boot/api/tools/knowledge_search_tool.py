@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ...rag.query import expand_query
 from ...services.knowledge_service import KnowledgeService
 from ...ux.lang import locale_lang
 from ...ux.messages import TOOL_DESC, t
@@ -32,11 +31,8 @@ async def handle(knowledge: KnowledgeService, arguments: dict[str, Any]) -> dict
         return {"status": "error", "message": t("QUERY_REQUIRED", locale_lang())}
     top_k = min(20, max(1, int(arguments.get("top_k") or 5)))
     role = arguments.get("role") or None
-    store = getattr(knowledge, "_store", None)
-    rsi_dir = store.rsi_dir if store is not None else None
-    expanded, _, _ = expand_query(query, role=role, rsi_dir=rsi_dir)
     items = await knowledge.search(
-        expanded,
+        query,
         str(arguments.get("project_id") or ""),
         role=role,
         top_k=top_k,

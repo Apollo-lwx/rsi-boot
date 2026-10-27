@@ -5,6 +5,23 @@ from rsi_boot.rag.index import build_index, search, tokenize
 from rsi_boot.rag.query import expand_query
 
 
+def test_synonym_expansion_ranks_below_the_original_words():
+    """扩展词权重低于用户原词：只命中 SELECT/列名 的条目不能压过写了「所有列」的那条。"""
+    from rsi_boot.rag.retriever import retrieve
+
+    task = "所有列"
+    original = MemoryDoc(
+        id="a" * 32, type="convention", title="说明",
+        content="所有列 " + " ".join(f"pad{i}" for i in range(20)),
+    )
+    synonym = MemoryDoc(
+        id="b" * 32, type="convention", title="SELECT", content="列名 SELECT",
+    )
+    ids = [doc_id for doc_id, _score in retrieve([original, synonym], task, top_n=5)]
+    assert ids[0] == "a" * 32
+    assert "b" * 32 in ids
+
+
 def test_paraphrase_hits_without_exact_title():
     docs = [MemoryDoc(
         id="b"*32, type="convention",

@@ -109,6 +109,28 @@ async def test_add_unrelated_no_duplicates(tmp_path):
     assert not r2.get("possible_duplicates")
 
 
+def test_shared_boilerplate_is_not_a_near_duplicate(store):
+    """语料里反复出现的套话权重要褪掉；只共享套话不算近重复，原文再写一遍仍然算。"""
+    from rsi_boot.learning.dedup import build_promotion_pool, find_near_duplicates, pool_check
+
+    template = "本项目约定如下请遵守执行不要改动默认配置"
+    for i in range(12):
+        _write_official(store, title=f"约定{i}", content=f"{template} pad{i}")
+    kept = _write_official(store, title="缓存", content=f"{template} rediscache")
+    boilerplate = find_near_duplicates(
+        store, title="数据库", content=f"{template} postgresdb", content_type="convention",
+    )
+    assert boilerplate == []
+    copied = find_near_duplicates(
+        store, title="缓存", content=f"{template} rediscache", content_type="convention",
+    )
+    assert any(row["id"] == kept for row in copied)
+    probe = MemoryDoc(
+        id=uuid.uuid4().hex, type="convention", title="数据库", content=f"{template} postgresdb",
+    )
+    assert pool_check(build_promotion_pool(store), probe) == []
+
+
 # ---------- 改进 4：前提 / 失效条件在召回中回传 ----------
 
 

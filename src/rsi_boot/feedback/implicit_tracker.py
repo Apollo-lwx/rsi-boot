@@ -45,7 +45,7 @@ IMPLICIT_ACTIONS = {
 }
 ALL_ACTIONS = IMPLICIT_ACTIONS | {FeedbackAction.REJECTED.value}
 
-#: 反馈 → 召回臂 reward 映射（Spec v3.0 §4.7；v2.6 §4.2 映射随 rsi_query 退役废止）
+#: 反馈符号（Spec v3.0 §4.7）。数值只决定成败方向，写入时收成一次 Bernoulli 试验。
 ACTION_REWARD: Dict[str, float] = {
     "accepted": 2.0,
     "applied": 2.0,
@@ -158,8 +158,11 @@ class FeedbackWorker:
             )
         reward = ACTION_REWARD.get(event.action, 0.0) + rating_reward(event.rating)
         arm = row.get("arm") or row.get("strategy_name")
-        if reward != 0.0 and arm:
-            await self._apply_reward_store(row.get("project_id") or "default", arm, reward)
+        # 忽略的符号是 0，但仍是一次未采纳，必须进入后验分母。
+        if arm and (reward != 0.0 or event.action == "ignored"):
+            await self._apply_reward_store(
+                row.get("project_id") or "default", arm, reward, action=event.action,
+            )
         question = row.get("task") or row.get("raw_input") or ""
         should_extract = False
         if event.action == "rejected" and event.comment:
@@ -195,7 +198,9 @@ class FeedbackWorker:
             except Exception:  # noqa: BLE001 - 治理为旁路观测，任何异常不影响反馈主流程
                 logger.warning("low_confidence 回流失败 action=%s", event.action, exc_info=True)
 
-    async def _apply_reward_store(self, project_id: str, strategy_name: str, reward: float) -> None:
+    async def _apply_reward_store(
+        self, project_id: str, strategy_name: str, reward: float, action: str = "",
+    ) -> None:
         path = self._store.rsi_dir / "state" / "arms.yaml"
         if not path.is_file():
             return
@@ -215,9 +220,11 @@ class FeedbackWorker:
             if row.get("active") is False or row.get("is_active") == 0:
                 continue
             if reward > 0:
-                row["alpha"] = float(row.get("alpha") or 1.0) + reward
+                row["alpha"] = float(row.get("alpha") or 1.0) + 1.0
+            elif reward < 0 or action == "ignored":
+                row["beta"] = float(row.get("beta") or 1.0) + 1.0
             else:
-                row["beta"] = float(row.get("beta") or 1.0) + abs(reward)
+                continue
             row["updated_at"] = now
             changed = True
         if changed:

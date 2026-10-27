@@ -19,4 +19,6 @@ def retrieve(
     rsi_dir: Path | None = None,
 ) -> list[tuple[str, float]]:
     expanded, _intent, _confidence = expand_query(task, role=role, rsi_dir=rsi_dir)
-    return search(build_index(docs), expanded, types=types, top_n=top_n)
+    return search(
+        build_index(docs), expanded, types=types, top_n=top_n, expansion_of=task,
+    )

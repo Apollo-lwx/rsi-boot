@@ -109,7 +109,7 @@ async def test_worker_applies_positive_reward(store):
     finally:
         await worker.stop()
     alpha, beta = _arm_alpha_beta(store, sid)
-    assert alpha == pytest.approx(3.0)  # 先验 1 + reward 2
+    assert alpha == pytest.approx(2.0)  # 先验 1 + 一次成功
     assert beta == pytest.approx(1.0)
 
 
@@ -119,17 +119,17 @@ async def test_worker_applies_negative_reward_with_rating(store):
     worker = FeedbackWorker(store=store)
     worker.start()
     try:
-        # rejected(-1) + rating 1(-1) = -2 → beta += 2
+        # 拒绝再叠加低分仍是一次失败
         worker.submit(ImplicitEvent(feedback_token=token, action="rejected", rating=1))
         await _drain(worker)
     finally:
         await worker.stop()
     alpha, beta = _arm_alpha_beta(store, sid)
     assert alpha == pytest.approx(1.0)
-    assert beta == pytest.approx(3.0)
+    assert beta == pytest.approx(2.0)
 
 
-async def test_worker_ignored_zero_reward_no_update(store):
+async def test_worker_ignored_counts_in_denominator(store):
     sid = _write_arm(store)
     token, _ = await _make_log(store)
     worker = FeedbackWorker(store=store)
@@ -139,7 +139,84 @@ async def test_worker_ignored_zero_reward_no_update(store):
         await _drain(worker)
     finally:
         await worker.stop()
-    assert _arm_alpha_beta(store, sid) == (1.0, 1.0)
+    alpha, beta = _arm_alpha_beta(store, sid)
+    assert alpha == pytest.approx(1.0)
+    assert beta == pytest.approx(2.0)
+
+
+async def test_reward_is_one_trial_and_ignore_counts(store):
+    """一次反馈只计入一次试验：采纳 alpha+1，拒绝叠加低分仍是 beta+1，忽略也让 beta+1。"""
+    sid = _write_arm(store)
+    token, _ = await _make_log(store)
+    worker = FeedbackWorker(store=store)
+    worker.start()
+    try:
+        worker.submit(ImplicitEvent(feedback_token=token, action="accepted"))
+        await _drain(worker)
+    finally:
+        await worker.stop()
+    alpha, beta = _arm_alpha_beta(store, sid)
+    assert alpha == pytest.approx(2.0)
+    assert beta == pytest.approx(1.0)
+
+    sid = _write_arm(store)
+    token, _ = await _make_log(store)
+    worker = FeedbackWorker(store=store)
+    worker.start()
+    try:
+        worker.submit(ImplicitEvent(feedback_token=token, action="rejected", rating=1))
+        await _drain(worker)
+    finally:
+        await worker.stop()
+    alpha, beta = _arm_alpha_beta(store, sid)
+    assert alpha == pytest.approx(1.0)
+    assert beta == pytest.approx(2.0)
+
+    sid = _write_arm(store)
+    token, _ = await _make_log(store)
+    worker = FeedbackWorker(store=store)
+    worker.start()
+    try:
+        worker.submit(ImplicitEvent(feedback_token=token, action="ignored"))
+        await _drain(worker)
+    finally:
+        await worker.stop()
+    alpha, beta = _arm_alpha_beta(store, sid)
+    assert alpha == pytest.approx(1.0)
+    assert beta == pytest.approx(2.0)
+
+
+def test_arms_yaml_decays_toward_prior(store):
+    """arms.yaml 与策略表同一公式：α ← 1+(α-1)×0.9，β 同理；先验不动，停用臂不动。"""
+    from rsi_boot.strategy.recall import decay_arms
+
+    moved = uuid.uuid4().hex
+    prior = uuid.uuid4().hex
+    stopped = uuid.uuid4().hex
+    dest = store.rsi_dir / "state" / "arms.yaml"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {"id": moved, "name": "recall-generous", "intent": "recall", "alpha": 11.0, "beta": 3.0, "active": True},
+        {"id": prior, "name": "recall-balanced", "intent": "other", "alpha": 1.0, "beta": 1.0, "active": True},
+        {"id": stopped, "name": "recall-conservative", "intent": "recall", "alpha": 11.0, "beta": 3.0, "active": False},
+    ]
+    dest.write_text(yaml.safe_dump(rows, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    assert decay_arms(dest) == 1
+    alpha, beta = _arm_alpha_beta(store, moved)
+    assert alpha == pytest.approx(1 + 10 * 0.9)
+    assert beta == pytest.approx(1 + 2 * 0.9)
+    assert _arm_alpha_beta(store, prior) == (1.0, 1.0)
+    assert _arm_alpha_beta(store, stopped) == (11.0, 3.0)
+
+
+async def test_weekly_hook_decays_arms_yaml(store):
+    from rsi_boot.scheduler.manager import SchedulerManager
+
+    sid = _write_arm(store, alpha=11.0, beta=3.0)
+    await SchedulerManager(store.rsi_dir / "archive", store=store)._decay_recall_arms()
+    alpha, beta = _arm_alpha_beta(store, sid)
+    assert alpha == pytest.approx(1 + 10 * 0.9)
+    assert beta == pytest.approx(1 + 2 * 0.9)
 
 
 async def test_worker_unknown_token_skipped(store):

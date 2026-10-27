@@ -1,8 +1,8 @@
 """召回策略臂（Spec v3.0 §4.7）：Thompson Sampling 作用于召回参数组合。
 
-臂存 strategy_configs（intent='recall' 维度）：params JSON 承载 top_n/threshold，
-alpha/beta/exposure_count 沿用 §3.3 机制（FeedbackWorker 按 reward 更新，
-scheduler/tasks.py 周衰减与淘汰）。项目首次召回时播种三个默认臂。
+臂存在 arms.yaml：params 承载 top_n/threshold。FeedbackWorker 每次反馈记一次
+Bernoulli 试验；周任务用与 strategy_configs 相同的指数遗忘把 alpha/beta 拉回先验。
+臂是全局的，不按 intent 拆开。项目首次召回时播种三个默认臂。
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 RECALL_INTENT = "recall"
 _CACHE_TTL_S = 60.0
+_DECAY_FACTOR = 0.9  # 与 scheduler/tasks.py 策略表相同：向 Beta(1, 1) 回归
 
 #: 默认召回臂（Spec §4.7 参数表）
 DEFAULT_ARMS = [
@@ -45,6 +46,62 @@ class RecallArm:
     beta: float
 
 
+def _arm_row_active(row: Dict[str, Any]) -> bool:
+    if "active" in row:
+        return bool(row.get("active"))
+    if "is_active" in row:
+        return bool(row.get("is_active"))
+    return True
+
+
+def decay_arms(path: Path) -> int:
+    """α ← 1+(α-1)×0.9，β 同理。停用臂与仍在先验上的臂不动。返回实际衰减条数。"""
+    if not path.is_file():
+        return 0
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return 0
+    if isinstance(data, list):
+        rows = data
+        payload_of = lambda written: written
+    elif isinstance(data, dict):
+        rows = data.get("arms") or []
+        payload_of = lambda written: {**data, "arms": written}
+    else:
+        return 0
+    if not isinstance(rows, list):
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    changed = 0
+    written: List[Dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        written.append(row)
+        if not _arm_row_active(row):
+            continue
+        alpha = float(row.get("alpha") if row.get("alpha") is not None else 1.0)
+        beta = float(row.get("beta") if row.get("beta") is not None else 1.0)
+        if abs(alpha - 1.0) < 1e-9 and abs(beta - 1.0) < 1e-9:
+            continue
+        row["alpha"] = 1.0 + (alpha - 1.0) * _DECAY_FACTOR
+        row["beta"] = 1.0 + (beta - 1.0) * _DECAY_FACTOR
+        row["updated_at"] = now
+        changed += 1
+    if changed:
+        import os
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(path) + ".tmp")
+        tmp.write_text(
+            yaml.safe_dump(payload_of(written), allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+        os.replace(tmp, path)
+    return changed
+
+
 class RecallArmSelector:
     """召回臂的播种、Thompson 选择、曝光计数；运行时读取走 60s 内存缓存"""
 
@@ -54,11 +111,26 @@ class RecallArmSelector:
 
     async def pick(self, project_id: str) -> RecallArm:
         arms = await self._load_arms(project_id)
-        arm = arms[0] if len(arms) == 1 else max(
-            arms, key=lambda a: random.betavariate(max(a.alpha, 1e-3), max(a.beta, 1e-3))
-        )
+        arm = self._choose(arms)
         self._spawn_exposure(arm.id)
         return arm
+
+    @staticmethod
+    def _uninformed(arms: List[RecallArm]) -> bool:
+        """No reward yet: every arm is still the Beta(1, 1) prior."""
+        return all(abs(arm.alpha - 1.0) < 1e-6 and abs(arm.beta - 1.0) < 1e-6 for arm in arms)
+
+    @classmethod
+    def _choose(cls, arms: List[RecallArm]) -> RecallArm:
+        """Cold start stays on recall-balanced. Thompson starts once any arm has a reward."""
+        if len(arms) == 1:
+            return arms[0]
+        if cls._uninformed(arms):
+            for arm in arms:
+                if arm.name == "recall-balanced":
+                    return arm
+            return arms[0]
+        return max(arms, key=lambda a: random.betavariate(max(a.alpha, 1e-3), max(a.beta, 1e-3)))
 
     async def _load_arms(self, project_id: str) -> List[RecallArm]:
         cached = self._cache.get(project_id)

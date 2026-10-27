@@ -168,6 +168,7 @@ class Runtime:
             bound_project_id=self.project_id,
             decisions=self.decisions,
             project_root=self._project_root,
+            arms=self.recall_arms,
         )
         self.extractor = KnowledgeExtractor(
             store=self.store, embedding=embedding, adapter=adapter, config=config,

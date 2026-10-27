@@ -6,19 +6,21 @@
 命中高重叠即返回候选，交由宿主用 rsi_conflicts / rsi_knowledge_review 裁决，
 避免同义记忆越堆越多挤占 rsi_recall 的 TopN 与预算。
 
-零 Key：用 rag.index.tokenize（CJK bigram + ASCII 词）做词袋 Jaccard 重叠，
+零 Key：用 rag.index.tokenize（CJK bigram + ASCII 词）做词袋，再按与检索相同的
+IDF 做余弦。套话在语料里反复出现时权重褪掉，只共享套话不会被当成近重复。
 不依赖 embedding；配 Key 时可另行升级为向量近邻（附录 C 增强，此处不涉及）。
 """
 
 from __future__ import annotations
 
+import math
 from typing import Any, Dict, List, Optional
 
 from ..memory.harvest import is_harvest_doc
 from ..memory.store import MemoryStore
-from ..rag.index import tokenize
+from ..rag.index import _idf, tokenize
 
-#: 判定「疑似近重复」的词袋 Jaccard 重叠下限
+#: 判定「疑似近重复」的 IDF 加权余弦下限
 DEFAULT_OVERLAP = 0.6
 _MAX_RESULTS = 5
 #: 超长正文先截断再分词：近重复判定用词袋重叠，无需整篇 tokenize（性能护栏）
@@ -47,13 +49,33 @@ def promote_block_config(config: Any) -> tuple[bool, float]:
     return bool(dedup.get("block_on_promote")), threshold
 
 
-def overlap(new_bag: set, other_bag: set) -> float:
-    """Jaccard 相似度：交集 / 并集；任一为空返回 0。"""
-    if not new_bag or not other_bag:
+def _idf_table(bags: List[set]) -> Dict[str, float]:
+    """语料里的文档频率。空袋不计入篇数。"""
+    counted = [bag for bag in bags if bag]
+    df: Dict[str, int] = {}
+    for bag in counted:
+        for term in bag:
+            df[term] = df.get(term, 0) + 1
+    n = len(counted)
+    if n == 0:
+        return {}
+    return {term: _idf(n, count) for term, count in df.items()}
+
+
+def idf_cosine(left: set, right: set, idf: Dict[str, float]) -> float:
+    """IDF 加权的二元词袋余弦。空袋或权重全为 0 时返回 0。"""
+    if not left or not right:
         return 0.0
-    inter = len(new_bag & other_bag)
-    union = len(new_bag | other_bag)
-    return inter / union if union else 0.0
+
+    def _norm(bag: set) -> float:
+        return math.sqrt(sum(idf.get(term, 0.0) ** 2 for term in bag))
+
+    left_n = _norm(left)
+    right_n = _norm(right)
+    if left_n == 0.0 or right_n == 0.0:
+        return 0.0
+    dot = sum(idf.get(term, 0.0) ** 2 for term in left if term in right)
+    return dot / (left_n * right_n)
 
 
 def find_near_duplicates(
@@ -67,19 +89,23 @@ def find_near_duplicates(
 ) -> List[Dict[str, Any]]:
     """在正式（active）同类型记忆中查找与 (title, content) 近重复的条目。
 
-    返回按重叠度降序、至多 5 条：[{id, title, overlap, path}]。exclude_id 用于
-    晋升自检时排除自身。低重叠（< threshold）不返回，宁缺毋滥避免误报。
+    返回按相似度降序、至多 5 条：[{id, title, overlap, path}]。`overlap` 字段
+    现在是 IDF 加权余弦。exclude_id 用于晋升自检时排除自身。低于 threshold 不返回。
     """
     new_bag = _bag(title, content)
     if not new_bag:
         return []
-    hits: List[Dict[str, Any]] = []
+    candidates: List[tuple] = []
     for doc in store.list_official(content_type, skip_harvest=True):
-        if doc.status != "active" or doc.id == exclude_id:
+        if doc.status != "active" or doc.id == exclude_id or is_harvest_doc(doc):
             continue
-        if is_harvest_doc(doc):
-            continue
-        score = overlap(new_bag, _bag(doc.title, doc.content))
+        bag = _bag(doc.title, doc.content)
+        if bag:
+            candidates.append((doc, bag))
+    idf = _idf_table([new_bag, *(bag for _, bag in candidates)])
+    hits: List[Dict[str, Any]] = []
+    for doc, bag in candidates:
+        score = idf_cosine(new_bag, bag, idf)
         if score >= threshold:
             hits.append({
                 "id": doc.id,
@@ -137,11 +163,14 @@ def pool_check(
     new_bag = _bag(doc.title, doc.content)
     if not new_bag:
         return []
+    rows = [
+        row for row in pool.get(getattr(doc, "type", "") or "", [])
+        if row["id"] != doc.id and row.get("bag")
+    ]
+    idf = _idf_table([new_bag, *(row["bag"] for row in rows)])
     hits: List[Dict[str, Any]] = []
-    for row in pool.get(getattr(doc, "type", "") or "", []):
-        if row["id"] == doc.id:
-            continue
-        score = overlap(new_bag, row["bag"])
+    for row in rows:
+        score = idf_cosine(new_bag, row["bag"], idf)
         if score >= threshold:
             hits.append({
                 "id": row["id"],

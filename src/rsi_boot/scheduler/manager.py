@@ -82,6 +82,10 @@ class SchedulerManager:
         await asyncio.sleep(_FIRST_RUN_DELAY_S)
         while True:
             try:
+                await self._decay_recall_arms()
+            except Exception:
+                logger.exception("召回臂遗忘失败（下周期重试）")
+            try:
                 await self._run_harness_cycle()
             except Exception:
                 logger.exception("Harness 提案周期失败（下周期重试）")
@@ -90,6 +94,14 @@ class SchedulerManager:
             except Exception:
                 logger.exception("规则冲突扫描失败（下周期重试）")
             await asyncio.sleep(_WEEKLY_INTERVAL_S)
+
+    async def _decay_recall_arms(self) -> None:
+        if self._store is None:
+            return
+        from ..strategy.recall import decay_arms
+
+        path = self._store.rsi_dir / "state" / "arms.yaml"
+        await asyncio.to_thread(decay_arms, path)
 
     async def _scan_conflicts(self) -> None:
         detector = self._conflict_detector_provider() if self._conflict_detector_provider else None
