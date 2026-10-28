@@ -14,6 +14,9 @@ venv/
 dist/
 build/
 
+# 个人对外发的稿（HN、掘金等），不入库
+articles/
+
 # 本地临时产物
 .tmp-*/
 .tmp-*
