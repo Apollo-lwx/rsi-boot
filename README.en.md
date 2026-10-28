@@ -45,12 +45,48 @@ Teammates get the full recall text when the repo contains the same `.rsi/`. Lear
 
 The leaderboard is recall. The cold start returns 5 items. The denominator is questions that have a gold evidence id. MRR is the reciprocal rank of the first hit, from 0 to 1. Tokens are null. Protocol and the per-type breakdown: [benchmark/results/recall-20261028/SUMMARY.md](benchmark/results/recall-20261028/SUMMARY.md).
 
+### This run
+
 | Dataset | Questions with evidence | Hit@5 | Recall@5 | MRR | Hit@10 | Recall@10 | Empty stayed empty |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | LoCoMo | 1536 | 56.5% | 51.0% | 0.427 | 64.0% | 57.8% | 0/450 |
 | LongMemEval-S | 500 | 96.6% | 90.1% | 0.907 | 98.4% | 94.8% | — |
 
 These are retrieval scores, not answer-judge scores.
+
+### Against published retrieval numbers
+
+The published column is a retrieval figure from the papers. This-run column is the table above. Delta is this run minus the published figure, in percentage points. The LoCoMo paper reports dialog recall accuracy; this run uses Hit@5 at k=5 and Hit@10 at k=10. The paper's overall includes adversarial questions. This run's overall is the 1,536 answerable questions. ECHO labels its LoCoMo Hit@10 as a development measurement, and query expansion may have used question-side phrases.
+
+| Source | Slice | Published | This run | Delta |
+|---|---|---:|---:|---:|
+| LoCoMo paper, dialog k=5 | Single-hop | 68.0 | 38.7 | −29.3 |
+| LoCoMo paper, dialog k=5 | Multi-hop | 35.4 | 63.2 | +27.8 |
+| LoCoMo paper, dialog k=5 | Temporal | 70.4 | 31.5 | −38.9 |
+| LoCoMo paper, dialog k=5 | Open-domain | 33.1 | 62.7 | +29.6 |
+| LoCoMo paper, dialog k=5 | Overall, paper includes adversarial | 56.7 | 56.5 | −0.2 |
+| LoCoMo paper, dialog k=10 | Overall, paper includes adversarial | 66.2 | 64.0 | −2.2 |
+| ECHO, LoCoMo 1,536 questions | Hit@10, development measurement | 96.29 | 64.0 | −32.3 |
+| ECHO, LongMemEval-S 500 questions | Hit@10 | 97.60 | 98.4 | +0.8 |
+| ECHO, LongMemEval-S | Session Recall@5 | 88.71 | 90.1 | +1.4 |
+
+### Deltas
+
+![LongMemEval in the same band, LoCoMo overall next to the paper. Bars on the right are higher than the published figure. Bars on the left are lower.](benchmark/results/recall-20261028/delta-en.svg)
+
+The four rows within 5 points sit together. The wide gaps are the slices: multi-hop and open-domain are higher; single-hop, temporal, and LoCoMo Hit@10 against ECHO are lower.
+
+| Comparison | This run | Published | Delta |
+|---|---:|---:|---:|
+| LongMemEval-S Hit@10 | 98.4 | 97.60 | +0.8 |
+| LongMemEval-S session Recall@5 | 90.1 | 88.71 | +1.4 |
+| LoCoMo overall k=5 | 56.5 | 56.7 | −0.2 |
+| LoCoMo overall k=10 | 64.0 | 66.2 | −2.2 |
+| LoCoMo open-domain k=5 | 62.7 | 33.1 | +29.6 |
+| LoCoMo multi-hop k=5 | 63.2 | 35.4 | +27.8 |
+| LoCoMo single-hop k=5 | 38.7 | 68.0 | −29.3 |
+| LoCoMo temporal k=5 | 31.5 | 70.4 | −38.9 |
+| LoCoMo Hit@10 vs ECHO | 64.0 | 96.29 | −32.3 |
 
 ## Installation
 

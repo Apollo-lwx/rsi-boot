@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="468" viewBox="0 0 760 468" role="img" aria-label="LongMemEval 同一档，LoCoMo 总平均挨着论文。右边高于公开检索数字，左边低于。">
+<title>LongMemEval 同一档，LoCoMo 总平均挨着论文</title>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="24" y="32" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="18" font-weight="600">LongMemEval 同一档，LoCoMo 总平均挨着论文</text>
+<text x="24" y="54" fill="#59636e" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">你的分数减去公开检索数字，单位是百分点</text>
+<line x1="306.4" y1="70" x2="306.4" y2="394" stroke="#d1d9e0" stroke-width="1"/>
+<text x="306.4" y="416" text-anchor="middle" fill="#59636e" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">-40</text>
+<line x1="402.4" y1="70" x2="402.4" y2="394" stroke="#d1d9e0" stroke-width="1"/>
+<text x="402.4" y="416" text-anchor="middle" fill="#59636e" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">-20</text>
+<line x1="498.4" y1="70" x2="498.4" y2="394" stroke="#d1d9e0" stroke-width="1"/>
+<text x="498.4" y="416" text-anchor="middle" fill="#59636e" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">0</text>
+<line x1="594.4" y1="70" x2="594.4" y2="394" stroke="#d1d9e0" stroke-width="1"/>
+<text x="594.4" y="416" text-anchor="middle" fill="#59636e" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">20</text>
+<line x1="690.4" y1="70" x2="690.4" y2="394" stroke="#d1d9e0" stroke-width="1"/>
+<text x="690.4" y="416" text-anchor="middle" fill="#59636e" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">40</text>
+<text x="484.0" y="436" text-anchor="middle" fill="#59636e" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">百分点</text>
+<line x1="498.4" y1="70" x2="498.4" y2="394" stroke="#8c959f" stroke-width="1.5"/>
+<text x="248" y="100.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">LongMemEval Hit@10</text>
+<rect x="498.4" y="88.0" width="3.8" height="16" fill="#1a7f37"/>
+<text x="508.2" y="100.0" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">+0.8</text>
+<text x="248" y="136.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">LongMemEval 会话 Recall@5</text>
+<rect x="498.4" y="124.0" width="6.7" height="16" fill="#1a7f37"/>
+<text x="511.1" y="136.0" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">+1.4</text>
+<text x="248" y="172.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">LoCoMo 总平均 k=5</text>
+<rect x="497.4" y="160.0" width="1.5" height="16" fill="#cf222e"/>
+<text x="491.4" y="172.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">−0.2</text>
+<text x="248" y="208.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">LoCoMo 总平均 k=10</text>
+<rect x="487.8" y="196.0" width="10.6" height="16" fill="#cf222e"/>
+<text x="481.8" y="208.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">−2.2</text>
+<text x="248" y="244.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">开放域 k=5</text>
+<rect x="498.4" y="232.0" width="142.1" height="16" fill="#1a7f37"/>
+<text x="646.5" y="244.0" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">+29.6</text>
+<text x="248" y="280.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">多跳 k=5</text>
+<rect x="498.4" y="268.0" width="133.4" height="16" fill="#1a7f37"/>
+<text x="637.8" y="280.0" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">+27.8</text>
+<text x="248" y="316.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">单跳 k=5</text>
+<rect x="357.8" y="304.0" width="140.6" height="16" fill="#cf222e"/>
+<text x="351.8" y="316.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">−29.3</text>
+<text x="248" y="352.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">时间题 k=5</text>
+<rect x="311.7" y="340.0" width="186.7" height="16" fill="#cf222e"/>
+<text x="305.7" y="352.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">−38.9</text>
+<text x="248" y="388.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="13">LoCoMo 对 ECHO Hit@10</text>
+<rect x="343.4" y="376.0" width="155.0" height="16" fill="#cf222e"/>
+<text x="337.4" y="388.0" text-anchor="end" fill="#1f2328" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="12">−32.3</text>
+</svg>
