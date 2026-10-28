@@ -72,7 +72,7 @@ The published column is a retrieval figure from the papers. This-run column is t
 
 ### Deltas
 
-![LongMemEval in the same band, LoCoMo overall next to the paper. Bars on the right are higher than the published figure. Bars on the left are lower.](benchmark/results/recall-20261028/delta-en.svg)
+![LongMemEval in the same band, LoCoMo overall next to the paper. Bars on the right are higher than the published figure. Bars on the left are lower.](benchmark/results/recall-20261028/delta-en.png)
 
 The four rows within 5 points sit together. The wide gaps are the slices: multi-hop and open-domain are higher; single-hop, temporal, and LoCoMo Hit@10 against ECHO are lower.
 

@@ -74,7 +74,7 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 
 ### 差值
 
-![LongMemEval 同一档，LoCoMo 总平均挨着论文。右边高于公开检索数字，左边低于。](benchmark/results/recall-20261028/delta.svg)
+![LongMemEval 同一档，LoCoMo 总平均挨着论文。右边高于公开检索数字，左边低于。](benchmark/results/recall-20261028/delta.png)
 
 前四行的差值不到 5 个点。后面几行是拉开的格子：多跳和开放域更高，单跳、时间题，以及对 ECHO 的 LoCoMo Hit@10 更低。
 
