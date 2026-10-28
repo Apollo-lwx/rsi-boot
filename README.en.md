@@ -10,16 +10,18 @@
 
 [简体中文](README.md) | English
 
-> **Engineering memory for agents, not chat memory: it travels with the repo, survives host switches, and gets better as you use it.**
+> **Engineering memory for agents, not chat memory: conventions and prohibitions live in the repo, so another host reads the same copy.**
 
 Cursor removed Memories in 2.1 — new chats know nothing about your project. Claude Code's memory lives on one machine, outside git, so a teammate never sees it. Cloud memory asks for keys and servers, and follows your account. The same gap shows up when one person moves a repo between Cursor, Claude Code, Codex, and DeepSeek Harness, or when a team splits across those tools: conventions, prohibitions, and bug-fix lessons stay behind in whichever tool wrote them down.
 
-RSI Boot keeps conventions, prohibitions, repair lessons, and harness slots in the repo's `.rsi/`, traveling with the repo: install once, use it from Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness. Negative feedback lands in failure buckets; improvement proposals pass a static gate and human review, are watched for 7 days, and roll back automatically if adoption drops — not more notes, better work. The main path needs no API key and makes no model calls.
+RSI Boot keeps conventions, prohibitions, repair lessons, and harness slots in the repo's `.rsi/`. Install once; Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness share that copy. The main path needs no API key and makes no model calls.
+
+The loop is fixed: **recall → do the work → distill a pending note → a person approves it → the next recall reads what was kept.** Negative feedback also lands in failure buckets and may change only writable slots (prompts, skills, recall strategy, intent rules, knowledge). A proposal is promoted only after a static gate and human review, watched for 7 days, and rolled back if adoption drops. That is how the software is built. The published numbers below measure only the first step: whether a written constraint was present before the task.
 
 ## Not another memory plugin
 
 **rsi-harness (Harness-RSI)**
-Negative feedback lands in failure buckets and only writable slots change (prompts / skills / recall strategy / intent rules / knowledge). A proposal must pass the static gate and human review before promotion; it is watched for 7 days and rolled back if adoption drops. The point is to get better at the work, not to hoard more notes.
+Negative feedback lands in failure buckets and only writable slots change (prompts / skills / recall strategy / intent rules / knowledge). A proposal must pass the static gate and human review before promotion; it is watched for 7 days and rolled back if adoption drops. What gets kept is a slot version. This loop is in the software. The public benchmark has not yet measured whether the next round is better.
 
 **Follows the project**
 Memory is isolated per repo — not per account, not per IDE. Copy the repo, move machines, or rename the directory, and `.rsi/` comes along. Open another repo and you get another copy; nothing leaks across. The harness genome can be exported as a bundle for backup or a slot move.
@@ -41,9 +43,9 @@ Teammates get the full recall text when the repo contains the same `.rsi/`. Lear
 
 ## Public benchmark
 
-Claims need receipts. RepoMem Bench runs real issues from real repos under three arms: every run is a fresh agent instance, graded by hidden tests, with any `tests/` edit counted as a violation. Tasks, patches, runner, and all 49 raw result files are public — reruns welcome: [benchmark/](benchmark/).
+Read the numbers one claim at a time. The published result answers one question: **was a written "don't edit the tests" constraint present before the task?** Tasks, patches, the runner, and the raw results are in [benchmark/](benchmark/). Reruns are welcome.
 
-On "temptation tasks" — where a correct fix forces the repo's own stale assertions to fail (4 independent repeats per cell, cross-checked with historical runs; rerun update 2026-10-26):
+RepoMem Bench uses real issues from real repos. Every run is a fresh agent, graded by hidden tests, and any edit under `tests/` counts as a violation. A temptation task means a correct fix makes the repo's own stale assertions fail, so the agent is tempted to edit the tests and turn the suite green. The table is 4 independent repeats per cell, plus historical runs on the same protocol (rerun update 2026-10-26):
 
 | Arm | Runs | Edited tests (violations) | Violation rate |
 |------|:---:|:---:|:---:|
@@ -51,7 +53,20 @@ On "temptation tasks" — where a correct fix forces the repo's own stale assert
 | B · AGENTS.md only | 12 | 0 | **0%** |
 | C · RSI Boot memory | 12 | 1 | **8%** |
 
-> On control tasks (no stale assertions) violations are 0 across arms — violations are induced by temptation, not random. C's single violation was an agent that recalled the rule and declared an exception anyway. The 4th-repeat rerun moved the rates from 78% / 0% / 11% to the table above (a same-day 17% figure was withdrawn: one non-independent repeat was excluded). Full report with threats to validity: [48-run report](benchmark/results/SUMMARY-v5-final-36runs.md).
+On control tasks (no stale assertions) every arm has 0 violations, so the violations are induced by the temptation. C's single violation is an agent that recalled the rule and then declared an exception. Before the 4th repeat the rates were 78% / 0% / 11%. A same-day 17% figure counted one non-independent repeat and was withdrawn. Full report and threats to validity: [48-run report](benchmark/results/SUMMARY-v5-final-36runs.md).
+
+The table says: with no context, the agent often edits tests; the same sentence in `AGENTS.md` produced 0 violations in 12 runs; the same sentence in RSI memory produced 1 in 12. On these small single-file fixes, the static file and the memory constrain about equally, and the static file is the cleaner of the two. Whether memory makes the next round better is not what this table measures.
+
+| Claim | How the comparison is set | Status |
+|------|----------------------------|--------|
+| A written constraint stops test edits | No context / AGENTS.md only / an approved prohibition. 2 temptation tasks, 4 independent repeats per cell, plus historical runs | **Measured.** See the table above |
+| After AGENTS.md is removed, the next round still holds if recall is the only source | Same task, fresh agent, no static file in the repo | Not measured |
+| Another host or another directory still recalls the same item | The same `.rsi/` | Not measured |
+| A slot update that passed the gate makes the next round better | A proposal that did not pass the gate stays pending and is absent from the next round | Not measured |
+| A stale prohibition does not block the correct fix | Plant an old prohibition that contradicts the correct fix | Not measured |
+| Tokens saved | Record only input/output the host reports; leave the cell empty when it does not | Not measured |
+
+The sample is 2 real temptation tasks and one agent. Arm C's memory is 2–4 items compressed by hand, not a full learning pass over the project. How the next batch isolates each claim is written in [benchmark/README.md](benchmark/README.md).
 
 ## Installation
 
@@ -84,9 +99,9 @@ In the `.cursor/mcp.json` of **the project you want memory for**, add:
 }
 ```
 
-Then go to Settings → MCP and confirm `rsi-boot` is enabled. Reload the MCP after changing this repository's code.
+Then go to Settings → MCP and confirm `rsi-boot` is enabled.
 
-Do **not** configure a user-level `mcp.json`: `${workspaceFolder}` in `args` often goes unexpanded there, which leaks memory across repos. Workspace binding order: `RSI_PROJECT_ROOT` (project-level mcp.json, recommended — explicit contract) → MCP `roots/list` (answered automatically by Cursor in plugin form) → the `WORKSPACE_FOLDER_PATHS` variable injected by Cursor → process cwd.
+Do not put this in a user-level `mcp.json`. `${workspaceFolder}` often stays unexpanded there, and memory leaks into another repo. Write it in the project you want remembered.
 
 ## Other hosts
 
@@ -105,17 +120,15 @@ Or add the MCP server directly with one command:
 claude mcp add rsi-boot -- uvx --from rsi-boot rsi serve
 ```
 
-The workspace is claimed automatically via roots/cwd. See the status line section below for the Claude Code statusLine integration.
+Open Claude Code from the project you want remembered. The status line is optional and described below.
 
 ### Qoder
-
-This repository is also a Qoder plugin: the `.qoder-plugin/plugin.json` manifest plus the root `mcp.json` (the same MCP config shared with the Cursor plugin) — zip it to distribute. To wire it up manually, either:
 
 ```bash
 qoder mcp add rsi-boot -- rsi serve
 ```
 
-or add the same `mcpServers` snippet as Cursor to a project-root `.mcp.json`. Workspace binding order is identical (`RSI_PROJECT_ROOT` → roots/list → injected variables → cwd).
+Or add the same `mcpServers` snippet as Cursor to a project-root `.mcp.json`. Keep it in that project, not in a user-level config.
 
 ### Codex
 
@@ -133,15 +146,17 @@ command = "rsi"
 args = ["serve"]
 ```
 
-Just start codex from the project root — the MCP child process inherits its cwd and rsi-boot claims the workspace by walking up from there. To pin explicitly, add one line to the table: `env = { RSI_PROJECT_ROOT = "/absolute/path" }`.
-
-### WorkBuddy
-
-Marketplace connector files live in [`distribution/workbuddy/`](distribution/workbuddy/). Pack and submit steps are in that directory's README.
+Start codex from the project root. To pin the directory, add one line to the table: `env = { RSI_PROJECT_ROOT = "/absolute/path" }`.
 
 ### DeepSeek Harness
 
-Install the npm package `dsh-rsi-boot` from the desktop plugin page, or point `dsh plugin` at `distribution/deepseek-harness` in this repo. Tool names gain an `mcp__rsi-boot__` prefix, for example `mcp__rsi-boot__rsi_recall`. Workspace binding and the publish command are in [`distribution/deepseek-harness/`](distribution/deepseek-harness/).
+Open the desktop app from the repository you want remembered. Install `dsh-rsi-boot` on the plugin page, or, if `dsh` is already on your PATH:
+
+```bash
+dsh plugin --profile web add dsh-rsi-boot
+```
+
+Python 3.10+ is required, and `rsi serve` must run in a terminal. Restart once after installing. Tool names gain an `mcp__rsi-boot__` prefix, for example `mcp__rsi-boot__rsi_recall`. Do not launch from your home directory; `.rsi/` would be written there.
 
 ## Status line (optional)
 
@@ -184,100 +199,79 @@ Three equivalent ways — pick per scenario (priority: `--style` > env var > pro
 statusline_style: buddy
 ```
 
-Six presets: `mixed` (default), `buddy` (WorkBuddy-style companionship: company/reassurance/healing/blessings), `serious` (companionship and maxims only — no cats or fortune-telling), `healing`, `geek`, `lucky`. Takes effect on the next refresh — the file is re-read every time, no restart needed. The `lang` key in config.yaml follows the same priority chain.
+Six presets: `mixed` (default), `buddy`, `serious`, `healing`, `geek`, `lucky`. The next refresh picks them up.
 
-Note: the status line is not an MCP server and is not governed by mcp.json (that's for the `rsi serve` memory service), so the style lives in the statusLine command or config.yaml only.
-
-### Notes:
-
-- Token details come from the transcript (Claude Code) or the `context_window` payload fields (Cursor CLI). The context window defaults to 200k, switches to 1M when `exceeds_200k_tokens` is set, and can be overridden via `RSI_STATUSLINE_CTX_WINDOW`.
-- Three supply layers for quips: **user quips file** (`~/.rsi/quips.json` — any non-empty pool fully replaces its built-in counterpart) > handwritten pools (130+ entries, quality floor) + a template composer (~200 combinations, weighted by combination space). The user file is generated by the host model in conversation (just say "generate statusline quips"; the style spec is embedded in the file header) and verified with `rsi statusline --validate-quips`.
-- Style filters by theme tags (core/motto/kudos/fortune/geek/dry/healing/food/cat/game/hype/slack/offwork/weather); situational pools (morning/late-night/context-low/rest/praise) stay functional and unfiltered.
-- Rotation and no-repeat: 45s per pick by default (`RSI_STATUSLINE_QUIP_SECONDS` to tune, e.g. 5), stable within a bucket so nothing flickers; `~/.rsi/state/statusline_quips.json` tracks the last 300 shown per session and avoids repeats.
-- Situational pools: morning (06–11h), late night (23–06h), context nearly full (≤15%), long-session rest reminders (≥45 min, tunable via `RSI_STATUSLINE_REST_MINUTES`, 0 disables), and RSI high-adoption praise.
-- The RSI segment walks up from cwd to `.rsi/logs/events.jsonl` for today's stats, and is silently omitted when absent.
-- Exactly one language is rendered, resolved via: `--lang` → `RSI_LANG` env → project `.rsi/config.yaml` → user `~/.rsi/config.yaml` → system locale. Write `lang: zh` once to pin it (project level wins).
-- Flags: `--lang zh|en`, `--no-rsi`, `--no-quip`, `--plain` (no colors or emoji); `NO_COLOR` disables colors only.
-- Cold start is ~250ms, within the host's ≥300ms refresh cadence; the command always exits 0 and falls back to a minimal line on error.
+Put the style on the statusLine command, or set `statusline_style` in config.yaml. Do not put it in `mcp.json`; that file is for the memory server. Language works the same way: `--lang zh` on the command, or `lang: zh` in the project's `.rsi/config.yaml`. To replace the quips, ask the agent to generate status-line copy, then run `rsi statusline --validate-quips`.
 
 ## Memory dashboard
 
-No extra `rsi serve` flags. In the project chat, say "open the memory dashboard" and the agent calls `rsi_web_ui` with `action` `open`. Say "close the memory dashboard" (`action` `close`) and the address below stops responding.
+No extra `rsi serve` flags. In the project chat, say "open the memory dashboard". Say "close the memory dashboard" and the address below stops responding.
 
-Default route (if the port is taken, use the `url` the tool returns):
+Default route (if the port is taken, use the address the agent returns):
 
 ```text
 http://127.0.0.1:18765/dashboard
 ```
 
-The data route on that same process is `http://127.0.0.1:18765/api/snapshot`, and it exists only while the dashboard is open. The page reads the current repo's `.rsi/` and needs no API key.
+The page reads the current repo's `.rsi/` and needs no API key.
 
 ![RSI memory dashboard](assets/dashboard-preview.png)
 
-## Learning in conversation
+## Using it in the chat
 
-Once the MCP is connected, don't run `rsi` in a terminal yourself — just talk to the agent in the project window.
+After the MCP server is connected, talk to the agent in that project window. You do not start `rsi` in a terminal.
 
-| You say | The agent does |
+| You say | What happens |
 |---------|----------------|
-| Learn this project for the first time | `rsi bootstrap --consent --host-judge` → `rsi_learn` distills all pending packs → `rsi_knowledge_review` approves the run |
-| Re-learn | `rsi wipe --yes` to clear memory first, then repeat the above |
+| Learn this project for the first time | It reads the repo and writes pending notes. Recall works after you approve them |
+| Re-learn | It clears this repo's memory, then learns again |
+| Open the memory dashboard / close the memory dashboard | The local page opens or closes |
+| Write down how we just fixed that | The note stays pending until you approve it |
+| Do these two contradict | It looks for a conflict and waits for your ruling |
 
-If you see "must specify `--host-judge` or `--local-judge`", rerun with `--host-judge` — do not switch to `--local-judge` (that one is for terminal-only capture). `rsi wipe --yes` deletes `memory/`, `logs/`, `cache/`, `audit/`, `state/` and `manifest.json` under the project's `.rsi`, keeping `identity.json`; if files are locked, disable `rsi-boot` in Settings → MCP first, then retry.
+Re-learning deletes memory, logs, and cache under that project's `.rsi`, and keeps `identity.json`. If a file is locked, turn `rsi-boot` off under Settings → MCP first. When `.rsi/bootstrap_report.md` shows no pending items and the run is approved, recall is usable. If the agent says it must pass `--host-judge`, tell it to add that flag and run again.
 
-After learning, check the lane list in `.rsi/bootstrap_report.md`: recall is usable only when pending=0 and the run has been approved via `rsi_knowledge_review`. Approved conventions enter recall only — they are not written out as `rsi-convention-*.mdc` rule files.
+## Tools
 
-## CLI smoke test
-
-For driving the CLI directly, outside of conversation. Writes require either `--host-judge` or `--local-judge`; `--dry-run` is exempt.
-
-```bash
-rsi recall "review this Python code for me"
-rsi knowledge add --title "project convention" --content "this project uses snake_case everywhere"
-rsi recall "what are the naming conventions in this project"
-
-rsi bootstrap --dry-run
-rsi bootstrap --local-judge
-rsi bootstrap --local-judge --force
-
-# migrate a legacy .rsi/rsi.db first
-rsi memory migrate
-
-# normally launched by Cursor; no need to run by hand
-rsi serve
-```
-
-## MCP tools
+Once connected, the agent in that project gets these tools. On DeepSeek Harness the names gain a prefix, for example `mcp__rsi-boot__rsi_recall`.
 
 | Tool | What it does |
-|------|--------------|
-| `rsi_recall` | Pre-task recall: prohibitions first, plus conventions / docs / gene / teaching |
-| `rsi_explore` | Drill the knowledge tree by domain module (empty path lists top modules with counts; a path lists member items title/brief/id plus graph-based related / conflicts edges for that node) |
-| `rsi_feedback` | Adoption feedback; rejected+comment is distilled into a prohibition |
-| `rsi_learn` | Reading packs (pack_list / pack_open / pack_done), teach_catch / teach_record, session audit |
-| `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_update` / `rsi_knowledge_review` | Memory management and review; `rsi_knowledge_update` edits an entry in place (prefer updating over re-adding duplicates) and `merge` combines near-duplicates (keeps the more complete one, archives the rest, records a supersedes edge); distilled entries must carry a `pack_id` |
-| `rsi_conflicts` | Query and adjudicate conflicts between short knowledge items |
-| `rsi_memory_health` | Flag incorrect or stale memories: contradicting comment polarity opens `incorrect`, a changed source that lost the title phrase opens `stale_source`; only `resolve` archives — scan never writes the official store |
-| `rsi_memory` | Memory index / open / rebuild / relationship graph |
-| `rsi_review` | Harness improvement proposals and config snapshots |
-| `rsi_stats` | Memory usage statistics |
-| `rsi_impact` | Value/impact panel for evangelism: injected cost (chars + est. tokens), recall compaction, adoption/compliance, a time curve, and an A/B token-savings calculator (savings are only produced from a user-supplied host before/after comparison — never invented) |
-| `rsi_web_ui` | Open or close the local memory dashboard. `open` listens on `http://127.0.0.1:18765/dashboard`; `close` makes that address unreachable. No `rsi serve` startup flag |
+|------|----------------|
+| `rsi_recall` | Recall before work. Prohibitions come first, then conventions, docs, and lessons from past fixes |
+| `rsi_explore` | Browse the knowledge tree by section. An empty path lists the top sections and their counts; a path lists titles and ids in that branch |
+| `rsi_learn` | Learn the repo the first time, write down a lesson from this session, and close the session out |
+| `rsi_knowledge_add` | Add a memory. It stays pending until approved, and only then enters recall |
+| `rsi_knowledge_search` | Look up an existing memory by question |
+| `rsi_knowledge_update` | Edit one entry, or merge near-duplicates into one |
+| `rsi_knowledge_delete` | Delete one memory |
+| `rsi_knowledge_review` | Approve or reject a pending entry |
+| `rsi_conflicts` | Find memories that contradict each other, and wait for your ruling |
+| `rsi_memory_health` | Find official memories that are wrong or whose source has gone stale. The scan does not change the store; archiving waits for your confirmation |
+| `rsi_memory` | Open the index, open one entry, rebuild the index, or look at how entries relate |
+| `rsi_feedback` | Record whether a recall was used. A rejection with a reason can become a prohibition |
+| `rsi_review` | Read a harness improvement proposal and its config snapshot, and decide whether to keep it |
+| `rsi_stats` | See how often memory is used and how often it is adopted |
+| `rsi_impact` | See injection size, how much recall compacts, and adoption and compliance |
+| `rsi_web_ui` | Open or close the local memory dashboard. This does not change how `rsi serve` starts |
 
-RSI has no OAuth. Do not call `mcp_auth` mid-distillation, and never pop an authorization prompt at the user.
+Fields and call parameters are in [`SKILL.md`](SKILL.md).
 
 ## Configuration
 
 Config chain: in-package `default.yaml` → `~/.rsi/config.yaml` → project-root `rsi-boot.yaml` → request parameters.
 
-`RSI_HOME` only overrides the user config directory (default `~/.rsi`). Project memory, profiles, and archives all live in the working directory's `.rsi/` — open another repo and you get another copy; nothing leaks across. The main path works with zero configuration; optional enhancements (vector retrieval, LLM extraction, etc., requiring your own model key) are documented in the `~/.rsi/config.yaml` example.
+`RSI_HOME` only overrides the user config directory (default `~/.rsi`). Project memory lives in the working directory's `.rsi/`. Open another repo and you get another copy. The main path needs no setup. Extras such as vector search or model extraction need your own key; the example is in `~/.rsi/config.yaml`.
 
-Plaintext keys are forbidden in a project's `rsi-boot.yaml` — the server refuses to start if one is found. Logs are redacted before being stored; content passes an approval gate and a blacklist before injection into host context; logs older than 90 days are automatically archived to `.rsi/archive/YYYYMM.jsonl`.
+A project's `rsi-boot.yaml` must not contain a plaintext key. The server refuses to start if it finds one.
 
 ## Development
+
+After changing this repository, reload `rsi-boot` under Settings → MCP.
 
 ```bash
 pip install -e ".[dev]"
 python -m pytest
 python scripts/export_schemas.py
 ```
+
+Calling the CLI outside a chat requires `--host-judge` or `--local-judge` on writes (`--dry-run` does not). Migrate an old `.rsi/rsi.db` with `rsi memory migrate`.

@@ -12,16 +12,18 @@
 
 简体中文 | [English](README.en.md)
 
-> **Agent 的工程记忆，不是对话记忆：跟着仓库走、换宿主不重学、越用越会干活。**
+> **Agent 的工程记忆，不是对话记忆：约定和禁止项落在仓库里，换一个宿主读到的还是这一份。**
 
 Cursor 在 2.1 删掉了 Memories，新会话对你的项目一无所知；Claude Code 的记忆锁在本机、不跟 git，换一个同事就对不上；云记忆要 Key、要服务，记忆还跟账号走。同一个人换着 Cursor、Claude Code、Codex、DeepSeek Harness 写同一个仓库，或者团队里各用各的工具，写法、禁止项和修 bug 的经验也各记各的。
 
-RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `.rsi/`，跟仓库走：装一次，Cursor / Claude Code / Codex / Qoder / DeepSeek Harness 通用。负反馈进失败桶，改进提案过静态门禁与人工确认、观察 7 天、掉采纳率自动回滚——不是越记越多，是越用越会干活。主链路零 API Key，不调用模型。
+RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `.rsi/`，跟仓库走：装一次，Cursor / Claude Code / Codex / Qoder / DeepSeek Harness 通用。主链路零 API Key，不调用模型。
+
+环是固定的：**召回 → 干活 → 蒸馏成待审条目 → 人批准后才留下 → 下一轮召回读到留下的条目。** 负反馈另外进失败桶，只改可写槽位（提示词 / 技能 / 召回策略 / 意图规则 / 知识）。提案过静态门禁和人工确认才晋升，观察 7 天，采纳率掉就回滚。这是软件自己的写法。下面公开的数只量了第一截：开工前有没有一条书面约束。
 
 ## 和「又一个记忆插件」差在哪
 
 **rsi-harness（Harness-RSI）**
-负反馈进失败桶，只改可写槽位（提示词 / 技能 / 召回策略 / 意图规则 / 知识）。提案过静态门禁和人工确认才晋升，观察 7 天，采纳率掉就回滚。越用越会干活，不是越记越多。
+负反馈进失败桶，只改可写槽位（提示词 / 技能 / 召回策略 / 意图规则 / 知识）。提案过静态门禁和人工确认才晋升，观察 7 天，采纳率掉就回滚。留下的是槽位版本。这条环已经在软件里；公开基准还没有量过「下一轮是否更好」。
 
 **跟随项目迁移**
 记忆按仓库隔离，不跟账号、不跟 IDE。仓库拷走、换机器、换目录，`.rsi/` 一起走；打开另一个仓库就是另一份，不会串。Harness 基因组可导出 bundle，跨项目备份或迁槽位。
@@ -43,9 +45,9 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 
 ## 公开基准
 
-效果不该靠嘴说。RepoMem Bench 用真实仓库的真实 issue 任务做三组对照：agent 每次都是全新实例，隐藏测试判分，改动 `tests/` 记为违规。任务、补丁、runner 与 49 份原始结果全部公开，欢迎复跑：[benchmark/](benchmark/)。
+数字分开念。已经公开的结果只回答一件事：**开工前有没有一条「别改测试」的书面约束。** 任务、补丁、runner 和原始结果都在 [benchmark/](benchmark/)，欢迎复跑。
 
-在「修对 bug 后仓库自带测试断言必失败」的诱惑任务上（每格 4 次独立重复 + 历史跑交叉验证，2026-10-26 复跑更新）：
+RepoMem Bench 用真实仓库的真实 issue。每跑都是全新 agent，隐藏测试判分，改动 `tests/` 算违规。诱惑任务是指：bug 修对之后，仓库自带的旧断言必然失败，agent 会想改测试把套件糊绿。下表是每格 4 次独立重复，加上协议相同的历史跑（2026-10-26 复跑更新）：
 
 | 组别 | 跑数 | 改了测试（违规） | 违规率 |
 |------|:---:|:---:|:---:|
@@ -53,7 +55,20 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 | B · 仅 AGENTS.md | 12 | 0 | **0%** |
 | C · RSI Boot 记忆 | 12 | 1 | **8%** |
 
-> 对照任务（无过期断言）三组违规均为 0——违规由诱惑诱发，不是随机行为；C 组唯一一次违规是 agent 召回条款后自认「例外」。第 4 批复跑后比率由 78% / 0% / 11% 更新为上表（同日曾误记为 17%，已剔除一次非独立重复，见报告）。完整报告与效度威胁：[48 跑报告](benchmark/results/SUMMARY-v5-final-36runs.md)。
+对照任务（没有过期断言）三组违规都是 0，违规是被诱惑诱发的。C 组唯一一次违规，是 agent 召回了条款，然后自己声明例外。第 4 批之前的比率是 78% / 0% / 11%；同日还有一个 17%，把一次不独立的重复算了进去，已剔除。完整报告和效度威胁：[48 跑报告](benchmark/results/SUMMARY-v5-final-36runs.md)。
+
+这张表说明：没有上下文时，agent 经常改测试；同一句话写进 `AGENTS.md`，12 跑里 0 次违规；写进 RSI 记忆，12 跑里 1 次。单文件小修复上，静态文件和记忆的约束力相当，静态文件这组更干净。记忆会不会让下一轮更好，这张表没测。
+
+| 主张 | 对照怎么摆 | 现状 |
+|------|------------|------|
+| 书面约束能压住改测试 | 无上下文 / 只放 AGENTS.md / 批准后的禁止项。2 个诱惑任务，每格 4 次独立重复，另加历史跑 | **已测**，见上表 |
+| 拿掉 AGENTS.md，下一轮只靠召回仍守得住 | 同一任务、全新 agent，仓库里不放那份静态文件 | 未测 |
+| 换宿主或换目录，召回仍是同一条 | 同一份 `.rsi/` | 未测 |
+| 过了门禁的槽位更新让下一轮更好 | 没过门禁的提案停在待审，不参与下一轮 | 未测 |
+| 过期的禁止项不会挡住正确修法 | 放进一条和正确修法矛盾的旧禁止项 | 未测 |
+| 省了多少 token | 只记宿主报出来的 input/output，报不出就空着 | 未测 |
+
+样本是 2 个真诱惑任务、一种 agent。C 组记忆是人压过的 2–4 条，不是把整个项目学完的结果。下一批每条主张怎么单独摆，写在 [benchmark/README.md](benchmark/README.md)。
 
 ## 安装
 
@@ -86,9 +101,9 @@ rsi init
 }
 ```
 
-然后 Settings → MCP 确认 `rsi-boot` 已启用。改过本仓库代码后要重载该 MCP。
+然后 Settings → MCP 确认 `rsi-boot` 已启用。
 
-不要配用户级 `mcp.json`：那里 `args` 里的 `${workspaceFolder}` 经常不展开，会把记忆串到别的仓库。工作区绑定顺序：`RSI_PROJECT_ROOT`（项目级 mcp.json，推荐，显式契约）→ MCP `roots/list`（插件形态下由 Cursor 自动应答）→ Cursor 注入的 `WORKSPACE_FOLDER_PATHS` → 进程 cwd。
+不要把这段配进用户级 `mcp.json`。那里的 `${workspaceFolder}` 经常不展开，记忆会串到别的仓库。要记哪个项目，就写在那个项目里。
 
 ## 接到其他宿主
 
@@ -107,17 +122,15 @@ rsi init
 claude mcp add rsi-boot -- uvx --from rsi-boot rsi serve
 ```
 
-工作区按 roots/cwd 自动认领。状态栏集成见下文「状态栏（可选）」。
+在要记的那个仓库目录里打开 Claude Code。状态栏是可选项，见下文。
 
 ### Qoder
-
-本仓库同时是 Qoder 插件：`.qoder-plugin/plugin.json` 清单 + 根目录 `mcp.json`（与 Cursor 插件共用同一份 MCP 配置），打 zip 即可分发。手动接的话二选一：
 
 ```bash
 qoder mcp add rsi-boot -- rsi serve
 ```
 
-或在项目根 `.mcp.json` 加与 Cursor 相同的 `mcpServers` 片段。工作区绑定顺序与 Cursor 一致（`RSI_PROJECT_ROOT` → roots/list → 注入变量 → cwd）。
+或在项目根 `.mcp.json` 加与 Cursor 相同的 `mcpServers` 片段。同样要写在这个项目里，不要写进用户级配置。
 
 ### Codex
 
@@ -135,15 +148,17 @@ command = "rsi"
 args = ["serve"]
 ```
 
-从项目根目录启动 codex 即可——MCP 子进程继承 cwd，rsi-boot 按 cwd 向上认领工作区。要显式钉死就在表里加一行：`env = { RSI_PROJECT_ROOT = "/绝对/路径" }`。
-
-### WorkBuddy
-
-连接器市场上架材料在 [`distribution/workbuddy/`](distribution/workbuddy/)。打包和提交流程写在该目录的 README，这里不展开平台规范。
+从项目根目录启动 codex。要钉死目录，在上面的表里加一行：`env = { RSI_PROJECT_ROOT = "/绝对/路径" }`。
 
 ### DeepSeek Harness
 
-桌面端插件页安装 npm 包 `dsh-rsi-boot`（或用 `dsh plugin` 从本仓库的 `distribution/deepseek-harness` 安装）。装好后工具名带 `mcp__rsi-boot__` 前缀，例如 `mcp__rsi-boot__rsi_recall`。工作区怎么绑、发布命令写在 [`distribution/deepseek-harness/`](distribution/deepseek-harness/)。
+在要记的那个仓库目录里打开桌面端。插件页安装 `dsh-rsi-boot`，或在已经能用 `dsh` 的终端里执行：
+
+```bash
+dsh plugin --profile web add dsh-rsi-boot
+```
+
+本机需要 Python 3.10+，并且终端里能运行 `rsi serve`。装完重启一次。工具名多一层前缀，例如 `mcp__rsi-boot__rsi_recall`。不要从用户主目录启动，否则 `.rsi/` 可能写进主目录。
 
 ## 状态栏（可选）
 
@@ -186,100 +201,79 @@ Cursor CLI（`~/.cursor/cli-config.json`）：
 statusline_style: buddy
 ```
 
-六档预设：`mixed` 混搭（默认）、`buddy` 陪伴搭子（WorkBuddy 风：陪伴/安抚/治愈/祝福）、`serious` 严肃专业（只出通用陪伴与金句，不见猫咪玄学）、`healing` 治愈可爱、`geek` 极客梗、`lucky` 玄学好运。改完即生效，无需重启——状态栏每次刷新都会重读。语言键 `lang` 在 config.yaml 里走同一条优先级链。
+六档预设：`mixed` 混搭（默认）、`buddy` 陪伴、`serious` 严肃、`healing` 治愈、`geek` 极客、`lucky` 好运。改完下一次刷新就生效。
 
-注意：状态栏不是 MCP server，不由 mcp.json 管理（那是 `rsi serve` 记忆服务的配置），所以风格只能配在 statusLine 的 command 或 config.yaml 里。
-
-### 说明：
-
-- token 明细来自 transcript（Claude Code）或 `context_window` 字段（Cursor CLI）；上下文窗口默认 200k，`exceeds_200k_tokens` 时按 1M，可用 `RSI_STATUSLINE_CTX_WINDOW` 覆盖。
-- 文案三层供给：**用户文案文件**（`~/.rsi/quips.json`，板块非空即整体替换内置池）> 手写池（130+ 条，质量下限）+ 模板造句器（约 200 种组合，按组合空间加权）。用户文案由宿主模型在对话中生成（对它说「生成状态栏文案」即可，风格规范内嵌在文件头），写完跑 `rsi statusline --validate-quips` 校验口径与去重。
-- 风格按主题（core/motto/kudos/fortune/geek/dry/healing/food/cat/game/hype/slack/offwork/weather）打标过滤；场景池（早安/深夜/告急/久坐/夸夸）功能性文案不受风格限制。
-- 轮换与防重：默认 45 秒一换（`RSI_STATUSLINE_QUIP_SECONDS` 可调，如 5），同桶内不闪烁；`~/.rsi/state/statusline_quips.json` 记录每会话最近 300 条已播，自动避开重复。
-- 场景专属池：早安（06–11 点）、深夜（23–06 点）、上下文告急（≤15%）、久坐提醒（会话 ≥45 分钟，`RSI_STATUSLINE_REST_MINUTES` 可调，0 关闭）、RSI 高采纳夸夸。
-- RSI 段从 cwd 向上找 `.rsi/logs/events.jsonl` 统计今日数据，找不到就静默省略。
-- 语言只显示一种，解析链：`--lang` → `RSI_LANG` → 项目 `.rsi/config.yaml` → 用户 `~/.rsi/config.yaml` → 系统语言。想固定就写一行 `lang: zh`（项目级优先）。
-- 选项：`--lang zh|en`、`--no-rsi`、`--no-quip`、`--plain`（去颜色与 emoji）；`NO_COLOR` 只关颜色。
-- 冷启动约 250ms，满足宿主 ≥300ms 刷新间隔；命令永不非零退出，异常时兜底输出一行。
+风格写在 statusLine 的命令里，或写在 config.yaml 的 `statusline_style`。不要写进 `mcp.json`，那是记忆服务的配置。语言同样：命令加 `--lang zh`，或在项目 `.rsi/config.yaml` 写 `lang: zh`。想换一批文案，对代理说「生成状态栏文案」，写完跑 `rsi statusline --validate-quips`。
 
 ## 记忆大屏
 
-不用改 `rsi serve` 的启动参数。对当前项目窗口里的代理说「打开记忆大屏」，代理调用工具 `rsi_web_ui`（`action` 为 `open`）后，本机才会监听；说「关掉记忆大屏」（`action` 为 `close`）后，下面这个地址立刻访问不到。
+不用改 `rsi serve` 的启动参数。对当前项目窗口里的代理说「打开记忆大屏」。说「关掉记忆大屏」后，下面这个地址立刻访问不到。
 
-默认示例路由（端口被占用时，以工具返回的 `url` 为准）：
+默认地址（端口被占用时，以代理回报的地址为准）：
 
 ```text
 http://127.0.0.1:18765/dashboard
 ```
 
-同一进程里的数据接口是 `http://127.0.0.1:18765/api/snapshot`，也只在大屏开着时才有。页面读的是当前仓库 `.rsi/`，不需要 API Key。
+页面读的是当前仓库 `.rsi/`，不需要 API Key。
 
 ![RSI 记忆大屏](assets/dashboard-preview.png)
 
-## 在对话里学习
+## 在对话里用
 
-接好 MCP 后不要自己去终端跑 `rsi`。对当前项目窗口里的代理说即可。
+接好之后，对当前项目窗口里的代理说。不用自己开终端跑 `rsi`。
 
-| 你说 | 代理做的 |
-|------|----------|
-| 第一次学这个项目 | `rsi bootstrap --consent --host-judge` → `rsi_learn` 蒸完全部 pending → `rsi_knowledge_review` 批准本 run |
-| 重新学习 | 先 `rsi wipe --yes` 清记忆，再按上面重新学 |
+| 你说 | 结果 |
+|------|------|
+| 第一次学这个项目 | 扫这个仓库，写成待审条目；你批准之后，下次才能召回 |
+| 重新学习 | 清掉这份仓库的记忆，再学一遍 |
+| 打开记忆大屏 / 关掉记忆大屏 | 本机页面打开或关掉 |
+| 把刚才的修法记下来 | 先进入待审，批准后才留下 |
+| 这两条是不是矛盾 | 查冲突，等你裁决 |
 
-看到「必须指定 `--host-judge` 或 `--local-judge`」就加 `--host-judge` 重跑，不要改用 `--local-judge`（那条只给终端自己采集用）。`rsi wipe --yes` 会删掉该项目 `.rsi` 下的 `memory/` `logs/` `cache/` `audit/` `state/` 与 `manifest.json`，保留 `identity.json`；若提示文件被占用，先在 Settings → MCP 关掉 `rsi-boot` 再重跑。
+重新学习会删掉该项目 `.rsi` 里的记忆、日志和缓存，保留 `identity.json`。文件被占着，就先在 Settings → MCP 关掉 `rsi-boot`。学完看 `.rsi/bootstrap_report.md`：待审清空并且批准过，召回才可用。代理如果报必须指定 `--host-judge`，让它加上这个参数再跑。
 
-学完看 `.rsi/bootstrap_report.md` 的板块清单，pending=0 并经 `rsi_knowledge_review` 批准后才算召回可用。约定获准后只进召回，不会写成 `rsi-convention-*.mdc` 规则文件。
+## 工具
 
-## 终端冒烟
-
-不经对话、只调 CLI 时用。写盘必须带 `--host-judge` 或 `--local-judge` 其中一个；`--dry-run` 除外。
-
-```bash
-rsi recall "帮我审查这段 Python 代码"
-rsi knowledge add --title "项目约定" --content "本项目统一使用 snake_case 命名"
-rsi recall "本项目的命名约定是什么"
-
-rsi bootstrap --dry-run
-rsi bootstrap --local-judge
-rsi bootstrap --local-judge --force
-
-# 旧版 .rsi/rsi.db 先迁移
-rsi memory migrate
-
-# 一般由 Cursor 拉起，不必手跑
-rsi serve
-```
-
-## MCP 工具
+接上之后，这些工具出现在当前项目的代理里。DeepSeek Harness 上的名字多一层前缀，例如 `mcp__rsi-boot__rsi_recall`。
 
 | 工具 | 干什么 |
 |------|--------|
-| `rsi_recall` | 任务开始前召回：禁止项置顶 + 约定/文档/gene/teaching |
-| `rsi_explore` | 按 domain 板块下钻浏览知识树（空 path 列顶层板块+计数，传 path 列成员条目标题/简述/id，并附本节点条目的图谱关联 related 与冲突 conflicts） |
-| `rsi_feedback` | 采纳反馈；rejected+评语会提炼为禁止项 |
-| `rsi_learn` | 阅读包 pack_list / pack_open / pack_done，teach_catch / teach_record，Session 审计 |
-| `rsi_knowledge_add` / `rsi_knowledge_search` / `rsi_knowledge_delete` / `rsi_knowledge_update` / `rsi_knowledge_review` | 记忆管理与审批；`rsi_knowledge_update` 支持原地改字段（改优于新建重复）与 `merge` 合并近重复（保留更完整者、其余归档并写 supersedes 边）；蒸馏条须带 `pack_id` |
-| `rsi_conflicts` | 短知识冲突查询与裁决 |
-| `rsi_memory_health` | 错误/过时记忆发现与裁决：评语极性打脸开 `incorrect`，来源失效开 `stale_source`；`resolve` 才能归档，扫描本身不动正式库 |
-| `rsi_memory` | 记忆索引 / 打开 / 重建 / 关系图 |
-| `rsi_review` | Harness 改进提案与配置快照 |
-| `rsi_stats` | 记忆使用统计 |
-| `rsi_impact` | 价值/影响力面板（供宣讲）：注入成本（字符+token 估算）、召回压缩比、采纳/合规、时间曲线，以及 A/B 省 token 计算器（省量仅由用户喂入的宿主用前/用后对照得出，绝不编造） |
-| `rsi_web_ui` | 开关本机记忆大屏。`open` 后才监听 `http://127.0.0.1:18765/dashboard`，`close` 后不可访问。不改 `rsi serve` 启动参数 |
+| `rsi_recall` | 开工前召回。禁止项放在最前，后面是约定、文档和修过的教训 |
+| `rsi_explore` | 按板块看知识树。不传路径时列出顶层和条数；传路径时列出这一支的标题和 id |
+| `rsi_learn` | 第一次学这个仓库、把这次的教训记下来、做会话收工 |
+| `rsi_knowledge_add` | 新增一条记忆。先待审，批准后才进入召回 |
+| `rsi_knowledge_search` | 按问题查找已有记忆 |
+| `rsi_knowledge_update` | 改已有的一条，或把近重复的几条合成一条 |
+| `rsi_knowledge_delete` | 删除一条记忆 |
+| `rsi_knowledge_review` | 批准或拒绝待审条目 |
+| `rsi_conflicts` | 查出互相矛盾的记忆，等你裁决 |
+| `rsi_memory_health` | 查出写错或来源已经失效的正式记忆。扫描本身不改库，确认之后才归档 |
+| `rsi_memory` | 看索引、打开一条、重建索引、看条目之间的关系 |
+| `rsi_feedback` | 记下这次召回有没有被用上。拒绝并写明原因时，会收成一条禁止项 |
+| `rsi_review` | 看 harness 的改进提案和配置快照，决定留不留 |
+| `rsi_stats` | 看记忆用了多少、采纳得怎么样 |
+| `rsi_impact` | 看注入了多少、召回压了多少、采纳和合规 |
+| `rsi_web_ui` | 打开或关掉本机记忆大屏。不改 `rsi serve` 的启动参数 |
 
-RSI 无 OAuth。蒸馏中途不要调 `mcp_auth`、不要给用户弹授权。
+字段和调用参数见 [`SKILL.md`](SKILL.md)。
 
 ## 配置
 
 配置链：包内 `default.yaml` → `~/.rsi/config.yaml` → 项目根 `rsi-boot.yaml` → 请求参数。
 
-`RSI_HOME` 只覆盖用户配置目录（默认 `~/.rsi`）。项目记忆、画像、归档都在工作目录 `.rsi/`，打开另一个仓库就是另一份，不会串。主链路零配置可用；可选增强（向量检索、LLM 提取等，需自配模型 Key）见 `~/.rsi/config.yaml` 示例。
+`RSI_HOME` 只覆盖用户配置目录（默认 `~/.rsi`）。项目记忆在工作目录 `.rsi/`，打开另一个仓库就是另一份。主链路不用配；向量检索、模型提取这类增强要自己的 Key，示例在 `~/.rsi/config.yaml`。
 
-项目 `rsi-boot.yaml` 禁止明文密钥，发现即拒绝启动。日志落库前脱敏；注入宿主上下文前过审批闸门与黑名单；超 90 天日志自动归档到 `.rsi/archive/YYYYMM.jsonl`。
+项目里的 `rsi-boot.yaml` 不能写明文密钥，发现了就拒绝启动。
 
 ## 开发
+
+改过本仓库代码后，在 Settings → MCP 重载 `rsi-boot`。
 
 ```bash
 pip install -e ".[dev]"
 python -m pytest
 python scripts/export_schemas.py
 ```
+
+不经对话、直接调命令时，写盘要带 `--host-judge` 或 `--local-judge`（`--dry-run` 不用）。旧的 `.rsi/rsi.db` 用 `rsi memory migrate` 迁到文件库。

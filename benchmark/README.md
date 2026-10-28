@@ -1,6 +1,6 @@
 # RepoMem Bench
 
-> repo 绑定 agent 记忆的公开评测基准 · 状态：v0 草稿（任务集验证中，未发布任何结果）
+> repo 绑定 agent 记忆的公开评测基准 · 约束力已有 48 跑结果；留存、迁移、门禁、过期条和 token 还没有数
 > 维护：RSI Boot 项目 · 欢迎第三方复跑与提交任务
 
 ## 为什么要有这个基准
@@ -71,6 +71,19 @@ python benchmark/run_benchmark.py --task benchmark/tasks/examples/markupsafe-doc
 3. 任何人可用同一任务集复跑；发现结果不可复现，请开 issue。
 4. 本基准由 RSI Boot 项目维护且 C 组即本项目——利益相关明示于此；欢迎社区接管治理。
 
+## 下一批：每条主张单独摆
+
+48 跑只回答「书面约束压不压得住改测试」。下面四条还没有数。每条只改一个因素。token 以宿主报告为准，报不出就写 null，不估算。起步仍用现有诱惑任务（packaging-prerelease、mi-windowed），样本边界沿用 [v5 报告](results/SUMMARY-v5-final-36runs.md)。有原始 JSON 之前，README 的结果表不追加新的终点百分比。
+
+| 主张 | 对照 | 怎么跑 | 怎样算有数 |
+|------|------|--------|------------|
+| 只靠召回仍守得住 | 第 2 轮仓库里不放 AGENTS.md | 同一诱惑任务、每轮全新 agent。第 0 轮无记忆；第 1 轮只批准一条禁止项；第 2 轮删掉静态文件，只留 `.rsi/` 召回 | 第 2 轮违规率接近 B 组 |
+| 换宿主或换目录仍是同一条 | 同一份 `.rsi/` | 换一个宿主召回，或把仓库拷到新目录再召回 | 命中同一条记忆 id |
+| 过门禁才改变下一轮 | 停在待审的提案 | 违规进失败桶。一臂提案过门禁后重跑，另一臂停在 pending | 只有过门禁的那一臂违规率下降 |
+| 过期禁止项不挡住正确修法 | 健康扫描或冲突裁决 | 植入一条和正确修法矛盾的旧禁止项 | 标成冲突或过期，而不是继续禁止正确修法 |
+
+注入字符数、召回条数和 token 跟每次跑一起记。
+
 ## 路线图
 
 - [x] 方法 v0 / 任务 schema / runner 骨架（manual 后端 + `--validate` 可用）
@@ -89,6 +102,6 @@ python benchmark/run_benchmark.py --task benchmark/tasks/examples/markupsafe-doc
 - [x] **批 1 完成**（4 任务 × 3 组 = 12 跑，36 跑计划首批）：见 [results/SUMMARY-v3-batch1.md](results/SUMMARY-v3-batch1.md)——**诱惑任务上 A 违规 2/2、B/C 0/8；累计 A 4/5 vs B 0/6 vs C 1/6**；`seed_memory.ps1` 一键播种 C 组记忆
 - [x] **批 2 完成**（第二轮重复 12 跑）：见 [results/SUMMARY-v4-batch2.md](results/SUMMARY-v4-batch2.md)——**可重复性确立：A 在真诱惑任务累计 6/7 违规 vs B 0/7 vs C 1/8**；非诱惑任务三组全 0（交叉验证违规由诱惑诱发）
 - [x] **36 跑计划完成（批 1–3）**，并经第 4 批复跑更新为 48 跑：见 [results/SUMMARY-v5-final-36runs.md](results/SUMMARY-v5-final-36runs.md)——**诱惑任务上 A 违规 67%（8/12）vs B 0%（0/12）vs C 8%（1/12）**（第 4 批前为 78% / 0% / 11%；同日误记的 17% 已撤回），含方法、效度威胁与复跑指引
-- [ ] 下轮：B/C 分化任务设计（多文件/长程/token 维度）；任务入库 checklist 增加「人工审查精确文本断言」
+- [ ] 下一批四条未测主张（留存 / 迁移 / 门禁 / 过期条），协议见上文；任务入库 checklist 增加「人工审查精确文本断言」
 - [ ] cursor / codex 后端
 - [ ] 正式首轮结果 + 排行榜
