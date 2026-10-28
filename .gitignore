@@ -26,9 +26,13 @@ tests/eval/reports/
 
 # RepoMem Bench 本地克隆工作区（任务与结果入库，克隆产物不入库）
 benchmark/.workdir/
+benchmark/.data/
 
 # 本地会话与注入产物（RSI 注入器自动维护，不入库）
 .cursor/
 .superpowers/
 docs/
 output/
+
+#wiki
+wiki/

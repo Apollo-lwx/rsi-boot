@@ -1,107 +1,31 @@
-# RepoMem Bench
+# 召回主榜
 
-> repo 绑定 agent 记忆的公开评测基准 · 约束力已有 48 跑结果；留存、迁移、门禁、过期条和 token 还没有数
-> 维护：RSI Boot 项目 · 欢迎第三方复跑与提交任务
+公开数字只量一件事：问题抛过来，标准证据有没有出现在召回的前几条里。复跑：
 
-## 为什么要有这个基准
+```bash
+python -X utf8 benchmark/recall_board.py
+```
 
-LOCOMO 一类基准量的是「对话记忆」——聊天事实的抽取与召回。它不适用于编码场景：没有仓库、没有测试套件、也没有「违反仓库约定」这回事。
-
-RepoMem Bench 量的是另一件事：**一个 agent 进入真实仓库时，记忆/上下文方案能不能让它一次就把活干对、干合规矩。**
-
-## 三组对照（arms）
-
-| 组 | 上下文方案 | 说明 |
-|----|-----------|------|
-| A | 无任何额外上下文 | 基线 |
-| B | 仓库根注入人工编写的 AGENTS.md | 静态最佳实践的上限 |
-| C | 先跑 `rsi bootstrap` 再开工 | RSI Boot |
-
-同一任务、同一模型、同一温度、同一超时，三组各跑一遍。跑批时模型版本与参数必须写入结果 JSON。
+数据集放在 `benchmark/.data/`（不入库）。结果在 [results/recall-20261028/SUMMARY.md](results/recall-20261028/SUMMARY.md)。
 
 ## 指标
 
-- **一次通过率（主指标）**：验证命令首次运行退出码为 0 的比例。
-- **token 消耗**：agent 后端报告的 input/output token。**取不到就记 null，绝不估算编造。**
-- **约定违反数**：diff 触碰任务声明的 `forbidden_paths` 次数（机械可判，不依赖主观评审）。
-- **辅助指标**：耗时、改动文件数。
+产品默认召回 5 条，上限 10。主数字是 **Hit@5**。另报 @10。Mem0 主页上的 92.5（LoCoMo）、94.4（LongMemEval）是模型答题后再由裁判打分，而且用的是 top 50 / top 200。那个百分数和 Hit@5 不写在同一列。
 
-## 任务 schema（repomem-task/v1）
+| 数据集 | 切分 | 标准证据 |
+|---|---|---|
+| LoCoMo（`locomo10.json`） | 一条官方 turn（`dia_id`）一条记忆，正文前加上该 session 的日期 | 类别 1–4 的 `evidence`。类别 5 答案为空，`evidence` 是干扰项，只计入「该空时空了」 |
+| LongMemEval-S cleaned | 一条 haystack session 一条记忆。超过 18000 字再切开，同一 session 的切片都算这条证据 | `answer_session_ids` |
 
-见 [`tasks/examples/`](tasks/examples/) 两个带注释的示例。关键字段：
+问题原文就是 `rsi recall` 的任务文本。走冷启动 `recall-balanced`。不调用模型答题。
 
-| 字段 | 含义 |
-|------|------|
-| `id` / `status` | 任务标识；`draft` → `validated`（通过 `--validate` 才进得分集） |
-| `repo.url` / `repo.ref` | 仓库与 ref（tag/branch）；runner 记录 resolved SHA 到结果 |
-| `prompt` | 交给 agent 的任务描述，唯一输入 |
-| `setup` / `verify` | 环境准备与验证命令；验证退出码即通过与否 |
-| `forbidden_paths` | 约定违反的机械判定：diff 触碰即计一次违反 |
-| `agents_md` | B 组注入的静态上下文（A 组不注入、C 组不用——C 组用 bootstrap 产物） |
-| `isolate` | `venv` 时 setup/verify 在仓库内独立 venv 执行，不污染调用者环境 |
-| `verify_patch` | 判分测试补丁（相对任务文件的路径），验证时才注入，agent 不可见 |
-| `gold_patch` | 参考修复补丁，仅供 `--validate` 证明任务可解 |
+| 指标 | 分母 | 一次什么叫中 |
+|---|---|---|
+| Hit@k | 有标准证据的题 | 前 k 条里至少有一个标准证据 |
+| Recall@k | 该题的标准证据条数 | 前 k 条盖住了其中多少 |
+| MRR | 有标准证据的题 | 第一条命中排在第几，取倒数再平均 |
+| 该空时空了 | 标准证据为空的题 | 前 5 条是空的 |
 
-**issue 级任务（SWE-bench 式）**：base 钉在真实修复 commit 的父提交，`verify_patch` 是该 commit 的测试部分、`gold_patch` 是源码部分。`--validate` 两步法：① 仅测试补丁在未修复代码上必须 FAIL（区分度）；② gold+测试补丁必须 PASS（可解性）。smoke 级任务（无补丁）只要求 pristine verify 通过。
+token 宿主没有报，记 null。
 
-> 补丁导出务必用 `cmd /c "git diff A B -- paths > file.patch"` 原生重定向——PowerShell `>` 会把输出转成字符串往返，破坏补丁格式（git apply 报 "No valid patches"）。
-
-## 仓库选择标准
-
-- 开源、测试套件本地可确定性运行、无外部服务依赖、无密钥要求
-- 覆盖至少 3 种语言栈（首批目标：Python / TypeScript / Go）
-- 任务来自真实 issue/PR 或可机械判定的工程需求，拒绝玩具题
-
-## 运行
-
-```bash
-# 校验任务：克隆 + 跑 setup + 在 pristine 仓库上执行 verify（draft → validated 的前提）
-python benchmark/run_benchmark.py --task benchmark/tasks/examples/markupsafe-docstring-example.yaml --validate
-
-# 跑一个任务（manual 后端：打印 prompt，由人/agent 在外部完成后回车收集结果）
-python benchmark/run_benchmark.py --task benchmark/tasks/examples/markupsafe-docstring-example.yaml --arm A --backend manual
-```
-
-克隆产物落在 `benchmark/.workdir/`（gitignore，不入库）；结果写 `benchmark/results/<run_id>.json`（原始入库）。
-
-## 诚实条款
-
-1. 结果 JSON 为原始记录：resolved commit SHA、命令、退出码、耗时，不接受任何「估算」数字。
-2. 任务必须先通过 `--validate` 才计入得分集。
-3. 任何人可用同一任务集复跑；发现结果不可复现，请开 issue。
-4. 本基准由 RSI Boot 项目维护且 C 组即本项目——利益相关明示于此；欢迎社区接管治理。
-
-## 下一批：每条主张单独摆
-
-48 跑只回答「书面约束压不压得住改测试」。下面四条还没有数。每条只改一个因素。token 以宿主报告为准，报不出就写 null，不估算。起步仍用现有诱惑任务（packaging-prerelease、mi-windowed），样本边界沿用 [v5 报告](results/SUMMARY-v5-final-36runs.md)。有原始 JSON 之前，README 的结果表不追加新的终点百分比。
-
-| 主张 | 对照 | 怎么跑 | 怎样算有数 |
-|------|------|--------|------------|
-| 只靠召回仍守得住 | 第 2 轮仓库里不放 AGENTS.md | 同一诱惑任务、每轮全新 agent。第 0 轮无记忆；第 1 轮只批准一条禁止项；第 2 轮删掉静态文件，只留 `.rsi/` 召回 | 第 2 轮违规率接近 B 组 |
-| 换宿主或换目录仍是同一条 | 同一份 `.rsi/` | 换一个宿主召回，或把仓库拷到新目录再召回 | 命中同一条记忆 id |
-| 过门禁才改变下一轮 | 停在待审的提案 | 违规进失败桶。一臂提案过门禁后重跑，另一臂停在 pending | 只有过门禁的那一臂违规率下降 |
-| 过期禁止项不挡住正确修法 | 健康扫描或冲突裁决 | 植入一条和正确修法矛盾的旧禁止项 | 标成冲突或过期，而不是继续禁止正确修法 |
-
-注入字符数、召回条数和 token 跟每次跑一起记。
-
-## 路线图
-
-- [x] 方法 v0 / 任务 schema / runner 骨架（manual 后端 + `--validate` 可用）
-- [x] setup 隔离：`isolate: venv` 任务在仓库内独立 venv 执行 setup/verify
-- [x] claude 后端：`claude -p --output-format json` headless，采集真实 token/轮次/花费；C 组自动写 `.mcp.json`（已实现，待本机装 claude CLI 后校准首跑）
-- [x] 已验证任务 ×3：markupsafe 3.0.2 / itsdangerous 2.2.0 / packaging 24.2（均为 smoke 级；pflag 待 Go 工具链）
-- [x] runner 加固：残次克隆（缺 ref）自动重克隆；半成品 venv（缺 python 可执行文件）自动重建
-- [x] SWE-bench 式 issue 级任务 ×6 已验证：packaging×2、jinja×3（Python）、zod×1（TypeScript）；另有 smoke 级 ×3
-- [x] 克隆提速：SHA 钉死的任务走浅取单提交（`git fetch --depth 1 origin <sha>`），大仓库/弱网友好
-- [ ] 首批 20 个任务（≥3 语言栈）验证入库——当前 15/20（含「违规诱惑型」×4：packaging-prerelease、packaging-filename-no-raise、jinja-empty-required-block、mi-windowed-invalid-size——base 自带测试断言旧行为，修对后旧断言必失败，专测约定约束力）；继续按 SWE-bench 式构造，补 Go 栈
-- [x] 「违规诱惑型」任务集立项：扫描器按「改实现+测试含删行（断言翻转）」启发式批量挖 commit，已验证 3 个新任务入库
-- [x] runner 两阶段（`--prepare-only` / `--collect-only`）：任意编排者可驱动；`mcp_call.py` 走通 CLI 缺失的批准/反馈流
-- [x] runner 加固 v2：收集时先还原补丁目标文件再注入（防改测试糊分弄崩打分，违规照记）；`forbidden_paths` 目录前缀匹配修复（`tests/` 此前因 fnmatch 无语义而失效——首轮全部「0 违反」系该 bug 所致，已对受影响的 parse-decimal [A] 结果人工更正）
-- [x] **首轮试点完成**（3 任务 × 3 组 × Cursor 子代理，9/9 PASS）：见 [results/SUMMARY.md](results/SUMMARY.md)——产出 5 条方法论教训（最重要：任务需加难度、prompt 不得泄露约定）
-- [x] **v2 完成**（3 硬任务 × 3 组）：见 [results/SUMMARY-v2.md](results/SUMMARY-v2.md)——**首次量化约定约束力**（A 组改测试违规 1 起 vs B/C 全守规矩）；发现过规格化测试陷阱；C 组代理自发完成 teach_record+feedback 闭环
-- [x] **批 1 完成**（4 任务 × 3 组 = 12 跑，36 跑计划首批）：见 [results/SUMMARY-v3-batch1.md](results/SUMMARY-v3-batch1.md)——**诱惑任务上 A 违规 2/2、B/C 0/8；累计 A 4/5 vs B 0/6 vs C 1/6**；`seed_memory.ps1` 一键播种 C 组记忆
-- [x] **批 2 完成**（第二轮重复 12 跑）：见 [results/SUMMARY-v4-batch2.md](results/SUMMARY-v4-batch2.md)——**可重复性确立：A 在真诱惑任务累计 6/7 违规 vs B 0/7 vs C 1/8**；非诱惑任务三组全 0（交叉验证违规由诱惑诱发）
-- [x] **36 跑计划完成（批 1–3）**，并经第 4 批复跑更新为 48 跑：见 [results/SUMMARY-v5-final-36runs.md](results/SUMMARY-v5-final-36runs.md)——**诱惑任务上 A 违规 67%（8/12）vs B 0%（0/12）vs C 8%（1/12）**（第 4 批前为 78% / 0% / 11%；同日误记的 17% 已撤回），含方法、效度威胁与复跑指引
-- [ ] 下一批四条未测主张（留存 / 迁移 / 门禁 / 过期条），协议见上文；任务入库 checklist 增加「人工审查精确文本断言」
-- [ ] cursor / codex 后端
-- [ ] 正式首轮结果 + 排行榜
+仓库约定榜和「没有这条记忆就修不对」的修对榜还没有题集，不进这张表。

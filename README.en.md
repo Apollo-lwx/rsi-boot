@@ -16,7 +16,7 @@ Cursor removed Memories in 2.1 — new chats know nothing about your project. Cl
 
 RSI Boot keeps conventions, prohibitions, repair lessons, and harness slots in the repo's `.rsi/`. Install once; Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness share that copy. The main path needs no API key and makes no model calls.
 
-The loop is fixed: **recall → do the work → distill a pending note → a person approves it → the next recall reads what was kept.** Negative feedback also lands in failure buckets and may change only writable slots (prompts, skills, recall strategy, intent rules, knowledge). A proposal is promoted only after a static gate and human review, watched for 7 days, and rolled back if adoption drops. That is how the software is built. The published numbers below measure only the first step: whether a written constraint was present before the task.
+The loop is fixed: **recall → do the work → distill a pending note → a person approves it → the next recall reads what was kept.** Negative feedback also lands in failure buckets and may change only writable slots (prompts, skills, recall strategy, intent rules, knowledge). A proposal is promoted only after a static gate and human review, watched for 7 days, and rolled back if adoption drops. That is how the software is built. The published retrieval table is in [benchmark/results/recall-20261028/SUMMARY.md](benchmark/results/recall-20261028/SUMMARY.md). It is not an answer-judge score.
 
 ## Not another memory plugin
 
@@ -43,30 +43,14 @@ Teammates get the full recall text when the repo contains the same `.rsi/`. Lear
 
 ## Public benchmark
 
-Read the numbers one claim at a time. The published result answers one question: **was a written "don't edit the tests" constraint present before the task?** Tasks, patches, the runner, and the raw results are in [benchmark/](benchmark/). Reruns are welcome.
+The leaderboard is recall. The cold start returns 5 items. The denominator is questions that have a gold evidence id. MRR is the reciprocal rank of the first hit, from 0 to 1. Tokens are null. Protocol and the per-type breakdown: [benchmark/results/recall-20261028/SUMMARY.md](benchmark/results/recall-20261028/SUMMARY.md).
 
-RepoMem Bench uses real issues from real repos. Every run is a fresh agent, graded by hidden tests, and any edit under `tests/` counts as a violation. A temptation task means a correct fix makes the repo's own stale assertions fail, so the agent is tempted to edit the tests and turn the suite green. The table is 4 independent repeats per cell, plus historical runs on the same protocol (rerun update 2026-10-26):
+| Dataset | Questions with evidence | Hit@5 | Recall@5 | MRR | Hit@10 | Recall@10 | Empty stayed empty |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| LoCoMo | 1536 | 56.5% | 51.0% | 0.427 | 64.0% | 57.8% | 0/450 |
+| LongMemEval-S | 500 | 96.6% | 90.1% | 0.907 | 98.4% | 94.8% | — |
 
-| Arm | Runs | Edited tests (violations) | Violation rate |
-|------|:---:|:---:|:---:|
-| A · no context | 12 | 8 | **67%** |
-| B · AGENTS.md only | 12 | 0 | **0%** |
-| C · RSI Boot memory | 12 | 1 | **8%** |
-
-On control tasks (no stale assertions) every arm has 0 violations, so the violations are induced by the temptation. C's single violation is an agent that recalled the rule and then declared an exception. Before the 4th repeat the rates were 78% / 0% / 11%. A same-day 17% figure counted one non-independent repeat and was withdrawn. Full report and threats to validity: [48-run report](benchmark/results/SUMMARY-v5-final-36runs.md).
-
-The table says: with no context, the agent often edits tests; the same sentence in `AGENTS.md` produced 0 violations in 12 runs; the same sentence in RSI memory produced 1 in 12. On these small single-file fixes, the static file and the memory constrain about equally, and the static file is the cleaner of the two. Whether memory makes the next round better is not what this table measures.
-
-| Claim | How the comparison is set | Status |
-|------|----------------------------|--------|
-| A written constraint stops test edits | No context / AGENTS.md only / an approved prohibition. 2 temptation tasks, 4 independent repeats per cell, plus historical runs | **Measured.** See the table above |
-| After AGENTS.md is removed, the next round still holds if recall is the only source | Same task, fresh agent, no static file in the repo | Not measured |
-| Another host or another directory still recalls the same item | The same `.rsi/` | Not measured |
-| A slot update that passed the gate makes the next round better | A proposal that did not pass the gate stays pending and is absent from the next round | Not measured |
-| A stale prohibition does not block the correct fix | Plant an old prohibition that contradicts the correct fix | Not measured |
-| Tokens saved | Record only input/output the host reports; leave the cell empty when it does not | Not measured |
-
-The sample is 2 real temptation tasks and one agent. Arm C's memory is 2–4 items compressed by hand, not a full learning pass over the project. How the next batch isolates each claim is written in [benchmark/README.md](benchmark/README.md).
+These are retrieval scores, not answer-judge scores.
 
 ## Installation
 
