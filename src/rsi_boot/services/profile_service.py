@@ -25,7 +25,7 @@ import yaml
 from cachetools import TTLCache
 
 from ..core.models import KnowledgeItem, UserPreferences, UserProfile
-from ..memory.logstore import iter_events
+from ..memory.logstore import event_action, iter_events, latest_feedback_by_token
 from ..memory.store import MemoryStore
 
 logger = logging.getLogger(__name__)
@@ -203,7 +203,10 @@ class ProfileService:
         now = datetime.now(timezone.utc)
         cutoff = (now - timedelta(days=90)).isoformat()
         logs = []
-        for event in iter_events(self._store.rsi_dir):
+        feedback_by_token = latest_feedback_by_token(self._store.rsi_dir)
+        for event in iter_events(self._store.rsi_dir, all_rolls=True):
+            if event.get("kind") == "feedback":
+                continue
             ts = str(event.get("ts") or event.get("created_at") or "")
             if ts < cutoff:
                 continue
@@ -216,7 +219,7 @@ class ProfileService:
             logs.append({
                 "intent": event.get("intent"),
                 "model_name": event.get("model") or event.get("model_name"),
-                "feedback_action": event.get("action") or event.get("feedback_action"),
+                "feedback_action": event_action(event, feedback_by_token),
                 "created_at": ts,
             })
 

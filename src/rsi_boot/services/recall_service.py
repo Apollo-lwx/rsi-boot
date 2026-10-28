@@ -423,7 +423,7 @@ class RecallService:
         retrieved_by_token: Dict[str, List[str]] = {}
         feedbacks: List[Dict[str, Any]] = []
         if files:
-            for event in iter_events(store.rsi_dir):
+            for event in iter_events(store.rsi_dir, all_rolls=True):
                 token = event.get("token")
                 if not token:
                     continue

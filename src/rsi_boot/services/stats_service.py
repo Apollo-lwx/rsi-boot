@@ -83,7 +83,7 @@ class StatsService:
         cutoff = (now - timedelta(days=unused_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
         # 每个 id 的最后一次命中时间（扫全量 recall 事件）
         last_hit: Dict[str, str] = {}
-        for ev in iter_events(self._store.rsi_dir, kinds={"recall"}):
+        for ev in iter_events(self._store.rsi_dir, kinds={"recall"}, all_rolls=True):
             ts = self._event_ts(ev)
             if not ts:
                 continue
@@ -161,7 +161,7 @@ class StatsService:
 
     def _feedback_by_token(self) -> Dict[str, Dict[str, Any]]:
         latest: Dict[str, Dict[str, Any]] = {}
-        for event in iter_events(self._store.rsi_dir, kinds={"feedback"}):
+        for event in iter_events(self._store.rsi_dir, kinds={"feedback"}, all_rolls=True):
             token = event.get("token")
             if token:
                 latest[str(token)] = event
@@ -195,11 +195,61 @@ class StatsService:
         """公开别名：窗口内已并入 feedback 的召回事件（供 ImpactService 复用，免重造窗口/连接逻辑）。"""
         return self._recall_events(period, project_id)
 
+    @staticmethod
+    def _parse_ts(value: Any) -> Optional[datetime]:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        try:
+            dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+
+    def adoption_between(
+        self,
+        start: datetime,
+        end: datetime,
+        project_id: Optional[str] = None,
+    ) -> Optional[float]:
+        """[start, end) 内已反馈召回的正向占比。无反馈返回 None。
+
+        正向动作与 summary.adoption_rate 相同：accepted / applied / copied / referenced。
+        """
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=timezone.utc)
+        start = start.astimezone(timezone.utc)
+        end = end.astimezone(timezone.utc)
+        feedback_by_token = self._feedback_by_token()
+        positive = 0
+        feedbacks = 0
+        for event in iter_events(self._store.rsi_dir, kinds={"recall"}, all_rolls=True):
+            if event.get("status") == "pending":
+                continue
+            if project_id and event.get("project_id") and event.get("project_id") != project_id:
+                continue
+            ts = self._parse_ts(self._event_ts(event))
+            if ts is None or ts < start or ts >= end:
+                continue
+            action = self._event_action(self._join_feedback(event, feedback_by_token))
+            if not action:
+                continue
+            feedbacks += 1
+            if action in _POSITIVE_ACTIONS:
+                positive += 1
+        if not feedbacks:
+            return None
+        return positive / feedbacks
+
     def _recall_events(self, period: str, project_id: Optional[str]) -> List[Dict[str, Any]]:
         start = self.window_start(period)
         feedback_by_token = self._feedback_by_token()
         out: List[Dict[str, Any]] = []
-        for event in iter_events(self._store.rsi_dir, kinds={"recall"}):
+        for event in iter_events(self._store.rsi_dir, kinds={"recall"}, all_rolls=True):
             if event.get("status") == "pending":
                 continue
             ts = self._event_ts(event)

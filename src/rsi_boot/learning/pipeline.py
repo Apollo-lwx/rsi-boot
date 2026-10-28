@@ -98,8 +98,21 @@ def extract_from_feedback(
     draft = extract_draft_rule(candidate_type, q, answer)
     if draft is None:
         return []
+    return write_pending_draft(
+        rsi_dir, draft=draft, action=action, candidate_type=candidate_type, retrieved=retrieved,
+    )
 
-    typ = draft["content_type"]
+
+def write_pending_draft(
+    rsi_dir: Path,
+    *,
+    draft: Dict[str, Any],
+    action: str,
+    candidate_type: str,
+    retrieved: List[str] | None = None,
+) -> List[Path]:
+    """把已经生成的草稿写入 pending，并追加 candidates.jsonl。"""
+    typ = draft.get("content_type")
     if typ not in _PENDING_TYPES:
         return []
 

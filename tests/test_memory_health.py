@@ -78,6 +78,36 @@ def _only(store: MemoryStore) -> dict:
     return _health(store).explain(rows[0]["id"])["finding"]
 
 
+def test_negative_hits_read_older_roll(tmp_path):
+    import json
+
+    store = MemoryStore(tmp_path / ".rsi")
+    doc_id = _write(store, n=1, type="prohibition", title="禁止跳过校验")
+    logs = store.rsi_dir / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).isoformat()
+    rows = [
+        {
+            "id": uuid.uuid4().hex, "ts": ts, "kind": "recall", "token": "old",
+            "retrieved": [doc_id], "project_id": "p", "task": "任务",
+        },
+        {
+            "id": uuid.uuid4().hex, "ts": ts, "kind": "feedback", "token": "old",
+            "action": "rejected", "comment": "可以跳过检查",
+        },
+    ]
+    (logs / "events-202001.jsonl").write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
+        encoding="utf-8",
+    )
+    (logs / "events-202608.jsonl").write_text(
+        '{"id":"mid","kind":"recall","token":"mid","retrieved":[],"project_id":"p"}\n',
+        encoding="utf-8",
+    )
+    result = _health(store).scan(tmp_path, project_id="p")
+    assert result["opened"] == 1
+
+
 def test_contradicting_comment_opens_revise_and_second_recommends_archive(tmp_path):
     store = MemoryStore(tmp_path / ".rsi")
     doc_id = _write(store, n=1, type="prohibition", title="禁止跳过校验")

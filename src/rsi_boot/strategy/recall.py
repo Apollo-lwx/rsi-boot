@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 RECALL_INTENT = "recall"
 _CACHE_TTL_S = 60.0
 _DECAY_FACTOR = 0.9  # 与 scheduler/tasks.py 策略表相同：向 Beta(1, 1) 回归
+_ELIMINATE_MIN_EXPOSURE = 100
+_ELIMINATE_MAX_ACCEPT = 0.2
 
 #: 默认召回臂（Spec §4.7 参数表）
 DEFAULT_ARMS = [
@@ -100,6 +102,69 @@ def decay_arms(path: Path) -> int:
         )
         os.replace(tmp, path)
     return changed
+
+
+def _accept_rate(row: Dict[str, Any]) -> float:
+    alpha = float(row.get("alpha") if row.get("alpha") is not None else 1.0)
+    beta = float(row.get("beta") if row.get("beta") is not None else 1.0)
+    denom = alpha + beta
+    if denom <= 0:
+        return 1.0
+    return alpha / denom
+
+
+def _is_recall_row(row: Dict[str, Any]) -> bool:
+    return (row.get("intent") or RECALL_INTENT) == RECALL_INTENT
+
+
+def eliminate_arms(path: Path) -> int:
+    """曝光 ≥100 且后验采纳率 < 20% 的臂标为停用。至少留一条活跃召回臂。"""
+    if not path.is_file():
+        return 0
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return 0
+    if isinstance(data, list):
+        rows = data
+        payload_of = lambda written: written
+    elif isinstance(data, dict):
+        rows = data.get("arms") or []
+        payload_of = lambda written: {**data, "arms": written}
+    else:
+        return 0
+    if not isinstance(rows, list):
+        return 0
+    doomed: List[Dict[str, Any]] = []
+    active_recall: List[Dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict) or not _arm_row_active(row):
+            continue
+        if _is_recall_row(row):
+            active_recall.append(row)
+        exposure = int(row.get("exposure") or row.get("exposure_count") or 0)
+        if exposure >= _ELIMINATE_MIN_EXPOSURE and _accept_rate(row) < _ELIMINATE_MAX_ACCEPT:
+            doomed.append(row)
+    recall_doomed = [row for row in doomed if _is_recall_row(row)]
+    if active_recall and len(recall_doomed) >= len(active_recall):
+        spare = max(recall_doomed, key=_accept_rate)
+        doomed = [row for row in doomed if row is not spare]
+    if not doomed:
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    for row in doomed:
+        row["active"] = False
+        row["updated_at"] = now
+    import os
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = Path(str(path) + ".tmp")
+    tmp.write_text(
+        yaml.safe_dump(payload_of(rows), allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+    os.replace(tmp, path)
+    return len(doomed)
 
 
 class RecallArmSelector:

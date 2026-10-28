@@ -219,6 +219,42 @@ async def test_weekly_hook_decays_arms_yaml(store):
     assert beta == pytest.approx(1 + 2 * 0.9)
 
 
+def test_eliminate_arms_and_spare_last_recall(store):
+    from rsi_boot.strategy.recall import eliminate_arms
+
+    poor = uuid.uuid4().hex
+    poorer = uuid.uuid4().hex
+    healthy = uuid.uuid4().hex
+    dest = store.rsi_dir / "state" / "arms.yaml"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {"id": poor, "name": "recall-a", "intent": "recall", "alpha": 1.0, "beta": 9.0,
+         "exposure": 100, "active": True},
+        {"id": poorer, "name": "recall-b", "intent": "recall", "alpha": 1.0, "beta": 19.0,
+         "exposure": 120, "active": True},
+        {"id": healthy, "name": "recall-c", "intent": "recall", "alpha": 8.0, "beta": 2.0,
+         "exposure": 100, "active": True},
+    ]
+    dest.write_text(yaml.safe_dump(rows, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    assert eliminate_arms(dest) == 2
+    loaded = {row["id"]: row for row in yaml.safe_load(dest.read_text(encoding="utf-8"))}
+    assert loaded[poor]["active"] is False
+    assert loaded[poorer]["active"] is False
+    assert loaded[healthy]["active"] is True
+
+    only = [
+        {"id": poor, "name": "recall-a", "intent": "recall", "alpha": 1.0, "beta": 9.0,
+         "exposure": 100, "active": True},
+        {"id": poorer, "name": "recall-b", "intent": "recall", "alpha": 1.0, "beta": 19.0,
+         "exposure": 100, "active": True},
+    ]
+    dest.write_text(yaml.safe_dump(only, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    assert eliminate_arms(dest) == 1
+    kept = [row for row in yaml.safe_load(dest.read_text(encoding="utf-8")) if row["active"]]
+    assert len(kept) == 1
+    assert kept[0]["id"] == poor
+
+
 async def test_worker_unknown_token_skipped(store):
     worker = FeedbackWorker(store=store)
     worker.start()
@@ -364,3 +400,42 @@ async def test_file_runtime_rejected_without_comment_does_not_extract(tmp_path):
         store.rsi_dir / "memory" / "pending"
     ).exists() else []
     assert pending == []
+
+
+async def test_negative_rating_judges_excerpt_when_cache_empty(store):
+    from types import SimpleNamespace
+
+    token, _ = await _make_log(store)
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "kind": "recall",
+        "token": token,
+        "task": "怎么查账单",
+        "excerpt": "select * from bill",
+        "retrieved": [],
+        "status": "success",
+    })
+
+    class _Quality:
+        def __init__(self):
+            self.seen = None
+
+        async def judge_negative_feedback(self, feedback_token):
+            return None
+
+        async def judge_text(self, query, response):
+            self.seen = (query, response)
+            return SimpleNamespace(quality_score=0.25)
+
+    quality = _Quality()
+    worker = FeedbackWorker(store=store, quality=quality)
+    await worker._process(ImplicitEvent(feedback_token=token, action="ignored", rating=1))
+    assert quality.seen[0] == "怎么查账单"
+    assert "select * from bill" in quality.seen[1]
+    scores = [
+        ev.get("quality_score")
+        for ev in iter_events(store.rsi_dir)
+        if ev.get("kind") == "audit" and ev.get("token") == token
+    ]
+    assert 0.25 in scores

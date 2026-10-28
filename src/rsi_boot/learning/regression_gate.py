@@ -10,13 +10,17 @@ accuracy 维度在回放中默认不评判（judge 成本翻倍），可配 gate
 
 from __future__ import annotations
 
+import json
 import logging
+import random
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..data.sqlite import SQLiteClient
+from ..memory.logstore import iter_events
 from ..knowledge.embedding import EmbeddingService
 from ..model.adapter import ModelAdapter
 from ..quality.assessor import QualityAssessor
@@ -53,19 +57,77 @@ class RegressionReport:
 class RegressionGate:
     def __init__(
         self,
-        db: SQLiteClient,
+        db: Optional[SQLiteClient],
         adapter: ModelAdapter,
         embedding: EmbeddingService,
         config: Dict[str, Any],
+        event_rsi_dir: Optional[Path] = None,
     ):
         self._db = db
+        self._event_rsi_dir = Path(event_rsi_dir) if event_rsi_dir else None
         self._adapter = adapter
         self._assessor = QualityAssessor(embedding, adapter, config)
         self._replay_accuracy = bool(config.get("gate", {}).get("replay_accuracy", False))
         self._default_model = str(config.get("model", {}).get("default", "gpt-4o-mini"))
 
+    def _replay_events(self, intent: str, days: int, n: int) -> List[Dict[str, Any]]:
+        """从 events.jsonl 抽样，字段与旧 interaction_logs 回放行对齐。"""
+        assert self._event_rsi_dir is not None
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        feedback_by_token: Dict[str, Dict[str, Any]] = {}
+        for event in iter_events(self._event_rsi_dir, kinds={"feedback"}, all_rolls=True):
+            token = event.get("token")
+            if token:
+                feedback_by_token[str(token)] = event
+        rows: List[Dict[str, Any]] = []
+        for event in iter_events(self._event_rsi_dir, kinds={"recall"}, all_rolls=True):
+            # 文件召回事件不写 status；只有 pending/error 明确不可回放。
+            status = str(event.get("status") or "")
+            if status in ("pending", "error"):
+                continue
+            if intent and str(event.get("intent") or "") != intent:
+                continue
+            text = str(event.get("ts") or event.get("created_at") or "")
+            if text:
+                try:
+                    ts = datetime.fromisoformat(text.replace("Z", "+00:00"))
+                except ValueError:
+                    continue
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                if ts < since:
+                    continue
+            token = event.get("token")
+            fb = feedback_by_token.get(str(token)) if token else None
+            action = event.get("feedback_action") or event.get("action")
+            rating = event.get("feedback_rating")
+            if rating is None:
+                rating = event.get("rating")
+            if fb:
+                if not action:
+                    action = fb.get("action") or fb.get("feedback_action")
+                if rating is None:
+                    rating = fb.get("rating")
+                    if rating is None:
+                        rating = fb.get("feedback_rating")
+            rows.append({
+                "raw_input": event.get("task") or event.get("raw_input") or "",
+                "intent": event.get("intent") or "",
+                "response_excerpt": event.get("excerpt") or event.get("response_excerpt") or "",
+                "feedback_action": action,
+                "feedback_rating": rating,
+                "quality_score": event.get("quality_score"),
+            })
+        if len(rows) > n:
+            return random.sample(rows, n)
+        return rows
+
     async def replay_sample(self, intent: str, days: int = REPLAY_DAYS, n: int = REPLAY_SAMPLE_SIZE) -> List[Dict[str, Any]]:
         """近 N 天该 intent 随机抽样（含历史反馈标签与响应摘录）"""
+        if self._event_rsi_dir is not None:
+            return self._replay_events(intent, days, n)
+        if self._db is None:
+            return []
         conn = await self._db.connect()
         since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         async with conn.execute(
@@ -76,10 +138,29 @@ class RegressionGate:
         ) as cur:
             return [dict(r) for r in await cur.fetchall()]
 
+    @staticmethod
+    def _proposal_intent(proposal: Dict[str, Any]) -> str:
+        """提案意图：顶层 intent，否则 evidence.bucket.intent。都没有则不按意图过滤。"""
+        intent = str(proposal.get("intent") or "").strip()
+        if intent:
+            return intent
+        evidence = proposal.get("evidence") or {}
+        if isinstance(evidence, str):
+            try:
+                evidence = json.loads(evidence)
+            except json.JSONDecodeError:
+                evidence = {}
+        if not isinstance(evidence, dict):
+            return ""
+        bucket = evidence.get("bucket") or {}
+        if not isinstance(bucket, dict):
+            return ""
+        return str(bucket.get("intent") or "").strip()
+
     async def evaluate(self, proposal: Dict[str, Any]) -> RegressionReport:
         """对提案执行回放验证。proposal: {slot, target_ref, action, payload(after), intent}"""
         slot = proposal["slot"]
-        samples = await self.replay_sample(proposal.get("intent") or "")
+        samples = await self.replay_sample(self._proposal_intent(proposal))
         report = RegressionReport(
             slot=slot, samples=len(samples),
             target_metric="match_rate" if slot == "intent_rule" else "quality_score",

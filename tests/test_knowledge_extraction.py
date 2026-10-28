@@ -142,6 +142,19 @@ async def test_run_daily_skip_valueless(store, tmp_path, monkeypatch):
     assert await llm.extract_draft("如何配置缓存？", "TTL") is None
 
 
+async def test_run_daily_uses_llm_draft(store, tmp_path, monkeypatch):
+    config = _config(llm=True)
+    adapter = ModelAdapter(ModelRegistry(config), config)
+    extractor = KnowledgeExtractor(store=store, adapter=adapter, config=config)
+    knowledge = KnowledgeService(store=store, project_root=tmp_path)
+    _fake_extract_adapter(adapter, monkeypatch)
+    _high_rated_event(store, rating=5)
+    stats = await extractor.run_daily()
+    assert stats["extracted"] == 1
+    items = await knowledge.list("p1")
+    assert items[0]["title"] == "缓存配置经验"
+
+
 async def test_dedup_merges_similar(store, tmp_path):
     """同一 source_event_id 不重复提取（文件运行时按 candidates.jsonl 幂等）"""
     extractor, knowledge = _services(store, tmp_path)
@@ -234,3 +247,55 @@ async def test_review_reject_and_cleanup(store, tmp_path):
     assert store.read(stale_id).status == "archived"
     assert await knowledge.review(fresh_id, "p1", approve=True) == "active"
     assert await knowledge.review(fresh_id, "p1", approve=True) is None
+
+
+async def test_run_daily_merges_vector_near_duplicate(store, tmp_path):
+    import numpy as np
+
+    class _SameVectors:
+        provider = "mock"
+
+        async def embed(self, texts, api_key=None):
+            return [np.ones(4) for _ in texts]
+
+    doc_id = uuid.uuid4().hex
+    store.write(
+        MemoryDoc(id=doc_id, type="convention", title="已有约定", content="TTL 缓存", status="active"),
+        dest=official_dir(store.rsi_dir, "convention") / memory_filename("已有约定", doc_id),
+    )
+    extractor = KnowledgeExtractor(store=store, embedding=_SameVectors())
+    _high_rated_event(store, rating=5)
+    stats = await extractor.run_daily()
+    assert stats["merged"] == 1
+    assert stats["extracted"] == 0
+
+
+async def test_feedback_extract_uses_llm_draft(store, tmp_path, monkeypatch):
+    config = _config(llm=True)
+    adapter = ModelAdapter(ModelRegistry(config), config)
+    extractor = KnowledgeExtractor(store=store, adapter=adapter, config=config)
+    knowledge = KnowledgeService(store=store, project_root=tmp_path)
+    _fake_extract_adapter(adapter, monkeypatch, draft={
+        "title": "不要拼接 SQL",
+        "content": "查询必须参数化。",
+        "tags": ["sql"],
+        "domain": "backend",
+        "roles": [],
+    })
+    token = "tok-llm"
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "kind": "recall",
+        "task": "怎么查账单",
+        "token": token,
+        "excerpt": "select * from bill",
+        "retrieved": [],
+    })
+    worker = FeedbackWorker(store=store)
+    worker._extractor = extractor
+    await worker._process(ImplicitEvent(
+        feedback_token=token, action="rejected", comment="别这么写",
+    ))
+    items = await knowledge.list("p1")
+    assert items[0]["title"] == "不要拼接 SQL"

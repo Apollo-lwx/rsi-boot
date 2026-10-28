@@ -273,7 +273,7 @@ class MemoryHealth:
 
     def _negative_hits(self, project_id: str) -> dict[str, list[_Hit]]:
         since = _now() - timedelta(days=WINDOW_DAYS)
-        events = list(iter_events(self._store.rsi_dir))
+        events = list(iter_events(self._store.rsi_dir, all_rolls=True))
         feedback: dict[str, dict[str, Any]] = {}
         for event in events:
             token = event.get("token")

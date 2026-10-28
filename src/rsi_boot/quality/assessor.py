@@ -150,6 +150,19 @@ class QualityAssessor:
             quality_score=score, accuracy_sampled=True, judge_reason=reason,
         )
 
+    async def judge_text(self, query: str, response_text: str) -> Optional[QualityResult]:
+        """文件运行时没有 Pipeline 暂存上下文时，直接用召回摘录补做差评评判。"""
+        accuracy, reason = await self.judge_accuracy(query, response_text)
+        if accuracy is None:
+            return None
+        relevance = await self._relevance(query, response_text)
+        actionability = actionability_score(response_text)
+        score = self._combine(None, relevance, accuracy, actionability)
+        return QualityResult(
+            relevance=relevance, accuracy=accuracy, actionability=actionability,
+            quality_score=score, accuracy_sampled=True, judge_reason=reason,
+        )
+
     async def judge_accuracy(
         self, query: str, response_text: str, retrieved_docs: Optional[List[Any]] = None
     ) -> tuple[Optional[float], Optional[str]]:

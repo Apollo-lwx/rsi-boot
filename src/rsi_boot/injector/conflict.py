@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -35,6 +36,7 @@ _STALE_ADOPTION_MIN = 3       # 学习记忆近 30 天被采纳次数下限
 _ADOPTION_WINDOW_DAYS = 30
 _EXCERPT_WINDOW = 50          # 冲突摘录：命中点 ±50 字符
 _EXCERPT_MAX = 500
+_LLM_CALLS_PER_SCAN = 8
 
 _PROHIBITIVE = ("禁止", "不要", "不得", "避免", "严禁", "一律不",
                 "never", "don't", "do not", "avoid", "must not")
@@ -73,6 +75,8 @@ class ConflictDetector:
         project_root: Optional[Path] = None,
         on_change: Optional[Any] = None,
         knowledge: Optional[Any] = None,
+        adapter: Optional[Any] = None,
+        model: str = "",
     ):
         if store is None:
             raise TypeError("store is required")
@@ -80,6 +84,9 @@ class ConflictDetector:
         self._root = Path(project_root) if project_root else None
         self._on_change = on_change  # user_wins 置 suppressed 后触发注入重写
         self._knowledge = knowledge
+        self._adapter = adapter
+        self._model = model or "gpt-4o-mini"
+        self._llm_left = 0
         self._docs_cache: Optional[List[Any]] = None
         self._docs_by_id: Optional[Dict[str, Any]] = None
         self._docs_by_source: Optional[Dict[str, List[Any]]] = None
@@ -142,7 +149,7 @@ class ConflictDetector:
     def _recent_adoption(self, item_id: str, markers: List[str]) -> int:
         since = (datetime.now(timezone.utc) - timedelta(days=_ADOPTION_WINDOW_DAYS)).isoformat()
         total = 0
-        for event in iter_events(self._store.rsi_dir, kinds={"recall"}):
+        for event in iter_events(self._store.rsi_dir, kinds={"recall"}, all_rolls=True):
             ts = str(event.get("ts") or event.get("created_at") or "")
             if ts and ts < since:
                 continue
@@ -159,6 +166,7 @@ class ConflictDetector:
         """全量扫描：新冲突 INSERT OR IGNORE 落库；memory_wins 行用户文件已变更则关闭"""
         if self._root is None:
             return {"scanned": 0, "detected": 0, "closed": 0, "version_detected": 0}
+        self._llm_left = _LLM_CALLS_PER_SCAN if self._adapter is not None else 0
         files = self._collect_user_rules()
         memories = self._store_memories()
         existing = self._load_conflict_rows()
@@ -186,6 +194,8 @@ class ConflictDetector:
                     adoption = self._recent_adoption(mem.id, [m for m in [mem.domain, *tags] if m])
                     if adoption >= _STALE_ADOPTION_MIN:
                         conflict_type = "stale"
+                if conflict_type is None and await self._llm_contradiction(mem, window):
+                    conflict_type = "contradiction"
                 if conflict_type is None:
                     continue
                 row = {
@@ -206,6 +216,9 @@ class ConflictDetector:
                 seen.add(key)
                 detected += 1
 
+        detected += await self._semantic_phrase_misses(
+            memories, files, existing, seen, project_id, now,
+        )
         version_detected = await self._scan_version_families(project_id, existing, seen, now)
         detected += version_detected
         closed = self._close_resolved(files, existing)
@@ -217,11 +230,90 @@ class ConflictDetector:
             "version_detected": version_detected,
         }
 
+    async def _llm_contradiction(self, mem: Any, excerpt: str) -> bool:
+        """启发式未定性时，用模型判断摘录是否与记忆矛盾。每轮扫描有调用上限。"""
+        if self._adapter is None or self._llm_left <= 0:
+            return False
+        self._llm_left -= 1
+        prompt = (
+            "判断用户规则摘录是否与下面的记忆矛盾。只输出 JSON："
+            '{"contradiction": true} 或 {"contradiction": false}。\n'
+            f"【记忆】{getattr(mem, 'title', '')}\n{str(getattr(mem, 'content', ''))[:500]}\n"
+            f"【用户规则摘录】{excerpt[:500]}"
+        )
+        try:
+            result = await self._adapter.complete(
+                self._model, [{"role": "user", "content": prompt}],
+            )
+            text = str(result.text).strip().removeprefix("```json").removeprefix("```").removesuffix("```")
+            data = json.loads(text)
+        except Exception as exc:
+            logger.warning("语义冲突判定失败: %s", exc)
+            return False
+        return bool(isinstance(data, dict) and data.get("contradiction"))
+
+    async def _semantic_phrase_misses(
+        self,
+        memories: List[Any],
+        files: List[Any],
+        existing: List[Dict[str, Any]],
+        seen: set,
+        project_id: str,
+        now: str,
+    ) -> int:
+        """标题短语没命中用户规则时，用剩余预算做语义矛盾判定。
+
+        短语已经命中的配对留给启发式（以及启发式未定性时的那一次模型调用），这里不再问。
+        """
+        if self._adapter is None or self._llm_left <= 0:
+            return 0
+        covered = {
+            (str(row.get("item_id") or ""), self._norm_src(str(row.get("user_rule_path") or "")))
+            for row in existing
+        }
+        detected = 0
+        for mem in memories:
+            if self._llm_left <= 0:
+                break
+            phrase = self._key_phrase(mem.title)
+            for rule_file in files:
+                if self._llm_left <= 0:
+                    break
+                pair = (str(mem.id), self._norm_src(rule_file.rel_path))
+                if pair in covered:
+                    continue
+                if len(phrase) >= 2 and self._find_phrase(rule_file.text, phrase) >= 0:
+                    continue
+                excerpt = rule_file.text.strip()[:1500]
+                if not excerpt:
+                    continue
+                if not await self._llm_contradiction(mem, excerpt):
+                    continue
+                row = {
+                    "id": uuid.uuid4().hex,
+                    "project_id": project_id,
+                    "item_id": mem.id,
+                    "user_rule_path": rule_file.rel_path,
+                    "excerpt": mask_text(excerpt)[:_EXCERPT_MAX],
+                    "user_rule_hash": rule_file.content_hash,
+                    "type": "contradiction",
+                    "status": "open",
+                    "detected_at": now,
+                }
+                key = self._conflict_key(row)
+                if key in seen:
+                    continue
+                existing.append(row)
+                seen.add(key)
+                covered.add(pair)
+                detected += 1
+        return detected
+
     def _recent_logs(self) -> List[Dict[str, Any]]:
         since = (datetime.now(timezone.utc) - timedelta(days=_ADOPTION_WINDOW_DAYS)).isoformat()
         key = _hit_field()
         logs: List[Dict[str, Any]] = []
-        for event in iter_events(self._store.rsi_dir):
+        for event in iter_events(self._store.rsi_dir, all_rolls=True):
             ts = str(event.get("ts") or event.get("created_at") or "")
             if ts and ts < since:
                 continue

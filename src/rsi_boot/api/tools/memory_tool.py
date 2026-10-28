@@ -16,7 +16,7 @@ INPUT_SCHEMA: dict[str, Any] = {
     "properties": {
         "action": {
             "type": "string",
-            "description": "index / open / reindex / graph",
+            "description": "index / open / reindex / graph / rules",
         },
         "id": {"type": "string", "description": "exact 32-hex document id for open"},
         "lang": {"type": "string", "enum": ["zh", "en"], "description": "explicit locale override"},
@@ -63,5 +63,12 @@ async def handle(runtime: Any, arguments: dict[str, Any]) -> dict[str, Any]:
             "status": "success",
             "message": t("REINDEX_DONE", lang),
             "data": {"n": index.get("n", 0)},
+        }
+    if action == "rules":
+        items = await runtime.injector.current_rules(getattr(runtime, "project_id", "") or "")
+        return {
+            "status": "success",
+            "message": t("MEMORY_INDEX", lang, n=len(items)),
+            "data": {"rules": items},
         }
     return {"status": "error", "code": "invalid", "message": t("MEMORY_NEED_SUB", lang)}

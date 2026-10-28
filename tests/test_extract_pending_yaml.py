@@ -93,3 +93,42 @@ def test_feedback_extract_skips_below_quality_threshold(tmp_path):
     assert extract_from_feedback(rsi, action="accepted", comment="不要再用 SELECT *") == []
     yaml_files = list((rsi / "memory").rglob("*.yaml")) if (rsi / "memory").exists() else []
     assert yaml_files == []
+
+
+def test_promote_counts_split_feedback(tmp_path):
+    import uuid
+    from datetime import datetime, timezone
+
+    from rsi_boot.learning.promote import _success_counts
+    from rsi_boot.memory.logstore import append_event
+    from rsi_boot.memory.paths import official_dir
+    from rsi_boot.memory.store import MemoryStore, memory_filename
+    from rsi_boot.memory.types import MemoryDoc
+
+    store = MemoryStore(tmp_path / ".rsi")
+    doc_id = uuid.uuid4().hex
+    store.write(
+        MemoryDoc(
+            id=doc_id, type="teaching_case", title="教训", content="正文",
+            payload={"error_signature": "sig-a", "failure_type": "wiring"},
+        ),
+        dest=official_dir(store.rsi_dir, "teaching_case") / memory_filename("教训", doc_id),
+    )
+    for i in range(3):
+        token = f"tok-{i}"
+        append_event(store.rsi_dir, {
+            "id": uuid.uuid4().hex,
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "kind": "recall",
+            "token": token,
+            "retrieved": [doc_id],
+            "task": "任务",
+        })
+        append_event(store.rsi_dir, {
+            "id": uuid.uuid4().hex,
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "kind": "feedback",
+            "token": token,
+            "action": "accepted",
+        })
+    assert _success_counts(store)[("sig-a", "wiring")] == 3

@@ -192,6 +192,30 @@ def test_feedback_decays_with_profile_half_life(store):
     assert signals[doc] == pytest.approx(1 / 3)
 
 
+def test_acceptance_reads_older_roll(store):
+    import json
+
+    doc = _write_official(store, title="缓存经验", content="缓存配置做法 容量 过期")
+    logs = store.rsi_dir / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    token = "tok-old-roll"
+    ts = datetime.now(timezone.utc).isoformat()
+    old = [
+        {"id": "old-recall", "ts": ts, "kind": "recall", "token": token, "retrieved": [doc], "task": "缓存"},
+        {"id": "old-fb", "ts": ts, "kind": "feedback", "token": token, "action": "accepted", "rating": 5},
+    ]
+    (logs / "events-202001.jsonl").write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in old),
+        encoding="utf-8",
+    )
+    (logs / "events-202608.jsonl").write_text(
+        '{"id":"mid","kind":"recall","token":"mid","retrieved":[]}\n',
+        encoding="utf-8",
+    )
+    signals = _recall(store)._acceptance_signals(store)
+    assert signals[doc] == pytest.approx(1 / 3)
+
+
 async def test_feedback_joins_the_arm_gate_on_one_score(store):
     """臂门槛、反馈和通道地板是同一个对数分上的一次取舍。
 

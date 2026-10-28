@@ -1,6 +1,6 @@
 """进程内任务调度（§4.3）：asyncio 定时任务，随 serve 启停。
 
-文件 Runtime：不接收 sqlite。归档/策略调优等必须读库的任务静默跳过。
+文件 Runtime：事件按保留期归档到 archive/，召回臂在周任务里衰减并淘汰。
 知识提取与提案/冲突扫描走 store= 后端。
 """
 
@@ -61,6 +61,10 @@ class SchedulerManager:
                 await self._patrol_proposals()
             except Exception:
                 logger.exception("提案观察期巡检失败（下周期重试）")
+            try:
+                await self._archive_events()
+            except Exception:
+                logger.exception("事件归档失败（下周期重试）")
             await asyncio.sleep(_DAILY_INTERVAL_S)
 
     async def _patrol_proposals(self) -> None:
@@ -95,13 +99,27 @@ class SchedulerManager:
                 logger.exception("规则冲突扫描失败（下周期重试）")
             await asyncio.sleep(_WEEKLY_INTERVAL_S)
 
+    async def _archive_events(self) -> None:
+        if self._store is None:
+            return
+        from ..memory.logstore import archive_expired_events
+
+        archived = await asyncio.to_thread(
+            archive_expired_events, self._store.rsi_dir, self._archive_dir,
+        )
+        if archived:
+            logger.info("已归档 %d 条过期事件到 %s", archived, self._archive_dir)
+
     async def _decay_recall_arms(self) -> None:
         if self._store is None:
             return
-        from ..strategy.recall import decay_arms
+        from ..strategy.recall import decay_arms, eliminate_arms
 
         path = self._store.rsi_dir / "state" / "arms.yaml"
         await asyncio.to_thread(decay_arms, path)
+        eliminated = await asyncio.to_thread(eliminate_arms, path)
+        if eliminated:
+            logger.warning("召回臂淘汰 %d 条（曝光达标且采纳率过低）", eliminated)
 
     async def _scan_conflicts(self) -> None:
         detector = self._conflict_detector_provider() if self._conflict_detector_provider else None
@@ -134,9 +152,12 @@ class SchedulerManager:
             return
         for project_id in self._project_ids:
             ids = await engine.generate(project_id)
-            if ids:
-                result = await engine.validate_pending(project_id)
-                logger.info("Harness 周期完成（项目 %s）：%s", project_id, result)
+            result = await engine.validate_pending(project_id)
+            if ids or result.get("validated"):
+                logger.info(
+                    "Harness 周期完成（项目 %s）：生成 %s，校验 %s",
+                    project_id, ids, result,
+                )
 
     async def _rebuild_profiles(self) -> None:
         if self._profiles is None:

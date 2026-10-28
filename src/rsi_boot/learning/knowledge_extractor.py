@@ -5,11 +5,11 @@
    rating ≥ 4 的高质量交互（每日任务从 events.jsonl 汇集，按 source_event_id 幂等）
 2. 规则式提取（默认）：modified→convention（修改稿沉淀）；rejected+comment→prohibition
    （comment 前缀规范化「禁止：」）；rating≥4→convention（问答对直接沉淀）
-3. 去重：标题完全匹配 → 合并（刷新 updated_at）；无语义去重（embedding 属增强层）
+3. 去重：标题完全匹配 → 合并（刷新 updated_at）；向量近重复仅在传入 EmbeddingService 时于写入前跳过
 4. 人工确认：草稿写入 pending YAML（不入检索），
    经 rsi_knowledge_review 确认后转 official；拒绝转 archive
 
-LLM 提取与向量去重为附录 C 可选增强（enhance.extract_llm: true 时启用）。
+LLM 提取在 enhance.extract_llm 打开时启用，每日高分与反馈路径共用，失败回落规则式。
 """
 
 from __future__ import annotations
@@ -28,12 +28,15 @@ from ..memory.store import MemoryStore, memory_filename
 from ..memory.types import MemoryDoc
 from .pipeline import extract_draft_rule as extract_draft_rule_fn
 from .pipeline import extract_from_feedback as extract_from_feedback_fn
+from .pipeline import write_pending_draft
 
 logger = logging.getLogger(__name__)
 
 _EXTRACT_MODEL_DEFAULT = "gpt-4o-mini"
 _HIGH_RATED_MIN_RATING = 4      # rating ≥ 4 进入候选
 _HIGH_RATED_WINDOW_HOURS = 24   # 每日任务汇集窗口
+_VECTOR_DUP_COSINE = 0.92
+_VECTOR_DUP_CAP = 40
 
 _EXTRACT_PROMPT = """你是知识工程师。从下面的（用户问题, 高质量回答/修改后内容）对中提炼一条「可复用的经验规则」——
 泛化的做法、约束或坑点，而非本次交互的流水账。若内容不具备复用价值，输出 {{"skip": true}}。
@@ -102,6 +105,93 @@ class KnowledgeExtractor:
             retrieved=retrieved,
             **kwargs,
         )
+
+    async def extract_feedback(
+        self,
+        action: str,
+        comment: str | None = None,
+        retrieved: Optional[List[str]] = None,
+        modified_content: str | None = None,
+        question: str = "",
+    ) -> List[Path]:
+        """反馈提取。extract_llm 打开时先问模型，失败或 skip 再回落规则式。"""
+        if action not in ("rejected", "modified"):
+            return []
+        if self._use_llm:
+            if action == "rejected":
+                answer = comment or ""
+                candidate_type = "rejected"
+                content_type = "prohibition"
+            else:
+                answer = modified_content or comment or ""
+                candidate_type = "modified"
+                content_type = "convention"
+            draft = await self.extract_draft(question or "", answer)
+            if draft is not None:
+                draft = dict(draft)
+                draft["content_type"] = content_type
+                if await self._vector_near_duplicate(draft["title"], draft["content"], content_type):
+                    logger.info("反馈提取与已有记忆近重复，跳过写入")
+                    return []
+                return write_pending_draft(
+                    self._rsi_dir,
+                    draft=draft,
+                    action=action,
+                    candidate_type=candidate_type,
+                    retrieved=retrieved,
+                )
+            logger.info("反馈 LLM 提取无结果，回落规则式提取")
+        return self.extract_from_feedback(
+            action,
+            comment=comment,
+            retrieved=retrieved,
+            modified_content=modified_content,
+            question=question,
+        )
+
+    async def _vector_near_duplicate(self, title: str, content: str, content_type: str) -> bool:
+        """同类型正式或 pending 条目的嵌入余弦达到阈值则视为近重复。"""
+        embedding = self._embedding
+        if embedding is None or getattr(embedding, "provider", "") == "none":
+            return False
+        docs: List[Any] = []
+        for doc in self._store.list_official(content_type):
+            if getattr(doc, "status", "") != "active":
+                continue
+            docs.append(doc)
+            if len(docs) >= _VECTOR_DUP_CAP:
+                break
+        if len(docs) < _VECTOR_DUP_CAP:
+            for doc in self._store.list_pending(content_type):
+                docs.append(doc)
+                if len(docs) >= _VECTOR_DUP_CAP:
+                    break
+        if not docs:
+            return False
+        import numpy as np
+
+        texts = [f"{title}\n{content}"[:2000]]
+        texts.extend(f"{doc.title}\n{doc.content}"[:2000] for doc in docs)
+        try:
+            vectors = await embedding.embed(texts)
+        except Exception as exc:
+            logger.warning("向量去重嵌入失败，跳过: %s", exc)
+            return False
+        query = vectors[0] if vectors else None
+        if query is None:
+            return False
+        qn = float(np.linalg.norm(query))
+        if qn < 1e-12:
+            return False
+        for vec in vectors[1:]:
+            if vec is None:
+                continue
+            denom = qn * float(np.linalg.norm(vec))
+            if denom < 1e-12:
+                continue
+            if float(np.dot(query, vec) / denom) >= _VECTOR_DUP_COSINE:
+                return True
+        return False
 
     # ---- 2b. LLM 提取（附录 C 可选增强） ----
 
@@ -193,9 +283,23 @@ class KnowledgeExtractor:
                 stats["skipped"] += 1
                 continue
             stats["collected"] += 1
-            draft = self.extract_draft_rule("high_rated", question, answer)
+            if self._use_llm:
+                draft = await self.extract_draft(question, answer)
+                if draft is None:
+                    logger.info("LLM 提取无结果，回落规则式提取")
+                    draft = self.extract_draft_rule("high_rated", question, answer)
+            else:
+                draft = self.extract_draft_rule("high_rated", question, answer)
             if draft is None:
                 stats["skipped"] += 1
+                continue
+            if await self._vector_near_duplicate(
+                str(draft["title"]), str(draft["content"]), "convention",
+            ):
+                stats["merged"] += 1
+                if eid:
+                    self._append_high_rated_candidate(store.rsi_dir, eid, "")
+                    seen.add(eid)
                 continue
             doc = MemoryDoc(
                 id=uuid.uuid4().hex,
@@ -203,6 +307,9 @@ class KnowledgeExtractor:
                 title=str(draft["title"])[:120],
                 content=str(draft["content"])[:20000],
                 source="auto-extract",
+                tags=[str(tag)[:30] for tag in (draft.get("tags") or [])][:5],
+                roles=[str(role)[:50] for role in (draft.get("roles") or [])][:10],
+                domain=draft.get("domain") or None,
                 extra={"candidate_type": "high_rated", "source_event_id": eid},
             )
             dest = pending_dir(store.rsi_dir, "convention") / memory_filename(doc.title, doc.id)

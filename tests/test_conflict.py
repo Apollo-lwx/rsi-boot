@@ -316,3 +316,48 @@ async def test_conflicts_tool_flow(tmp_path):
     assert bad["status"] == "error"
     unknown = await conflicts_tool.handle(runtime, {"action": "purge"})
     assert unknown["status"] == "error"
+
+
+async def test_conflict_llm_flags_neutral_excerpt(tmp_path):
+    """短语命中但极性中性时，打开模型判定才会记 contradiction。"""
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：裸 SQL", content="查询必须参数化")
+    _write_user_rule(tmp_path, "notes.mdc", "笔记里出现过裸 SQL。\n")
+
+    quiet = await _detector(store, tmp_path).scan("p1")
+    assert quiet["detected"] == 0
+
+    class _Adapter:
+        async def complete(self, model, messages):
+            return SimpleNamespace(text='{"contradiction": true}')
+
+    detector = ConflictDetector(
+        store=store, project_root=tmp_path, adapter=_Adapter(), model="mock",
+    )
+    found = await detector.scan("p1")
+    assert found["detected"] == 1
+    assert _open_conflicts(tmp_path)[0]["type"] == "contradiction"
+
+
+async def test_conflict_llm_flags_phrase_miss(tmp_path):
+    """标题短语不在用户规则里时，语义判定仍能记下矛盾。"""
+    store = _store(tmp_path)
+    _add_memory(store, title="禁止：裸 SQL", content="查询必须参数化")
+    _write_user_rule(tmp_path, "notes.mdc", "查询可以拼接字符串。\n")
+
+    class _Adapter:
+        def __init__(self):
+            self.calls = 0
+
+        async def complete(self, model, messages):
+            self.calls += 1
+            return SimpleNamespace(text='{"contradiction": true}')
+
+    adapter = _Adapter()
+    detector = ConflictDetector(
+        store=store, project_root=tmp_path, adapter=adapter, model="mock",
+    )
+    found = await detector.scan("p1")
+    assert found["detected"] == 1
+    assert adapter.calls == 1
+    assert _open_conflicts(tmp_path)[0]["type"] == "contradiction"

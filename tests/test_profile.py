@@ -116,6 +116,34 @@ async def test_rebuild_preferred_models_min_exposure(store):
     assert profile.preferred_models == ["gpt-a"]
 
 
+async def test_rebuild_joins_split_feedback(store):
+    svc = ProfileService(store)
+    for _ in range(20):
+        rid = uuid.uuid4().hex
+        token = f"tok-{rid}"
+        append_event(store.rsi_dir, {
+            "id": rid,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "kind": "recall",
+            "status": "success",
+            "user_id": "u1",
+            "project_id": "p1",
+            "task": "input",
+            "model": "gpt-a",
+            "token": token,
+            "retrieved": [],
+        })
+        append_event(store.rsi_dir, {
+            "id": uuid.uuid4().hex,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "kind": "feedback",
+            "token": token,
+            "action": "accepted",
+        })
+    profile = await svc.rebuild("u1", "p1")
+    assert profile.preferred_models == ["gpt-a"]
+
+
 async def test_rebuild_preserves_preferences(store):
     """离线任务不改写 preferences（§3.8：不猜测用户偏好）"""
     svc = ProfileService(store)

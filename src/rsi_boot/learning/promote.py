@@ -7,7 +7,7 @@ from typing import Any
 
 from rsi_boot.learning.gene_map import _sig_pair
 from rsi_boot.memory.graph import add_edge, load_catalog
-from rsi_boot.memory.logstore import iter_events
+from rsi_boot.memory.logstore import event_action, iter_events, latest_feedback_by_token
 from rsi_boot.memory.paths import pending_dir
 from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc
@@ -84,8 +84,13 @@ def _success_counts(store: MemoryStore) -> dict[tuple[str, str], int]:
         if pair[0]:
             counts[pair] = counts.get(pair, 0) + 1
 
-    for event in iter_events(store.rsi_dir):
-        action = event.get("action") or event.get("feedback_action")
+    feedback_by_token = latest_feedback_by_token(store.rsi_dir)
+    for event in iter_events(store.rsi_dir, all_rolls=True):
+        if event.get("kind") == "feedback" and not (
+            _event_pair(event)[0] or event.get("retrieved")
+        ):
+            continue
+        action = event_action(event, feedback_by_token)
         if action not in _SUCCESS_ACTIONS:
             continue
         pair = _event_pair(event)

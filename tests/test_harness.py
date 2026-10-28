@@ -3,7 +3,7 @@
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -18,6 +18,7 @@ from rsi_boot.learning.regression_gate import RegressionGate
 from rsi_boot.learning.skill_loader import SkillLoader, parse_skill_md
 from rsi_boot.learning.snapshot_store import SnapshotStore
 from rsi_boot.memory.logstore import append_event
+from rsi_boot.scheduler.manager import SchedulerManager
 from rsi_boot.model.adapter import ModelAdapter
 from rsi_boot.model.providers.base import ModelResult
 from rsi_boot.model.registry import ModelRegistry
@@ -282,11 +283,130 @@ async def test_rollback_switches_snapshot(store, tmp_path):
 # ---------- 观察期巡检 ----------
 
 
-async def test_patrol_auto_rollback_on_drop(store, tmp_path):
-    """文件运行时 patrol 尚未接 events.jsonl，返回空计数"""
+def _backdate_active(engine, pid: str, activated: datetime) -> None:
+    data = engine._load_proposal_yaml(pid)
+    data["activated_at"] = activated.isoformat()
+    data["observe_until"] = (activated + timedelta(days=7)).isoformat()
+    engine._write_proposal_yaml(data)
+
+
+def _seed_actions(store, ts: str, action: str, n: int = 4, project: str = "p1") -> None:
+    for _ in range(n):
+        token = f"tok-{uuid.uuid4().hex[:8]}"
+        append_event(store.rsi_dir, {
+            "id": uuid.uuid4().hex, "kind": "recall", "token": token, "ts": ts,
+            "task": "观察期样本", "retrieved": ["a" * 32],
+            "arm": "s1", "intent": "recall", "project_id": project,
+            "status": "success",
+        })
+        append_event(store.rsi_dir, {
+            "id": uuid.uuid4().hex, "kind": "feedback", "token": token, "ts": ts,
+            "action": action,
+        })
+
+
+async def test_validate_approves_generated_proposal(store, tmp_path):
+    _seed_negative_logs(store, n=6, comment="不要用 SELECT *")
+    engine, _ = _engine(store, tmp_path)
+    ids = await engine.generate("p1")
+    assert await engine.validate(ids[0]) is True
+    proposal = engine._load_proposal_yaml(ids[0])
+    assert proposal["status"] == "approved"
+    assert proposal["gate"]["passed"] is True
+
+
+async def test_validate_rejects_unwritable_slot(store, tmp_path):
+    engine, _ = _engine(store, tmp_path)
+    pid = uuid.uuid4().hex
+    engine._write_proposal_yaml({
+        "id": pid, "project_id": "p1", "slot": "model_weights",
+        "target_ref": "weights.bin", "action": "modify",
+        "payload": {"before": {}, "after": {"n": 1}},
+        "evidence": {"bucket": {"count": 3}, "log_ids": ["abc"]},
+        "status": "proposed", "created_at": _now_iso(),
+    })
+    assert await engine.validate(pid) is False
+    assert engine._load_proposal_yaml(pid)["status"] == "rejected"
+    assert await engine.validate(pid) is False
+
+
+async def test_validate_pending_counts(store, tmp_path):
+    _seed_negative_logs(store, n=6, comment="不要用 SELECT *")
+    engine, _ = _engine(store, tmp_path)
+    await engine.generate("p1")
+    bad = uuid.uuid4().hex
+    engine._write_proposal_yaml({
+        "id": bad, "project_id": "p1", "slot": "model_weights",
+        "target_ref": "weights.bin", "action": "modify",
+        "payload": {"before": {}, "after": {"n": 1}},
+        "evidence": {"bucket": {"count": 3}, "log_ids": ["abc"]},
+        "status": "proposed", "created_at": _now_iso(),
+    })
+    result = await engine.validate_pending("p1")
+    assert result == {"validated": 2, "approved": 1}
+    assert await engine.validate_pending("p1") == {"validated": 0, "approved": 0}
+
+
+async def test_patrol_empty_without_active(store, tmp_path):
+    """没有观察期中的提案时返回空计数"""
     engine, _ = _engine(store, tmp_path)
     result = await engine.patrol("p1")
     assert result == {"patrolled": 0, "rolled_back": 0}
+
+
+async def test_patrol_auto_rollback_on_drop(store, tmp_path):
+    engine, snapshots = _engine(store, tmp_path)
+    await snapshots.capture("p1")
+    pid = _make_approved_proposal(engine)
+    assert await engine.approve(pid) is True
+    activated = datetime.now(timezone.utc) - timedelta(days=2)
+    _backdate_active(engine, pid, activated)
+    _seed_actions(store, (activated - timedelta(days=1)).isoformat(), "accepted")
+    _seed_actions(store, (activated + timedelta(hours=12)).isoformat(), "rejected")
+
+    result = await engine.patrol("p1")
+    assert result == {"patrolled": 1, "rolled_back": 1}
+    assert engine._load_proposal_yaml(pid)["status"] == "rolled_back"
+    rows = _arm_rows(store)
+    assert not any((r.get("name") or r.get("strategy_name")) == "new-strategy" and r.get("active", True)
+                   for r in rows)
+
+
+async def test_patrol_keeps_when_drop_within_threshold(store, tmp_path):
+    engine, _ = _engine(store, tmp_path)
+    pid = _make_approved_proposal(engine)
+    assert await engine.approve(pid) is True
+    activated = datetime.now(timezone.utc) - timedelta(days=2)
+    _backdate_active(engine, pid, activated)
+    _seed_actions(store, (activated - timedelta(days=1)).isoformat(), "accepted", n=20)
+    _seed_actions(store, (activated + timedelta(hours=12)).isoformat(), "accepted", n=19)
+    _seed_actions(store, (activated + timedelta(hours=13)).isoformat(), "rejected", n=1)
+
+    result = await engine.patrol("p1")
+    assert result == {"patrolled": 1, "rolled_back": 0}
+    assert engine._load_proposal_yaml(pid)["status"] == "active"
+
+
+async def test_patrol_skips_rollback_when_later_proposal_stays(store, tmp_path):
+    """更早的提案掉点，但更晚的提案仍有效：不切整库快照。"""
+    engine, _ = _engine(store, tmp_path)
+    older = _make_approved_proposal(engine, after={"intent": "debug", "model_name": "older"})
+    newer = _make_approved_proposal(engine, after={"intent": "debug", "model_name": "newer"})
+    assert await engine.approve(older) is True
+    assert await engine.approve(newer) is True
+    now = datetime.now(timezone.utc)
+    older_at = now - timedelta(days=3)
+    newer_at = now - timedelta(days=1)
+    _backdate_active(engine, older, older_at)
+    _backdate_active(engine, newer, newer_at)
+    _seed_actions(store, (older_at - timedelta(days=1)).isoformat(), "accepted")
+    _seed_actions(store, (older_at + timedelta(hours=12)).isoformat(), "rejected")
+    _seed_actions(store, (newer_at + timedelta(hours=6)).isoformat(), "accepted")
+
+    result = await engine.patrol("p1")
+    assert result == {"patrolled": 2, "rolled_back": 0}
+    assert engine._load_proposal_yaml(older)["status"] == "active"
+    assert engine._load_proposal_yaml(newer)["status"] == "active"
 
 
 # ---------- Genome 快照合并语义与 bundle ----------
@@ -350,3 +470,143 @@ def test_skill_loader_dirs(tmp_path):
     hits = loader.match("debug", "输入")
     assert len(hits) == 1
     assert hits[0].body == "新版"  # 后目录覆盖同名
+
+
+async def test_auto_apply_promotes_after_gate(store, tmp_path):
+    _seed_negative_logs(store, n=6, comment="不要用 SELECT *")
+    engine, _ = _engine(store, tmp_path)
+    engine._auto_apply = True
+    ids = await engine.generate("p1")
+    assert await engine.validate(ids[0]) is True
+    assert engine._load_proposal_yaml(ids[0])["status"] == "active"
+
+
+async def test_generate_uses_llm_when_enabled(store, tmp_path, monkeypatch):
+    _seed_negative_logs(store, n=6, comment="不要用 SELECT *")
+    payload = [{
+        "slot": "knowledge", "target_ref": "prohibition-llm", "action": "add",
+        "after": {
+            "title": "禁止：LLM", "content": "不要裸 SQL", "content_type": "prohibition",
+        },
+        "rationale": "模型提案",
+    }]
+    engine, _ = _engine(store, tmp_path, monkeypatch, llm_payload=payload)
+    ids = await engine.generate("p1")
+    assert engine._load_proposal_yaml(ids[0])["target_ref"] == "prohibition-llm"
+
+
+async def test_generate_zero_adoption_domain(store, tmp_path):
+    from rsi_boot.memory.paths import official_dir
+    from rsi_boot.memory.store import memory_filename
+    from rsi_boot.memory.types import MemoryDoc
+
+    doc_id = uuid.uuid4().hex
+    dest = official_dir(store.rsi_dir, "convention") / memory_filename("旧约定", doc_id)
+    store.write(
+        MemoryDoc(id=doc_id, type="convention", title="旧约定", content="正文", domain="billing"),
+        dest=dest,
+    )
+    token = f"tok-{uuid.uuid4().hex[:8]}"
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex, "kind": "recall", "token": token, "ts": _now_iso(),
+        "task": "账单", "retrieved": [doc_id], "intent": "recall", "project_id": "p1",
+        "status": "success",
+    })
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex, "kind": "feedback", "token": token, "ts": _now_iso(),
+        "action": "rejected",
+    })
+    engine, _ = _engine(store, tmp_path)
+    ids = await engine.generate("p1")
+    proposal = engine._load_proposal_yaml(ids[0])
+    assert proposal["action"] == "remove"
+    assert proposal["target_ref"] == doc_id
+
+
+async def test_generate_zero_adoption_skips_unjudged_recall(store, tmp_path):
+    from rsi_boot.memory.paths import official_dir
+    from rsi_boot.memory.store import memory_filename
+    from rsi_boot.memory.types import MemoryDoc
+
+    doc_id = uuid.uuid4().hex
+    dest = official_dir(store.rsi_dir, "convention") / memory_filename("旧约定", doc_id)
+    store.write(
+        MemoryDoc(id=doc_id, type="convention", title="旧约定", content="正文", domain="billing"),
+        dest=dest,
+    )
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex, "kind": "recall", "token": "tok-open", "ts": _now_iso(),
+        "task": "账单", "retrieved": [doc_id], "intent": "recall", "project_id": "p1",
+    })
+    engine, _ = _engine(store, tmp_path)
+    assert await engine.generate("p1") == []
+
+
+async def test_file_replay_gate_reads_events(store, tmp_path):
+    from rsi_boot.knowledge.embedding import EmbeddingService
+    from rsi_boot.learning.regression_gate import RegressionGate
+
+    config = _config()
+    gate = RegressionGate(
+        None, ModelAdapter(ModelRegistry(config), config), EmbeddingService(config), config,
+        event_rsi_dir=store.rsi_dir,
+    )
+    report = await gate.evaluate({
+        "slot": "strategy", "target_ref": "s1", "action": "modify",
+        "payload": {"after": {}}, "intent": "debug",
+    })
+    assert report.passed is False
+    assert "样本不足" in report.reason
+
+
+async def test_file_replay_accepts_statusless_recall_and_bucket_intent(store, tmp_path):
+    config = _config()
+    for i in range(5):
+        append_event(store.rsi_dir, {
+            "id": uuid.uuid4().hex,
+            "kind": "recall",
+            "ts": _now_iso(),
+            "task": f"问题 {i}",
+            "intent": "recall",
+            "excerpt": f"步骤 {i}",
+            "retrieved": [],
+        })
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex,
+        "kind": "recall",
+        "ts": _now_iso(),
+        "task": "还在写",
+        "intent": "recall",
+        "status": "pending",
+        "retrieved": [],
+    })
+    gate = RegressionGate(
+        None, ModelAdapter(ModelRegistry(config), config), EmbeddingService(config), config,
+        event_rsi_dir=store.rsi_dir,
+    )
+    rows = gate._replay_events("recall", 30, 50)
+    assert len(rows) == 5
+    assert gate._proposal_intent({"evidence": {"bucket": {"intent": "recall"}}}) == "recall"
+    assert gate._proposal_intent({"intent": "debug"}) == "debug"
+
+
+async def test_harness_cycle_validates_when_generate_is_empty(tmp_path):
+    class _Engine:
+        def __init__(self):
+            self.calls = 0
+
+        async def generate(self, project_id):
+            return []
+
+        async def validate_pending(self, project_id):
+            self.calls += 1
+            return {"validated": 2, "approved": 0}
+
+    engine = _Engine()
+    sched = SchedulerManager(
+        tmp_path / "archive",
+        project_ids=["p1"],
+        proposal_engine_provider=lambda: engine,
+    )
+    await sched._run_harness_cycle()
+    assert engine.calls == 1

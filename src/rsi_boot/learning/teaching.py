@@ -122,7 +122,7 @@ def _dest_for(store: MemoryStore, doc: MemoryDoc | None, typ: str, title: str, d
 
 def _recall_hits_since(store: MemoryStore, doc_id: str, recorded_at: str) -> int:
     hits = 0
-    for event in iter_events(store.rsi_dir, kinds={"recall"}):
+    for event in iter_events(store.rsi_dir, kinds={"recall"}, all_rolls=True):
         ts = str(event.get("ts") or "")
         if recorded_at and ts <= recorded_at:
             continue

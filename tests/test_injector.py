@@ -2,6 +2,7 @@
 全量幂等重写。文件运行时只注入 prohibition + rsi-decisions.mdc，不写 convention mdc。"""
 
 import uuid
+from datetime import datetime, timezone
 
 from rsi_boot.injector.blocklist import is_blocked
 from rsi_boot.injector.rule_injector import RuleInjector
@@ -13,6 +14,7 @@ from rsi_boot.injector.targets import (
     MemoryBundle,
     MemoryRow,
 )
+from rsi_boot.memory.logstore import append_event
 from rsi_boot.memory.paths import official_dir, review_dir
 from rsi_boot.memory.store import memory_filename
 from rsi_boot.memory.types import MemoryDoc
@@ -207,3 +209,41 @@ async def test_injector_serializes_concurrent_rewrite(store, tmp_path):
     assert (rules_dir / "rsi-decisions.mdc").is_file()
     assert len(list(rules_dir.glob("rsi-prohibition-*.mdc"))) == 1
     assert (tmp_path / "AGENTS.md").is_file()
+
+
+async def test_current_rules_lists_injected_prohibition(store, tmp_path):
+    injector = RuleInjector(store=store, project_root=tmp_path)
+    _add_official(store, title="禁止：裸 SQL", content="必须参数化")
+    _add_official(store, title="统一使用 snake_case", content="命名", content_type="convention")
+    rows = await injector.current_rules("p1")
+    assert any(
+        row["title"] == "禁止：裸 SQL" and row["injected"] and row["surface"] == "prohibition"
+        for row in rows
+    )
+    assert any(
+        row["title"] == "统一使用 snake_case" and row["injected"] and row["surface"] == "catalog"
+        for row in rows
+    )
+    assert await RuleInjector(store=store).current_rules("p1") == []
+
+
+def test_adoption_time_joins_split_feedback(store):
+    doc_id = _add_official(store, title="禁止：裸 SQL", content="必须参数化")
+    token = "tok-adopt"
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex,
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "kind": "recall",
+        "token": token,
+        "retrieved": [doc_id],
+        "task": "查询",
+    })
+    append_event(store.rsi_dir, {
+        "id": uuid.uuid4().hex,
+        "ts": "2026-10-28T01:02:03Z",
+        "kind": "feedback",
+        "token": token,
+        "action": "accepted",
+    })
+    times = RuleInjector(store=store)._adoption_times(store.list_official("prohibition"))
+    assert times[doc_id] == "2026-10-28T01:02:03Z"

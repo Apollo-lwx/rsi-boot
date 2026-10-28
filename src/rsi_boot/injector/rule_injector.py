@@ -172,15 +172,21 @@ class RuleInjector:
     def _adoption_times(self, docs: List[MemoryDoc]) -> Dict[str, str]:
         times: Dict[str, str] = {}
         wanted = {d.id for d in docs}
-        try:
-            from ..memory.logstore import iter_events
-        except ImportError:
-            return times
-        for event in iter_events(self._store.rsi_dir):
-            action = event.get("action") or event.get("feedback_action")
+        from ..memory.logstore import event_action, iter_events, latest_feedback_by_token
+
+        feedback_by_token = latest_feedback_by_token(self._store.rsi_dir)
+        for event in iter_events(self._store.rsi_dir, all_rolls=True):
+            if event.get("kind") == "feedback" and not event.get("retrieved"):
+                continue
+            action = event_action(event, feedback_by_token)
             if action not in _ADOPTION_ACTIONS:
                 continue
-            ts = str(event.get("ts") or event.get("created_at") or "")
+            token = event.get("token")
+            fb = feedback_by_token.get(str(token)) if token else None
+            if not (event.get("action") or event.get("feedback_action")) and fb:
+                ts = str(fb.get("ts") or fb.get("created_at") or "")
+            else:
+                ts = str(event.get("ts") or event.get("created_at") or "")
             for doc_id in event.get("retrieved") or []:
                 if doc_id in wanted and ts >= times.get(doc_id, ""):
                     times[doc_id] = ts
@@ -214,5 +220,25 @@ class RuleInjector:
         return kept
 
     async def current_rules(self, project_id: str) -> List[Dict[str, Any]]:
-        """审计查询：宿主上下文中当前有哪些记忆（文件后端无 sqlite 台账）"""
-        return []
+        """当前会进入宿主上下文的记忆。无项目根时没有载体，返回空列表。"""
+        del project_id
+        if not self._targets:
+            return []
+        bundle = self._load_bundle()
+        rows: List[Dict[str, Any]] = []
+        for row in bundle.prohibitions:
+            rows.append({
+                "id": row.id, "title": row.title, "content_type": "prohibition",
+                "domain": row.domain, "injected": True, "surface": "prohibition",
+            })
+        for row in bundle.skills:
+            rows.append({
+                "id": row.id, "title": row.title, "content_type": "skill",
+                "domain": row.domain, "injected": True, "surface": "skill",
+            })
+        for row in bundle.catalog:
+            rows.append({
+                "id": row.id, "title": row.title, "content_type": row.content_type,
+                "domain": row.domain, "injected": True, "surface": "catalog",
+            })
+        return rows

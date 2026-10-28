@@ -19,7 +19,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import yaml
 from pydantic import BaseModel, Field
@@ -102,6 +102,7 @@ class FeedbackWorker:
         self._store = store
         self._quality = quality
         self._profiles = profiles
+        self._extractor: Any = None
         self._logs = LogService(store=store)
         self.queue: asyncio.Queue[ImplicitEvent] = asyncio.Queue(maxsize=maxsize)
         self._task: Optional[asyncio.Task] = None
@@ -170,18 +171,32 @@ class FeedbackWorker:
         elif event.action == "modified" and event.modified_content:
             should_extract = diff_ratio(question, event.modified_content) > DIFF_CANDIDATE_THRESHOLD
         if should_extract:
-            written = extract_from_feedback(
-                self._store.rsi_dir,
-                action=event.action,
-                comment=event.comment,
-                retrieved=retrieved,
-                modified_content=event.modified_content,
-                question=question,
-            )
+            extractor = self._extractor
+            if extractor is not None and getattr(extractor, "_use_llm", False):
+                written = await extractor.extract_feedback(
+                    event.action,
+                    comment=event.comment,
+                    retrieved=retrieved,
+                    modified_content=event.modified_content,
+                    question=question,
+                )
+            else:
+                written = extract_from_feedback(
+                    self._store.rsi_dir,
+                    action=event.action,
+                    comment=event.comment,
+                    retrieved=retrieved,
+                    modified_content=event.modified_content,
+                    question=question,
+                )
             if written:
                 logger.info("反馈提取已写入 pending：action=%s n=%s", event.action, len(written))
         if event.rating is not None and event.rating <= 2 and self._quality is not None:
             qresult = await self._quality.judge_negative_feedback(event.feedback_token)
+            if qresult is None:
+                excerpt = str(row.get("excerpt") or "")
+                if excerpt:
+                    qresult = await self._quality.judge_text(question, excerpt)
             if qresult is not None:
                 await self._logs.refresh_quality_score(event.feedback_token, qresult.quality_score)
         # 治理回流（对标 Qoder 反思）：被拒/低分的召回把命中正式条目降置信，

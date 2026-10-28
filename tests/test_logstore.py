@@ -95,6 +95,10 @@ def test_iter_reads_newest_rolled_and_current(tmp_path):
     assert "old" not in ids
     assert "mid" in ids
     assert "cur" in ids
+    all_ids = [r["id"] for r in iter_events(tmp_path, all_rolls=True)]
+    assert "old" in all_ids
+    assert "mid" in all_ids
+    assert "cur" in all_ids
 
 
 def test_rolls_events_over_50mb(tmp_path):

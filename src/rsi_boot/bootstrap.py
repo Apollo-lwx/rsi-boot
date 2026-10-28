@@ -142,10 +142,21 @@ class Runtime:
 
             adapter = ModelAdapter(ModelRegistry(view), view)
         quality = None
-        if enhance.get("quality_judge") and adapter is not None and embedding is not None:
+        if enhance.get("quality_judge") and adapter is not None:
             from .quality.assessor import QualityAssessor
 
-            quality = QualityAssessor(embedding, adapter, view)
+            judge_embedding = embedding
+            if judge_embedding is None:
+                from .knowledge.embedding import EmbeddingService
+
+                judge_embedding = EmbeddingService(view)
+                logger.warning(
+                    "enhance.quality_judge 已开启但未开 enhance.embedding，"
+                    "相关性维度跳过，仍做 accuracy 差评补评"
+                )
+            quality = QualityAssessor(judge_embedding, adapter, view)
+        elif enhance.get("quality_judge"):
+            logger.warning("enhance.quality_judge 已开启但缺少模型适配器，差评补评不会运行")
 
         self.retriever = _IndexInvalidator(self.invalidate_index)
         self.injector = RuleInjector(store=self.store, project_root=self._project_root)
@@ -175,7 +186,16 @@ class Runtime:
         )
         gate: Any = StaticGate()
         if enhance.get("gate_replay"):
-            logger.warning("enhance.gate_replay 已开启但 Runtime 不再装配 sqlite 回放门禁，回落静态门禁")
+            if adapter is None or embedding is None:
+                logger.warning(
+                    "enhance.gate_replay 已开启但缺少模型适配器或 embedding，回落静态门禁"
+                )
+            else:
+                from .learning.regression_gate import RegressionGate
+
+                gate = RegressionGate(
+                    None, adapter, embedding, view, event_rsi_dir=self.store.rsi_dir,
+                )
         self.proposal_engine = ProposalEngine(
             store=self.store, adapter=adapter, config=config, gate=gate,
             snapshots=self.snapshots, rsi_home=rsi_home(),
@@ -185,12 +205,15 @@ class Runtime:
             store=self.store, project_root=self._project_root,
             on_change=self.injector.rewrite,
             knowledge=self.knowledge,
+            adapter=adapter if enhance.get("conflict_llm") else None,
+            model=str(enhance.get("model", {}).get("default", "gpt-4o-mini")),
         )
         skill_dirs = [Path(str(resources.files("rsi_boot") / "config" / "skills")), rsi_home() / "skills"]
         if self._project_root:
             skill_dirs.append(Path(self._project_root) / ".rsi" / "skills")
         self.skill_loader = SkillLoader(skill_dirs)
         self.feedback_worker._quality = quality
+        self.feedback_worker._extractor = self.extractor
         self.invalidate_index()
 
     @property

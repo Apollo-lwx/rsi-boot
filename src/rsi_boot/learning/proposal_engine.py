@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from ..memory.logstore import iter_events
+from ..memory.logstore import _event_time, iter_events
 from ..memory.paths import official_dir, pending_dir, review_dir
 from ..memory.store import MemoryStore, memory_filename
 from ..memory.types import MEMORY_TYPES, MemoryDoc
@@ -56,6 +56,31 @@ _PROPOSAL_PROMPT = """你是 Harness 改进工程师。以下失败桶聚类自�
 
 def _utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _as_mapping(value: Any) -> Dict[str, Any]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        try:
+            dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 class ProposalEngine:
@@ -144,18 +169,168 @@ class ProposalEngine:
         return valid
 
     async def generate(self, project_id: str, days: int = 7) -> List[str]:
-        """失败挖掘 → 模板化提案 → 写入 state/proposals YAML。返回提案 id 列表"""
-        return self._generate_store(project_id, days)
+        """失败挖掘 → 模板化或 LLM 提案 → 领域零采纳下线 → 写入 YAML。"""
+        raw: List[tuple[Dict[str, Any], Optional[FailureBucket]]] = []
+        for bucket in self._mine_store_failures(project_id, days):
+            if self._use_llm:
+                proposals = await self._llm_propose(bucket)
+            else:
+                proposals = self._template_propose(bucket)
+            raw.extend((p, bucket) for p in proposals)
+        raw.extend(self._zero_adoption_proposals(project_id, days))
+        return self._commit_proposals(project_id, raw)
+
+    def _zero_adoption_proposals(
+        self, project_id: str, days: int,
+    ) -> List[tuple[Dict[str, Any], Optional[FailureBucket]]]:
+        """领域内有召回且已有反馈、但反馈都不是正向 → 为这些条目提下线提案。
+
+        只有召回、还没有反馈的条目不算零采纳，避免把未评价当成否决。
+        """
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        docs = [
+            doc for doc in self._store.list_official()
+            if doc.domain and doc.status == "active"
+        ]
+        if not docs:
+            return []
+        by_id = {doc.id: doc for doc in docs}
+        positive = {"accepted", "applied", "copied", "referenced"}
+        feedback_by_token: Dict[str, Dict[str, Any]] = {}
+        for event in iter_events(self._store.rsi_dir, kinds={"feedback"}, all_rolls=True):
+            token = event.get("token")
+            if token:
+                feedback_by_token[str(token)] = event
+        exposure: Dict[str, List[str]] = {}
+        adopted: set[str] = set()
+        for event in iter_events(self._store.rsi_dir, kinds={"recall"}, all_rolls=True):
+            if event.get("status") == "pending":
+                continue
+            ts = _event_time(event)
+            if ts is not None and ts < since:
+                continue
+            if project_id and event.get("project_id") and event.get("project_id") != project_id:
+                continue
+            hits = [rid for rid in (event.get("retrieved") or []) if rid in by_id]
+            if not hits:
+                continue
+            token = event.get("token")
+            fb = feedback_by_token.get(str(token)) if token else None
+            action = event.get("action") or event.get("feedback_action")
+            if not action and fb:
+                action = fb.get("action") or fb.get("feedback_action")
+            if not action:
+                continue
+            event_id = str(event.get("id") or token or "")
+            for rid in hits:
+                exposure.setdefault(rid, [])
+                if event_id and event_id not in exposure[rid] and len(exposure[rid]) < 10:
+                    exposure[rid].append(event_id)
+                if action in positive:
+                    adopted.add(rid)
+        taken = self._open_targets(project_id)
+        by_domain: Dict[str, List[Any]] = {}
+        for doc in docs:
+            by_domain.setdefault(str(doc.domain), []).append(doc)
+        proposals: List[tuple[Dict[str, Any], Optional[FailureBucket]]] = []
+        for domain, group in by_domain.items():
+            exposed = [doc for doc in group if exposure.get(doc.id)]
+            if not exposed or any(doc.id in adopted for doc in exposed):
+                continue
+            for doc in exposed:
+                if doc.id in taken:
+                    continue
+                log_ids = exposure.get(doc.id) or []
+                if not log_ids:
+                    continue
+                proposals.append(({
+                    "slot": "knowledge",
+                    "target_ref": doc.id,
+                    "action": "remove",
+                    "after": {},
+                    "rationale": f"领域 {domain} 近 {days} 天有召回但零采纳",
+                    "sample_count": len(log_ids) or 1,
+                    "log_ids": log_ids,
+                }, None))
+        return proposals
+
+    def _open_targets(self, project_id: str) -> set[str]:
+        taken: set[str] = set()
+        root = self._proposals_dir()
+        if not root.is_dir():
+            return taken
+        for path in root.glob("*.yaml"):
+            if path.name.endswith(".tmp"):
+                continue
+            try:
+                data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError):
+                continue
+            if not isinstance(data, dict):
+                continue
+            if project_id and data.get("project_id") and data.get("project_id") != project_id:
+                continue
+            if data.get("status") in ("rejected", "rolled_back"):
+                continue
+            ref = data.get("target_ref")
+            if ref:
+                taken.add(str(ref))
+        return taken
 
     # ---------- 2. 回归验证门禁 ----------
 
     async def validate(self, proposal_id: str) -> bool:
         """proposed → validating → approved/rejected（§3.9 第 3 步）。返回是否通过门禁"""
-        return False
+        data = self._load_proposal_yaml(proposal_id)
+        if data is None or data.get("status") not in ("proposed", "validating"):
+            return False
+        data["status"] = "validating"
+        data["payload"] = _as_mapping(data.get("payload"))
+        data["evidence"] = _as_mapping(data.get("evidence"))
+        self._write_proposal_yaml(data)
+        gate = self._gate
+        if gate is None:
+            from .static_gate import StaticGate
+            gate = StaticGate()
+            self._gate = gate
+        try:
+            report = await gate.evaluate(data)
+        except Exception as exc:
+            logger.exception("提案 %s 门禁执行失败", proposal_id[:8])
+            data["status"] = "rejected"
+            data["decided_at"] = _utc_iso()
+            data["gate"] = {"passed": False, "reason": f"门禁异常：{exc}"}
+            self._write_proposal_yaml(data)
+            return False
+        passed = bool(getattr(report, "passed", False))
+        data["status"] = "approved" if passed else "rejected"
+        data["decided_at"] = _utc_iso()
+        if hasattr(report, "to_dict"):
+            data["gate"] = report.to_dict()
+        else:
+            data["gate"] = {"passed": passed, "reason": str(getattr(report, "reason", "") or "")}
+        self._write_proposal_yaml(data)
+        if passed and self._auto_apply:
+            logger.info("提案 %s 通过门禁，auto_apply 直接晋升", proposal_id[:8])
+            await self.approve(proposal_id)
+        elif passed:
+            logger.info("提案 %s 通过门禁，待人工确认", proposal_id[:8])
+        else:
+            logger.info("提案 %s 门禁未过：%s", proposal_id[:8], data["gate"].get("reason", ""))
+        return passed
 
     async def validate_pending(self, project_id: str) -> Dict[str, int]:
         """批量验证全部 proposed 提案（每周离线任务）"""
-        return {"validated": 0, "approved": 0}
+        ids = [
+            str(row.get("id") or "")
+            for row in self._list_proposals_store(project_id, "proposed")
+            if row.get("id")
+        ]
+        approved = 0
+        for pid in ids:
+            if await self.validate(pid):
+                approved += 1
+        return {"validated": len(ids), "approved": approved}
 
     # ---------- 3. 人工确认与晋升 ----------
 
@@ -173,7 +348,7 @@ class ProposalEngine:
 
     def _mine_store_failures(self, project_id: str, days: int) -> List[FailureBucket]:
         since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-        events = list(iter_events(self._store.rsi_dir))
+        events = list(iter_events(self._store.rsi_dir, all_rolls=True))
         feedback_by_token: Dict[str, Dict[str, Any]] = {}
         for event in events:
             token = event.get("token")
@@ -231,11 +406,9 @@ class ProposalEngine:
                 bucket.examples.append({"input_excerpt": str(event.get("task") or "")[:200]})
         return list(buckets.values())
 
-    def _generate_store(self, project_id: str, days: int) -> List[str]:
-        raw: List[tuple[Dict[str, Any], Optional[FailureBucket]]] = []
-        for bucket in self._mine_store_failures(project_id, days):
-            raw.extend((p, bucket) for p in self._template_propose(bucket))
-
+    def _commit_proposals(
+        self, project_id: str, raw: List[tuple[Dict[str, Any], Optional[FailureBucket]]],
+    ) -> List[str]:
         proposal_ids: List[str] = []
         for p, bucket in raw:
             if len(proposal_ids) >= MAX_PROPOSALS_PER_ROUND:
@@ -244,13 +417,26 @@ class ProposalEngine:
                 logger.info("槽位 %s 周变更已达上限 %d，跳过提案", p["slot"], SLOT_WEEKLY_CAP)
                 continue
             pid = uuid.uuid4().hex
-            evidence = {
-                "bucket": ({"intent": bucket.intent, "strategy": bucket.strategy_name,
-                            "count": bucket.count, "signals": bucket.signals}
-                           if bucket else {"intent": "", "strategy": "", "count": 0, "signals": {}}),
-                "log_ids": bucket.log_ids[:10] if bucket else [],
-                "rationale": p.get("rationale", ""),
-            }
+            if bucket is not None:
+                evidence = {
+                    "bucket": {
+                        "intent": bucket.intent, "strategy": bucket.strategy_name,
+                        "count": bucket.count, "signals": bucket.signals,
+                    },
+                    "log_ids": bucket.log_ids[:10],
+                    "rationale": p.get("rationale", ""),
+                }
+            else:
+                log_ids = [str(item) for item in (p.get("log_ids") or [])][:10]
+                evidence = {
+                    "bucket": {
+                        "intent": "recall", "strategy": "",
+                        "count": int(p.get("sample_count") or len(log_ids) or 0),
+                        "signals": {"zero_adoption": 1},
+                    },
+                    "log_ids": log_ids,
+                    "rationale": p.get("rationale", ""),
+                }
             self._write_proposal_yaml({
                 "id": pid,
                 "project_id": project_id,
@@ -471,9 +657,60 @@ class ProposalEngine:
         """active → rolled_back：切换到晋升前快照（回滚 = 切换快照，非逆向重放 diff）"""
         return await self._rollback_store(proposal_id, reason)
 
+    def _window_adoption(self, project_id: str, start: datetime, end: datetime) -> Optional[float]:
+        from ..services.stats_service import StatsService
+        return StatsService(self._store).adoption_between(start, end, project_id)
+
     async def patrol(self, project_id: str) -> Dict[str, int]:
         """观察期每日巡检：采纳率较晋升前 7 天下降 > 5% → 自动回滚"""
-        return {"patrolled": 0, "rolled_back": 0}
+        now = datetime.now(timezone.utc)
+        watching: List[tuple[datetime, Dict[str, Any]]] = []
+        for row in self._list_proposals_store(project_id, "active"):
+            activated = _parse_dt(row.get("activated_at"))
+            if activated is None or activated > now:
+                continue
+            until = _parse_dt(row.get("observe_until"))
+            if until is None:
+                until = activated + timedelta(days=OBSERVATION_DAYS)
+            if now >= until:
+                continue
+            watching.append((activated, row))
+
+        dropped: List[tuple[datetime, Dict[str, Any], float, float]] = []
+        for activated, row in watching:
+            baseline = self._window_adoption(
+                project_id, activated - timedelta(days=OBSERVATION_DAYS), activated,
+            )
+            current = self._window_adoption(project_id, activated, now)
+            if baseline is None or current is None:
+                continue
+            delta = round(round(baseline, 4) - round(current, 4), 4)
+            if delta > OBSERVE_DROP_THRESHOLD:
+                dropped.append((activated, row, baseline, current))
+
+        dropped_ids = {str(row.get("id") or "") for _, row, _, _ in dropped}
+        kept_later = [
+            activated for activated, row in watching
+            if str(row.get("id") or "") not in dropped_ids
+        ]
+        rolled = 0
+        for activated, row, baseline, current in sorted(dropped, key=lambda item: item[0], reverse=True):
+            pid = str(row.get("id") or "")
+            if not pid:
+                continue
+            if any(later > activated for later in kept_later):
+                logger.warning(
+                    "提案 %s 观察期采纳率下降，但存在更晚仍有效的提案，跳过整库快照回滚",
+                    pid[:8],
+                )
+                continue
+            reason = (
+                f"观察期采纳率 {round(current, 4):.2%}，"
+                f"较晋升前 7 天 {round(baseline, 4):.2%} 下降超过 {OBSERVE_DROP_THRESHOLD:.0%}"
+            )
+            if await self.rollback(pid, reason=reason):
+                rolled += 1
+        return {"patrolled": len(watching), "rolled_back": rolled}
 
     # ---------- 查询 ----------
 

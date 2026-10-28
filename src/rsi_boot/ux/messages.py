@@ -43,8 +43,8 @@ STRINGS = {
     "REMAINING": {"zh": "约剩 {duration}", "en": "eta {duration}"},
     "LT_ONE_SEC": {"zh": "不到1秒", "en": "under 1s"},
     "MEMORY_NEED_SUB": {
-        "zh": "请指定子命令：migrate / reindex / index / open / graph",
-        "en": "Specify a subcommand: migrate / reindex / index / open / graph",
+        "zh": "请指定子命令：migrate / reindex / index / open / graph / rules",
+        "en": "Specify a subcommand: migrate / reindex / index / open / graph / rules",
     },
     "KNOWLEDGE_TOO_LONG": {
         "zh": "知识正文不能超过 1500 字",
@@ -303,8 +303,9 @@ TOOL_DESC = {
     ),
     "memory": (
         "Open or search memory files. index lists entries, open reads one id, reindex rebuilds cache, "
-        "graph returns mermaid text. "
-        "打开或检索记忆文件。index 列目录，open 按 id 读全文，reindex 重建缓存，graph 返回 mermaid 文本。"
+        "graph returns mermaid text, rules lists what is injected into the host. "
+        "打开或检索记忆文件。index 列目录，open 按 id 读全文，reindex 重建缓存，graph 返回 mermaid 文本，"
+        "rules 列出当前注入宿主的记忆。"
     ),
     "explore": (
         "Navigate the knowledge tree by domain module. Empty path lists top-level modules with counts; "
