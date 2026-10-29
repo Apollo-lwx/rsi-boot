@@ -88,6 +88,24 @@ The four rows within 5 points sit together. The wide gaps are the slices: multi-
 | LoCoMo temporal k=5 | 31.5 | 70.4 | −38.9 |
 | LoCoMo Hit@10 vs ECHO | 64.0 | 96.29 | −32.3 |
 
+### Tokens saved
+
+The recall board still records tokens as null. This section is a separate measurement: the same questions about this repo, answered once with the managed memory present and once without it, using the token counts Cursor CLI reports. 2026-10-29, CLI `2026.10.22`, ask mode, model Auto. A total is input + output + cache read + cache write.
+
+The off arm is a checkout with the managed block and `.rsi/` removed. The on arm is this repo. Across six groups the off arm used 1,637,977 tokens and the on arm used 423,973, saving 1,214,004, **74.1%**. Single groups run from 10.5% to 89.7%. Quote the pooled figure.
+
+| Group | Off | On | Saved | Share |
+|---|---:|---:|---:|---:|
+| a project root / basetemp / workspace | 432455 | 44607 | 387848 | 89.7% |
+| b distill skip / auth / dense domain | 108446 | 71303 | 37143 | 34.3% |
+| c deps / secrets / health scan | 80383 | 71963 | 8420 | 10.5% |
+| a2 same questions as a, run again | 309865 | 74398 | 235467 | 76.0% |
+| a3 same questions as a, third run | 351853 | 88964 | 262889 | 74.7% |
+| a4 same questions as a, fourth run | 354975 | 72738 | 282237 | 79.5% |
+| Pooled | 1637977 | 423973 | 1214004 | 74.1% |
+
+Protocol and the raw split: [benchmark/results/token-20261029/SUMMARY.md](benchmark/results/token-20261029/SUMMARY.md).
+
 ## Installation
 
 Requires Python 3.10+:

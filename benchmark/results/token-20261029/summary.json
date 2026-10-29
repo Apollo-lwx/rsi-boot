@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-29",
+  "host": "Cursor CLI 2026.10.22-27dcf5f",
+  "mode": "ask",
+  "model": "Auto",
+  "token_sum": ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens"],
+  "groups": [
+    {
+      "id": "a",
+      "topic": "项目根、basetemp、VSCODE_CWD、工作区边界",
+      "off": {"inputTokens": 46529, "outputTokens": 5382, "cacheReadTokens": 380544, "cacheWriteTokens": 0, "total": 432455},
+      "on": {"inputTokens": 23901, "outputTokens": 866, "cacheReadTokens": 19840, "cacheWriteTokens": 0, "total": 44607},
+      "saved": 387848,
+      "saved_pct": 0.897
+    },
+    {
+      "id": "b",
+      "topic": "skip 整板、skip 是否覆盖、授权、密域",
+      "off": {"inputTokens": 22985, "outputTokens": 2005, "cacheReadTokens": 83456, "cacheWriteTokens": 0, "total": 108446},
+      "on": {"inputTokens": 21347, "outputTokens": 804, "cacheReadTokens": 49152, "cacheWriteTokens": 0, "total": 71303},
+      "saved": 37143,
+      "saved_pct": 0.343
+    },
+    {
+      "id": "c",
+      "topic": "依赖下限、密钥、会话扫描、记忆健康",
+      "off": {"inputTokens": 16519, "outputTokens": 1656, "cacheReadTokens": 62208, "cacheWriteTokens": 0, "total": 80383},
+      "on": {"inputTokens": 29594, "outputTokens": 1537, "cacheReadTokens": 40832, "cacheWriteTokens": 0, "total": 71963},
+      "saved": 8420,
+      "saved_pct": 0.105
+    },
+    {
+      "id": "a2",
+      "topic": "与 a 相同的四题，再跑一次",
+      "off": {"inputTokens": 71752, "outputTokens": 3489, "cacheReadTokens": 234624, "cacheWriteTokens": 0, "total": 309865},
+      "on": {"inputTokens": 34787, "outputTokens": 827, "cacheReadTokens": 38784, "cacheWriteTokens": 0, "total": 74398},
+      "saved": 235467,
+      "saved_pct": 0.760
+    },
+    {
+      "id": "a3",
+      "topic": "与 a 相同的四题，第三轮",
+      "off": {"inputTokens": 59443, "outputTokens": 3002, "cacheReadTokens": 289408, "cacheWriteTokens": 0, "total": 351853},
+      "on": {"inputTokens": 12712, "outputTokens": 860, "cacheReadTokens": 75392, "cacheWriteTokens": 0, "total": 88964},
+      "saved": 262889,
+      "saved_pct": 0.747
+    },
+    {
+      "id": "a4",
+      "topic": "与 a 相同的四题，第四轮",
+      "off": {"inputTokens": 106352, "outputTokens": 4143, "cacheReadTokens": 244480, "cacheWriteTokens": 0, "total": 354975},
+      "on": {"inputTokens": 12693, "outputTokens": 909, "cacheReadTokens": 59136, "cacheWriteTokens": 0, "total": 72738},
+      "saved": 282237,
+      "saved_pct": 0.795
+    }
+  ],
+  "pooled": {
+    "groups": 6,
+    "off": 1637977,
+    "on": 423973,
+    "saved": 1214004,
+    "saved_pct": 0.741
+  }
+}
