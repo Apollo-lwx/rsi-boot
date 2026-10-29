@@ -125,6 +125,10 @@ class RuleInjector:
         结果 documentation 若条目多就会占满槽位，teaching/gene/episode 永远进不来。
         改成"每类保底 1 条 + 剩余按 updated_at（缺则 created_at）全局倒序"，
         兼顾新鲜度与板块可见性；tree 用全量 docs。
+
+        teach_record 把同一条教训写成 teaching_case 与 gene_case（同 id、同标题）。
+        召回已按 id 跳过成对 gene。目录同样只保留 teaching，避免 40 条槽位被重复标题占掉。
+        没有对应 teaching 的 gene 仍进入目录。
         """
         store = self._store
         all_docs: List[Any] = []
@@ -143,16 +147,21 @@ class RuleInjector:
             ts = str(getattr(doc, "updated_at", "") or getattr(doc, "created_at", "") or "")
             return (ts, str(getattr(doc, "id", "") or ""))
 
+        teaching_ids = {doc.id for doc in per_type["teaching_case"]}
+
+        def in_catalog(doc) -> bool:
+            return not (doc.type == "gene_case" and doc.id in teaching_ids)
+
         seed: List[Any] = []
         chosen_ids: set = set()
         for typ in self._CATALOG_TYPES:
-            bucket = per_type[typ]
+            bucket = [doc for doc in per_type[typ] if in_catalog(doc)]
             if not bucket:
                 continue
             pick = max(bucket, key=sort_key)
             seed.append(pick)
             chosen_ids.add(pick.id)
-        rest = [d for d in all_docs if d.id not in chosen_ids]
+        rest = [d for d in all_docs if in_catalog(d) and d.id not in chosen_ids]
         ordered = seed + sorted(rest, key=sort_key, reverse=True)
 
         rows: List[MemoryRow] = []

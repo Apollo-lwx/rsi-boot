@@ -520,6 +520,34 @@ async def test_catalog_seeds_each_type(store, tmp_path):
     assert all(r.title.startswith("D") for r in doc_rows)
 
 
+async def test_catalog_hides_gene_sharing_teaching_id(store, tmp_path):
+    """同 id 的 teaching/gene 在目录里只留 teaching。孤儿 gene 仍占一条。树计数含两份基因。"""
+    shared = "a" * 32
+    for typ in ("teaching_case", "gene_case"):
+        dest = official_dir(store.rsi_dir, typ) / memory_filename("同一条教训", shared)
+        store.write(
+            MemoryDoc(
+                id=shared, type=typ, title="同一条教训", content="正文",
+                domain=typ, updated_at="2026-10-02T00:00:00Z",
+            ),
+            dest=dest,
+        )
+    orphan = _write_official(
+        store, title="只有基因", content="y",
+        type="gene_case", domain="gene_case", updated_at="2026-10-01T00:00:00Z",
+    )
+    inj = RuleInjector(store=store, project_root=tmp_path)
+    rows, tree = inj._load_catalog_and_tree()
+    assert [r.title for r in rows].count("同一条教训") == 1
+    assert any(
+        r.title == "同一条教训" and r.content_type == "teaching_case" for r in rows
+    )
+    assert any(r.id == orphan and r.content_type == "gene_case" for r in rows)
+    text = "\n".join(tree)
+    assert "teaching_case (1)" in text
+    assert "gene_case (2)" in text
+
+
 # ---------- 治理轮 S2：explore 图谱边 truncated 标记 ----------
 
 

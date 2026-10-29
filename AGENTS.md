@@ -4,40 +4,42 @@
 
 ## 记忆目录（详情用 rsi_recall 召回）
 - 2026-09-10-rsi-boot-spec.md# 10.9.10 去重与增量更新
-- 分词去掉贴在词上的标点
-- 分词去掉贴在词上的标点
+- 目录里同一条教训只露一次
 - Review host-distill-knowledge implementation against plan tasks 1-13 and spec §4/§7/§11: bootstrap reading packs, Jaccar
-- mcp 下限改为 >=1.30.0,<2，Jinja2 下限改为 >=3.1.6。密钥只解析用户配置里写明的 env:变量名。scan_conversations 默认不读文件，agent-transcripts 与 IDE jsonl 不
+- 回放门禁用合并后的增强配置
+- 拆行反馈要按 token 拼回召回
+- 文件运行时回放、零采纳和差评补评按真实事件接线
+- 文件运行时补齐归档、臂淘汰和增强开关
+- 提案门禁与观察期巡检不再返回固定桩
+- MCP stdio server 必须容忍空行与噪声行
+- 分词去掉贴在词上的标点
 - mcp 下限改为 >=1.30.0,<2，Jinja2 下限改为 >=3.1.6。密钥只解析用户配置里写明的 env:变量名。scan_conversations 默认不读文件，agent-transcripts 与 IDE jsonl 不
 - 市场上架文案用大白话说明产品
-- 市场上架文案用大白话说明产品
-- 分发平台规范按平台分目录
 - 分发平台规范按平台分目录
 - 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开 incorrect，来源哈希变且标题短语不在文件中才开 stale_source；扫描只写发现
-- 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开 incorrect，来源哈希变且标题短语不在文件中才开 stale_source；扫描只写发现
-- 列出列名
 - 列出列名
 - MCP server 的工作区边界用 roots/list 协议拿，别信进程 cwd
-- resolve_project_root 不得信任 VSCODE_CWD
 - resolve_project_root 不得信任 VSCODE_CWD
 - Cursor agent 终端跑 rsi CLI 必须显式 --project-root
 - pytest basetemp 不得放在被测仓库内
 - 密域蒸馏条按包域改回 skill/teaching/gene/pattern
-- 密域蒸馏条按包域改回 skill/teaching/gene/pattern
-- 蒸馏中途授权是宿主调了 mcp_auth
 - 蒸馏中途授权是宿主调了 mcp_auth
 - 宿主蒸馏禁止「蒸几条示例就 skip 整板」
-- 宿主蒸馏禁止「蒸几条示例就 skip 整板」
 - skip 算未覆盖，禁止整板 skip，蒸馏按源类型落目录
-- skip 算未覆盖，禁止整板 skip，蒸馏按源类型落目录
-- 按板块并行本轮蒸完，报告给人看不要下一步
 - 按板块并行本轮蒸完，报告给人看不要下一步
 - 解释 user-skill-audit 是什么：RSI skill 还是其它组件，以及为何 audit_finish 跳过它
 - RSI 收工只走 rsi_learn 的 audit_start/audit_probes/audit_report/audit_finish。Cursor 命名空间 user-skill-audit 来自用户级 mcp.json 的 sk
+- 继续 Task 8 knowledge_add 1500 硬顶与蒸馏标签：超长拒绝、四采集标题拒绝、distilled 必带 bootstrap_run_id、MCP/CLI error 原样传出
+- 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current 的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
+- 帮我审查这段代码
+- 列出列名
+- 2026-09-10-rsi-boot-spec.md# 10.7 设计取舍说明
+- 2026-09-10-rsi-boot-spec.md# 10.9 项目自学习与初始化（Project Bootstrap & Auto-Learn）
+- 2026-09-10-rsi-boot-spec.md# 10.9.9 错误处理与部分恢复
 
 ## 知识树（板块计数；下钻用 rsi_explore，召回用 rsi_recall）
 - bootstrap (89)  ·  rsi_explore "bootstrap"
-- general (51)  ·  rsi_explore "general"
+- general (65)  ·  rsi_explore "general"
 
 ## 收工纪律
 
