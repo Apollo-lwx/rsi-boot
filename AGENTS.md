@@ -4,8 +4,13 @@
 
 ## 记忆目录（详情用 rsi_recall 召回）
 - 2026-09-10-rsi-boot-spec.md# 10.9.10 去重与增量更新
-- 目录里同一条教训只露一次
+- fastembed 离线缓存：HF_HUB_OFFLINE 是导入期常量，且要喂对缓存布局
 - Review host-distill-knowledge implementation against plan tasks 1-13 and spec §4/§7/§11: bootstrap reading packs, Jaccar
+- 时间题引用降权：查询类型条件化的 provenance 折权解决复制挤位
+- 消融定位到组件≠定位到机制：假设先行实测殿后
+- 跑榜脚本禁止模块级 monkeypatch 全局函数
+- 方案类交付物：做完再交付，不要分次迭代
+- 目录里同一条教训只露一次
 - 回放门禁用合并后的增强配置
 - 拆行反馈要按 token 拼回召回
 - 文件运行时回放、零采纳和差评补评按真实事件接线
@@ -33,13 +38,10 @@
 - 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current 的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
 - 帮我审查这段代码
 - 列出列名
-- 2026-09-10-rsi-boot-spec.md# 10.7 设计取舍说明
-- 2026-09-10-rsi-boot-spec.md# 10.9 项目自学习与初始化（Project Bootstrap & Auto-Learn）
-- 2026-09-10-rsi-boot-spec.md# 10.9.9 错误处理与部分恢复
 
 ## 知识树（板块计数；下钻用 rsi_explore，召回用 rsi_recall）
 - bootstrap (89)  ·  rsi_explore "bootstrap"
-- general (65)  ·  rsi_explore "general"
+- general (75)  ·  rsi_explore "general"
 
 ## 收工纪律
 

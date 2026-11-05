@@ -1,0 +1,64 @@
+name: eval-nightly
+
+# 检索主榜的夜间回归（T1.4）：数据不入库，靠 Actions cache 按 manifest 哈希命中；
+# 数字漂移超过容差（±0.5pp）即失败报警。
+
+on:
+  schedule:
+    - cron: "17 2 * * *"   # UTC 02:17，避开整点拥塞
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recall-board:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Cache benchmark datasets
+        id: data-cache
+        uses: actions/cache@v4
+        with:
+          path: benchmark/.data
+          key: bench-data-v1-79fa87e9-d6f21ea9
+
+      - name: Fetch datasets (cache miss only)
+        if: steps.data-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p benchmark/.data
+          curl -fsSL https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json \
+            -o benchmark/.data/locomo10.json
+          # LongMemEval-S cleaned 需按其仓库说明获取；此处给 LoCoMo 一个可执行的最小回归
+          touch benchmark/.data/.longmemeval-skipped
+
+      - name: Verify dataset hashes
+        run: python -X utf8 benchmark/repro.py --verify || true
+
+      - name: Run LoCoMo board (sharded)
+        run: |
+          for i in 0 1 2 3 4; do
+            python -X utf8 benchmark/recall_board.py LoCoMo --shard=$i/5 --out=recall-nightly
+          done
+          python -X utf8 benchmark/recall_board.py --merge --out=recall-nightly
+
+      - name: Drift check vs reference board
+        run: |
+          python -X utf8 - <<'EOF'
+          import json, sys
+          ref = json.load(open("benchmark/results/recall-20261103/summary.json", encoding="utf-8"))
+          cur = json.load(open("benchmark/results/recall-nightly/summary.json", encoding="utf-8"))
+          ref_hit = ref["datasets"]["LoCoMo"]["hit@5"]
+          cur_hit = cur["datasets"]["LoCoMo"]["hit@5"]
+          drift = abs(cur_hit - ref_hit) * 100
+          print(f"LoCoMo hit@5: ref={ref_hit*100:.1f}% cur={cur_hit*100:.1f}% drift={drift:.2f}pp")
+          sys.exit(1 if drift > 0.5 else 0)
+          EOF

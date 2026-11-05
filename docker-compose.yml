@@ -1,0 +1,14 @@
+# 评测复现入口（T1.4）。镜像复用根 Dockerfile 的运行环境，复现走独立 service：
+#   docker compose run --rm repro            # 校验哈希 + 全量主榜
+#   docker compose run --rm repro --verify   # 只校验数据集
+# 数据集不进镜像：挂 benchmark/.data（获取方式见 benchmark/repro/manifest.yaml）。
+services:
+  repro:
+    build: .
+    entrypoint: ["python", "-X", "utf8", "/opt/rsi-boot/benchmark/repro.py", "--run"]
+    volumes:
+      - ./benchmark:/opt/rsi-boot/benchmark
+    working_dir: /opt/rsi-boot
+    environment:
+      # LLM 增强通道（基线对照/裁判）可选注入；缺省时主链路评测不依赖
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}

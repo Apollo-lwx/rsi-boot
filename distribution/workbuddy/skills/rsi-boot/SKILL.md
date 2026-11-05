@@ -5,7 +5,7 @@ display_name_en: RSI Boot
 description: 让 AI 记住当前仓库怎么写代码：要遵守的写法、不能做的事、以前的 bug 怎么改的。用户说记住、规矩、别再犯、这个项目怎么写时使用。
 description_zh: 让 AI 记住这个仓库怎么写代码。下次打开项目会照着做，换编辑器也不用重讲。
 description_en: Helps the AI remember how this repo is written, and follow that the next time the project is opened.
-version: 0.1.1
+version: 0.1.7
 author: wenxing luo
 ---
 

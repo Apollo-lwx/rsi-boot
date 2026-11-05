@@ -7,8 +7,6 @@
 [![RSI Boot MCP server](https://mcprush.com/badge/rsi-boot-mcp/card.svg)](https://mcprush.com/to/rsi-boot-mcp?ref=badge)
 </div>
 
-<!-- mcp-name: io.github.Apollo-lwx/rsi-boot -->
-
 # RSI Boot
 
 简体中文 | [English](README.en.md)
@@ -46,16 +44,39 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 
 ## 公开基准
 
-主榜是召回。冷启动默认 5 条。分母是有标准证据的题数。MRR 是第一条命中的名次倒数（0 到 1）。token 记 null。协议和分项在 [benchmark/results/recall-20261028/SUMMARY.md](benchmark/results/recall-20261028/SUMMARY.md)。
+主榜是召回。冷启动默认 5 条。分母是有标准证据的题数。MRR 是第一条命中的名次倒数（0 到 1）。token 记 null。协议和分项在 [benchmark/results/recall-20261104/SUMMARY.md](benchmark/results/recall-20261104/SUMMARY.md)。
 
 ### 这次的分
 
 | 数据集 | 有证据的题 | Hit@5 | Recall@5 | MRR | Hit@10 | Recall@10 | 该空时空了 |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| LoCoMo | 1536 | 56.5% | 51.0% | 0.427 | 64.0% | 57.8% | 0/450 |
-| LongMemEval-S | 500 | 96.6% | 90.1% | 0.907 | 98.4% | 94.8% | — |
+| LoCoMo | 1536 | 62.0% | 56.4% | 0.422 | 70.3% | 64.0% | 0/450 |
+| LongMemEval-S | 500 | 96.6% | 90.2% | 0.908 | 98.4% | 94.8% | — |
 
-这是检索命中，不是模型答题分。
+这是检索命中，不是模型答题分。LoCoMo 类别标签以官方评测代码为准（1=多跳、2=时间、3=开放域、4=单跳），与论文 §4.1 的叙述顺序不一致（上游 issue #29 / EACL 2026 附录 A 已确认）。
+
+### 同口径基线对比
+
+同一批题、同一指标，三个系统同机跑。vanilla-rag 是 512 字符切块 + 向量：LoCoMo/EngMem 用本地 bge-large-en-v1.5（fastembed/ONNX，无需 Key），LME 因 512 字符切 11.5 万 token 会话会产生约 56 万向量、离线不可行而退为 hashing 词袋下界；full-context 是「全量塞上下文」参照，不参与胜负判定。完整表在 [benchmark/results/baselines-emb-20261104/SUMMARY.md](benchmark/results/baselines-emb-20261104/SUMMARY.md)。
+
+| 数据集 | 系统 | Hit@5 | Recall@5 | MRR |
+|---|---|---:|---:|---:|
+| LoCoMo | rsi | 62.0% | 56.4% | 0.422 |
+| LoCoMo | **vanilla-rag** | **68.6%** | **60.4%** | **0.500** |
+| LoCoMo | full-context | 2.3% | 1.4% | 0.009 |
+| LongMemEval-S | **rsi** | **96.6%** | **90.2%** | **0.908** |
+| LongMemEval-S | vanilla-rag | 69.2% | 55.4% | 0.520 |
+| LongMemEval-S | full-context | 17.6% | 8.6% | 0.080 |
+
+### 工程记忆 EngMem-Bench
+
+自建基准：21 个真实开源仓库（钉死 commit），315 道人工编写题锚定仓库真实文档节，分规范 / 禁令 / 历史修复三类。标注质量经三模型核验团审计（Kimi K3 / Claude Haiku / GLM 5.2 独立核验 87 题分层样本，Fleiss' κ=0.738，作者仲裁后修复 5 处锚点/版本缺陷）。方法学见 [benchmark/engmem/README.md](benchmark/engmem/README.md)，完整表（含按题型、按难度）在 [benchmark/results/engmem-emb-20261105/SUMMARY.md](benchmark/results/engmem-emb-20261105/SUMMARY.md)。
+
+| 系统 | 题数 | Hit@5 | Recall@5 | MRR |
+|---|---:|---:|---:|---:|
+| **rsi** | 315 | **93.0%** | **92.9%** | **0.817** |
+| vanilla-rag | 315 | 87.3% | 87.1% | 0.744 |
+| full-context | 315 | 25.4% | 25.4% | 0.096 |
 
 ### 和公开检索分对照
 
@@ -63,51 +84,50 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 
 | 对照 | 分项 | 公开 | 这次 | 差值 |
 |---|---|---:|---:|---:|
-| LoCoMo 论文，对话 k=5 | 单跳 | 68.0 | 38.7 | −29.3 |
-| LoCoMo 论文，对话 k=5 | 多跳 | 35.4 | 63.2 | +27.8 |
-| LoCoMo 论文，对话 k=5 | 时间 | 70.4 | 31.5 | −38.9 |
-| LoCoMo 论文，对话 k=5 | 开放域 | 33.1 | 62.7 | +29.6 |
-| LoCoMo 论文，对话 k=5 | 总平均，论文含对抗题 | 56.7 | 56.5 | −0.2 |
-| LoCoMo 论文，对话 k=10 | 总平均，论文含对抗题 | 66.2 | 64.0 | −2.2 |
-| ECHO，LoCoMo 1536 题 | Hit@10，开发测量 | 96.29 | 64.0 | −32.3 |
+| LoCoMo 论文，对话 k=5 | 单跳 | 68.0 | 72.2 | +4.2 |
+| LoCoMo 论文，对话 k=5 | 多跳 | 35.4 | 39.4 | +4.0 |
+| LoCoMo 论文，对话 k=5 | 时间 | 70.4 | 64.5 | −5.9 |
+| LoCoMo 论文，对话 k=5 | 开放域 | 33.1 | 30.4 | −2.7 |
+| LoCoMo 论文，对话 k=5 | 总平均，论文含对抗题 | 56.7 | 62.0 | +5.3 |
+| LoCoMo 论文，对话 k=10 | 总平均，论文含对抗题 | 66.2 | 70.3 | +4.1 |
+| ECHO，LoCoMo 1536 题 | Hit@10，开发测量 | 96.29 | 70.3 | −26.0 |
 | ECHO，LongMemEval-S 500 题 | Hit@10 | 97.60 | 98.4 | +0.8 |
-| ECHO，LongMemEval-S | 会话 Recall@5 | 88.71 | 90.1 | +1.4 |
+| ECHO，LongMemEval-S | 会话 Recall@5 | 88.71 | 90.2 | +1.5 |
 
 ### 差值
 
-![LongMemEval 同一档，LoCoMo 总平均挨着论文。右边高于公开检索数字，左边低于。](benchmark/results/recall-20261028/delta.png)
-
-前四行的差值不到 5 个点。后面几行是拉开的格子：多跳和开放域更高，单跳、时间题，以及对 ECHO 的 LoCoMo Hit@10 更低。
+![LongMemEval 同一档，LoCoMo 总平均高于论文。右边高于公开检索数字，左边低于。](benchmark/results/recall-20261104/delta.png)
 
 | 对照 | 这次 | 公开 | 差值 |
 |---|---:|---:|---:|
 | LongMemEval-S Hit@10 | 98.4 | 97.60 | +0.8 |
-| LongMemEval-S 会话 Recall@5 | 90.1 | 88.71 | +1.4 |
-| LoCoMo 总平均 k=5 | 56.5 | 56.7 | −0.2 |
-| LoCoMo 总平均 k=10 | 64.0 | 66.2 | −2.2 |
-| LoCoMo 开放域 k=5 | 62.7 | 33.1 | +29.6 |
-| LoCoMo 多跳 k=5 | 63.2 | 35.4 | +27.8 |
-| LoCoMo 单跳 k=5 | 38.7 | 68.0 | −29.3 |
-| LoCoMo 时间题 k=5 | 31.5 | 70.4 | −38.9 |
-| LoCoMo Hit@10 对 ECHO | 64.0 | 96.29 | −32.3 |
+| LongMemEval-S 会话 Recall@5 | 90.2 | 88.71 | +1.5 |
+| LoCoMo 总平均 k=5 | 62.0 | 56.7 | +5.3 |
+| LoCoMo 总平均 k=10 | 70.3 | 66.2 | +4.1 |
+| LoCoMo 单跳 k=5 | 72.2 | 68.0 | +4.2 |
+| LoCoMo 多跳 k=5 | 39.4 | 35.4 | +4.0 |
+| LoCoMo 开放域 k=5 | 30.4 | 33.1 | −2.7 |
+| LoCoMo 时间题 k=5 | 64.5 | 70.4 | −5.9 |
+| LoCoMo Hit@10 对 ECHO | 70.3 | 96.29 | −26.0 |
+
+### 治理环与安全
+
+- 纵向自改进：10 轮合成事件流三臂对比——治理臂 learn 探针 0/10→9/10 且噪声暴露全程 0；无门臂（全批准）噪声暴露自首轮注入起 100%；不晋升消融臂 learn 全程 0/10。另暴露两个检索层短板（记忆增长挤位旧规则、词形不匹配漏召），如实记录。见 [benchmark/results/longitudinal-20261104/SUMMARY.md](benchmark/results/longitudinal-20261104/SUMMARY.md)。
+- 对抗投毒：pending 投毒与伪造「已批准」标记 100% 被过滤，关键词堆砌未抢到首位（5/5）。见 [benchmark/results/adversarial-20261103/SUMMARY.md](benchmark/results/adversarial-20261103/SUMMARY.md)。
+- 消融：逐组件开关（RSI_ABLATE）出对比榜——context 增强是唯一单独可测的聚合贡献，且它正是 temporal 分项缺口的来源；其余开关单独关闭在聚合指标上 ≤±0.3，如实记录。见 [benchmark/results/ablation-20261104/SUMMARY.md](benchmark/results/ablation-20261104/SUMMARY.md)。基于该发现做了两步修复并各自出榜验证：context-v2（附带前一 turn 剥离日期锚点，聚合 60.0→60.4；日期污染假设对 temporal 无贡献，如实记录）+ 时间题查询期引用行折权 0.15（temporal 56.1→64.5，追回并略超关增强的 64.2，single-hop 保住 72.2，聚合 60.4→62.0，MRR 0.368→0.422）。见 [benchmark/results/contextfix-20261104/SUMMARY.md](benchmark/results/contextfix-20261104/SUMMARY.md)。
+- 规模：1 万条记忆索引构建 8.1 秒、检索 P50 47ms；5 万条 62.5 秒、P50 474ms。见 [benchmark/results/scalability-20261103/SUMMARY.md](benchmark/results/scalability-20261103/SUMMARY.md)。
 
 ### 省 token
 
-召回主榜的 token 列仍记 null。下面是另一项：同一套关于本仓库的问题，Cursor CLI 各答一遍，用它报出的 token 相减。2026-10-29，CLI `2026.10.22`，ask 模式，模型 Auto。token 是输入、输出、缓存读、缓存写四项之和。
+两项测量，口径不同，不要混列：
 
-关记忆是去掉托管块和 `.rsi/` 的检出。开记忆是当前仓库。六组合计：关记忆 1637977，开记忆 423973，省 1214004，**74.1%**。单组从 10.5% 到 89.7%，引用用合计。
+1. **宿主实测**（2026-10-29，Cursor CLI `2026.10.22`，ask 模式，模型 Auto）：同一套关于本仓库的问题各答一遍，用它报出的 token 相减。token 是输入、输出、缓存读、缓存写四项之和。六组合计：关记忆 1637977，开记忆 423973，省 1214004，**74.1%**。协议和分项在 [benchmark/results/token-20261029/SUMMARY.md](benchmark/results/token-20261029/SUMMARY.md)。
+2. **受控上下文测量**（2026-11-04，2036 题，LoCoMo 全量 + LongMemEval-S 50 样本）：同一 tokenizer 配对比较「送入模型的上下文 token 数」，RSI 召回 top-5 对全量对话的中位压缩比 0.9%（即减少 99.1%），配对 Wilcoxon p<0.001、效应量 r=0.866。见 [benchmark/results/token-20261104/SUMMARY.md](benchmark/results/token-20261104/SUMMARY.md)。
+3. **真实 API 计费实测**（2026-11-05，双厂商复现）：LoCoMo 分层抽样 80 题 × 两臂 × 2 轮，逐次记录服务端 usage。Kimi K3：prompt 中位 50,307→610（−98.8%），延迟中位 −38.1%；Claude Haiku（同批题同协议复现）：75,540→2,688（−96.4%，中转网关注入约 1.9k 固定客户端开销，为保守下界），延迟 −56.9%。两轮各 160/160 对全部改善，Wilcoxon p=5.3e-28、r=0.867。见 [benchmark/results/token-llm-20261105/SUMMARY.md](benchmark/results/token-llm-20261105/SUMMARY.md) 与 [benchmark/results/token-llm-claude-20261105/SUMMARY.md](benchmark/results/token-llm-claude-20261105/SUMMARY.md)。
 
-| 组 | 关记忆 | 开记忆 | 省 | 比例 |
-|---|---:|---:|---:|---:|
-| a 项目根 / basetemp / 工作区 | 432455 | 44607 | 387848 | 89.7% |
-| b 蒸馏 skip / 授权 / 密域 | 108446 | 71303 | 37143 | 34.3% |
-| c 依赖 / 密钥 / 健康扫描 | 80383 | 71963 | 8420 | 10.5% |
-| a2 与 a 相同，再跑一次 | 309865 | 74398 | 235467 | 76.0% |
-| a3 与 a 相同，第三轮 | 351853 | 88964 | 262889 | 74.7% |
-| a4 与 a 相同，第四轮 | 354975 | 72738 | 282237 | 79.5% |
-| 合计 | 1637977 | 423973 | 1214004 | 74.1% |
+### 跨宿主一致性
 
-协议和分项在 [benchmark/results/token-20261029/SUMMARY.md](benchmark/results/token-20261029/SUMMARY.md)。
+同一份 `.rsi` 种子，RSI 两次自读、Cursor CLI、Claude Code CLI 各自通过自己的 MCP 链路读同一组查询：六组宿主对平均 Jaccard@5 = 1.000、首位一致率 100%——召回是确定性的，换宿主不掉链子。见 [benchmark/results/cross-host/SUMMARY.md](benchmark/results/cross-host/SUMMARY.md)。
 
 ## 安装
 

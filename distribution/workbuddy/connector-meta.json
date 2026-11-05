@@ -7,7 +7,7 @@
   "description_en": "Helps the AI remember this repo: rules to follow, things not to do, and how past bugs were fixed.",
   "source": "rsi-boot",
   "type": "mcp",
-  "version": "0.1.1",
+  "version": "0.1.7",
   "minWorkbuddyVersion": "4.24.0",
   "examples_zh": [
     "我们这个仓库函数名用下划线，别写成驼峰，你记下",
