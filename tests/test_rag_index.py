@@ -132,3 +132,53 @@ def test_search_finds_turn_when_query_has_trailing_punctuation():
     index = build_index([doc])
     hits = search(index, "When did Melanie paint a sunrise?", types={"documentation"}, top_n=5)
     assert hits and hits[0][0] == doc.id
+
+
+def _qdoc(idch: str, content: str) -> MemoryDoc:
+    return MemoryDoc(id=idch * 32, type="documentation", title="t", content=content)
+
+
+def test_quote_lines_indexed_but_separately_tracked():
+    """引用行进 postings（默认得分不变），同时单独进 quote_postings。"""
+    doc = _qdoc("a", "[2023-05-08] Mel: I adopted a puppy\ncontext: Jo: any luck with shelters")
+    index = build_index([doc])
+    assert "puppy" in index["postings"] and "shelters" in index["postings"]
+    assert "shelters" in index["quote_postings"]
+    assert "puppy" not in index["quote_postings"]
+
+
+def test_quote_weight_default_identical_scores():
+    """quote_weight=1.0（默认）必须与旧行为逐位一致。"""
+    docs = [
+        _qdoc("a", "[2023-05-08] Mel: I adopted a puppy yesterday"),
+        _qdoc("b", "[2023-05-09] Mel: he's settling in\ncontext: Mel: I adopted a puppy yesterday"),
+    ]
+    index = build_index(docs)
+    plain = search(index, "adopted puppy", top_n=2, drop_weak=False)
+    quoted = search(index, "adopted puppy", top_n=2, drop_weak=False, quote_weight=1.0)
+    assert plain == quoted
+
+
+def test_quote_discount_puts_original_above_quoter():
+    """时间题口径（quote_weight=0.15）：引用证据的记忆不得压过证据原件。"""
+    docs = [
+        _qdoc("a", "[2023-05-08] Mel: I adopted a puppy yesterday"),
+        _qdoc("b", "[2023-05-09] Mel: the puppy is settling in nicely\ncontext: Mel: I adopted a puppy yesterday"),
+    ]
+    index = build_index(docs)
+    full = search(index, "adopted puppy settling", top_n=2, drop_weak=False, quote_weight=1.0)
+    disc = search(index, "adopted puppy settling", top_n=2, drop_weak=False, quote_weight=0.15)
+    assert full[0][0] == "b" * 32, "引用方词面是原件超集，全权时排第一"
+    assert disc[0][0] == "a" * 32, "折权后原件应反超引用方"
+
+
+def test_quote_discount_ignored_for_tfidf():
+    docs = [
+        _qdoc("a", "alpha beta"),
+        _qdoc("b", "gamma\ncontext: alpha beta"),
+    ]
+    index = build_index(docs)
+    plain = search(index, "alpha beta", scorer="tfidf", top_n=2, drop_weak=False)
+    disc = search(index, "alpha beta", scorer="tfidf", top_n=2, drop_weak=False,
+                  quote_weight=0.15)
+    assert plain == disc

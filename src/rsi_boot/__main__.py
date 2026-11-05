@@ -389,6 +389,14 @@ def build_parser() -> argparse.ArgumentParser:
     _add_verbose(p_impact)
     p_impact.add_argument("argv", nargs=argparse.REMAINDER)
 
+    p_gov = sub.add_parser("governance", help="治理不变量校验（verify）")
+    _add_verbose(p_gov)
+    p_gov.add_argument("argv", nargs=argparse.REMAINDER)
+
+    p_eval = sub.add_parser("eval", help="固定探针集评测与纵向导出（replay/export）")
+    _add_verbose(p_eval)
+    p_eval.add_argument("argv", nargs=argparse.REMAINDER)
+
     p_status = sub.add_parser(
         "statusline",
         help="宿主状态栏渲染（Claude Code / Cursor CLI statusLine，stdin 喂会话 JSON）",
@@ -459,6 +467,33 @@ def main() -> None:
         setup_cli_logging(getattr(args, "verbose", False))
         try:
             sys.exit(run_impact(list(getattr(args, "argv", []) or [])))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "governance":
+        argv = list(getattr(args, "argv", []) or [])
+        if argv[:1] != ["verify"]:
+            print("用法: rsi governance verify [--project-root PATH]", file=sys.stderr)
+            sys.exit(2)
+        import json as _json
+        from pathlib import Path as _Path
+
+        from .learning.governance_verify import verify as _verify
+
+        root = _Path.cwd()
+        if "--project-root" in argv:
+            idx = argv.index("--project-root")
+            root = _Path(argv[idx + 1]).resolve()
+        report = _verify(root / ".rsi")
+        print(_json.dumps(report, ensure_ascii=False, indent=2))
+        sys.exit(0 if report["passed"] else 1)
+
+    if args.command == "eval":
+        from .cli.eval_command import run_eval
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_eval(list(getattr(args, "argv", []) or [])))
         except KeyboardInterrupt:
             sys.exit(130)
 

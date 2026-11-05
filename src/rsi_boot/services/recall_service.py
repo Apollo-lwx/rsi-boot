@@ -97,8 +97,18 @@ def _log_linear(lexical: float, extra: float) -> float:
 
 
 def _gate_margin(arm_threshold: float | None) -> float:
-    """通道地板是 BM25 上的似然比。臂门槛按归一化分数标定，0.6 为中性，只微调这条线。"""
-    base = math.log(_PEER_SCORE_RATIO)
+    """通道地板是 BM25 上的似然比。臂门槛按归一化分数标定，0.6 为中性，只微调这条线。
+    RSI_PEER_RATIO 环境变量仅供基准消融（多跳第二证据常被地板切掉）。"""
+    import os
+
+    base_ratio = _PEER_SCORE_RATIO
+    raw = os.environ.get("RSI_PEER_RATIO")
+    if raw:
+        try:
+            base_ratio = max(float(raw), 1e-6)
+        except ValueError:
+            pass
+    base = math.log(base_ratio)
     if arm_threshold is None or arm_threshold <= 0:
         return base
     return base + math.log(arm_threshold / 0.6)
@@ -187,8 +197,10 @@ class RecallService:
     ) -> Dict[str, Any]:
         from ..memory.logstore import append_event
         from ..project import bind_project_id
+        from ..rag.ablation import active_ablations, is_enabled
         from ..rag.index import doc_hits_rare_term, rare_query_terms, search
         from ..rag.query import expand_query
+        from ..rag.temporal import parse_query_temporal
 
         store = self._store
         project_id = bind_project_id(self.bound_project_id, project_id)
@@ -219,17 +231,53 @@ class RecallService:
         signals = self._acceptance_signals(store)
         body_of: Dict[str, float] = {}
 
+        project_root = self._project_root or store.rsi_dir.parent
+        ablations = active_ablations(project_root)
+        temporal_signal = None
+        if "temporal" not in ablations:
+            ref_raw = index.get("ref_date")
+            ref = None
+            if ref_raw:
+                try:
+                    from datetime import date as _date
+                    ref = _date.fromisoformat(str(ref_raw))
+                except ValueError:
+                    ref = None
+            temporal_signal = parse_query_temporal(task, ref)
+        title_weight = 1.0 if "title" in ablations else None
+        # 时间题引用块降权：引用的证据行日期属于原事件，引用记忆不应压过原件
+        quote_weight = 1.0
+        if (
+            "quotediscount" not in ablations
+            and temporal_signal is not None
+            and getattr(temporal_signal, "is_temporal", False)
+        ):
+            from ..rag.index import TEMPORAL_QUOTE_WEIGHT
+            quote_weight = TEMPORAL_QUOTE_WEIGHT
+
         def _channel(types: set[str], channel_limit: int, *, drop_weak: bool) -> list:
             pool = max(channel_limit * 4, channel_limit)
             kwargs: Dict[str, Any] = {}
             if drop_weak:
                 # 比例门槛改在对数分上统一做，这里只留强词过滤。
                 kwargs["min_score_ratio"] = 0.0
+            if "weakfilter" in ablations:
+                drop_weak = False
             ranked = search(
                 index, expanded, types=types, top_n=pool, drop_weak=drop_weak,
-                body_of=body_of, expansion_of=task, **kwargs,
+                body_of=body_of, expansion_of=task,
+                title_weight=title_weight, temporal_signal=temporal_signal,
+                quote_weight=quote_weight,
+                **kwargs,
             )
             ranked = _rerank(ranked, health_index, signals)
+            if drop_weak and is_enabled("diversity", project_root):
+                # 默认关：实测实体名主导词面重叠，误伤正当证据（见 benchmark/results/abl-mmr）
+                from ..rag.index import diversify_ranked
+                ranked = diversify_ranked(index, ranked)
+            if drop_weak and is_enabled("coverage", project_root):
+                from ..rag.index import coverage_rerank
+                ranked = coverage_rerank(index, ranked, expanded)
             return ranked[:channel_limit]
 
         prohibition_ranked = _channel(

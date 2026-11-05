@@ -88,20 +88,32 @@ def expand_query(
     """返回 (expanded_text, intent, confidence)。
     expanded = 原文 + `intent:<意图名>` + INTENT_SYNONYMS + preserve_spans 抽出的 SQL。
     意图名必须带 `intent:` 前缀入袋，避免 `explain` 等意图词撞上领域文档。
-    不得把 expanded 设成某条 title。terms.yaml 只追加，不删内置。"""
+    不得把 expanded 设成某条 title。terms.yaml 只追加，不删内置。
+    消融（rag.ablation）：`expansion` 关掉同义词/SQL 扩展；`temporal` 关掉日期变体。"""
+    from rsi_boot.rag.ablation import is_ablated
+
+    project_root = rsi_dir.parent if rsi_dir is not None else None
     intent, confidence = detect_intent(task, role=role)
     intent_tag = f"intent:{intent}"
     parts = [task, intent_tag]
     seen = {task, intent, intent_tag}
-    for key, syns in _merged_synonyms(rsi_dir).items():
-        if not _key_in_text(task, key):
-            continue
-        for syn in syns:
-            if syn not in seen:
-                parts.append(syn)
-                seen.add(syn)
-    for span in _extract_sql(task):
-        if span not in seen:
-            parts.append(span)
-            seen.add(span)
+    if not is_ablated("expansion", project_root):
+        for key, syns in _merged_synonyms(rsi_dir).items():
+            if not _key_in_text(task, key):
+                continue
+            for syn in syns:
+                if syn not in seen:
+                    parts.append(syn)
+                    seen.add(syn)
+        for span in _extract_sql(task):
+            if span not in seen:
+                parts.append(span)
+                seen.add(span)
+    if not is_ablated("temporal", project_root):
+        from rsi_boot.rag.temporal import parse_query_temporal
+
+        for variant in parse_query_temporal(task, None).expansions:
+            if variant not in seen:
+                parts.append(variant)
+                seen.add(variant)
     return " ".join(parts), intent, confidence

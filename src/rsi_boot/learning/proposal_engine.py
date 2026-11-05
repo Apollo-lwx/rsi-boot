@@ -813,8 +813,33 @@ class ProposalEngine:
             after if isinstance(after, dict) else {},
         )
         await self._snapshots.capture(project_id, trigger_proposal=proposal_id)
+        await self._probe_replay_hook(project_id, data)
         await self._notify_change(project_id)
         return True
+
+    async def _probe_replay_hook(self, project_id: str, data: Dict[str, Any]) -> None:
+        """晋升后自动跑固定探针集（T2.1），结果写进提案记录与 replay.jsonl。
+        纯观测旁路：任何失败都不影响晋升本身。"""
+        try:
+            from .probe_eval import default_probe_pack, run_probes
+
+            pack = default_probe_pack()
+            if not pack.is_file():
+                return
+            project_root = self._store.rsi_dir.parent
+            summary = await run_probes(
+                project_root, pack, log_to=self._store.rsi_dir,
+            )
+            data["probe_replay"] = {
+                "ts": summary["ts"],
+                "pass_rate": summary["pass_rate"],
+                "total": summary["total"],
+                "passed": summary["passed"],
+                "failures": summary["failures"],
+            }
+            self._write_proposal_yaml(data)
+        except Exception:  # 探针是旁路观测，绝不影响晋升主链路
+            logger.debug("探针回放挂钩失败（已忽略）", exc_info=True)
 
     async def _rollback_store(self, proposal_id: str, reason: str = "") -> bool:
         data = self._load_proposal_yaml(proposal_id)
