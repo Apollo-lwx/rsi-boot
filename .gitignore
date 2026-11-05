@@ -60,6 +60,8 @@ benchmark/results/*
 !benchmark/results/adversarial-20261103/
 !benchmark/results/scalability-20261103/
 !benchmark/results/ablation-20261104/
+!benchmark/results/ablation-hybrid-20261105/
+!benchmark/results/answer-acc-vec-20261105/
 !benchmark/results/contextfix-20261104/
 !benchmark/results/token-20261029/
 !benchmark/results/token-20261104/

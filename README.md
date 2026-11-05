@@ -131,7 +131,11 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 
 ### 答题准确率（LLM 双判）
 
-检索命中不等于答对，所以补了漏斗末端：LoCoMo 同批 80 题三臂（full / rsi / rag）× 两台生成器（Kimi K3、Claude Haiku），每份答案由两家模型交叉互判（一致率 87.5%，双判全对才算对）。结果：**rsi 与向量基线答题无显著差异**（McNemar p=0.70 / 1.00），全量上下文仍最强（这是 98.8% 上下文削减的代价，如实报告），**不可答题拒答 rsi 最可靠**（64% vs full 50% vs rag 39%）。multi-hop 是 rsi 的真短板（5% vs rag 32%）。见 [benchmark/results/answer-acc-20261105/SUMMARY.md](benchmark/results/answer-acc-20261105/SUMMARY.md)。
+检索命中不等于答对，所以补了漏斗末端：LoCoMo 同批 80 题三臂（full / rsi / rag）× 两台生成器（Kimi K3、Claude Haiku），每份答案由两家模型交叉互判（一致率 87.5%，双判全对才算对）。结果：词面 rsi 与向量基线答题无显著差异（McNemar p=0.70 / 1.00），全量上下文仍最强（这是 98.8% 上下文削减的代价，如实报告），**不可答题拒答词面 rsi 最可靠**（64% vs full 50% vs rag 39%）。见 [benchmark/results/answer-acc-20261105/SUMMARY.md](benchmark/results/answer-acc-20261105/SUMMARY.md)。
+
+### 混合检索消融（向量通道 + 多跳级联）
+
+两个实验开关（默认关，`RSI_ENABLE=vector|multihop` 或 rsi-boot.yaml `enable:` 打开）：本地 fastembed/ONNX 向量通道（bge-large，与 vanilla-rag 臂同模型）在门禁后与词面幸存者 RRF(k=60) 融合；首跳桥接词二跳级联。LoCoMo 全量四臂对照：**向量通道 Hit@5 62.0%→68.2%（配对 McNemar 98 对 3，p=1.4e-25），multi-hop 分项 39.4%→48.9%，与向量版 vanilla-rag（68.6%）达到统计平价**；多跳级联为中性（如实记录为负结果）。答题准确率复测（rsi 臂换混合检索重生成，其余两臂原样复用）：Claude 生成 52.5%→56.2%、Kimi 生成 46.3%→47.5%，multi-hop 答题 5%→23%；代价是不可答题拒答 64%→50%，如实披露。见 [benchmark/results/ablation-hybrid-20261105/SUMMARY.md](benchmark/results/ablation-hybrid-20261105/SUMMARY.md) 与 [benchmark/results/answer-acc-vec-20261105/SUMMARY.md](benchmark/results/answer-acc-vec-20261105/SUMMARY.md)。
 
 ## 安装
 

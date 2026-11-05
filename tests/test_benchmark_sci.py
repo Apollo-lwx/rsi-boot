@@ -95,6 +95,8 @@ def test_engmem_repo_count_and_license():
     "token-llm-20261105",
     "token-llm-claude-20261105",
     "answer-acc-20261105",
+    "answer-acc-vec-20261105",
+    "ablation-hybrid-20261105",
     "cross-host",
 ])
 def test_result_boards_exist(name: str):
@@ -382,3 +384,59 @@ def test_answer_acc_board_coverage_and_abstention():
            for arm in ("full", "rsi", "rag")}
     assert acc["rsi"] > acc["rag"], f"rsi 拒答应优于 rag: {acc}"
     assert acc["rsi"] > acc["full"], f"rsi 拒答应优于 full: {acc}"
+
+
+def test_hybrid_ablation_board_consistency():
+    """混合检索消融榜：四臂齐全，且向量臂必须显著强于词面基线（钉住结论防回退）。"""
+    import json as _json
+
+    board = ROOT / "benchmark/results/ablation-hybrid-20261105"
+    summaries = {}
+    for arm in ("base", "multihop", "vector", "both"):
+        path = board / arm / "summary.json"
+        assert path.is_file(), f"缺臂: {arm}"
+        summaries[arm] = _json.loads(path.read_text(encoding="utf-8"))
+    hit5 = {
+        arm: summaries[arm]["datasets"]["LoCoMo"]["hit@5"] for arm in summaries
+    }
+    assert hit5["vector"] > hit5["base"] + 0.05, (
+        f"向量臂应领先基线 5pt 以上: {hit5}"
+    )
+    # 多跳级联为中性负结果：与基线差不超过 0.5pt
+    assert abs(hit5["multihop"] - hit5["base"]) < 0.005, f"多跳臂应中性: {hit5}"
+    # 组合臂不低于向量臂 0.5pt（顺序 bug 已修，防回归）
+    assert hit5["both"] >= hit5["vector"] - 0.005, f"组合臂不应弱于向量臂: {hit5}"
+
+
+def test_answer_acc_vec_board_coverage_and_improvement():
+    """混合检索答题榜：480 生成 × 双 judge 全覆盖；rsi 混合臂不低于词面臂。"""
+    import json as _json
+    from collections import defaultdict as _dd
+
+    board = ROOT / "benchmark/results/answer-acc-vec-20261105"
+    gens = [_json.loads(l) for l in
+            (board / "generations.jsonl").read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+    assert len(gens) == 480, f"生成应为 480 份: {len(gens)}"
+    juds = [_json.loads(l) for l in
+            (board / "judgments.jsonl").read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+    assert len(juds) == 960, f"判定应为 960 份: {len(juds)}"
+    by_key = _dd(dict)
+    for r in juds:
+        by_key[(r["qid"], r["arm"], r["gen_provider"])][r["judge"]] = r["verdict"]
+    assert all(len(v) == 2 for v in by_key.values()), "存在缺判的生成"
+    merged = {k: ("correct" if all(x == "correct" for x in v.values())
+                  else "incorrect") for k, v in by_key.items()}
+    # rsi 混合臂在两台生成器上的准确率（钉住本次提升：≥ 52%/45%）
+    for prov, floor in (("anthropic", 0.52), ("openai", 0.45)):
+        vals = [1 if v == "correct" else 0
+                for k, v in merged.items() if k[1] == "rsi" and k[2] == prov]
+        assert len(vals) == 80
+        acc = sum(vals) / len(vals)
+        assert acc >= floor, f"{prov} rsi 混合臂准确率回退: {acc:.3f} < {floor}"
+    # multi-hop 切片必须显著好于词面臂的 5%（旧榜结论）
+    qtype = {r["qid"]: r["qtype"] for r in juds}
+    mh = [k for k in merged if qtype.get(k[0]) == "multi-hop" and k[1] == "rsi"]
+    mh_acc = sum(1 for k in mh if merged[k] == "correct") / max(1, len(mh))
+    assert mh_acc >= 0.15, f"混合臂 multi-hop 应显著好于 5%: {mh_acc}"

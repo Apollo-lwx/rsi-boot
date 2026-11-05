@@ -80,6 +80,11 @@ def is_ablated(name: str, project_root: Path | None = None) -> bool:
 
 
 # 实验特性默认关（如实测为负的 diversity）；通过 RSI_ENABLE 或 yaml `enable:` 打开
+# 已知 enable 键：
+# - diversity   MMR 多样性去重（实测误伤正当证据，见 benchmark/results/abl-mmr）
+# - coverage    查询词项覆盖率重排
+# - vector      fastembed/ONNX 本地向量与词面通道融合（rag/vector.py）
+# - multihop    首跳桥接词发起第二跳级联召回（多跳题）
 ENABLE_ENV = "RSI_ENABLE"
 
 

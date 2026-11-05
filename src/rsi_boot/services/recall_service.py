@@ -42,6 +42,16 @@ _SEARCH_TYPES = frozenset({
 _CASE_ORDER = ("prohibition", "convention", "documentation", "teaching_case", "gene_case", "episode")
 _PEER_SCORE_RATIO = 0.2
 
+# 向量融合（RSI_ENABLE=vector，实验特性，默认关）：
+# 门禁后词面幸存者与语义命中按 RRF（k=60）融合重排，
+# 词面漏召但 cos ≥ _VECT_MIN_COS 的语义命中凭向量位次入场竞争。
+_VECT_MIN_COS = 0.55
+# 多跳级联（RSI_ENABLE=multihop，实验特性，默认关）：
+# 首跳头部条目的高 IDF 桥接词发起第二跳，第二跳证据按 50% 折算入场。
+_MULTIHOP_BRIDGE_TERMS = 6
+_MULTIHOP_SEED_DOCS = 3
+_MULTIHOP_DISCOUNT = 0.5
+
 
 def _vote(action: object, rating: object) -> int:
     name = str(action or "")
@@ -153,6 +163,94 @@ def _apply_log_gate(
     return kept
 
 
+def _fuse_vector(
+    ranked: list[tuple[str, float]],
+    vec_cos: Dict[str, float],
+    doc_type: Dict[str, str],
+    types: frozenset,
+    floor: float,
+    limit: int,
+) -> list[tuple[str, float]]:
+    """词面幸存者与语义命中按 RRF（k=60）融合重排（RSI_ENABLE=vector）。
+
+    门禁已在词面证据上执行完毕，此阶段分数只用于排序与截断，故直接以
+    RRF 位次分重排：双通道命中自然靠前，词面漏召但 cos ≥ _VECT_MIN_COS
+    的语义命中凭向量位次入场竞争同一批槽位（截断到 limit，榜单对比公平）。
+    返回的分数为 RRF 分（只保证单调，不与词面对数分同尺度）。
+    """
+    if not vec_cos:
+        return ranked
+    vec_ranked = sorted(
+        (
+            (doc_id, cos)
+            for doc_id, cos in vec_cos.items()
+            if cos >= _VECT_MIN_COS and doc_type.get(doc_id) in types
+        ),
+        key=lambda kv: kv[1],
+        reverse=True,
+    )
+    if not vec_ranked:
+        return ranked
+    rrf: Dict[str, float] = {}
+    for rank, (doc_id, _score) in enumerate(ranked):
+        rrf[doc_id] = rrf.get(doc_id, 0.0) + 1.0 / (60 + rank + 1)
+    for rank, (doc_id, _cos) in enumerate(vec_ranked):
+        rrf[doc_id] = rrf.get(doc_id, 0.0) + 1.0 / (60 + rank + 1)
+    merged = sorted(rrf.items(), key=lambda kv: kv[1], reverse=True)
+    return merged[:limit]
+
+
+def _bridge_terms(index: dict, query: str, seed_doc_ids: List[str]) -> List[str]:
+    """多跳桥接词：首跳头部文档里的高 IDF 词，且不在原查询中（第二跳的接力棒）。"""
+    from ..rag.index import _doc_terms, tokenize
+
+    idf: Dict[str, float] = index.get("idf") or {}
+    q_terms = set(tokenize(query))
+    best: Dict[str, float] = {}
+    for doc_id in seed_doc_ids:
+        for term in _doc_terms(index, doc_id) - q_terms:
+            weight = idf.get(term, 0.0)
+            if len(term) >= 3 and weight > 0.0:
+                best[term] = max(best.get(term, 0.0), weight)
+    return [
+        term for term, _ in sorted(best.items(), key=lambda kv: kv[1], reverse=True)
+    ][: _MULTIHOP_BRIDGE_TERMS]
+
+
+def _merge_hop(
+    ranked: list[tuple[str, float]],
+    hop_ranked: list[tuple[str, float]],
+    doc_type: Dict[str, str],
+    types: frozenset,
+    floor: float,
+    best: float,
+    limit: int,
+) -> list[tuple[str, float]]:
+    """第二跳证据入场：hop 分归一化后映射到 [floor, floor + span·折扣] 区间。
+
+    不同查询的 BM25 分不可直接比较，故按 hop 内顶分归一；最强二跳证据落在
+    地板与峰值的中间（折扣 0.5），足以挤进满员通道，但不会压过词面强证据。
+    """
+    if not hop_ranked or floor == float("-inf"):
+        return ranked
+    present = {doc_id for doc_id, _ in ranked}
+    max_hop = max((score for _, score in hop_ranked), default=0.0)
+    if max_hop <= 0:
+        return ranked
+    span = best - floor
+    merged = list(ranked)
+    for doc_id, hscore in hop_ranked:
+        if doc_id in present or hscore <= 0:
+            continue
+        if doc_type.get(doc_id) not in types:
+            continue
+        ratio = hscore / max_hop
+        merged.append((doc_id, floor + span * _MULTIHOP_DISCOUNT * ratio))
+        present.add(doc_id)
+    merged.sort(key=lambda item: item[1], reverse=True)
+    return merged[:limit]
+
+
 class RecallService:
     def __init__(
         self,
@@ -176,6 +274,8 @@ class RecallService:
         self._index: Optional[dict] = None
         self._feedback_key: Optional[tuple] = None
         self._feedback_signals: Dict[str, float] = {}
+        self._vector_index: Any = None  # rag.vector.VectorIndex，懒加载
+        self._vector_tried: bool = False
 
     async def recall(
         self,
@@ -319,6 +419,49 @@ class RecallService:
         episode_ranked = _apply_log_gate(
             episode_ranked, best_body, margin, body_of, health_index, signals,
         )
+        # 实验通道（默认关，RSI_ENABLE 或 rsi-boot.yaml `enable:` 打开）：
+        # multihop——首跳桥接词发起第二跳级联（词面分数空间，须在向量融合之前）；
+        # vector——词面与语义命中 RRF 融合（位次空间，放最后）
+        floor = best_body + margin
+        if is_enabled("multihop", project_root) and best_body != float("-inf"):
+            seed = [
+                doc_id
+                for doc_id, _ in (item_ranked + teach_ranked + gene_ranked)
+            ][: _MULTIHOP_SEED_DOCS]
+            bridge = _bridge_terms(index, expanded, seed) if seed else []
+            if bridge:
+                doc_type = index.get("doc_type") or {}
+                hop_ranked = search(
+                    index, " ".join(bridge),
+                    types=_ITEM_TYPES | {"teaching_case", "gene_case"},
+                    top_n=limit * 2, drop_weak=True, title_weight=title_weight,
+                )
+                if hop_ranked:
+                    item_ranked = _merge_hop(
+                        item_ranked, hop_ranked, doc_type, _ITEM_TYPES,
+                        floor, best_body, limit,
+                    )
+                    teach_ranked = _merge_hop(
+                        teach_ranked, hop_ranked, doc_type, {"teaching_case"},
+                        floor, best_body, limit,
+                    )
+                    gene_ranked = _merge_hop(
+                        gene_ranked, hop_ranked, doc_type, {"gene_case"},
+                        floor, best_body, limit,
+                    )
+        if is_enabled("vector", project_root):
+            vec_cos = self._vector_cosines(store, docs, expanded)
+            if vec_cos:
+                doc_type = index.get("doc_type") or {}
+                item_ranked = _fuse_vector(
+                    item_ranked, vec_cos, doc_type, _ITEM_TYPES, floor, limit,
+                )
+                teach_ranked = _fuse_vector(
+                    teach_ranked, vec_cos, doc_type, {"teaching_case"}, floor, limit,
+                )
+                gene_ranked = _fuse_vector(
+                    gene_ranked, vec_cos, doc_type, {"gene_case"}, floor, limit,
+                )
         items = [
             by_id[doc_id]
             for doc_id, _score in item_ranked
@@ -435,6 +578,20 @@ class RecallService:
             ImpactService(self._store, project_root=self._project_root).snapshot_now(project_id)
         except Exception:  # 快照是旁路观测，任何异常都不得影响召回主链路
             pass
+
+    def _vector_cosines(
+        self, store: MemoryStore, docs: List[MemoryDoc], query: str
+    ) -> Dict[str, float]:
+        """向量通道（实验特性）：懒加载 VectorIndex，只试一次；
+        未装 fastembed / 模型不可用 / 打分失败均返回空（fail-open，退回纯词面）"""
+        if not self._vector_tried:
+            self._vector_tried = True
+            from ..rag.vector import VectorIndex
+
+            self._vector_index = VectorIndex.create(store.rsi_dir)
+        if self._vector_index is None:
+            return {}
+        return self._vector_index.query(docs, query, top_k=_RECALL_SCAN_LIMIT)
 
     def _index_for(self, docs: List[MemoryDoc]) -> dict:
         """Rebuild the inverted index only when the active memory set changes."""
@@ -754,3 +911,6 @@ class RecallService:
                 await asyncio.wait_for(asyncio.gather(*pending, return_exceptions=True), timeout)
             except asyncio.TimeoutError:
                 logger.warning("画像后台任务 drain 超时（%d 个未完成）", len(pending))
+        if self._vector_index is not None:
+            self._vector_index.close()
+            self._vector_index = None
