@@ -1,0 +1,87 @@
+{"qid": "celery-conv-006", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：treat one another with respect; disagreement is no excuse for poor behavior"}
+{"qid": "pillow-conv-003", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Always run python3 selftest.py first"}
+{"qid": "click-conv-001", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：tox r -e stress runs stress tests for race conditions"}
+{"qid": "starlette-conv-001", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Read and follow AI_POLICY.md before contributing"}
+{"qid": "fastapi-conv-003", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：install with uv add fastapi instead of uv add fastapi[standard]"}
+{"qid": "tornado-conv-001", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：use black, version specified in requirements.txt, don't just use uvx"}
+{"qid": "gunicorn-conv-001", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：GitHub Discussions as the starting point for all bug reports, feature requests, and questions"}
+{"qid": "pip-conv-001", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：all contributors are expected to follow our Code of Conduct"}
+{"qid": "setuptools-conv-001", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：fetch and read the skeleton document; authoritative source of truth"}
+{"qid": "celery-conv-001", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Since version 2.1.0 we use the versioning semantics described by SemVer"}
+{"qid": "pip-conv-003", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：ongoing legal uncertainty regarding copyright status of LLM-generated works; unpredictable consequences"}
+{"qid": "httpx-conv-008", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：follow keepachangelog format; Try sorting entries in descending order of impact / importance"}
+{"qid": "tornado-conv-007", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：tornado/test/api_test.py compares the public API to the snapshot in tornado/test/api.txt"}
+{"qid": "uvicorn-conv-004", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Install zttp>=0.0.34 and enable it with --http zttp --http2"}
+{"qid": "scrapy-conv-006", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Explain what the lines do and why; Most lines need no comment; Do not write module docstrings"}
+{"qid": "pytest-conv-005", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：case 3 与 case 4 均指示 prefer Merge strategy，各 commit 自带 topic"}
+{"qid": "pip-conv-004", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：四条 certify 列项与参考答案一一对应"}
+{"qid": "pydantic-conv-008", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：body should first reference the issue; code examples usually recommended (before/after)"}
+{"qid": "pillow-conv-008", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Image.open() takes a formats= argument; There is no format= parameter"}
+{"qid": "scrapy-conv-009", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Describe parameters in prose, naming them in italics; No :param: lists"}
+{"qid": "pydantic-conv-005", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：built using Material for MkDocs; API documentation built from docstrings using mkdocstrings"}
+{"qid": "starlette-conv-007", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：Starlette only requires anyio; httpx2 - Required if you want to use the TestClient"}
+{"qid": "psutil-conv-004", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：it's mandatory to discuss it first on the issue tracker"}
+{"qid": "gunicorn-conv-006", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：make sure the list is sorted and your name and email address match your git configuration; regenerated from git commit history"}
+{"qid": "tornado-conv-009", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：If you modify curl_httpclient.py, also run tox -e py3-full"}
+{"qid": "uvicorn-conv-003", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：pull request includes update to the changelog (keepachangelog) and a version bump"}
+{"qid": "httpx-conv-003", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：test suite spawns testing servers on ports 8000 and 8001"}
+{"qid": "celery-conv-003", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：kombu tracker at github.com/celery/kombu/issues; each ecosystem package has its own tracker"}
+{"qid": "pydantic-conv-006", "verdict": "correct", "annotator_answer": "", "rationale": "节内原文：push a new version with each minor release, and push to a dev path with each commit to main"}
+{"qid": "requests-conv-004", "verdict": "correct", "annotator_answer": "", "rationale": "节内明确写有 commit messages 要解释 why a change was made beyond Fixes #NNNN，并问 Why is this the right fix? What other options were ruled out?，与参考答案一致。"}
+{"qid": "pydantic-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "HISTORY.md v2.14.0 Fixes 首条 Call enum constructors in both validation modes (#13792)，与参考答案逐字对应。"}
+{"qid": "pip-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "pip 26.3 Bug Fixes 首条 Report build-backend import failures as pip errors instead of displaying an uncaught traceback (#12248)，与参考答案一致。"}
+{"qid": "fastapi-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "0.161.1 Fixes 条目 Fix OpenAPI schemas for standalone nullable form unions (PR #16598)，与参考答案逐字对应。"}
+{"qid": "pillow-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "10.3.0 changelog 首条 CVE-2024-28219: Use strncpy to avoid buffer overflow #7928，CVE 编号与修复方式均与参考答案一致。"}
+{"qid": "pytest-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "pytest 9.2.0 Removals 条目 -c now raises a usage error for a path that does not exist, is a directory, or has no loader for; previously ignored or unhandled FileNotFoundError，与参考答案一致。"}
+{"qid": "celery-fix-001", "verdict": "wrong-anchor", "annotator_answer": "Propagate chained task failures to the chord body, and fix chord hang when a member is revoked.", "rationale": "锚点节标题为 5.7.0a1（题问 5.7.0b1），且节内仅有 Bug Fixes 标题无任何条目，无 chord 相关内容，锚点指向错误版本且为空节。"}
+{"qid": "starlette-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "1.10.0 Fixed 首条 Parse the last URL-encoded form field when the request stream ends without an empty chunk (#3599)，与参考答案一致。"}
+{"qid": "flask-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "2.3.2 changelog 首条 Set Vary: Cookie header when the session is accessed, modified, or refreshed，与参考答案一致。"}
+{"qid": "click-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "Version 8.5.0 条目 Add built-in shell completion support for PowerShell (Windows PowerShell 5.1+ and pwsh 7+)，版本号与功能均与参考答案一致。"}
+{"qid": "scrapy-fix-001", "verdict": "correct", "annotator_answer": "", "rationale": "2.19.0 Deprecations 首条 RANDOMIZE_DOWNLOAD_DELAY setting is deprecated. Use the new DOWNLOAD_DELAY_JITTER setting instead，与参考答案一致。"}
+{"qid": "uvicorn-fix-005", "verdict": "correct", "annotator_answer": "", "rationale": "0.52.1 Fixed 首条 Complete the closing handshake on server-initiated WebSocket closes in websockets-sansio and wsproto implementations (#3053)，与参考答案一致。"}
+{"qid": "tornado-fix-004", "verdict": "correct", "annotator_answer": "", "rationale": "6.5.6 Security fixes 首条 SimpleAsyncHTTPClient now strips the Authorization and Cookie headers from the request when following a redirect to a different origin，与参考答案一致。"}
+{"qid": "httpx-fix-005", "verdict": "correct", "annotator_answer": "", "rationale": "0.25.1 Fixed 条目 Raise ValueError on Response.encoding being set after Response.text has been accessed (#2852)，版本与异常类型均与参考答案一致。"}
+{"qid": "starlette-fix-007", "verdict": "wrong-anchor", "annotator_answer": "128 KiB, keeping it usable without the new keyword argument.", "rationale": "锚点节为 1.5.0（题问 1.4.1），节内仅含 Flush GZip output 与 Skip compression of partial responses 两条，无 thread_minimum_size 或 128 KiB 内容，锚点版本与主题均不符。"}
+{"qid": "uvicorn-fix-006", "verdict": "wrong-anchor", "annotator_answer": "The http.response.trailers extension; clients must send TE: trailers.", "rationale": "锚点节为 0.54.0 但仅含 HTTP/2 experimental 提示与 zttp 安装说明，无 http.response.trailers 扩展或 TE: trailers 内容，节内容答非所问。"}
+{"qid": "starlette-fix-004", "verdict": "correct", "annotator_answer": "", "rationale": "1.8.0 Fixed 条目 Stop FileResponse transfers when the client disconnects (#3523)，与参考答案一致。"}
+{"qid": "uvicorn-fix-009", "verdict": "wrong-anchor", "annotator_answer": "Exit with dedicated code 3 on any startup failure (previously a mix of 0/1/3); the supervisor stops when a worker exits with code 3 instead of restarting it forever.", "rationale": "锚点节为 0.52.3（题问 0.50.0），节内仅 Update zttp to 0.0.24 一条，无启动失败退出码 3 或 supervisor 行为内容，版本与主题均不符。"}
+{"qid": "requests-fix-009", "verdict": "correct", "annotator_answer": "", "rationale": "2.31.0 Security 条目 Versions of Requests between v2.3.0 and v2.30.0 are vulnerable to forwarding of Proxy-Authorization headers，受影响版本与修复版本均与参考答案一致。"}
+{"qid": "pydantic-fix-004", "verdict": "correct", "annotator_answer": "", "rationale": "v2.14.0a1 Fixes 首条 Add Mypy plugin workaround for dynamic models defined in functions (#13177)，与参考答案一致。"}
+{"qid": "scrapy-fix-004", "verdict": "correct", "annotator_answer": "", "rationale": "2.18.0 Bug fixes 条目 Feed URIs now only expand %(...)s parameters, keeping any other percent character as is（含 %20 与 FTP 凭据示例），与参考答案一致。"}
+{"qid": "httpx-fix-002", "verdict": "correct", "annotator_answer": "", "rationale": "0.27.2 Fixed 条目 Reintroduced supposedly-private URLTypes shortcut (#2673)，版本与内容均与参考答案一致。"}
+{"qid": "celery-fix-002", "verdict": "correct", "annotator_answer": "", "rationale": "Reverts 条目 Reverted the RabbitMQ 4.3.0 exclusive queues default fix (#10289), later replaced with a transient-queue-specific fix (#10290)，与参考答案逐字对应。"}
+{"qid": "uvicorn-fix-004", "verdict": "correct", "annotator_answer": "", "rationale": "0.52.2 Fixed 条目 Update zttp to 0.0.22, fixing bodyless request receives and improving HTTP/1 request parsing performance (#3063)，与参考答案一致。"}
+{"qid": "click-fix-003", "verdict": "correct", "annotator_answer": "", "rationale": "Version 8.3.0 Improved flag option handling 条目 Reworked the relationship between flag_value and default parameters，与参考答案一致。"}
+{"qid": "flask-fix-003", "verdict": "correct", "annotator_answer": "", "rationale": "2.2.2 changelog 首条 Update Werkzeug dependency to >= 2.2.2. This includes fixes related to the new faster router, header parsing, and the development server，三处领域与参考答案一致。"}
+{"qid": "tornado-fix-002", "verdict": "correct", "annotator_answer": "", "rationale": "6.5.9 Security fixes 首条 StaticFileHandler no longer follows symlinks outside of the static root directory，与参考答案一致。"}
+{"qid": "flask-fix-002", "verdict": "correct", "annotator_answer": "", "rationale": "2.3.2 changelog 次条 Update Werkzeug requirement to >=2.3.3 to apply recent bug fixes (ghsa:m2qf-hxjv-5gpq)，最低版本与 GHSA 编号均与参考答案一致。"}
+{"qid": "pip-fix-003", "verdict": "correct", "annotator_answer": "", "rationale": "26.2 Features 首两条 Declare support for Python 3.15 (#14208) 与 Support self-referential extras officially (#11296)，Python 版本与 extras 特性均与参考答案一致。"}
+{"qid": "celery-fix-004", "verdict": "correct", "annotator_answer": "", "rationale": "CHANGELOG 列出 #10287 默认排他队列、#10289 回滚、#10290 transient 队列修复、#10285 移除 socket.timeout，与参考答案逐项对应。"}
+{"qid": "pip-fix-004", "verdict": "correct", "annotator_answer": "", "rationale": "NEWS.rst 明确 --only-deps 让 pip 只选所给包的依赖，参考答案与节内容一致。"}
+{"qid": "tornado-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING 原文：未按 black 格式化的 commit 在 CI 中将被 rejected。"}
+{"qid": "scrapy-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "AGENTS.md 要求用 example.com 或任意 .example 域名，禁止真实域名，与参考答案一致。"}
+{"qid": "pydantic-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "contributing.md 原文：未先被 assign 而修复既有 issue 的 PR 将被 automatically closed。"}
+{"qid": "aiohttp-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "AGENTS.md 明确写 No Co-Authored-By: LLM trailers in commits or PR body。"}
+{"qid": "sqlalchemy-prohib-006", "verdict": "correct", "annotator_answer": "", "rationale": "CODE_OF_CONDUCT 原文：no unsolicited LLM comments/answers，自动提交者 will be banned as fast as we see them。"}
+{"qid": "click-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "contributing.md 原文：coverage cannot measure both branches，应用显式 if/else 块。"}
+{"qid": "pytest-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.rst 原文：Purely agentic contributions are not accepted，will be closed，需人类 review/understand/own。"}
+{"qid": "pillow-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "AGENTS.md 原文：Use python3 and python3 -m pip install — never python or bare pip。"}
+{"qid": "gunicorn-prohib-003", "verdict": "correct", "annotator_answer": "", "rationale": "SECURITY.md 要求私下报 security@gunicorn.org 或用 Report a vulnerability 按钮，因 public issues 对所有人可见。"}
+{"qid": "requests-prohib-007", "verdict": "correct", "annotator_answer": "", "rationale": "SECURITY.md 原文：open a draft Security Advisory via GitHub，do not disclose this to anyone else。"}
+{"qid": "sqlalchemy-prohib-005", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.md 原文：trolling for karma/upvotes/vanity commits 者，无论是否机器生成，will be banned。"}
+{"qid": "requests-prohib-010", "verdict": "correct", "annotator_answer": "", "rationale": "SECURITY.md 列出 Red Hat Python Maintenance Team 与 Daniele Tricoli (Debian)，至少提前一周通知并提供 intended patch。"}
+{"qid": "requests-prohib-006", "verdict": "correct", "annotator_answer": "", "rationale": "AI_POLICY.md 原文：DoS-by-slop leads to a permanent ban。"}
+{"qid": "tornado-prohib-003", "verdict": "correct", "annotator_answer": "", "rationale": "SECURITY.md 给出 9µs/byte 基线与几毫秒事件循环让步，要求报告证明 CPU/byte 显著更高或阻塞显著更长。"}
+{"qid": "psutil-prohib-005", "verdict": "correct", "annotator_answer": "", "rationale": "AGENTS.md 原文要求 PR/issue 最后一行为 Generated by an AI agent: <tool>, <model>。"}
+{"qid": "sqlalchemy-prohib-003", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.md 原文：无 PR 相关 label 的 issue 上 asking 是允许的，开 PR 会被 closed。"}
+{"qid": "requests-prohib-004", "verdict": "correct", "annotator_answer": "", "rationale": "AI_POLICY.md 原文：LLM 列为 co-author 的 PR can't be merged and will be closed without further discussion。"}
+{"qid": "httpx-prohib-001", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.md 原文：should not go in the changelog: changes to documentation, tests or tooling。"}
+{"qid": "psutil-prohib-004", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.md 原文：No AI in comments，comments must be written by you, not by an AI tool。"}
+{"qid": "celery-prohib-003", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.rst 原文：All Python code must follow the :pep:`8` guidelines。"}
+{"qid": "scrapy-prohib-006", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.md 原文：Please do not abuse the issue tracker for support questions。"}
+{"qid": "celery-prohib-002", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.rst 原文：Archived branches are kept for preserving history only，理论可为不再官方支持的系列提供补丁。"}
+{"qid": "scrapy-prohib-003", "verdict": "correct", "annotator_answer": "", "rationale": "AGENTS.md 原文：Do not document deprecated features, known bugs, or implementation details，Never use the deprecated directive。"}
+{"qid": "pillow-prohib-003", "verdict": "correct", "annotator_answer": "", "rationale": "AGENTS.md 原文：Use fully qualified exception names: Image.DecompressionBombError and Image.DecompressionBombWarning, not the bare class names。"}
+{"qid": "pip-prohib-005", "verdict": "correct", "annotator_answer": "", "rationale": "AI_POLICY.md 原文：Repeated slop contributions are unacceptable, will be closed without review，保留排除贡献者的权利。"}
+{"qid": "black-fix-005", "verdict": "correct", "annotator_answer": "", "rationale": "CHANGES.md 原文：This is a bugfix release to fix two regressions in the new f-string parser introduced in 24.4.1。"}
+{"qid": "django-conv-002", "verdict": "correct", "annotator_answer": "", "rationale": "CONTRIBUTING.rst 原文：Django uses Trac... because GitHub doesn't provide adequate tooling for its community。"}

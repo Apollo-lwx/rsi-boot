@@ -1,0 +1,15 @@
+{
+  "tokenizer": "regex-approx (no tiktoken; same ruler for both arms)",
+  "questions": 2036,
+  "full_median": 50723.0,
+  "rsi_median": 459.5,
+  "compression_median": 0.009391276320471311,
+  "reduction_median_pct": 99.06087236795287,
+  "wilcoxon": {
+    "n": 2036,
+    "w_plus": 2073666.0,
+    "z": 39.08163170395121,
+    "p_two_sided": 0.0,
+    "r": 0.8661314348287272
+  }
+}

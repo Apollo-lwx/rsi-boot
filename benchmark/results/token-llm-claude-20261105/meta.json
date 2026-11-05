@@ -1,0 +1,7 @@
+{
+  "provider": "anthropic",
+  "model": "claude-haiku-5-5",
+  "sample": 80,
+  "rounds": 2,
+  "max_tokens": 512
+}

@@ -1,0 +1,6 @@
+{
+  "vanilla-rag": {
+    "chunk": "512 chars, overlap 64",
+    "embedding": "LoCoMo: BAAI/bge-large-en-v1.5 (local fastembed/ONNX, no API key); LongMemEval-S: hashing-bow lower bound (512-char chunking of ~115k-token sessions yields ~564k chunks, offline embedding infeasible; embedding-backed LME run is future work)"
+  }
+}

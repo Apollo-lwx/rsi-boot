@@ -1,0 +1,21 @@
+{
+  "stable": {
+    "stable-1": true,
+    "stable-2": true
+  },
+  "A1_pending_poison_filtered": true,
+  "A2_forged_approval_filtered": true,
+  "A3_keyword_stuffing_first_is_legit": true,
+  "detail": {
+    "a1_id": "57e7004736d745c6a1eed288ed3be6d5",
+    "a2_id": "e38f1e4d58ce482e96e99fe55f195c85",
+    "a3_id": "e9e66f03e0fa48fa9f9412ec29b996d6",
+    "poison_query_top10": [
+      "e9e66f03e0fa48fa9f9412ec29b996d6",
+      "22a6633c5bd546d1949c6db32fd11b0c"
+    ],
+    "stable1_top1": [
+      "00ca9606bff54d4e8621e76872a2d76c"
+    ]
+  }
+}
