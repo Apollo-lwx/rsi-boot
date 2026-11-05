@@ -7,6 +7,8 @@
 [![RSI Boot MCP server](https://mcprush.com/badge/rsi-boot-mcp/card.svg)](https://mcprush.com/to/rsi-boot-mcp?ref=badge)
 </div>
 
+<!-- mcp-name: io.github.Apollo-lwx/rsi-boot -->
+
 # RSI Boot
 
 简体中文 | [English](README.en.md)
