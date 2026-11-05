@@ -1,0 +1,31 @@
+# 召回主榜可复现清单（T1.4）
+# 数据文件不入库（benchmark/.data 在 .gitignore）；复现者按 source 自行获取后放到对应位置，
+# `python -X utf8 benchmark/repro.py --verify` 校验哈希，通过后方可 `--run`。
+datasets:
+  locomo10:
+    path: benchmark/.data/locomo10.json
+    sha256: 79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4
+    bytes: 2805274
+    source: https://github.com/snap-research/locomo (data/locomo10.json)
+    note: 10 条长对话，1986 道 QA；类别标签以官方评测代码为准（见 recall_board.py LOCOMO_CAT）
+  longmemeval_s:
+    path: benchmark/.data/longmemeval_s_cleaned.json
+    sha256: d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442
+    bytes: 277383467
+    source: https://github.com/xiaowu0162/LongMemEval (data/longmemeval_s_cleaned.json)
+    note: 500 题，haystack 约 115k token/题
+environment:
+  python: ">=3.10"
+  install: pip install -e .
+  os_notes: Windows / Linux / macOS 均可；BM25 主链路零 LLM 零 API Key
+run:
+  # 分片可并行，最后 merge；单条命令等价于全量
+  command: python -X utf8 benchmark/repro.py --run
+  shards_example: |
+    python -X utf8 benchmark/recall_board.py LoCoMo --shard=0/5 --out=recall-<date>
+    python -X utf8 benchmark/recall_board.py --merge --out=recall-<date>
+expected_board:
+  reference: benchmark/results/recall-20261103/SUMMARY.md
+  tolerance_pp: 0.5
+  locomo_hit5: 60.0
+  longmemeval_hit5: 96.6

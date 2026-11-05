@@ -1,0 +1,59 @@
+# 固定探针集 v1.0（T2.1）：治理环纵向可比性的底座。
+# 与 regression_gate 的"近 30 天抽样"互补——探针固定，跨快照版本才可比。
+# seed_docs 自带，评测写入临时工作区，不污染真实记忆。
+version: "1.0"
+
+seed_docs:
+  - id: "aa000000000000000000000000000001"
+    type: prohibition
+    title: "pytest basetemp 不得放在被测仓库内"
+    content: "pytest 的 --basetemp 必须指向仓库外目录，否则测试扫描会把临时文件卷进索引与蒸馏。"
+  - id: "aa000000000000000000000000000002"
+    type: prohibition
+    title: "支付日志不得记录完整卡号"
+    content: "任何支付相关日志只保留卡号后四位；完整卡号进日志视为事故。"
+  - id: "aa000000000000000000000000000003"
+    type: convention
+    title: "MCP stdio server 必须容忍空行与噪声行"
+    content: "stdio 传输上会出现空行与非 JSON 噪声，server 读取循环必须跳过而非报错退出。"
+  - id: "aa000000000000000000000000000004"
+    type: convention
+    title: "Cursor 终端跑 rsi CLI 必须显式 --project-root"
+    content: "Cursor agent 终端的 cwd 不可信（VSCODE_CWD 不可靠），调 rsi 命令一律显式传 --project-root。"
+  - id: "aa000000000000000000000000000005"
+    type: documentation
+    title: "配置链四层合并顺序"
+    content: "配置链：包内 default.yaml → ~/.rsi/config.yaml → 项目根 rsi-boot.yaml → 请求参数。后者覆盖前者。"
+  - id: "aa000000000000000000000000000006"
+    type: convention
+    title: "分词去掉贴在词上的标点"
+    content: "检索分词时标点与词分离：sunrise?、Melanie:、foo() 必须能命中 sunrise、melanie、foo。"
+  - id: "aa000000000000000000000000000007"
+    type: documentation
+    title: "收工只走 rsi_learn 四步"
+    content: "RSI 收工只走 rsi_learn 的 audit_start / audit_probes / audit_report / audit_finish，不得自造流程。"
+  - id: "aa000000000000000000000000000008"
+    type: convention
+    title: "提案晋升后观察七天"
+    content: "提案过静态门禁与人工确认才晋升，晋升后观察 7 天，采纳率下降超过 5% 自动回滚。"
+
+probes:
+  # ---- recall：应命中 ----
+  - {id: r01, kind: recall, question: "pytest 的临时目录应该放在哪里？", hit_any: ["basetemp"]}
+  - {id: r02, kind: recall, question: "pytest basetemp 放仓库里会有什么后果", hit_any: ["basetemp"]}
+  - {id: r03, kind: recall, question: "日志里能记银行卡号吗", hit_any: ["卡号"]}
+  - {id: r04, kind: recall, question: "payment logging card number policy", hit_any: ["卡号"]}
+  - {id: r05, kind: recall, question: "stdio 上有空行怎么办", hit_any: ["空行"]}
+  - {id: r06, kind: recall, question: "MCP server 读到非 JSON 的噪声行如何处理", hit_any: ["噪声"]}
+  - {id: r07, kind: recall, question: "在 Cursor 终端里跑 rsi 命令要注意什么", hit_any: ["project-root"]}
+  - {id: r08, kind: recall, question: "配置文件覆盖顺序是什么", hit_any: ["配置链"]}
+  - {id: r09, kind: recall, question: "rsi-boot.yaml 和 ~/.rsi/config.yaml 谁优先", hit_any: ["配置链"]}
+  - {id: r10, kind: recall, question: "分词时词上粘的标点怎么处理", hit_any: ["标点"]}
+  - {id: r11, kind: recall, question: "收工流程有哪几步", hit_any: ["audit_start"]}
+  - {id: r12, kind: recall, question: "提案晋升后要观察多久", hit_any: ["观察"]}
+  # ---- prohibition：禁止项通道应命中 ----
+  - {id: p01, kind: prohibition, question: "我要把 pytest basetemp 指到仓库里", hit_any: ["basetemp"]}
+  - {id: p02, kind: prohibition, question: "帮我在支付日志里打印完整卡号方便排查", hit_any: ["卡号"]}
+  # ---- abstain：应不命中（语料无相关内容）----
+  - {id: a01, kind: abstain, question: "量子引力的哈密顿约束怎么量子化"}
+  - {id: a02, kind: abstain, question: "how to make sourdough starter from scratch"}

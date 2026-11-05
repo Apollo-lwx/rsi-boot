@@ -1,0 +1,146 @@
+convention_candidates:
+- file: README.md
+  line: 47
+  section: Donate
+  text: 'Click
+
+    ## Donate
+
+
+    The Pallets organization develops and supports Click and other popular
+
+    packages. In order to grow the community of contributors and users, and
+
+    allow the maintainers to devote more time to the projects, [please
+
+    donate today][].
+
+
+    [please donate today]: https://palletsprojects.com/donate'
+files_seen:
+- CHANGES.md
+- README.md
+- docs/contributing.md
+fix_candidates:
+- file: CHANGES.md
+  line: 50
+  section: Version 8.5.0
+  text: "## Version 8.5.0\n\nReleased 2026-08-24\n\n- Add built-in shell completion support for PowerShell (Windows PowerShell\n\
+    \  5.1+ and pwsh 7+) alongside the existing `bash`, `zsh`, and `fish`\n  completers. Use `_FOO_BAR_COMPLETE=powershell_source\
+    \ foo-bar` to generate\n  the completion script. {issue}`2672` {pr}`3637`\n- Supported versions of Windows enable ANSI\
+    \ terminal styles by default.\n  Colorama is no longer a dependency and is not used. {issue}`2986` {pr}`3505`\n- {class}`Argument`\
+    \ accepts a `help` parameter, and help output includes\n  a `Positional arguments` section when argument help is available.\
+    \ {issue}`2983` {pr}`3473`\n- `confirm()` and `prompt()` strip ANSI color and style codes from the\n  prompt when the\
+    \ output stream does not support them, matching `echo()`.\n  This stripping was lost in `8.4.0` when {pr}`2969` began\
+    \ writing the\n  prompt with `input()` directly. {issue}`3572` {pr}`3653`\n- Fix test failures when using pytest >= 9.1.\
+    \ {pr}`3656`\n- {class}`Path` with `allow_dash=True` no longer triggers a `BytesWarning`,\n  an error under `python -bb`,\
+    \ when checking a value against the `-`\n  convention. {issue}`2877` {pr}`3642`\n- Add {func}`custom_version_option`,\
+    \ a `--version` option whose output is\n  produced by a callback, covering cases {func}`version_option` intentionally\n\
+    \  does not. The feature set of {func}`version_option` is now frozen; see\n  [discussion #3527](https://github.com/pallets/click/discussions/3527).\
+    \ {pr}`3581`\n- `style()` and `secho()` no longer silently drop the 256-color index `0`\n  (black) passed as `fg` or `bg`,\
+    \ and now validate color arguments. Invalid\n  colors raise a `ValueError` instead of a `TypeError`. {pr}`3677`\n- The\
+    \ automatic help option stores its value under the reserved name\n  `_click_default_help` instead of `help`, so a parameter\
+    \ named `help` no\n  longer breaks parsing. The new name is visible in\n  {meth}`Command.to_info_dict` output. Parameters\
+    \ that overwrite each other's\n  value trigger a warning: an argument sharing its name with another\n  parameter, or any\
+    \ parameter claiming the reserved name. Options may still\n  share a name to compete for the same value (feature switches).\n\
+    \  {issue}`2819` {pr}`3678`\n- `unstyle` and the ANSI handling behind help-text wrapping now strip the full\n  CSI escape-sequence\
+    \ grammar. {pr}`3681`\n- Streamline `Option` flag handling: the flag-kind, type, lazy-default and\n  validation steps\
+    \ in `Option.__init__` move into focused helpers, and\n  `flag_value` and `default` keep their unset sentinel at construction\n\
+    \  (resolved lazily on read) so `is UNSET` reliably tells a user-supplied value\n  from an auto-derived one. Runtime behavior\
+    \ is unchanged, but\n  {meth}`Parameter.to_info_dict` now resolves `default=True` on a feature\n  switch to its `flag_value`,\
+    \ matching what the function receives at call\n  time. {pr}`3641`\n- {func}`get_binary_stream` and {func}`get_text_stream`\
+    \ are deprecated and\n  will be removed in Click 9.0. {issue}`3481` {pr}`3695`\n- The following `click.utils` names were\
+    \ never intentionally public and are\n  now private (`_`-prefixed). The old names remain available with a\n  `DeprecationWarning`\
+    \ until Click 9.0: `LazyFile`, `KeepOpenFile`,\n  `make_default_short_help`, `PacifyFlushWrapper`, and `safecall`.\n \
+    \ {issue}`3099` {pr}`3695`\n- Deprecate {meth}`CliRunner.isolated_filesystem`. It relies on\n  {func}`os.chdir`, which\
+    \ mutates process-global state and is not\n  thread-safe. The helper predates Python 3 and modern pytest: use a\n  temporary\
+    \ directory ({class}`tempfile.TemporaryDirectory` or pytest's\n  `tmp_path` fixture) with absolute paths instead. For\
+    \ running tests in\n  parallel, use process-based isolation (such as `pytest-xdist`) rather\n  than threads, since {meth}`CliRunner.invoke`\
+    \ also redirects the\n  process-global standard streams. {issue}`3501` {issue}`3700` {pr}`3704`\n- `prompt()` is now generically\
+    \ typed and returns the type produced by\n  `type`, `value_proc`, or a matching `default` instead of `Any`.\n  {class}`ParamType`\
+    \ takes a second optional "
+- file: CHANGES.md
+  line: 377
+  section: Version 8.3.0
+  text: "## Version 8.3.0\n\nReleased 2025-09-17\n\n- **Improved flag option handling**: Reworked the relationship between\
+    \ `flag_value`\n  and `default` parameters for better consistency:\n\n  - The `default` parameter value is now preserved\
+    \ as-is and passed directly\n    to CLI functions (no more unexpected transformations)\n  - Exception: flag options with\
+    \ `default=True` maintain backward compatibility\n    by defaulting to their `flag_value`\n  - The `default` parameter\
+    \ can now be any type (`bool`, `None`, etc.)\n  - Fixes inconsistencies reported in: {issue}`1992` {issue}`2514` {issue}`2610`\n\
+    \    {issue}`3024` {pr}`3030`\n\n- Allow `default` to be set on `Argument` for `nargs = -1`. {issue}`2164`\n  {pr}`3030`\n\
+    \n- Show correct auto complete value for `nargs` option in combination with flag\n  option {issue}`2813`\n\n- Fix handling\
+    \ of quoted and escaped parameters in Fish autocompletion. {issue}`2995` {pr}`3013`\n\n- Lazily import `shutil`. {pr}`3023`\n\
+    \n- Properly forward exception information to resources registered with\n  `click.core.Context.with_resource()`. {issue}`2447`\
+    \ {pr}`3058`\n\n- Fix regression related to EOF handling in `CliRunner`. {issue}`2939` {pr}`2940`"
+- file: CHANGES.md
+  line: 562
+  section: Version 8.1.8
+  text: "## Version 8.1.8\n\nReleased 2024-12-19\n\n- Fix an issue with type hints for `click.open_file()`. {issue}`2717`\n\
+    - Fix issue where error message for invalid `click.Path` displays on\n  multiple lines. {issue}`2697`\n- Fixed issue that\
+    \ prevented a default value of `\"\"` from being displayed in\n  the help for an option. {issue}`2500`\n- The test runner\
+    \ handles stripping color consistently on Windows.\n  {issue}`2705`\n- Show correct value for flag default when using\
+    \ `default_map`.\n  {issue}`2632`\n- Fix `click.echo(color=...)` passing `color` to coloroma so it can be\n  forced on\
+    \ Windows. {issue}`2606`.\n- More robust bash version check, fixing problem on Windows with git-bash.\n  {issue}`2638`\n\
+    - Cache the help option generated by the `help_option_names` setting to\n  respect its eagerness. {pr}`2811`\n- Replace\
+    \ uses of `os.system` with `subprocess.Popen`. {issue}`1476`\n- Exceptions generated during a command will use the context's\
+    \ `color`\n  setting when being displayed. {issue}`2193`\n- Error message when defining option with invalid name is more\
+    \ descriptive.\n  {issue}`2452`\n- Refactor code generating default `--help` option to deduplicate code.\n  {pr}`2563`\n\
+    - Test `CLIRunner` resets patched `_compat.should_strip_ansi`.\n  {issue}`2732`"
+- file: CHANGES.md
+  line: 1216
+  section: Version 7.0
+  text: "## Version 7.0\n\nReleased 2018-09-25\n\n- Drop support for Python 2.6 and 3.3. {pr}`967, 976`\n- Wrap `click.Choice`'s\
+    \ missing message. {issue}`202`, {pr}`1000`\n- Add native ZSH autocompletion support. {issue}`323`, {pr}`865`\n- Document\
+    \ that ANSI color info isn't parsed from bytearrays in Python\n  2\\. {issue}`334`\n- Document byte-stripping behavior\
+    \ of `CliRunner`. {issue}`334`,\n  {pr}`1010`\n- Usage errors now hint at the `--help` option. {issue}`393`,\n  {pr}`557`\n\
+    - Implement streaming pager. {issue}`409`, {pr}`889`\n- Extract bar formatting to its own method. {pr}`414`\n- Add `DateTime`\
+    \ type for converting input in given date time\n  formats. {pr}`423`\n- `secho`'s first argument can now be `None`, like\
+    \ in `echo`.\n  {pr}`424`\n- Fixes a `ZeroDivisionError` in `ProgressBar.make_step`, when the\n  arg passed to the first\
+    \ call of `ProgressBar.update` is 0.\n  {issue}`447`, {pr}`1012`\n- Show progressbar only if total execution time is visible.\
+    \ {pr}`487`\n- Added the ability to hide commands and options from help. {pr}`500`\n- Document that options can be `required=True`.\
+    \ {issue}`514`,\n  {pr}`1022`\n- Non-standalone calls to `Context.exit` return the exit code,\n  rather than calling `sys.exit`.\
+    \ {issue}`667`, {pr}`533, 1098`\n- `click.getchar()` returns Unicode in Python 3 on Windows,\n  consistent with other\
+    \ platforms. {issue}`537, 821, 822, 1088`,\n  {pr}`1108`\n- Added `FloatRange` type. {pr}`538, 553`\n- Added support for\
+    \ bash completion of `type=click.Choice` for\n  `Options` and `Arguments`. {issue}`535`, {pr}`681`\n- Only allow one positional\
+    \ arg for `Argument` parameter\n  declaration. {issue}`568, 574`, {pr}`1014`\n- Add `case_sensitive=False` as an option\
+    \ to Choice. {issue}`569`\n- `click.getchar()` correctly raises `KeyboardInterrupt` on \"^C\"\n  and `EOFError` on \"\
+    ^D\" on Linux. {issue}`583`, {pr}`1115`\n- Fix encoding issue with `click.getchar(echo=True)` on Linux.\n  {pr}`1115`\n\
+    - `param_hint` in errors now derived from param itself.\n  {issue}`598, 704`, {pr}`709`\n- Add a test that ensures that\
+    \ when an argument is formatted into a\n  usage error, its metavar is used, not its name. {pr}`612`\n- Allow setting `prog_name`\
+    \ as extra in `CliRunner.invoke`.\n  {issue}`616`, {pr}`999`\n- Help text taken from docstrings truncates at the `\\f`\
+    \ form feed\n  character, useful for hiding Sphinx-style parameter documentation.\n  {pr}`629, 1091`\n- `launch` now works\
+    \ properly under Cygwin. {pr}`650`\n- Update progress after iteration. {issue}`651`, {pr}`706`\n- `CliRunner.invoke` now\
+    \ may receive `args` as a string\n  representing a Unix shell command. {pr}`664`\n- Make `Argument.make_metavar()` default\
+    \ to type metavar. {pr}`675`\n- Add documentation for `ignore_unknown_options`. {pr}`684`\n- Add bright colors support\
+    \ for `click.style` and fix the reset\n  option for parameters `fg` and `bg`. {issue}`703`, {pr}`809`\n- Add `show_envvar`\
+    \ for showing environment variables in help.\n  {pr}`710`\n- Avoid `BrokenPipeError` during interpreter shutdown when\
+    \ stdout or\n  stderr is a closed pipe. {issue}`712`, {pr}`1106`\n- Document customizing option names. {issue}`725`, {pr}`1016`\n\
+    - Disable `sys._getframes()` on Python interpreters that don't\n  support it. {pr}`728`\n- Fix bug in test runner when\
+    \ calling `sys.exit` with `None`.\n  {pr}`739`\n- Clarify documentation on command line options. {issue}`741`,\n  {pr}`1003`\n\
+    - Fix crash on Windows console. {issue}`744`\n- Fix bug that caused bash completion to give improper completions on\n\
+    \  chained commands. {issue}`754`, {pr}`774`\n- Added support for dynamic bash completion from a user-supplied\n  callback.\
+    \ {pr}`755`\n- Added support for bash completions containing spaces. {pr}`773`\n- Allow autocompletion function to determine\
+    \ whether or not to return\n  completions that start with the incomplete argument. {issue}`790`,\n  {pr}`806`\n- Fix option\
+    \ naming routine to match documentation and be\n  deterministic. {issue}`793`, {pr}`794`\n- Fix path validation bug. {issue}`795`,\
+    \ {pr}`1020`\n- Add test and documentation for `Option` naming: functionality.\n  {pr}`799`"
+prohibition_candidates:
+- file: docs/contributing.md
+  line: 33
+  section: Code Style
+  text: 'Contributing
+
+    ## Code Style
+
+
+    Avoid ternary expressions (`x if cond else y`): coverage
+
+    cannot measure both branches. Use an explicit `if`/`else`
+
+    block instead.
+
+
+    Do not add unnecessary dependencies. If a feature can be
+
+    implemented with the standard library, do not pull in an
+
+    external package for it.'

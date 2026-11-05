@@ -1,0 +1,134 @@
+repo: aiohttp
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "What is the full development setup command in aiohttp (installs deps, cythonizes, builds extensions)?"
+    answer: "make install-dev"
+    gold: ["AGENTS.md::Build"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "How do you rebuild aiohttp's vendored llhttp, and what runtime does it require?"
+    answer: "git submodule update --init followed by make generate-llhttp; requires Node.js."
+    gold: ["AGENTS.md::Build"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "How do you install aiohttp in pure Python mode without Cython extensions?"
+    answer: "AIOHTTP_NO_EXTENSIONS=1 pip install -e ."
+    gold: ["AGENTS.md::Build"]
+  - id: conv-004
+    type: convention
+    difficulty: easy
+    question: "What command runs aiohttp's whole test suite in parallel?"
+    answer: "PYTHONPATH='.' pytest --numprocesses=auto"
+    gold: ["AGENTS.md::Test"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "Which checks does pre-commit run --all-files execute in aiohttp?"
+    answer: "black, isort, flake8, pyupgrade, codespell."
+    gold: ["AGENTS.md::Lint & Format"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "What line length does black use in aiohttp, and how is isort configured?"
+    answer: "black with 88-column line length; isort with trailing commas."
+    gold: ["AGENTS.md::Lint & Format"]
+  - id: conv-007
+    type: convention
+    difficulty: medium
+    question: "How are aiohttp changelog fragments named, and where are the valid types defined?"
+    answer: "CHANGES/{pr_or_issue}.{type}.rst; valid types are defined in pyproject.toml under [tool.towncrier]."
+    gold: ["AGENTS.md::Changelog"]
+  - id: conv-008
+    type: convention
+    difficulty: hard
+    question: "When both an issue and a PR number exist for an aiohttp changelog fragment, what is the convention?"
+    answer: "Keep the issue-numbered file and symlink the PR number to it: ln -s 1234.bugfix.rst CHANGES/1240.bugfix.rst."
+    gold: ["AGENTS.md::Changelog"]
+  - id: conv-009
+    type: convention
+    difficulty: medium
+    question: "What must first-time aiohttp contributors add themselves to, and in what order?"
+    answer: "CONTRIBUTORS.txt, alphabetical by first name."
+    gold: ["AGENTS.md::PRs"]
+  - id: conv-010
+    type: convention
+    difficulty: hard
+    question: "What disclosure line must agent-drafted pull requests carry in aiohttp?"
+    answer: "One plain line at the bottom: 'Drafted with <agent name and version>; reviewed by <human handle>.'"
+    gold: ["AGENTS.md::PRs"]
+  - id: conv-011
+    type: convention
+    difficulty: medium
+    question: "What commit message style does aiohttp require?"
+    answer: "No conventional commits; match recent imperative subjects."
+    gold: ["AGENTS.md::PRs"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "Are Co-Authored-By LLM trailers allowed in aiohttp commits or PR bodies?"
+    answer: "No, they are explicitly forbidden."
+    gold: ["AGENTS.md::PRs"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "In aiohttp's draft PR workflow, what must the submitting operator never do themselves?"
+    answer: "Mark the PR ready or request reviewers; a human review must happen before leaving draft."
+    gold: ["AGENTS.md::PRs"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "What kind of docstrings or comments does aiohttp's code style prohibit?"
+    answer: "Docstrings or comments that just restate the code."
+    gold: ["AGENTS.md::Documentation & code style"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: easy
+    question: "Which branch do all new aiohttp features and bug fixes target, and how do backports happen?"
+    answer: "master; a bot creates backports to the x.y release branches automatically."
+    gold: ["AGENTS.md::Branching"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What WebSocket control-frame issue did aiohttp 3.14.5 fix?"
+    answer: "It stopped failing the connection when a control frame has RSV1 set after permessage-deflate was negotiated."
+    gold: ["CHANGES.rst::Bug fixes@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What slots problem did aiohttp 3.14.4 fix in RequestHandler and StreamResponse?"
+    answer: "Removed overlapping slots in RequestHandler and fixed broken slots inheritance in aiohttp.web.StreamResponse."
+    gold: ["CHANGES.rst::Bug fixes@2"]
+  - id: fix-003
+    type: fix
+    difficulty: hard
+    question: "When must aiohttp's THREAT_MODEL.md be revised? Name any two triggers."
+    answer: "When a CVE/GHSA is filed, parser configuration changes (llhttp flags, size limits, version regex), referenced defaults change, the vendored llhttp version is bumped, or public API surface is added/removed in client.py/web_*.py/multipart.py."
+    gold: ["AGENTS.md::Threat model"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "What redirect-related header bug did aiohttp 3.14.3 fix?"
+    answer: "The client previously dropped only the first Authorization, Cookie, and Proxy-Authorization header when a redirect crossed an origin."
+    gold: ["CHANGES.rst::Bug fixes@3"]
+  - id: fix-005
+    type: fix
+    difficulty: medium
+    question: "What documentation corrections did aiohttp 3.14.4 make?"
+    answer: "Documented valid request URL forms for aiohttp.UnixConnector (including base_url with an HTTP host) and corrected the documented signature of StreamReader.read_nowait."
+    gold: ["CHANGES.rst::Improved documentation@1"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: medium
+    question: "Where must agent run output (e.g. test logs) go in an aiohttp pull request?"
+    answer: "In a collapsed <details> block below the template summary."
+    gold: ["AGENTS.md::PRs"]
+  - id: conv-012
+    type: convention
+    difficulty: medium
+    question: "What are the respective roles of black and mypy in aiohttp?"
+    answer: "black is for formatting only; mypy is for type checking."
+    gold: ["AGENTS.md::Lint & Format"]

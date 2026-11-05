@@ -1,0 +1,98 @@
+repo: starlette
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "According to starlette's AGENTS.md, what must you read and follow before contributing?"
+    answer: "AI_POLICY.md."
+    gold: ["AGENTS.md::AI Policy"]
+  - id: conv-002
+    type: convention
+    difficulty: easy
+    question: "What documentation-writing rule does starlette's AGENTS.md impose after each heading?"
+    answer: "Always include text explaining the section before any code snippets."
+    gold: ["AGENTS.md::Writing Documentation"]
+  - id: conv-003
+    type: convention
+    difficulty: easy
+    question: "Where should contributions to starlette generally start out?"
+    answer: "With a GitHub discussion (Kludex/starlette discussions)."
+    gold: ["docs/contributing.md::Reporting Bugs or Other Issues"]
+  - id: conv-004
+    type: convention
+    difficulty: easy
+    question: "What command runs starlette's tests, and where do extra arguments go?"
+    answer: "scripts/test; additional arguments are passed to pytest."
+    gold: ["docs/contributing.md::Testing and Linting"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "If the 'Check' CI job fails on a starlette pull request, what does that mean?"
+    answer: "There is a code formatting issue or a type-annotation issue."
+    gold: ["docs/contributing.md::Check Job Failed"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "Which changelog format do starlette maintainers follow when preparing a release?"
+    answer: "keepachangelog."
+    gold: ["docs/contributing.md::Releasing"]
+  - id: conv-007
+    type: convention
+    difficulty: medium
+    question: "What is starlette's only required dependency, and which extra is needed to use the TestClient?"
+    answer: "anyio is the only required dependency; TestClient requires httpx2."
+    gold: ["README.md::Dependencies"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What is the consequence in starlette for submitting a duplicate pull request that was already proposed or in progress?"
+    answer: "Contributors who submit duplicate pull requests will be banned from the project."
+    gold: ["AI_POLICY.md::AI Policy"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "Does starlette's AI policy allow AI tools in contributions, and under what condition?"
+    answer: "Yes, but the contributor remains responsible for every contribution submitted, and must search existing PRs/issues/discussions first."
+    gold: ["AI_POLICY.md::AI Policy"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What form-parsing edge case did starlette 1.10.0 fix?"
+    answer: "Parse the last URL-encoded form field when the request stream ends without an empty chunk."
+    gold: ["docs/release-notes.md::Fixed@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "Which characters did starlette 1.9.0 start percent-encoding when building request.url?"
+    answer: "?, #, backslash and a leading // (backslash and leading // also in url_path_for)."
+    gold: ["docs/release-notes.md::Fixed@2"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What did starlette 1.8.0 fix about GZipMiddleware?"
+    answer: "It now preserves response trailers through GZipMiddleware."
+    gold: ["docs/release-notes.md::Fixed@3"]
+  - id: fix-004
+    type: fix
+    difficulty: hard
+    question: "In starlette 1.8.0, what happens to FileResponse transfers when the client disconnects?"
+    answer: "The transfers are stopped."
+    gold: ["docs/release-notes.md::Fixed@3"]
+  - id: fix-005
+    type: fix
+    difficulty: medium
+    question: "What two FileResponse range-request hardening fixes landed in starlette 1.5.1?"
+    answer: "Reject inverted single-byte ranges, and limit FileResponse to 100 ranges."
+    gold: ["docs/release-notes.md::Fixed@4"]
+  - id: fix-006
+    type: fix
+    difficulty: medium
+    question: "What two GZip fixes landed in starlette 1.5.0?"
+    answer: "Flush GZip output for each streamed chunk, and skip compression of partial responses in GZipMiddleware."
+    gold: ["docs/release-notes.md::Fixed@5"]
+  - id: fix-007
+    type: fix
+    difficulty: hard
+    question: "What default did starlette 1.4.1 give thread_minimum_size in GZipResponder, and why?"
+    answer: "128 KiB, keeping it usable without the new keyword argument."
+    gold: ["docs/release-notes.md::Fixed@6"]

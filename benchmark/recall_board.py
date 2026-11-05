@@ -15,8 +15,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import json
+import os
 import shutil
 import sys
 import time
@@ -34,18 +36,44 @@ from rsi_boot.memory.store import MemoryStore, memory_filename
 from rsi_boot.memory.types import MemoryDoc
 
 # 冷启动没有反馈。计分若逐条落日志，下一次召回会把整份日志重读一遍，题量上去之后时间按平方涨。
-logstore.append_event = lambda *args, **kwargs: None  # type: ignore[assignment]
+# 注意：不得在模块级打补丁——测试一旦 import 本模块，全局 append_event 就被静默吞掉。
+# 用下面的上下文管理器，只在跑榜期间抑制。
+@contextlib.contextmanager
+def suppress_event_log():
+    original = logstore.append_event
+    logstore.append_event = lambda *args, **kwargs: None  # type: ignore[assignment]
+    try:
+        yield
+    finally:
+        logstore.append_event = original
 
 DATA = ROOT / "benchmark" / ".data"
 OUT = ROOT / "benchmark" / "results" / "recall-20261028"
+# LoCoMo 类别映射以官方评测代码为准（task_eval/evaluation.py），
+# 不是论文 §4.1 的叙述顺序——上游 issue #29 与 EACL 2026（2026.eacl-long.363）附录 A
+# 均确认：1=multi-hop, 2=temporal, 3=open-domain, 4=single-hop, 5=adversarial。
 LOCOMO_CAT = {
-    1: "single-hop",
-    2: "multi-hop",
-    3: "temporal",
-    4: "open-domain",
+    1: "multi-hop",
+    2: "temporal",
+    3: "open-domain",
+    4: "single-hop",
     5: "adversarial",
 }
 CHUNK = 18000
+
+_COREF_RE = None
+
+
+def _coref_re():
+    global _COREF_RE
+    if _COREF_RE is None:
+        import re
+        _COREF_RE = re.compile(
+            r"\b(he|she|it|they|him|her|them|his|their|this|that|these|those|"
+            r"there|then|both)\b|[他她它这那]",
+            re.IGNORECASE,
+        )
+    return _COREF_RE
 
 
 def _hid(text: str) -> str:
@@ -207,7 +235,22 @@ async def _score_questions(runtime, questions: list[dict], doc_to_gold: dict[str
     return rows
 
 
-def _locomo_samples() -> list[dict]:
+def _needs_context(text: str) -> bool:
+    """指代触发：短句或含代词/指示词的 turn 才附前一 turn——
+    自足的长句添上下文只会稀释词面分（时间题回归就是这么来的）。
+    自带日期的 turn 在时间上自足，同样不附。"""
+    from rsi_boot.rag.temporal import extract_iso_dates
+
+    if extract_iso_dates(text):
+        return False
+    if len(text) < 240:
+        return True
+    return _coref_re().search(text) is not None
+
+
+def _locomo_samples(*, context: bool = True, context_mode: str = "v2") -> list[dict]:
+    from rsi_boot.rag.temporal import extract_iso_dates
+
     path = DATA / "locomo10.json"
     samples = json.loads(path.read_text(encoding="utf-8"))
     prepared = []
@@ -215,6 +258,9 @@ def _locomo_samples() -> list[dict]:
         conv = sample["conversation"]
         rows = []
         seen: set[str] = set()
+        prev_line = ""
+        prev_text = ""
+        prev_speaker = ""
         for key, value in conv.items():
             if not key.startswith("session_") or key.endswith("_date_time"):
                 continue
@@ -231,7 +277,25 @@ def _locomo_samples() -> list[dict]:
                 if caption:
                     text = f"{text}\n{caption}".strip()
                 speaker = str(turn.get("speaker") or "")
-                content = f"[{date}] {speaker}: {text}".strip()
+                line = f"[{date}] {speaker}: {text}".strip()
+                # T1.2 上下文增强：写入侧附带前一 turn，缓解单跳题指代/省略造成的词面断裂；
+                # 仅对短句/含指代的 turn 触发，避免自足长句被稀释。
+                # v2（temporal 挤位修复）：附带的上下文不得引入外来时间锚点——
+                # 剥离前一 turn 的 [date] 前缀；前一 turn 文本自带内嵌日期时整段不附，
+                # 否则前一 turn 的日期会混进本文档的 doc_dates / 内嵌日期密度，
+                # 把时间题的正确文档挤下 top-5（消融：−context 让 temporal 56.1→64.2）。
+                if context and prev_line and _needs_context(text):
+                    if context_mode == "v2" and extract_iso_dates(prev_text):
+                        content = line
+                    elif context_mode == "v2":
+                        content = f"{line}\ncontext: {prev_speaker}: {prev_text}".strip()
+                    else:
+                        content = f"{line}\ncontext: {prev_line}"
+                else:
+                    content = line
+                prev_line = line[:500]
+                prev_text = text[:500]
+                prev_speaker = speaker
                 rows.append((dia, f"{speaker} {dia}", content))
         questions = []
         for index, qa in enumerate(sample["qa"]):
@@ -286,8 +350,8 @@ def _longmemeval_samples() -> list[dict]:
     return prepared
 
 
-async def _run_dataset(name: str, samples: list[dict], sink) -> dict:
-    work = DATA / "work" / name
+async def _run_dataset(name: str, samples: list[dict], sink, tag: str = "") -> dict:
+    work = DATA / "work" / f"{name}{tag}"
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True, exist_ok=True)
@@ -331,8 +395,9 @@ def _num(value: float | None) -> str:
 
 
 def _write_summary(payload: dict) -> None:
+    run_date = OUT.name.replace("recall-", "")
     lines = [
-        "# 召回主榜 · 2026-10-28",
+        f"# 召回主榜 · {run_date}",
         "",
         "产品召回，冷启动 `recall-balanced`（默认 5 条）。Hit / Recall 的分母是有标准证据的题数。MRR 是第一条命中的名次倒数，范围 0 到 1。答案为空的题只进「该空时空了」。token 宿主没有报，记 null。原始记录在同目录的 jsonl。",
         "",
@@ -361,9 +426,16 @@ def _write_summary(payload: dict) -> None:
         lines.append("")
     lines.append(
         "切分：LoCoMo 一条 turn 一条记忆，正文带 session 日期。类别 5 的答案为空，不进 Hit；另外有 4 题没有 evidence，也算进「该空时空了」。"
+        "LoCoMo 类别标签以官方评测代码为准（1=multi-hop, 2=temporal, 3=open-domain, 4=single-hop），"
+        "不是论文 §4.1 的叙述顺序（上游 issue #29 / EACL 2026 附录 A 已确认该不一致）。"
         "LongMemEval-S cleaned 一条 session 一条记忆，超过 18000 字按片切开，同一 session 的片都算这条证据。"
         "这张表是检索命中，不是模型答题分，不能和 Mem0 主页上的 92.5 / 94.4 放在同一列。"
     )
+    cmode = payload.get("context_mode")
+    if "LoCoMo" in payload["datasets"] and cmode:
+        note = {"v1": "v1（附带前一 turn 原文，含其日期前缀）",
+                "v2": "v2（附带前一 turn 但剥离日期锚点；前一 turn 含内嵌日期则不附）"}.get(cmode, cmode)
+        lines.append(f"LoCoMo 上下文增强版本：{note}。")
     lines.append("")
     (OUT / "SUMMARY.md").write_text("\n".join(lines), encoding="utf-8")
     (OUT / "summary.json").write_text(
@@ -371,31 +443,97 @@ def _write_summary(payload: dict) -> None:
     )
 
 
-async def _amain(which: list[str]) -> None:
+async def _amain(which: list[str], *, limit: int | None = None,
+                 shard: tuple[int, int] | None = None) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     payload = {
         "scorer": "rsi recall, cold-start recall-balanced",
         "k": [5, 10],
         "tokens": None,
+        "ablate": os.environ.get("RSI_ABLATE") or None,
+        "context_mode": os.environ.get("RSI_CONTEXT_MODE") or "v2",
         "datasets": {},
     }
     loaders = {
-        "LoCoMo": _locomo_samples,
+        "LoCoMo": lambda: _locomo_samples(
+            context="context" not in _ablate_keys(),
+            context_mode=os.environ.get("RSI_CONTEXT_MODE") or "v2",
+        ),
         "LongMemEval-S": _longmemeval_samples,
     }
     for name in which:
         print(f"load {name}", flush=True)
         samples = loaders[name]()
+        if shard is not None:
+            i, n = shard
+            samples = [s for idx, s in enumerate(samples) if idx % n == i]
+        if limit:
+            samples = samples[:limit]
         print(f"{name} samples={len(samples)}", flush=True)
-        with (OUT / f"{name}.jsonl").open("w", encoding="utf-8") as sink:
-            payload["datasets"][name] = await _run_dataset(name, samples, sink)
+        tag = f"-s{shard[0]}of{shard[1]}" if shard else ""
+        suffix = f".shard{shard[0]}" if shard else ""
+        with (OUT / f"{name}{suffix}.jsonl").open("w", encoding="utf-8") as sink:
+            payload["datasets"][name] = await _run_dataset(name, samples, sink, tag=tag)
         _write_summary(payload)
     _write_summary(payload)
 
 
+def _merge_shards() -> None:
+    """把 --shard 产出的 <name>.shard<i>.jsonl 合并成总榜（各分片独立进程跑出）。"""
+    payload = {
+        "scorer": "rsi recall, cold-start recall-balanced",
+        "k": [5, 10],
+        "tokens": None,
+        "ablate": os.environ.get("RSI_ABLATE") or None,
+        "context_mode": os.environ.get("RSI_CONTEXT_MODE") or "v2",
+        "datasets": {},
+    }
+    for name in ("LoCoMo", "LongMemEval-S"):
+        rows: list[dict] = []
+        for path in sorted(OUT.glob(f"{name}.shard*.jsonl")):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    rows.append(json.loads(line))
+        if rows:
+            payload["datasets"][name] = _pack(rows)
+    _write_summary(payload)
+    print(f"merged -> {OUT / 'SUMMARY.md'}", flush=True)
+
+
+def _ablate_keys() -> frozenset[str]:
+    raw = os.environ.get("RSI_ABLATE") or ""
+    return frozenset(k.strip() for k in raw.split(",") if k.strip())
+
+
 def main() -> None:
-    which = sys.argv[1:] or ["LoCoMo", "LongMemEval-S"]
-    asyncio.run(_amain(which))
+    args = sys.argv[1:]
+    limit = None
+    shard = None
+    merge = False
+    which: list[str] = []
+    for arg in args:
+        if arg.startswith("--ablate="):
+            os.environ["RSI_ABLATE"] = arg.split("=", 1)[1]
+        elif arg.startswith("--context-mode="):
+            os.environ["RSI_CONTEXT_MODE"] = arg.split("=", 1)[1]
+        elif arg == "--merge":
+            merge = True
+        elif arg.startswith("--limit="):
+            limit = int(arg.split("=", 1)[1])
+        elif arg.startswith("--shard="):
+            i, _, n = arg.split("=", 1)[1].partition("/")
+            shard = (int(i), int(n))
+        elif arg.startswith("--out="):
+            global OUT
+            OUT = ROOT / "benchmark" / "results" / arg.split("=", 1)[1]
+        else:
+            which.append(arg)
+    if merge:
+        _merge_shards()
+        return
+    which = which or ["LoCoMo", "LongMemEval-S"]
+    with suppress_event_log():
+        asyncio.run(_amain(which, limit=limit, shard=shard))
 
 
 if __name__ == "__main__":

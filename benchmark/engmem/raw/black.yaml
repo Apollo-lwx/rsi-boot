@@ -1,0 +1,492 @@
+convention_candidates:
+- file: SECURITY.md
+  line: 7
+  section: Security contact information
+  text: 'Security Policy
+
+    ## Security contact information
+
+
+    To report a security vulnerability, please use the
+
+    [Tidelift security contact](https://tidelift.com/security). Tidelift will coordinate the
+
+    fix and disclosure.'
+- file: CONTRIBUTING.md
+  line: 1
+  section: Contributing to _Black_
+  text: '# Contributing to _Black_
+
+
+    Welcome future contributor! We''re happy to see you willing to make the project better.
+
+
+    If you aren''t familiar with _Black_, or are looking for documentation on something
+
+    specific, the [user documentation](https://black.readthedocs.io/en/stable/) is the best
+
+    place to look.
+
+
+    For getting started on contributing, please read the
+
+    [contributing documentation](https://black.readthedocs.io/en/latest/contributing/) for
+
+    all you need to know.
+
+
+    Thank you, and we look forward to your contributions!'
+- file: README.md
+  line: 1
+  section: (preamble)
+  text: '[![Black Logo](https://raw.githubusercontent.com/psf/black/main/docs/_static/logo2-readme.png)](https://black.readthedocs.io/en/stable/)
+
+
+    <h2 align="center">The Uncompromising Code Formatter</h2>
+
+
+    <p align="center">
+
+    <a href="https://github.com/psf/black/actions"><img alt="Actions Status" src="https://github.com/psf/black/workflows/Test/badge.svg"></a>
+
+    <a href="https://black.readthedocs.io/en/stable/?badge=stable"><img alt="Documentation Status" src="https://readthedocs.org/projects/black/badge/?version=stable"></a>
+
+    <a href="https://coveralls.io/github/psf/black?branch=main"><img alt="Coverage Status" src="https://coveralls.io/repos/github/psf/black/badge.svg?branch=main"></a>
+
+    <a href="https://github.com/psf/black/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/latest/_static/license.svg"></a>
+
+    <a href="https://pypi.org/project/black/"><img alt="PyPI" src="https://img.shields.io/pypi/v/black"></a>
+
+    <a href="https://pypi.org/project/black"><img alt="Supported Python Versions" src="https://img.shields.io/pypi/pyversions/black?color=brightgreen"></a>
+
+    <a href="https://pepy.tech/project/black"><img alt="Downloads" src="https://static.pepy.tech/badge/black"></a>
+
+    <a href="https://anaconda.org/conda-forge/black/"><img alt="conda-forge" src="https://img.shields.io/conda/dn/conda-forge/black.svg?label=conda-forge"></a>
+
+    <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+
+    </p>
+
+
+    > “Any color you like.”
+
+
+    _Black_ is the uncompromising Python code formatter. By using it, you agree to cede
+
+    control over minutiae of hand-formatting. In return, _Black_ gives you speed,
+
+    determinism, and freedom from `pycodestyle` nagging about formatting. You will save time
+
+    and mental energy for more important matters.
+
+
+    Blackened code looks the same regardless of the project you''re reading. Formatting
+
+    becomes transparent after a while and you can focus on the content instead.
+
+
+    _Black_ makes code review faster by producing the smallest diffs possible.
+
+
+    Watch the [PyCon 2019 talk](https://youtu.be/esZLCuWs_2Y) to learn more.
+
+
+    ---
+
+
+    **[Read the documentation on ReadTheDocs!](https://black.readthedocs.io/en/stable)**
+
+
+    ---'
+- file: README.md
+  line: 49
+  section: Usage
+  text: 'Installation and usage
+
+    ### Usage
+
+
+    To get started right away with sensible defaults:
+
+
+    ```sh
+
+    black {source_file_or_directory}
+
+    ```
+
+
+    You can run _Black_ as a package if running it as a script doesn''t work:
+
+
+    ```sh
+
+    python -m black {source_file_or_directory}
+
+    ```
+
+
+    Further information can be found in our docs:
+
+
+    - [Usage and Configuration](https://black.readthedocs.io/en/stable/usage_and_configuration/index.html)
+
+
+    _Black_ is already [successfully used](https://github.com/psf/black#used-by) by many
+
+    projects, small and big. _Black_ has a comprehensive test suite, with efficient parallel
+
+    tests, and our own auto formatting and parallel Continuous Integration runner. Now that
+
+    we have become stable, you should not expect large formatting changes in the future.
+
+    Stylistic changes will mostly be responses to bug reports and support for new Python
+
+    syntax. For more information please refer to
+
+    [The Black Code Style](https://black.readthedocs.io/en/stable/the_black_code_style/index.html).
+
+
+    Also, as a safety measure which slows down processing, _Black_ will check that the
+
+    reformatted code still produces a valid AST that is effectively equivalent to the
+
+    original (see the
+
+    [Pragmatism](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#ast-before-and-after-formatting)
+
+    section for details). If you''re feeling confident, use `--fast`.'
+- file: README.md
+  line: 81
+  section: The _Black_ code style
+  text: '## The _Black_ code style
+
+
+    _Black_ is a PEP 8 compliant opinionated formatter. _Black_ reformats entire files in
+
+    place. Style configuration options are deliberately limited and rarely added. It doesn''t
+
+    take previous formatting into account (see
+
+    [Pragmatism](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#pragmatism)
+
+    for exceptions).
+
+
+    Our documentation covers the current _Black_ code style, but planned changes to it are
+
+    also documented. They''re both worth taking a look at:
+
+
+    - [The _Black_ Code Style: Current style](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html)
+
+    - [The _Black_ Code Style: Future style](https://black.readthedocs.io/en/stable/the_black_code_style/future_style.html)
+
+
+    Changes to the _Black_ code style are bound by the Stability Policy:
+
+
+    - [The _Black_ Code Style: Stability Policy](https://black.readthedocs.io/en/stable/the_black_code_style/index.html#stability-policy)
+
+
+    Please refer to this document before submitting an issue. What seems like a bug might be
+
+    intended behaviour.'
+- file: README.md
+  line: 102
+  section: Pragmatism
+  text: 'The _Black_ code style
+
+    ### Pragmatism
+
+
+    Early versions of _Black_ used to be absolutist in some respects. They took after its
+
+    initial author. This was fine at the time as it made the implementation simpler and
+
+    there were not many users anyway. Not many edge cases were reported. As a mature tool,
+
+    _Black_ does make some exceptions to rules it otherwise holds.
+
+
+    - [The _Black_ code style: Pragmatism](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#pragmatism)
+
+
+    Please refer to this document before submitting an issue just like with the document
+
+    above. What seems like a bug might be intended behaviour.'
+- file: README.md
+  line: 133
+  section: Used by
+  text: '## Used by
+
+
+    The following notable open-source projects trust _Black_ with enforcing a consistent
+
+    code style: pytest, tox, Pyramid, Django, Django Channels, Hypothesis, attrs,
+
+    SQLAlchemy, Poetry, PyPA applications (Warehouse, Bandersnatch, Pipenv, virtualenv),
+
+    pandas, Pillow, Twisted, LocalStack, every Datadog Agent Integration, Home Assistant,
+
+    Zulip, Kedro, OpenOA, FLORIS, ORBIT, WOMBAT, and many more.
+
+
+    The following organizations use _Black_: Dropbox, KeepTruckin, Lyft, Mozilla, Quora,
+
+    Duolingo, QuantumBlack, Tesla, Archer Aviation.
+
+
+    Are we missing anyone? Let us know.'
+- file: README.md
+  line: 174
+  section: Show your style
+  text: "## Show your style\n\nUse the badge in your project's README.md:\n\n```md\n[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)\n\
+    ```\n\nUsing the badge in README.rst:\n\n```rst\n.. image:: https://img.shields.io/badge/code%20style-black-000000.svg\n\
+    \    :target: https://github.com/psf/black\n```\n\nLooks like this:\n[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)"
+files_seen:
+- .github/CODE_OF_CONDUCT.md
+- CHANGES.md
+- CONTRIBUTING.md
+- README.md
+- SECURITY.md
+fix_candidates:
+- file: CHANGES.md
+  line: 198
+  section: Highlights
+  text: 'Change Log > Version 26.10.1
+
+    ### Highlights
+
+
+    This release fixes a security issue in Black''s bundled GitHub Action. Repositories that
+
+    use the action are encouraged to update to the latest version of Black immediately. This
+
+    update is received automatically when using `psf/black@stable`, and is independent of
+
+    the version of Black installed by the action.
+
+
+    When the GitHub Action reads version specifiers from `tool.black.required-version`, it
+
+    now only accepts released versions of Black, as it already did for `black` requirements
+
+    in dependency lists. Other values, such as URL references, are now rejected. This issue
+
+    has been registered as `GHSA-cg8m-r9f2-5wm2`; a CVE identifier is pending.'
+- file: CHANGES.md
+  line: 621
+  section: Highlights
+  text: "Change Log > Version 26.1.0\n### Highlights\n\nIntroduces the 2026 stable style (#4892), stabilizing the following\
+    \ changes:\n\n- `always_one_newline_after_import`: Always force one blank line after import\n  statements, except when\
+    \ the line after the import is a comment or an import statement\n  (#4489)\n- `fix_fmt_skip_in_one_liners`: Fix `# fmt:\
+    \ skip` behavior on one-liner declarations,\n  such as `def foo(): return \"mock\" # fmt: skip`, where previously the\
+    \ declaration would\n  have been incorrectly collapsed (#4800)\n- `fix_module_docstring_detection`: Fix module docstrings\
+    \ being treated as normal\n  strings if preceded by comments (#4764)\n- `fix_type_expansion_split`: Fix type expansions\
+    \ split in generic functions (#4777)\n- `multiline_string_handling`: Make expressions involving multiline strings more\
+    \ compact\n  (#1879)\n- `normalize_cr_newlines`: Add `\\r` style newlines to the potential newlines to\n  normalize file\
+    \ newlines both from and to (#4710)\n- `remove_parens_around_except_types`: Remove parentheses around multiple exception\n\
+    \  types in `except` and `except*` without `as` (#4720)\n- `remove_parens_from_assignment_lhs`: Remove unnecessary parentheses\
+    \ from the left-hand\n  side of assignments while preserving magic trailing commas and intentional multiline\n  formatting\
+    \ (#4865)\n- `standardize_type_comments`: Format type comments which have zero or more spaces\n  between `#` and `type:`\
+    \ or between `type:` and value to `# type: (value)` (#4645)\n\nThe following change was not in any previous stable release:\n\
+    \n- Regenerated the `_width_table.py` and added tests for the Khmer language (#4253)\n\nThis release also bumps `pathspec`\
+    \ to v1 and fixes inconsistencies with Git's\n`.gitignore` logic (#4958). Now, files will be ignored if a pattern matches\
+    \ them, even\nif the parent directory is directly unignored. For example, Black would previously\nformat `exclude/not_this/foo.py`\
+    \ with this `.gitignore`:\n\n```\nexclude/\n!exclude/not_this/\n```\n\nNow, `exclude/not_this/foo.py` will remain ignored.\
+    \ To ensure `exclude/not_this/` and\nall of its children are included in formatting (and in Git), use this `.gitignore`:\n\
+    \n```\n*/exclude/*\n!*/exclude/not_this/\n```\n\nThis new behavior matches Git. The leading `*/` are only necessary if\
+    \ you wish to ignore\nmatching subdirectories (like the previous behavior did), and not just matching root\ndirectories."
+- file: CHANGES.md
+  line: 920
+  section: Parser
+  text: "Change Log > Version 24.8.0\n### Parser\n\n- Fix regression where Black failed to parse a multiline f-string containing\
+    \ another\n  multiline string (#4339)\n- Fix regression where Black failed to parse an escaped single quote inside an\
+    \ f-string\n  (#4401)\n- Fix bug with Black incorrectly parsing empty lines with a backslash (#4343)\n- Fix bugs with\
+    \ Black's tokenizer not handling `\\{` inside f-strings very well (#4422)\n- Fix incorrect line numbers in the tokenizer\
+    \ for certain tokens within f-strings\n  (#4423)"
+- file: CHANGES.md
+  line: 939
+  section: Version 24.4.2
+  text: 'Change Log
+
+    ## Version 24.4.2
+
+
+    This is a bugfix release to fix two regressions in the new f-string parser introduced in
+
+    24.4.1.'
+- file: CHANGES.md
+  line: 944
+  section: Parser
+  text: 'Change Log > Version 24.4.2
+
+    ### Parser
+
+
+    - Fix regression where certain complex f-strings failed to parse (#4332)'
+- file: CHANGES.md
+  line: 990
+  section: Highlights
+  text: 'Change Log > Version 24.3.0
+
+    ### Highlights
+
+
+    This release is a milestone: it fixes Black''s first CVE security vulnerability. If you
+
+    run Black on untrusted input, or if you habitually put thousands of leading tab
+
+    characters in your docstrings, you are strongly encouraged to upgrade immediately to fix
+
+    [CVE-2024-21503](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-21503).
+
+
+    This release also fixes a bug in Black''s AST safety check that allowed Black to make
+
+    incorrect changes to certain f-strings that are valid in Python 3.12 and higher.'
+- file: CHANGES.md
+  line: 1010
+  section: Performance
+  text: "Change Log > Version 24.3.0\n### Performance\n\n- Fix catastrophic performance on docstrings that contain large numbers\
+    \ of leading tab\n  characters. This fixes\n  [CVE-2024-21503](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-21503).\n\
+    \  (#4278)"
+- file: CHANGES.md
+  line: 1023
+  section: Stable style
+  text: "Change Log > Version 24.2.0\n### Stable style\n\n- Fixed a bug where comments where mistakenly removed along with\
+    \ redundant parentheses\n  (#4218)"
+- file: CHANGES.md
+  line: 1028
+  section: Preview style
+  text: "Change Log > Version 24.2.0\n### Preview style\n\n- Move the `hug_parens_with_braces_and_square_brackets` feature\
+    \ to the unstable style\n  due to an outstanding crash and proposed formatting tweaks (#4198)\n- Fixed a bug where base\
+    \ expressions caused inconsistent formatting of \\*\\* in ternary\n  expression (#4154)\n- Checking for newline before\
+    \ adding one on docstring that is almost at the line limit\n  (#4185)\n- Remove redundant parentheses in `case` statement\
+    \ `if` guards (#4214)."
+- file: CHANGES.md
+  line: 1057
+  section: Version 24.1.1
+  text: 'Change Log
+
+    ## Version 24.1.1
+
+
+    Bugfix release to fix a bug that made Black unusable on certain file systems with strict
+
+    limits on path length.'
+- file: CHANGES.md
+  line: 1111
+  section: Stable style
+  text: "Change Log > Version 24.1.0\n### Stable style\n\nSeveral bug fixes were made in features that are moved to the stable\
+    \ style in this\nrelease:\n\n- Fix comment handling when parenthesising conditional expressions (#4134)\n- Fix bug where\
+    \ spaces were not added around parenthesized walruses in subscripts,\n  unlike other binary operators (#4109)\n- Remove\
+    \ empty lines before docstrings in async functions (#4132)\n- Address a missing case in the change to allow empty lines\
+    \ at the beginning of all\n  blocks, except immediately before a docstring (#4130)\n- For stubs, fix logic to enforce\
+    \ empty line after nested classes with bodies (#4141)"
+- file: CHANGES.md
+  line: 1153
+  section: Packaging
+  text: 'Change Log > Version 23.12.1
+
+    ### Packaging
+
+
+    - Fixed a bug that included dependencies from the `d` extra by default (#4108)'
+- file: CHANGES.md
+  line: 1210
+  section: Stable style
+  text: "Change Log > Version 23.11.0\n### Stable style\n\n- Fix crash on formatting bytes strings that look like docstrings\
+    \ (#4003)\n- Fix crash when whitespace followed a backslash before newline in a docstring (#4008)\n- Fix standalone comments\
+    \ inside complex blocks crashing Black (#4016)\n- Fix crash on formatting code like `await (a ** b)` (#3994)\n- No longer\
+    \ treat leading f-strings as docstrings. This matches Python's behaviour and\n  fixes a crash (#4019)"
+- file: CHANGES.md
+  line: 1310
+  section: Version 23.9.1
+  text: 'Change Log
+
+    ## Version 23.9.1
+
+
+    Due to various issues, the previous release (23.9.0) did not include compiled mypyc
+
+    wheels, which make Black significantly faster. These issues have now been fixed, and
+
+    this release should come with compiled wheels once again.
+
+
+    There will be no wheels for Python 3.12 due to a bug in mypyc. We will provide 3.12
+
+    wheels in a future release as soon as the mypyc bug is fixed.'
+- file: CHANGES.md
+  line: 1433
+  section: Highlights
+  text: 'Change Log > Version 23.3.0
+
+    ### Highlights
+
+
+    This release fixes a longstanding confusing behavior in Black''s GitHub action, where the
+
+    version of the action did not determine the version of Black being run (issue #3382). In
+
+    addition, there is a small bug fix around imports and a number of improvements to the
+
+    preview style.
+
+
+    Please try out the
+
+    [preview style](https://black.readthedocs.io/en/stable/the_black_code_style/future_style.html#preview-style)
+
+    with `black --preview` and tell us your feedback. All changes in the preview style are
+
+    expected to become part of Black''s stable style in January 2024.'
+prohibition_candidates:
+- file: README.md
+  line: 146
+  section: Testimonials
+  text: '## Testimonials
+
+
+    **Mike Bayer**, creator of [`SQLAlchemy`](https://www.sqlalchemy.org/):
+
+
+    > I can''t think of any single tool in my entire programming career that has given me a
+
+    > bigger productivity increase by its introduction. I can now do refactorings in about
+
+    > 1% of the keystrokes that it would have taken me previously when we had no way for
+
+    > code to format itself.
+
+
+    **Dusty Phillips**,
+
+    [writer](https://www.amazon.com/stores/Dusty-Phillips/author/B00HSYG5BO):
+
+
+    > _Black_ is opinionated so you don''t have to be.
+
+
+    **Hynek Schlawack**, creator of [`attrs`](https://www.attrs.org/), core developer of
+
+    Twisted and CPython:
+
+
+    > An auto-formatter that doesn''t suck is all I want for Xmas!
+
+
+    **Carl Meyer**, [Django](https://www.djangoproject.com/) core developer:
+
+
+    > At least the name is good.
+
+
+    **Kenneth Reitz**, creator of [`requests`](https://requests.readthedocs.io/en/stable/)
+
+    and [pipenv](https://pipenv.pypa.io/en/stable/):
+
+
+    > This vastly improves the formatting of our code. Thanks a ton!'

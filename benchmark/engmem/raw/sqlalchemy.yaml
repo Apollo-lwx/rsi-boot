@@ -1,0 +1,196 @@
+convention_candidates:
+- file: .github/CODE_OF_CONDUCT.md
+  line: 5
+  section: Code of Conduct (humans)
+  text: 'Guidelines for SQLAlchemy and Related Projects on Github
+
+    ## Code of Conduct (humans)
+
+
+    Above all, SQLAlchemy places great emphasis on polite, thoughtful, and
+
+    constructive communication between users and developers.
+
+    Please see our current Code of Conduct at
+
+    [Code of Conduct](https://www.sqlalchemy.org/codeofconduct.html).'
+- file: .github/CONTRIBUTING.md
+  line: 1
+  section: Contributing to SQLAlchemy
+  text: '# Contributing to SQLAlchemy
+
+
+    For general developer guidelines, please see out current Developer Guide at
+
+    [Develop](https://www.sqlalchemy.org/develop.html).'
+- file: README.rst
+  line: 139
+  section: Getting Help / Development / Bug reporting
+  text: 'SQLAlchemy
+
+    Getting Help / Development / Bug reporting
+
+    ------------------------------------------
+
+
+    Please refer to the `SQLAlchemy Community Guide <https://www.sqlalchemy.org/support.html>`_.'
+- file: README.rst
+  line: 144
+  section: Code of Conduct
+  text: 'SQLAlchemy
+
+    Code of Conduct
+
+    ---------------
+
+
+    Above all, SQLAlchemy places great emphasis on polite, thoughtful, and
+
+    constructive communication between users and developers.
+
+    Please see our current Code of Conduct at
+
+    `Code of Conduct <https://www.sqlalchemy.org/codeofconduct.html>`_.'
+files_seen:
+- .github/CODE_OF_CONDUCT.md
+- .github/CONTRIBUTING.md
+- .github/SECURITY.md
+- README.rst
+fix_candidates: []
+prohibition_candidates:
+- file: .github/SECURITY.md
+  line: 8
+  section: Reporting a Vulnerability
+  text: "Security Policy\n## Reporting a Vulnerability\n\nSQLAlchemy participates in the Tidelift security infrastructure\
+    \ for reporting \npotential vulnerabilities reponsibly.  Please follow the guidelines at:\n\nhttps://tidelift.com/docs/security\n\
+    \nin order to report a security issue. Security-related issues in SQLAlchemy \nare extremely rare. Nevertheless, we would\
+    \ ask that you please do not file \nCVEs without emailing us first, so that proper disclosure steps may be taken."
+- file: .github/CODE_OF_CONDUCT.md
+  line: 12
+  section: Use of AI / LLMs (robots)
+  text: 'Guidelines for SQLAlchemy and Related Projects on Github
+
+    ## Use of AI / LLMs (robots)
+
+
+    The SQLAlchemy project takes a two-pronged approach to LLM use.   We are fine if participants **use** LLMs **on their
+    own** to
+
+    understand new concepts, get answers to questions, or to help construct code for the purpose of issue demonstrations
+
+    or even pull requests, however we must require that participants **do not use** LLMs as their primary means of communicating
+
+    with humans on our github repositories or anywhere else.
+
+
+    This means:
+
+
+    * **no unsolicited LLM comments / answers on discussions or issues**.   When a human user posts a question on our discussion
+    board, they''ve chosen to get a **human answer** to their question.   If they wanted to talk to a chatbot, they can easily
+    do that on their own!   **Users who run LLMs to auto-submit answers to discussion questions, "confirmed!" posts on bug
+    reports, evaluations of bug reports, anything like that, will be banned, as fast as we see them**.    Again, you can **use**
+    an LLM **on your own** to help with these tasks, but **you must communicate with the github interface as a human, in a
+    non-automated fashion.**
+
+
+    * **no automatic PRs for open issues** - for this one, we have an automatic close rule in place.   See guidelines at [Pull
+    requests and AI contributions](https://www.sqlalchemy.org/develop.html#pullrequests).   Summary: we use LLMs here for
+    simple changes already, and we have them customized to do things exactly as we want (not the least of which is that it''s
+    right here where I can interact with it immediately, rather than waiting a week for a contributor to come back to me who
+    ends up being a robot anyway).    You don''t, so we don''t really have much use for small PRs done by someone else''s
+    robot these days.'
+- file: .github/CONTRIBUTING.md
+  line: 6
+  section: 'Pull requests require an approved issue ##'
+  text: "Contributing to SQLAlchemy\n## Pull requests require an approved issue ##\n\n**We accept pull requests only for issues\
+    \ that a maintainer has marked with\nthe `open for pull requests` label.**  A pull request that doesn't reference\nsuch\
+    \ an issue is closed automatically, by a bot, as soon as it's opened.\n\nThe reason is that the vast majority of unsolicited\
+    \ pull requests are\nsolutions to a problem we haven't agreed on yet, and reviewing them costs far\nmore than writing\
+    \ them does.  Settling the approach on the issue first means\nnobody writes code that was never going to be merged.\n\n\
+    The process is:\n\n1. **Open an issue** describing the problem or the feature, with a complete,\n   runnable example.\
+    \  For a bug, that means a script we can run that shows the\n   wrong behavior.\n2. **Wait for a maintainer** to look\
+    \ at it.  If we agree the change is wanted\n   and that an outside contribution is the right way to get it, we add the\n\
+    \   `open for pull requests` label.\n3. **Then open the pull request**, referencing the issue.\n\nSome labels you'll see\
+    \ on issues, and what they mean for contributors:\n\n| label | meaning |\n| --- | --- |\n| `open for pull requests` |\
+    \ we'd welcome a pull request for this |\n| `code review in progress` | someone is already working on it, in a pull request\
+    \ or directly in gerrit |\n| `NO pull requests please` | we're handling this one ourselves; please don't |\n\nAn issue\
+    \ with none of these labels hasn't been decided on yet.  Asking on the\nissue is fine; opening a pull request to make\
+    \ the case is not, and it will be\nclosed.\n\nThis applies to documentation and typo fixes too.  We know that feels heavy\n\
+    for a one-line change, but the alternative is a rule with exceptions that have\nto be argued about, and we'd rather have\
+    \ one rule.  A typo is a two-line issue\nand we'll label it quickly.\n\nFor more background on the pull request system\
+    \ see\n[Pull requests and AI contributions](https://www.sqlalchemy.org/develop.html#pullrequests)."
+- file: .github/CONTRIBUTING.md
+  line: 48
+  section: 'Note on use of AI, agents and bots ##'
+  text: 'Contributing to SQLAlchemy
+
+    ## Note on use of AI, agents and bots ##
+
+
+    Some of us here use large language models (LLM) to help us with our work, and
+
+    some of us are even employer mandated to do so.   Getting help whereever you
+
+    need is fine.
+
+
+    However we must ask that **AI/LLM generated content is not spammed onto SQLAlchemy
+
+    discussions, issues, or PRs**, whether this is cut and pasted, fully automated,
+
+    or even just lightly edited.   **Please use your own words and don''t come
+
+    off like you''re a bot**, because that only makes you seem like you''re trying
+
+    to gamify our organization for unearned gain.
+
+
+    In particular, **users who post content that appears to be trolling for karma /
+
+    upvotes / vanity commits / positive responses, whether or not this content is
+
+    machine generated, will be banned**.  We are not a casino and we''re not here
+
+    to be part of gamification of any kind.
+
+
+    See similar notes in our code of conduct.'
+- file: README.rst
+  line: 21
+  section: Introduction
+  text: "SQLAlchemy\nIntroduction\n-------------\n\nSQLAlchemy is the Python SQL toolkit and Object Relational Mapper\nthat\
+    \ gives application developers the full power and\nflexibility of SQL. SQLAlchemy provides a full suite\nof well known\
+    \ enterprise-level persistence patterns,\ndesigned for efficient and high-performing database\naccess, adapted into a\
+    \ simple and Pythonic domain\nlanguage.\n\nMajor SQLAlchemy features include:\n\n* An industrial strength ORM, built\n\
+    \  from the core on the identity map, unit of work,\n  and data mapper patterns.   These patterns\n  allow transparent\
+    \ persistence of objects\n  using a declarative configuration system.\n  Domain models\n  can be constructed and manipulated\
+    \ naturally,\n  and changes are synchronized with the\n  current transaction automatically.\n* A relationally-oriented\
+    \ query system, exposing\n  the full range of SQL's capabilities\n  explicitly, including joins, subqueries,\n  correlation,\
+    \ and most everything else,\n  in terms of the object model.\n  Writing queries with the ORM uses the same\n  techniques\
+    \ of relational composition you use\n  when writing SQL.  While you can drop into\n  literal SQL at any time, it's virtually\
+    \ never\n  needed.\n* A comprehensive and flexible system\n  of eager loading for related collections and objects.\n \
+    \ Collections are cached within a session,\n  and can be loaded on individual access, all\n  at once using joins, or by\
+    \ query per collection\n  across the full result set.\n* A Core SQL construction system and DBAPI\n  interaction layer.\
+    \  The SQLAlchemy Core is\n  separate from the ORM and is a full database\n  abstraction layer in its own right, and includes\n\
+    \  an extensible Python-based SQL expression\n  language, schema metadata, connection pooling,\n  type coercion, and custom\
+    \ types.\n* Primary and foreign key constraints may be composite and natural. Surrogate\n  integer primary keys are of\
+    \ course still the\n  norm, but SQLAlchemy never assumes or hardcodes\n  to this model.\n* Database introspection and\
+    \ generation.  Database\n  schemas can be \"reflected\" in one step into\n  Python structures representing database metadata;\n\
+    \  those same structures can then generate\n  CREATE statements right back out - all within\n  the Core, independent of\
+    \ the ORM.\n\nSQLAlchemy's philosophy:\n\n* SQL databases behave less and less like object\n  collections the more size\
+    \ and performance start to\n  matter; object collections behave less and less like\n  tables and rows the more abstraction\
+    \ starts to matter.\n  SQLAlchemy aims to accommodate both of these\n  principles.\n* An ORM doesn't need to hide the\
+    \ \"R\".   A relational\n  database provides rich, set-based functionality\n  that should be fully exposed.   SQLAlchemy's\n\
+    \  ORM provides an open-ended set of patterns\n  that allow a developer to construct a custom\n  mediation layer between\
+    \ a domain model and\n  a relational schema, turning the so-called\n  \"object relational impedance\" issue into\n  a\
+    \ distant memory.\n* The developer, in all cases, makes all decisions\n  regarding the design, structure, and naming conventions\n\
+    \  of both the object model as well as the relational\n  schema.   SQLAlchemy only provides the means\n  to automate the\
+    \ execution of these decisions.\n* With SQLAlchemy, there's no such thing as\n  \"the ORM generated a bad query\" - you\n\
+    \  retain full control over the structure of\n  queries, including how joins are organized,\n  how subqueries and correlation\
+    \ is used, what\n  columns are requested.  Everything SQLAlchemy\n  does is ultimately the result of a developer-initiated\
+    \ \n  decision.\n* Don't use an ORM if the problem doesn't need one.\n  SQLAlchemy consists of a Core and separate ORM\n\
+    \  component.   The Core offers a full SQL expression\n  language that allows Pythonic construction\n  of SQL constructs\
+    \ that render directly to SQL\n  strings for a target database, returning\n  result sets that are essentially enhanced\
+    \ DBAPI\n  cursors.\n* Transactions should be the norm.  With SQLAlchemy's\n  ORM, nothing goes to permanent storage until\n\
+    \  commit() is called.  SQLAlchemy enco"

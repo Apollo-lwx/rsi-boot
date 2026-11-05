@@ -1,0 +1,32 @@
+repo: django
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "Where are Django's extensive contribution guidelines located?"
+    answer: "In the repository at docs/internals/contributing/ and online at docs.djangoproject.com/en/dev/internals/contributing/."
+    gold: ["CONTRIBUTING.rst::Contributing to Django"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "Why does Django use Trac instead of GitHub for tracking bugs and feature requests?"
+    answer: "Because GitHub doesn't provide adequate tooling for its community."
+    gold: ["CONTRIBUTING.rst::Contributing to Django"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What happens to non-trivial Django pull requests (more than a typo fix) without a Trac ticket?"
+    answer: "They will be closed."
+    gold: ["CONTRIBUTING.rst::Contributing to Django"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "If you submit a Django patch as a pull request without filing a ticket, what is the likely outcome?"
+    answer: "It is unlikely the team will notice your contribution."
+    gold: ["CONTRIBUTING.rst::Contributing to Django"]
+  - id: conv-003
+    type: convention
+    difficulty: easy
+    question: "What forms of contribution does Django's CONTRIBUTING.rst list as examples?"
+    answer: "Code patches, documentation improvements, bug reports, and patch reviews."
+    gold: ["CONTRIBUTING.rst::Contributing to Django"]

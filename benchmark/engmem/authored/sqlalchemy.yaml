@@ -1,0 +1,80 @@
+repo: sqlalchemy
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "Where are SQLAlchemy's general developer guidelines hosted?"
+    answer: "The Developer Guide at sqlalchemy.org/develop.html."
+    gold: [".github/CONTRIBUTING.md::Contributing to SQLAlchemy"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "What is the required three-step process before opening a pull request in SQLAlchemy?"
+    answer: "Open an issue with a complete runnable example; wait for a maintainer to add the 'open for pull requests' label; then open the PR referencing the issue."
+    gold: [".github/CONTRIBUTING.md::Pull requests require an approved issue ##"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "In SQLAlchemy, what do the issue labels 'code review in progress' and 'NO pull requests please' mean?"
+    answer: "'code review in progress' means someone is already working on it; 'NO pull requests please' means the team is handling it themselves."
+    gold: [".github/CONTRIBUTING.md::Pull requests require an approved issue ##"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "What communication style does SQLAlchemy's Code of Conduct emphasize?"
+    answer: "Polite, thoughtful, and constructive communication between users and developers."
+    gold: ["README.rst::Code of Conduct"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What happens to a SQLAlchemy pull request that does not reference an issue labeled 'open for pull requests'?"
+    answer: "It is closed automatically by a bot as soon as it is opened."
+    gold: [".github/CONTRIBUTING.md::Pull requests require an approved issue ##"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "Does SQLAlchemy's approved-issue rule exempt documentation or typo fixes?"
+    answer: "No. It applies to documentation and typo fixes too — there are no exceptions."
+    gold: [".github/CONTRIBUTING.md::Pull requests require an approved issue ##"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "Can you open a SQLAlchemy pull request for an issue that carries none of the pull-request-related labels?"
+    answer: "No. Asking on the issue is fine, but opening a PR will get it closed."
+    gold: [".github/CONTRIBUTING.md::Pull requests require an approved issue ##"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: medium
+    question: "What does SQLAlchemy ask regarding AI/LLM generated content in discussions, issues, or PRs?"
+    answer: "It must not be spammed there, whether pasted, fully automated, or lightly edited; use your own words."
+    gold: [".github/CONTRIBUTING.md::Note on use of AI, agents and bots ##"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: hard
+    question: "What happens to users who post content trolling for karma/upvotes/vanity commits in SQLAlchemy, even if not machine-generated?"
+    answer: "They will be banned."
+    gold: [".github/CONTRIBUTING.md::Note on use of AI, agents and bots ##"]
+  - id: conv-005
+    type: convention
+    difficulty: easy
+    question: "Where does SQLAlchemy's README point users for getting help, development, and bug reporting?"
+    answer: "The SQLAlchemy Community Guide at sqlalchemy.org/support.html."
+    gold: ["README.rst::Getting Help / Development / Bug reporting"]
+  - id: prohib-006
+    type: prohibition
+    difficulty: easy
+    question: "What is SQLAlchemy's rule on unsolicited LLM-generated comments or answers on discussions and issues?"
+    answer: "They are forbidden; users who auto-submit LLM answers will be banned as fast as they are seen."
+    gold: [".github/CODE_OF_CONDUCT.md::Use of AI / LLMs (robots)"]
+  - id: prohib-007
+    type: prohibition
+    difficulty: medium
+    question: "How does SQLAlchemy handle automatic (bot-created) pull requests for open issues?"
+    answer: "An automatic close rule is in place; such PRs are not wanted."
+    gold: [".github/CODE_OF_CONDUCT.md::Use of AI / LLMs (robots)"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "For what purposes may participants use LLMs in SQLAlchemy, and what is the key restriction?"
+    answer: "Fine for understanding concepts, getting answers, or constructing code for issue demonstrations/PRs; but not as the primary means of communicating with humans on GitHub."
+    gold: [".github/CODE_OF_CONDUCT.md::Use of AI / LLMs (robots)"]

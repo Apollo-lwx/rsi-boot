@@ -1,0 +1,86 @@
+repo: pytest
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "What information must a pytest bug report include?"
+    answer: "Operating system name and version, local setup details (Python interpreter version, installed libraries, pytest version), and detailed steps to reproduce."
+    gold: ["CONTRIBUTING.rst::Report bugs"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "If you cannot fix a pytest bug yourself, what kind of demonstration test is still a useful contribution?"
+    answer: "A test that currently fails but should pass (xfail)."
+    gold: ["CONTRIBUTING.rst::Report bugs"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "How does pytest suggest crediting AI tools that helped produce code or commits?"
+    answer: "By adding Co-authored-by trailers to commit messages (not required, but appreciated)."
+    gold: ["CONTRIBUTING.rst::AI/LLM-Assisted Contributions Policy"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "Under pytest's merge/squash guidelines, when should the Squash strategy be preferred?"
+    answer: "When the commit history is messy, or when separate commits on the same topic bring little long-term value; the commit message must be cleaned up."
+    gold: ["CONTRIBUTING.rst::Merge/squash guidelines"]
+  - id: conv-005
+    type: convention
+    difficulty: hard
+    question: "When should pytest maintainers prefer the Merge strategy over Squash?"
+    answer: "When separate commits each have their own valuable topic (refactorings, renames, cleanups), worth preserving individually in history."
+    gold: ["CONTRIBUTING.rst::Merge/squash guidelines"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "What merge strategy must backport PRs in pytest always use, and why?"
+    answer: "Always squash, because that preserves the original PR author."
+    gold: ["CONTRIBUTING.rst::Merge/squash guidelines"]
+  - id: conv-007
+    type: convention
+    difficulty: easy
+    question: "Which issue label marks newcomer-friendly bugs in pytest?"
+    answer: "The 'good first issue' label."
+    gold: ["CONTRIBUTING.rst::Fix bugs"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What is pytest's policy on purely agentic pull requests with no meaningful human review?"
+    answer: "They are not accepted and will be closed; every contribution must demonstrate human review, understanding, and responsibility."
+    gold: ["CONTRIBUTING.rst::AI/LLM-Assisted Contributions Policy"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "Can contributors add new changelog entries directly to pytest's doc/en/changelog.rst?"
+    answer: "No. The file is managed by towncrier; new entries go into the changelog/ news directory."
+    gold: ["doc/en/changelog.rst::(preamble)"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "How does pytest's AI policy characterize unattended automation that floods the project with low-effort output?"
+    answer: "As an attack on the commons — a denial-of-service on a volunteer review team — leading to close-and-ban."
+    gold: ["CONTRIBUTING.rst::AI/LLM-Assisted Contributions Policy"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What backward-incompatible change did pytest 9.2.0 make to the -c option?"
+    answer: "It now raises a usage error for a path that does not exist, is a directory, or has no loader; previously such paths were ignored or raised an unhandled FileNotFoundError."
+    gold: ["doc/en/changelog.rst::Removals and backward incompatible breaking changes"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "In pytest 9.2.0, configured warning filters now apply to warnings emitted by which hooks?"
+    answer: "pytest_configure hooks."
+    gold: ["doc/en/changelog.rst::Bug fixes@1"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What logic bug in pytest.RaisesGroup was fixed in pytest 9.1.1?"
+    answer: "It could display incorrect 'It matches FooError() which was paired with BarError' messages."
+    gold: ["doc/en/changelog.rst::Bug fixes@2"]
+  - id: fix-004
+    type: fix
+    difficulty: hard
+    question: "What pytest 9.1.0 regression with parametrized fixtures did pytest 9.1.1 fix?"
+    answer: "Overriding a parametrized fixture with an indirect @pytest.mark.parametrize failed with 'duplicate parametrization'."
+    gold: ["doc/en/changelog.rst::Bug fixes@2"]

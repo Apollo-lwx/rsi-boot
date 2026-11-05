@@ -1,0 +1,1345 @@
+convention_candidates:
+- file: SECURITY.md
+  line: 13
+  section: Reporting a Vulnerability
+  text: 'Security Policy
+
+    ## Reporting a Vulnerability
+
+
+    Please reach out to tomer.nosrati@gmail.com or auvipy@gmail.com for reporting security concerns via email.'
+- file: CONTRIBUTING.rst
+  line: 56
+  section: Be respectful
+  text: 'Community Code of Conduct
+
+    Be respectful
+
+    -------------
+
+
+    The Celery community and its members treat one another with respect. Everyone
+
+    can make a valuable contribution to Celery. We may not always agree, but
+
+    disagreement is no excuse for poor behavior and poor manners. We might all
+
+    experience some frustration now and then, but we cannot allow that frustration
+
+    to turn into a personal attack. It''s important to remember that a community
+
+    where people feel uncomfortable or threatened isn''t a productive one. We
+
+    expect members of the Celery community to be respectful when dealing with
+
+    other contributors as well as with people outside the Celery project and with
+
+    users of Celery.'
+- file: CONTRIBUTING.rst
+  line: 95
+  section: When you're unsure, ask for help
+  text: 'Community Code of Conduct
+
+    When you''re unsure, ask for help
+
+    --------------------------------
+
+
+    Nobody knows everything, and nobody is expected to be perfect. Asking
+
+    questions avoids many problems down the road, and so questions are
+
+    encouraged. Those who are asked questions should be responsive and helpful.
+
+    However, when asking a question, care must be taken to do so in an appropriate
+
+    forum.'
+- file: CONTRIBUTING.rst
+  line: 104
+  section: Step down considerately
+  text: 'Community Code of Conduct
+
+    Step down considerately
+
+    -----------------------
+
+
+    Developers on every project come and go and Celery is no different. When you
+
+    leave or disengage from the project, in whole or in part, we ask that you do
+
+    so in a way that minimizes disruption to the project. This means you should
+
+    tell people you''re leaving and take the proper steps to ensure that others
+
+    can pick up where you left off.
+
+
+    .. _reporting-bugs:'
+- file: CONTRIBUTING.rst
+  line: 249
+  section: Issue Trackers
+  text: 'Reporting Bugs
+
+    Issue Trackers
+
+    --------------
+
+
+    Bugs for a package in the Celery ecosystem should be reported to the relevant
+
+    issue tracker.
+
+
+    * :pypi:`celery`: https://github.com/celery/celery/issues/
+
+    * :pypi:`kombu`: https://github.com/celery/kombu/issues
+
+    * :pypi:`amqp`: https://github.com/celery/py-amqp/issues
+
+    * :pypi:`vine`: https://github.com/celery/vine/issues
+
+    * :pypi:`pytest-celery`: https://github.com/celery/pytest-celery/issues
+
+    * :pypi:`librabbitmq`: https://github.com/celery/librabbitmq/issues
+
+    * :pypi:`django-celery-beat`: https://github.com/celery/django-celery-beat/issues
+
+    * :pypi:`django-celery-results`: https://github.com/celery/django-celery-results/issues
+
+
+    If you''re unsure of the origin of the bug you can ask on
+
+    `GitHub Discussions`_, or just use the Celery issue tracker.'
+- file: CONTRIBUTING.rst
+  line: 267
+  section: Contributors guide to the code base
+  text: 'Contributors guide to the code base
+
+    ===================================
+
+
+    There''s a separate section for internal details,
+
+    including details about the code base and a style guide.
+
+
+    Read :ref:`internals-guide` for more!
+
+
+    .. _versions:'
+- file: CONTRIBUTING.rst
+  line: 277
+  section: Versions
+  text: 'Versions
+
+    ========
+
+
+    Version numbers consists of a major version, minor version and a release number.
+
+    Since version 2.1.0 we use the versioning semantics described by
+
+    SemVer: http://semver.org.
+
+
+    Stable releases are published at PyPI
+
+    while development releases are only available in the GitHub git repository as tags.
+
+    All version tags starts with “v”, so version 0.8.0 has the tag v0.8.0.
+
+
+    .. _git-branches:'
+- file: CONTRIBUTING.rst
+  line: 290
+  section: Branches
+  text: "Branches\n========\n\nCurrent active version branches:\n\n* dev (which git calls \"main\") (https://github.com/celery/celery/tree/main)\n\
+    * 4.5 (https://github.com/celery/celery/tree/v4.5)\n* 3.1 (https://github.com/celery/celery/tree/3.1)\n\nYou can see the\
+    \ state of any branch by looking at the Changelog:\n\n    https://github.com/celery/celery/blob/main/Changelog.rst\n\n\
+    If the branch is in active development the topmost version info should\ncontain meta-data like:\n\n.. code-block:: restructuredtext\n\
+    \n    4.3.0\n    ======\n    :release-date: TBA\n    :status: DEVELOPMENT\n    :branch: dev (git calls this main)\n\n\
+    The ``status`` field can be one of:\n\n* ``PLANNING``\n\n    The branch is currently experimental and in the planning\
+    \ stage.\n\n* ``DEVELOPMENT``\n\n    The branch is in active development, but the test suite should\n    be passing and\
+    \ the product should be working and possible for users to test.\n\n* ``FROZEN``\n\n    The branch is frozen, and no more\
+    \ features will be accepted.\n    When a branch is frozen the focus is on testing the version as much\n    as possible\
+    \ before it is released."
+- file: CONTRIBUTING.rst
+  line: 392
+  section: Working on Features & Patches
+  text: "Working on Features & Patches\n=============================\n\n.. note::\n\n    Contributing to Celery should be\
+    \ as simple as possible,\n    so none of these steps should be considered mandatory.\n\n    You can even send in patches\
+    \ by email if that's your preferred\n    work method. We won't like you any less, any contribution you make\n    is always\
+    \ appreciated!\n\n    However, following these steps may make maintainer's life easier,\n    and may mean that your changes\
+    \ will be accepted sooner."
+- file: CONTRIBUTING.rst
+  line: 455
+  section: Developing and Testing with Docker
+  text: "Working on Features & Patches\nDeveloping and Testing with Docker\n----------------------------------\n\nBecause\
+    \ of the many components of Celery, such as a broker and backend,\n`Docker`_ and `docker-compose`_ can be utilized to\
+    \ greatly simplify the\ndevelopment and testing cycle.\n\nThe Docker components can be found within the :file:`docker/`\
+    \ folder. The\nDocker image is parameterized by the ``PYTHON_IMAGE`` build argument and uses\nthe corresponding official\
+    \ Python or PyPy base image.\n\nThe Docker Compose configuration provides a service for each supported Python\nversion:\n\
+    \n* ``celery311`` -- Python 3.11\n* ``celery312`` -- Python 3.12\n* ``celery313`` -- Python 3.13\n* ``celery314`` -- Python\
+    \ 3.14\n* ``celerypypy311`` -- PyPy 3.11\n\nTo build all Docker images:\n\n.. code-block:: console\n\n    $ make docker-build\n\
+    \nTo build a specific Python version, use Docker Compose directly. For example:\n\n.. code-block:: console\n\n    $ docker\
+    \ compose -f docker/docker-compose.yml build celery312\n\nand run a command in the container via:\n\n.. code-block:: console\n\
+    \n    $ docker compose -f docker/docker-compose.yml run --rm celery312 <command>\n\nwhere ``<command>`` is a command to\
+    \ execute in a Docker container. The\n``--rm`` flag indicates that the container should be removed after it is\nexited\
+    \ and is useful to prevent accumulation of unwanted containers.\n\nSome useful commands to run:\n\n* ``bash``\n\n  To\
+    \ enter the Docker container like a normal shell:\n\n  .. code-block:: console\n\n      $ docker compose -f docker/docker-compose.yml\
+    \ run --rm celery312 bash\n\n* ``pytest t/unit``\n\n  To run the unit tests using Python 3.12:\n\n  .. code-block:: console\n\
+    \n      $ docker compose -f docker/docker-compose.yml run --rm celery312 \\\n          pytest t/unit\n\n* ``pytest t/integration``\n\
+    \n  To run the integration tests using Python 3.12:\n\n  .. code-block:: console\n\n      $ docker compose -f docker/docker-compose.yml\
+    \ run --rm celery312 \\\n          pytest t/integration\n\nThe Python version can be changed by selecting the corresponding\
+    \ Docker\nCompose service. For example, ``celery311``, ``celery313``, ``celery314``, or\n``celerypypy311`` can be used\
+    \ instead of ``celery312``.\n\nThe Dockerfile can also be built directly with a specific Python base image\nby providing\
+    \ the ``PYTHON_IMAGE`` build argument:\n\n.. code-block:: console\n\n    $ docker build \\\n        --build-arg PYTHON_IMAGE=python:3.12-slim-bookworm\
+    \ \\\n        -f docker/Dockerfile .\n\nThe default value of ``PYTHON_IMAGE`` is\n``python:3.14-slim-bookworm``.\n\nBy\
+    \ default, Docker Compose will mount the Celery source tree in the Docker\ncontainer, allowing code changes and testing\
+    \ to be immediately visible inside\nthe Docker container. Environment variables, such as the broker and backend\nto use,\
+    \ are also defined in the :file:`docker/docker-compose.yml` file.\n\nThe :file:`docker/docker-compose.yml` file defines\
+    \ the necessary environment\nvariables and services to run integration tests. The Python-specific services\nalso mount\
+    \ the codebase and set the ``PYTHONPATH`` environment variable to\n``/home/developer/celery``. By setting ``PYTHONPATH``\
+    \ the service allows the\nmounted codebase to be used as a global module for development. If you prefer,\nyou can also\
+    \ run ``python -m pip install -e .`` to install the codebase in\ndevelopment mode.\n\nIf you would like to run a Django\
+    \ or stand alone project to manually test or\ndebug a feature, you can use one of the Python-version-specific images built\n\
+    from this repository and mount your custom code. Here's an example:\n\nAssuming a folder structure such as:\n\n.. code-block::\
+    \ console\n\n    + celery_project\n      + celery # repository cloned here.\n      + my_project\n        - manage.py\n\
+    \        + my_project\n          - views.py\n\n.. code-block:: yaml\n\n    services:\n      celery312:\n        image:\
+    \ celery/celery:dev-py312\n        environment:\n          TEST_BROKER: amqp://rabbit:5672\n          TEST_BACKEND: redis://redis\n\
+    \        volumes:\n          - ../../celery:/home/developer/celery\n          - ../my_project:/home/developer/m"
+- file: CONTRIBUTING.rst
+  line: 647
+  section: Calculating test coverage
+  text: "Working on Features & Patches > Running the unit test suite\nCalculating test coverage\n~~~~~~~~~~~~~~~~~~~~~~~~~\n\
+    \nTo calculate test coverage you must first install the :pypi:`pytest-cov` module.\n\nInstalling the :pypi:`pytest-cov`\
+    \ module:\n\n.. code-block:: console\n\n    $ pip install -U pytest-cov"
+- file: CONTRIBUTING.rst
+  line: 673
+  section: Code coverage in XML (Cobertura-style)
+  text: "Working on Features & Patches > Running the unit test suite > Calculating test coverage\nCode coverage in XML (Cobertura-style)\n\
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n#. Run :command:`pytest` with the ``--cov-report=xml`` argument enabled:\n\n\
+    .. code-block:: console\n\n    $ pytest --cov=celery --cov-report=xml\n\n#. The coverage XML output will then be located\
+    \ in the :file:`coverage.xml` file.\n\n.. _contributing-tox:"
+- file: CONTRIBUTING.rst
+  line: 704
+  section: Building the documentation
+  text: "Working on Features & Patches\nBuilding the documentation\n--------------------------\n\nTo build the documentation,\
+    \ you need to install the dependencies\nlisted in :file:`requirements/docs.txt` and :file:`requirements/default.txt`:\n\
+    \n.. code-block:: console\n\n    $ pip install -U -r requirements/docs.txt\n    $ pip install -U -r requirements/default.txt\n\
+    \nAdditionally, to build with no warnings, you will need to install\nthe following packages:\n\n.. code-block:: console\n\
+    \n   $ apt-get install texlive texlive-latex-extra dvipng\n\nAfter these dependencies are installed, you should be able\
+    \ to\nbuild the docs by running:\n\n.. code-block:: console\n\n    $ cd docs\n    $ rm -rf _build\n    $ make html\n\n\
+    Make sure there are no errors or warnings in the build output.\nAfter building succeeds, the documentation is available\
+    \ at :file:`_build/html`.\n\n.. _contributing-verify:"
+- file: CONTRIBUTING.rst
+  line: 762
+  section: pyflakes & PEP-8
+  text: "Working on Features & Patches > Verifying your contribution\npyflakes & PEP-8\n~~~~~~~~~~~~~~~~\n\nTo ensure that\
+    \ your changes conform to :pep:`8` and to run pyflakes\nexecute:\n\n.. code-block:: console\n\n    $ make flakecheck\n\
+    \nTo not return a negative exit code when this command fails, use\nthe ``flakes`` target instead:\n\n.. code-block:: console\n\
+    \n    $ make flakes"
+- file: CONTRIBUTING.rst
+  line: 779
+  section: API reference
+  text: "Working on Features & Patches > Verifying your contribution\nAPI reference\n~~~~~~~~~~~~~\n\nTo make sure that all\
+    \ modules have a corresponding section in the API\nreference, please execute:\n\n.. code-block:: console\n\n    $ make\
+    \ apicheck\n\nIf files are missing, you can add them by copying an existing reference file.\n\nIf the module is internal,\
+    \ it should be part of the internal reference\nlocated in :file:`docs/internals/reference/`. If the module is public,\n\
+    it should be located in :file:`docs/reference/`.\n\nFor example, if reference is missing for the module ``celery.worker.awesome``\n\
+    and this module is considered part of the public API, use the following steps:\n\n\nUse an existing file as a template:\n\
+    \n.. code-block:: console\n\n    $ cd docs/reference/\n    $ cp celery.schedules.rst celery.worker.awesome.rst\n\nEdit\
+    \ the file using your favorite editor:\n\n.. code-block:: console\n\n    $ vim celery.worker.awesome.rst\n\n        #\
+    \ change every occurrence of ``celery.schedules`` to\n        # ``celery.worker.awesome``\n\n\nEdit the index using your\
+    \ favorite editor:\n\n.. code-block:: console\n\n    $ vim index.rst\n\n        # Add ``celery.worker.awesome`` to the\
+    \ index.\n\n\nCommit your changes:\n\n.. code-block:: console\n\n    # Add the file to git\n    $ git add celery.worker.awesome.rst\n\
+    \    $ git add index.rst\n    $ git commit celery.worker.awesome.rst index.rst \\\n        -m \"Adds reference for celery.worker.awesome\""
+- file: CONTRIBUTING.rst
+  line: 835
+  section: Isort
+  text: "Working on Features & Patches > Verifying your contribution\nIsort\n~~~~~~\n\n`Isort`_ is a python utility to help\
+    \ sort imports alphabetically and separated into sections.\nThe Celery project uses isort to better maintain imports on\
+    \ every module.\nPlease run isort if there are any new modules or the imports on an existent module\nhad to be modified.\n\
+    \n.. code-block:: console\n\n   $ isort my_module.py # Run isort for one file\n   $ isort -rc . # Run it recursively\n\
+    \   $ isort m_module.py --diff # Do a dry-run to see the proposed changes\n\n.. _`Isort`: https://isort.readthedocs.io/en/latest/\n\
+    \n.. _contributing-pull-requests:"
+- file: CONTRIBUTING.rst
+  line: 853
+  section: Creating pull requests
+  text: "Working on Features & Patches\nCreating pull requests\n----------------------\n\nWhen your feature/bugfix is complete,\
+    \ you may want to submit\na pull request, so that it can be reviewed by the maintainers.\n\nBefore submitting a pull request,\
+    \ please make sure you go through this checklist to\nmake it easier for the maintainers to accept your proposed changes:\n\
+    \n- [ ] Make sure any change or new feature has a unit and/or integration test.\n      If a test is not written, a label\
+    \ will be assigned to your PR with the name\n      ``Needs Test Coverage``.\n\n- [ ] Make sure unit test coverage does\
+    \ not decrease.\n      ``pytest -xv --cov=celery --cov-report=xml --cov-report term``.\n      You can check the current\
+    \ test coverage here: https://codecov.io/gh/celery/celery\n\n- [ ] Run ``pre-commit`` against the code. The following\
+    \ commands are valid\n      and equivalent.:\n\n      .. code-block:: console\n\n          $ pre-commit run --all-files\n\
+    \          $ tox -e lint\n\n- [ ]  Build api docs to make sure everything is OK. The following commands are valid\n  \
+    \    and equivalent.:\n\n      .. code-block:: console\n\n          $ make apicheck\n          $ cd docs && sphinx-build\
+    \ -b apicheck -d _build/doctrees . _build/apicheck\n          $ tox -e apicheck\n\n- [ ] Build configcheck. The following\
+    \ commands are valid\n      and equivalent.:\n\n      .. code-block:: console\n\n          $ make configcheck\n      \
+    \    $ cd docs && sphinx-build -b configcheck -d _build/doctrees   . _build/configcheck\n          $ tox -e configcheck\n\
+    \n- [ ] Run ``bandit`` to make sure there's no security issues. The following commands are valid\n      and equivalent.:\n\
+    \n      .. code-block:: console\n\n          $ pip install -U bandit\n          $ bandit -b bandit.json celery/\n    \
+    \      $ tox -e bandit\n\n- [ ] Run unit and integration tests for every python version. The following commands are valid\n\
+    \      and equivalent.:\n\n      .. code-block:: console\n\n         $ tox -v\n\n- [ ] Confirm ``isort`` on any new or\
+    \ modified imports:\n\n      .. code-block:: console\n\n        $ isort my_module.py --diff\n\nCreating pull requests\
+    \ is easy, and they also let you track the progress\nof your contribution. Read the `Pull Requests`_ section in the GitHub\n\
+    Guide to learn how this is done.\n\nYou can also attach pull requests to existing issues by following\nthe steps outlined\
+    \ here: https://bit.ly/koJoso\n\nYou can also use `hub`_ to create pull requests. Example: https://theiconic.tech/git-hub-fbe2e13ef4d1\n\
+    \n.. _`Pull Requests`: http://help.github.com/send-pull-requests/\n\n.. _`hub`: https://hub.github.com/"
+- file: CONTRIBUTING.rst
+  line: 1148
+  section: Contributing features requiring additional libraries
+  text: "Contributing features requiring additional libraries\n====================================================\n\nSome\
+    \ features like a new result backend may require additional libraries\nthat the user must install.\n\nWe use setuptools\
+    \ `extra_requires` for this, and all new optional features\nthat require third-party libraries must be added.\n\n1) Add\
+    \ a new requirements file in `requirements/extras`\n\n    For the Cassandra backend this is\n    :file:`requirements/extras/cassandra.txt`,\
+    \ and the file looks like this:\n\n    .. code-block:: text\n\n        pycassa\n\n    These are pip requirement files,\
+    \ so you can have version specifiers and\n    multiple packages are separated by newline. A more complex example could\n\
+    \    be:\n\n    .. code-block:: text\n\n        # pycassa 2.0 breaks Foo\n        pycassa>=1.0,<2.0\n        thrift\n\n\
+    2) Modify ``setup.py``\n\n    After the requirements file is added, you need to add it as an option\n    to :file:`setup.py`\
+    \ in the ``extras_require`` section::\n\n        extra['extras_require'] = {\n            # ...\n            'cassandra':\
+    \ extras('cassandra.txt'),\n        }\n\n3) Document the new feature in :file:`docs/includes/installation.txt`\n\n   \
+    \ You must add your feature to the list in the :ref:`bundles` section\n    of :file:`docs/includes/installation.txt`.\n\
+    \n    After you've made changes to this file, you need to render\n    the distro :file:`README` file:\n\n    .. code-block::\
+    \ console\n\n        $ pip install -U -r requirements/pkgutils.txt\n        $ make readme\n\n\nThat's all that needs to\
+    \ be done, but remember that if your feature\nadds additional configuration options, then these needs to be documented\n\
+    in :file:`docs/configuration.rst`. Also, all settings need to be added to the\n:file:`celery/app/defaults.py` module.\n\
+    \nResult backends require a separate section in the :file:`docs/configuration.rst`\nfile.\n\n.. _contact_information:"
+- file: CONTRIBUTING.rst
+  line: 1461
+  section: Updating the version number
+  text: "Release Procedure\nUpdating the version number\n---------------------------\n\nThe version number must be updated\
+    \ in three places:\n\n    * :file:`celery/__init__.py`\n    * :file:`docs/include/introduction.txt`\n    * :file:`README.rst`\n\
+    \nThe changes to the previous files can be handled with the [`bumpversion` command line tool]\n(https://pypi.org/project/bumpversion/).\
+    \ The corresponding configuration lives in\n:file:`.bumpversion.cfg`. To do the necessary changes, run:\n\n.. code-block::\
+    \ console\n\n    $ bumpversion\n\nAfter you have changed these files, you must render\nthe :file:`README` files. There's\
+    \ a script to convert sphinx syntax\nto generic reStructured Text syntax, and the make target `readme`\ndoes this for\
+    \ you:\n\n.. code-block:: console\n\n    $ make readme\n\nNow commit the changes:\n\n.. code-block:: console\n\n    $\
+    \ git commit -a -m \"Bumps version to X.Y.Z\"\n\nand make a new version tag:\n\n.. code-block:: console\n\n    $ git tag\
+    \ vX.Y.Z\n    $ git push --tags"
+- file: README.rst
+  line: 155
+  section: Get Started
+  text: "Get Started\n===========\n\nIf this is the first time you're trying to use Celery, or you're\nnew to Celery v5.6.x\
+    \ coming from previous versions then you should read our\ngetting started tutorials:\n\n- `First steps with Celery`_\n\
+    \n    Tutorial teaching you the bare minimum needed to get started with Celery.\n\n- `Next steps`_\n\n    A more complete\
+    \ overview, showing more features.\n\n.. _`First steps with Celery`:\n    https://docs.celeryq.dev/en/stable/getting-started/first-steps-with-celery.html\n\
+    \n.. _`Next steps`:\n    https://docs.celeryq.dev/en/stable/getting-started/next-steps.html\n\n You can also get started\
+    \ with Celery by using a hosted broker transport CloudAMQP. The largest hosting provider of RabbitMQ is a proud sponsor\
+    \ of Celery."
+- file: README.rst
+  line: 356
+  section: Transports and Backends
+  text: "Installation > Bundles\nTransports and Backends\n~~~~~~~~~~~~~~~~~~~~~~~\n\n:``celery[amqp]``:\n    for using the\
+    \ RabbitMQ amqp python library.\n\n:``celery[redis]``:\n    for using Redis as a message transport or as a result backend.\n\
+    \n:``celery[sqs]``:\n    for using Amazon SQS as a message transport.\n\n:``celery[tblib]``:\n    for using the ``task_remote_tracebacks``\
+    \ feature.\n\n:``celery[memcache]``:\n    for using Memcached as a result backend (using ``pymemcache``).\n\n:``celery[pymemcache]``:\n\
+    \    alias of ``celery[memcache]``, kept for backward compatibility.\n\n:``celery[cassandra]``:\n    for using Apache\
+    \ Cassandra/Astra DB as a result backend with the DataStax driver.\n\n:``celery[azureblockblob]``:\n    for using Azure\
+    \ Storage as a result backend (using ``azure-storage``)\n\n:``celery[s3]``:\n    for using S3 Storage as a result backend.\n\
+    \n:``celery[gcs]``:\n    for using Google Cloud Storage as a result backend.\n\n:``celery[couchbase]``:\n    for using\
+    \ Couchbase as a result backend.\n\n:``celery[arangodb]``:\n    for using ArangoDB as a result backend.\n\n:``celery[elasticsearch]``:\n\
+    \    for using Elasticsearch as a result backend.\n\n:``celery[riak]``:\n    for using Riak as a result backend.\n\n:``celery[cosmosdbsql]``:\n\
+    \    for using Azure Cosmos DB as a result backend (using ``pydocumentdb``)\n\n:``celery[zookeeper]``:\n    for using\
+    \ Zookeeper as a message transport.\n\n:``celery[sqlalchemy]``:\n    for using SQLAlchemy as a result backend (*supported*).\n\
+    \n:``celery[pyro]``:\n    for using the Pyro4 message transport (*experimental*).\n\n:``celery[slmq]``:\n    for using\
+    \ the SoftLayer Message Queue transport (*experimental*).\n\n:``celery[consul]``:\n    for using the Consul.io Key/Value\
+    \ store as a message transport or result backend (*experimental*).\n\n:``celery[django]``:\n    specifies the lowest version\
+    \ possible for Django support.\n\n    You should probably not use this in your requirements, it's here\n    for informational\
+    \ purposes only.\n\n:``celery[gcpubsub]``:\n    for using Google Pub/Sub as a message transport.\n\n\n\n.. _celery-installing-from-source:"
+- file: README.rst
+  line: 432
+  section: Downloading and installing from source
+  text: "Installation\nDownloading and installing from source\n--------------------------------------\n\nDownload the latest\
+    \ version of Celery from PyPI:\n\nhttps://pypi.org/project/celery/\n\nYou can install it by doing the following:\n\n::\n\
+    \n\n    $ tar xvfz celery-0.0.0.tar.gz\n    $ cd celery-0.0.0\n    $ python setup.py build\n    # python setup.py install\n\
+    \nThe last command must be executed as a privileged user if\nyou aren't currently using a virtualenv.\n\n.. _celery-installing-from-git:"
+- file: README.rst
+  line: 475
+  section: With git
+  text: 'Installation > Using the development version
+
+    With git
+
+    ~~~~~~~~
+
+
+    Please see the Contributing section.
+
+
+    .. _getting-help:'
+- file: README.rst
+  line: 487
+  section: Mailing list
+  text: 'Getting Help
+
+    Mailing list
+
+    ------------
+
+
+    For discussions about the usage, development, and future of Celery,
+
+    please join the `celery-users`_ mailing list.
+
+
+    .. _`celery-users`: https://groups.google.com/group/celery-users/
+
+
+    .. _irc-channel:'
+- file: README.rst
+  line: 507
+  section: Bug tracker
+  text: 'Bug tracker
+
+    ===========
+
+
+    If you have any suggestions, bug reports, or annoyances please report them
+
+    to our issue tracker at https://github.com/celery/celery/issues/
+
+
+    .. _wiki:'
+files_seen:
+- CHANGELOG.rst
+- CONTRIBUTING.rst
+- README.rst
+- SECURITY.md
+- docs/contributing.rst
+fix_candidates:
+- file: CHANGELOG.rst
+  line: 4
+  section: Change history
+  text: 'Change history
+
+    ================
+
+
+    This document contains change notes for bugfix & new features
+
+    in the main branch & 5.6.x series, please see :ref:`whatsnew-5.6` for
+
+    an overview of what''s new in Celery 5.6.'
+- file: CHANGELOG.rst
+  line: 269
+  section: Bug Fixes
+  text: '5.7.0a1
+
+    Bug Fixes
+
+    ~~~~~~~~~'
+- file: CHANGELOG.rst
+  line: 337
+  section: Documentation
+  text: '5.7.0a1 > Configuration
+
+    Documentation
+
+    ~~~~~~~~~~~~~
+
+
+    23 doc fixes/clarifications, including: clarified chord errback signatures
+
+    (#10300), canvas calling behavior (#10447), acks-late vs. retry semantics
+
+    (#10448), rate-limit/prefetch interactions (#10291), SQS FIFO message
+
+    properties (#10446), and numerous grammar/typo fixes across the config and
+
+    extending guides.'
+- file: CHANGELOG.rst
+  line: 371
+  section: What's Changed
+  text: '5.7.0a1 > Configuration
+
+    What''s Changed
+
+    ~~~~~~~~~~~~~~
+
+
+    - fix(defaults): default to exclusive queues for RabbitMQ 4.3.0 compatibility (#10287)
+
+    - Revert "fix(defaults): default to exclusive queues for RabbitMQ 4.3.0 compati…" (#10289)
+
+    - fix(defaults,rpc): RabbitMQ 4.3.0 compatibility for transient queues (#10290)
+
+    - Removed socket.timeout from reconnection conditions (#10285)
+
+    - fix(worker): skip Broadcast queues in native delayed delivery binding (#10293)
+
+    - [pre-commit.ci] pre-commit autoupdate (#10292)
+
+    - fix(worker): guard heartbeat control command against None event_dispatcher (#10295)
+
+    - fix(redis): keep _reconnect_pubsub compatible with redis-py < 5.3.0 (#10298)
+
+    - docs: clarify chord errback signatures (#10300)
+
+    - Chore(deps): Update python-memcached requirement from >=1.61 to >=1.62 (#10282)
+
+    - Allow Redis backend SSL config with redis URLs (#10313)
+
+    - Skip empty groups in chains (#10321)
+
+    - Handle DST gaps in make_aware (#10324)
+
+    - Fix worker consuming unexpected queues after connection loss (#10335)
+
+    - Apply backend retry policy to all DatabaseBackend DB operations (#10334)
+
+    - Explain prefetching with late acknowledgments (#10343)
+
+    - Add documentation to workers guide around signal exception bytecode stuff (#10276)
+
+    - Fix Consumer.on_close() wiping in-flight reservations and breaking worker_disable_prefetch (#10345)
+
+    - Fix: wrap new-style errback calls in try/except to prevent silent chain halt (#10214)
+
+    - Fix free worker stalling after broker reconnect (AsynPool.flush clearing _busy_workers) (#10346)
+
+    - Fix Queues.deselect leaking routing-only queues into consumers (#10348)
+
+    - fix(redis): prevent _pending_messages memory leak in ResultConsumer (#10342)
+
+    - chore(deps): bump cryptography in /requirements/extras (#10350)
+
+    - chore(deps): bump codecov/codecov-action from 6 to 7 (#10349)
+
+    - docs(tasks): warn that rate-limited tasks block the worker''s prefetch (#10291)
+
+    - Fix add_consumer not restoring consume_from for known queues (#10352)
+
+    - Fix queue selection by alias to store the real queue name (#10358)
+
+    - Defer default queue lookup for explicitly routed tasks (#10357)
+
+    - Fix pidbox consumer cleanup during reset cycles (#10363)
+
+    - Fix typo (#10365)
+
+    - Redis ResultConsumer: clean up leaked _pending_messages after on_wait_for_pending (#10366)
+
+    - Mark rejected tasks as failed when not requeued (#10369)
+
+    - chore(deps): bump cryptography in /requirements/extras (#10368)
+
+    - chore(deps): bump actions/checkout from 6 to 7 (#10362)
+
+    - Update reserved requests to use new event dispatcher on reconnect (#10383)
+
+    - Tolerate task cancellation errors after connection loss (#10382)
+
+    - Preserve group errback mutability (#10385)
+
+    - fix(canvas): propagate chained task failures to the chord body (#10323)
+
+    - Document task registration requirement for the celery_worker fixture (#10378)
+
+    - Raise a clear error instead of a bare ValueError when fast_trace_task''s worker registry is empty (#10397)
+
+    - chore(deps): bump actions/setup-python from 6 to 7
+
+    - Fix preload options for control command (#10403)
+
+    - Handle UUID task ids in key-value store backend key generation (#10406)
+
+    - Stop eager chain execution on Ignore and Reject (#10404)
+
+    - fix(canvas): restore GroupResult fan-out in chain as_tuple() (#8903 regression) (#10408)
+
+    - Finalize ResultSet barrier when `iter_native` begins (#10407)
+
+    - Move custom-worker integration tests to the smoke suite (#10410)
+
+    - Guard integration tests (#10411)
+
+    - Handle EPERM from os.kill in multi stopwait node liveness check
+
+    - Preserve re-buffered events during dispatcher flush (#10401)
+
+    - Possible secret in repository (#10257)
+
+    - Fix inconsistencies in systemd service examples (#10425)
+
+    - docs: describe canvas calling behavior accurately (#10447)
+
+    - docs: clarify acks late versus retry behavior (#10448)
+
+    - docs: link worker settings to CLI options (#10445)
+
+    - Preserve absolute event timestamps in Gossip (#10418)
+
+    - fix(events): don''t drop buffered events appended during publish (#10435)
+
+    - Respect result_extended in the RPC result backend (#10431)
+
+    - docs: Fix gramma'
+- file: CHANGELOG.rst
+  line: 566
+  section: What's Changed
+  text: '5.6.2
+
+    What''s Changed
+
+    ~~~~~~~~~~~~~~
+
+
+    - Fix recursive WorkController instantiation in DjangoWorkerFixup + AttributeError when pool_cls is a string (#10045)
+
+    - Bugfix: Revoked tasks now immediately update backend status to REVOKED (#9869)
+
+    - Prepare for release: v5.6.2 (#10049)
+
+
+    .. _version-5.6.1:'
+- file: CHANGELOG.rst
+  line: 637
+  section: 'Security Fix: Broker Credential Leak Prevention'
+  text: '5.6.0
+
+    Security Fix: Broker Credential Leak Prevention
+
+    ------------------------------------------------
+
+
+    Fixed a security issue where broker URLs containing passwords were being logged
+
+    in plaintext by the delayed delivery mechanism. Broker credentials are now
+
+    properly sanitized in all log output.
+
+
+    Contributed by `@giancarloromeo <https://github.com/giancarloromeo>`_ in
+
+    `#9997 <https://github.com/celery/celery/pull/9997>`_.'
+- file: CHANGELOG.rst
+  line: 647
+  section: Memory Leak Fixes
+  text: '5.6.0
+
+    Memory Leak Fixes
+
+    -----------------
+
+
+    Two significant memory leaks have been fixed in this release:
+
+
+    **Exception Handling Memory Leak**: Fixed a critical memory leak in task exception
+
+    handling that was particularly severe on Python 3.11+ due to enhanced traceback
+
+    data. The fix properly breaks reference cycles in tracebacks to allow garbage
+
+    collection.
+
+
+    Contributed by `@jaiganeshs21 <https://github.com/jaiganeshs21>`_ in
+
+    `#9799 <https://github.com/celery/celery/pull/9799>`_.
+
+
+    **Pending Result Memory Leak**: Fixed a memory leak where ``AsyncResult``
+
+    subscriptions were not being cleaned up when results were forgotten.
+
+
+    Contributed by `@tsoos99dev <https://github.com/tsoos99dev>`_ in
+
+    `#9806 <https://github.com/celery/celery/pull/9806>`_.'
+- file: CHANGELOG.rst
+  line: 769
+  section: What's Changed
+  text: '5.6.0b2
+
+    What''s Changed
+
+    ~~~~~~~~~~~~~~
+
+
+    - GitHub Actions: Test on Python 3.14 release candidate 2 (#9891)
+
+    - Update pypy to python 3.11 (#9896)
+
+    - Feature: Add support credential_provider to Redis Backend (#9879)
+
+    - Celery.timezone: try tzlocal.get_localzone() before using LocalTimezone (#9862)
+
+    - Run integration tests on Python 3.14 (#9903)
+
+    - Fix arithmetic overflow for MSSQL result backend (#9904)
+
+    - Add documentation for task_id param for apply_async function (#9906)
+
+    - Support redis client name (#9900)
+
+    - Bump Kombu to v5.6.0rc1 (#9918)
+
+    - Fix broker connection retry attempt counter in the error log (#9911)
+
+    - fix: restrict disable-prefetch feature to Redis brokers only (#9919)
+
+    - fix(): preserve group order in replaced signature (#9910)
+
+    - Remove Python 3.8 from CI workflow (#9930)
+
+    - Update default Python versions in integration tests (#9931)
+
+    - Update tox.ini to remove Python 3.8 (#9932)
+
+    - Remove Python 3.8 from Dockerfile (#9933)
+
+    - Update Python version requirement to 3.9 (#9935)
+
+    - Update pypy version from 3.10 to 3.11 in Dockerfile (#9934)
+
+    - Flake8 fixes (#9955)
+
+    - Remove test-pypy3.txt from Dockerfile dependencies (#9939)
+
+    - Remove backports.zoneinfo for Python 3.9 compatibility (#9956)
+
+    - Update pytest-cov version for Python compatibility (#9957)
+
+    - Update pytest-rerunfailures and pre-commit versions (#9958)
+
+    - Prepare for (pre) release: v5.6.0b2 (#9938)
+
+
+    .. _version-5.6.0b1:'
+- file: CHANGELOG.rst
+  line: 808
+  section: What's Changed
+  text: '5.6.0b1
+
+    What''s Changed
+
+    ~~~~~~~~~~~~~~
+
+
+    - docs: mention of json serializer recursive reference message size blowup (#5000) (#9743)
+
+    - docs: typo in canvas.rst (#9744)
+
+    - Makes _on_retry return a float as required to be used as errback on retry_over_time (#9741)
+
+    - Update canvas.rst doc calculation order for callback (#9758)
+
+    - Updated Blacksmith logo (#9763)
+
+    - Made the Sponsors logos link to their website (#9764)
+
+    - add missing cloudamqp logo (#9767)
+
+    - Improve sponsor visibility (#9768)
+
+    - fix: (#9773) task_id must not be empty with chain as body of a chord (#9774)
+
+    - Update setup.py to fix deprecation warning (#9771)
+
+    - Adds integration test for chord_unlock bug when routed to quorum/topic queue (#9766)
+
+    - Add xfail test for default queue/exchange fallback ignoring task_default_* settings (#9765)
+
+    - Add xfail test for RabbitMQ quorum queue global QoS race condition (#9770)
+
+    - fix: (#8786) time out when chord header fails with group body (#9788)
+
+    - Fix #9738 : Add root_id and parent_id to .apply() (#9784)
+
+    - Replace DelayedDelivery connection creation to use context manager (#9793)
+
+    - Fix #9794: Pydantic integration fails with __future__.annotations. (#9795)
+
+    - add go and rust implementation in docs (#9800)
+
+    - Fix memory leak in exception handling (Issue #8882) (#9799)
+
+    - Fix handlers docs (Issue #9787) (#9804)
+
+    - Remove importlib_metadata leftovers (#9791)
+
+    - Update timeout minutes for smoke tests CI (#9807)
+
+    - Revert "Remove dependency on `pycurl`" (#9620)
+
+    - Add Blacksmith Docker layer caching to all Docker builds (#9840)
+
+    - Bump Kombu to v5.6.0b1 (#9839)
+
+    - Disable pytest-xdist for smoke tests and increase retries (CI ONLY) (#9842)
+
+    - Fix Python 3.13 compatibility in events dumper (#9826)
+
+    - Dockerfile Build Optimizations (#9733)
+
+    - Migrated from useblacksmith/build-push-action@v1 to useblacksmith/setup-docker-builder@v1 in the CI (#9846)
+
+    - Remove incorrect example (#9854)
+
+    - Revert "Use Django DB max age connection setting" (#9824)
+
+    - Fix pending_result memory leak (#9806)
+
+    - Update python-package.yml (#9856)
+
+    - Bump Kombu to v5.6.0b2 (#9858)
+
+    - Refactor integration and smoke tests CI (#9855)
+
+    - Fix `AsyncResult.forget()` with couchdb backend method raises `TypeError: a bytes-like object is required, not ''str''`
+    (#9865)
+
+    - Improve Docs for SQS Authentication (#9868)
+
+    - Added `.github/copilot-instructions.md` for GitHub Copilot (#9874)
+
+    - misc: credit removal (#9877)
+
+    - Choose queue type and exchange type when creating missing queues (fix #9671) (#9815)
+
+    - fix: prevent celery from hanging due to spawned greenlet errors in greenlet drainers (#9371)
+
+    - Feature/disable prefetch fixes (#9863)
+
+    - Add worker_eta_task_limit configuration to manage ETA task memory usage (#9853)
+
+    - Update runner version in Docker workflow (#9884)
+
+    - Prepare for (pre) release: v5.6.0b1 (#9890)
+
+
+    .. _version-5.5.3:'
+- file: CHANGELOG.rst
+  line: 865
+  section: What's Changed
+  text: '5.5.3
+
+    What''s Changed
+
+    ~~~~~~~~~~~~~~
+
+
+    - make the tests run on python 3.13 for gcs backend (#9677)
+
+    - Added DeepWiki to README (#9683)
+
+    - Limit redis to <=v5.2.1 to match Kombu (#9693)
+
+    - Use EX_OK instead of literal zero (#9684)
+
+    - Make wheel metadata reproducible (#9687)
+
+    - let celery install from kombu dependencies for better align (#9696)
+
+    - Fix stamping documentation to clarify stamped_headers key is optional in visitor methods (#9697)
+
+    - Support apply_async without queue argument on quorum queues (#9686)
+
+    - Updated rabbitmq doc about using quorum queues with task routes (#9707)
+
+    - Add: Dumper Unit Test (#9711)
+
+    - Add unit test for event.group_from (#9709)
+
+    - refactor: add beat_cron_starting_deadline documentation warning (#9712)
+
+    - fix: resolve issue #9569 by supporting distinct broker transport options for workers (#9695)
+
+    - Fixes issue with retry callback arguments in DelayedDelivery (#9708)
+
+    - get_exchange-unit-test (#9710)
+
+    - ISSUE-9704: Update documentation of result_expires, filesystem backend is supported (#9716)
+
+    - update to blacksmith ubuntu 24.04 (#9717)
+
+    - Added unit tests for celery.utils.iso8601 (#9725)
+
+    - Update introduction.rst docs (#9728)
+
+    - Prepare for release: v5.5.3 (#9732)
+
+
+    .. _version-5.5.2:'
+- file: CHANGELOG.rst
+  line: 913
+  section: What's Changed
+  text: '5.5.1
+
+    What''s Changed
+
+    ~~~~~~~~~~~~~~
+
+
+    - Fixed "AttributeError: list object has no attribute strip" with quorum queues and failover brokers (#9657)
+
+    - Prepare for release: v5.5.1 (#9660)
+
+
+    .. _version-5.5.0:'
+- file: CHANGELOG.rst
+  line: 934
+  section: Redis Broker Stability Improvements
+  text: '5.5.0
+
+    Redis Broker Stability Improvements
+
+    -----------------------------------
+
+
+    Long-standing disconnection issues with the Redis broker have been identified and
+
+    resolved in Kombu 5.5.0, which is included with this release. These improvements
+
+    significantly enhance stability when using Redis as a broker.
+
+
+    Additionally, the Redis backend now has better exception handling with the new
+
+    ``exception_safe_to_retry`` feature, which improves resilience during temporary
+
+    Redis connection issues. See :ref:`conf-redis-result-backend` for complete
+
+    documentation.
+
+
+    Contributed by `@drienkop <https://github.com/drienkop>`_ in
+
+    `#9614 <https://github.com/celery/celery/pull/9614>`_.'
+- file: CHANGELOG.rst
+  line: 1143
+  section: What's Changed
+  text: '5.5.0 > Database Backend Improvements
+
+    What''s Changed
+
+    ~~~~~~~~~~~~~~
+
+
+    - (docs): use correct version celery v.5.4.x (#8975)
+
+    - Update mypy to 1.10.0 (#8977)
+
+    - Limit pymongo<4.7 when Python <= 3.10 due to breaking changes in 4.7 (#8988)
+
+    - Bump pytest from 8.1.1 to 8.2.0 (#8987)
+
+    - Update README to Include FastAPI in Framework Integration Section (#8978)
+
+    - Clarify return values of ..._on_commit methods (#8984)
+
+    - add kafka broker docs (#8935)
+
+    - Limit pymongo<4.7 regardless of Python version (#8999)
+
+    - Update pymongo[srv] requirement from <4.7,>=4.0.2 to >=4.0.2,<4.8 (#9000)
+
+    - Update elasticsearch requirement from <=8.13.0 to <=8.13.1 (#9004)
+
+    - security: SecureSerializer: support generic low-level serializers (#8982)
+
+    - don''t kill if pid same as file (#8997) (#8998)
+
+    - Update cryptography to 42.0.6 (#9005)
+
+    - Bump cryptography from 42.0.6 to 42.0.7 (#9009)
+
+    - don''t kill if pid same as file (#8997) (#8998) (#9007)
+
+    - Added -vv to unit, integration and smoke tests (#9014)
+
+    - SecuritySerializer: ensure pack separator will not be conflicted with serialized fields (#9010)
+
+    - Update sphinx-click to 5.2.2 (#9025)
+
+    - Bump sphinx-click from 5.2.2 to 6.0.0 (#9029)
+
+    - Fix a typo to display the help message in first-steps-with-django (#9036)
+
+    - Pinned requests to v2.31.0 due to docker-py bug #3256 (#9039)
+
+    - Fix certificate validity check (#9037)
+
+    - Revert "Pinned requests to v2.31.0 due to docker-py bug #3256" (#9043)
+
+    - Bump pytest from 8.2.0 to 8.2.1 (#9035)
+
+    - Update elasticsearch requirement from <=8.13.1 to <=8.13.2 (#9045)
+
+    - Fix detection of custom task set as class attribute with Django (#9038)
+
+    - Update elastic-transport requirement from <=8.13.0 to <=8.13.1 (#9050)
+
+    - Bump pycouchdb from 1.14.2 to 1.16.0 (#9052)
+
+    - Update pytest to 8.2.2 (#9060)
+
+    - Bump cryptography from 42.0.7 to 42.0.8 (#9061)
+
+    - Update elasticsearch requirement from <=8.13.2 to <=8.14.0 (#9069)
+
+    - [enhance feature] Crontab schedule: allow using month names (#9068)
+
+    - Enhance tox environment: [testenv:clean] (#9072)
+
+    - Clarify docs about Reserve one task at a time (#9073)
+
+    - GCS docs fixes (#9075)
+
+    - Use hub.remove_writer instead of hub.remove for write fds (#4185) (#9055)
+
+    - Class method to process crontab string (#9079)
+
+    - Fixed smoke tests env bug when using integration tasks that rely on Redis (#9090)
+
+    - Bugfix - a task will run multiple times when chaining chains with groups (#9021)
+
+    - Bump mypy from 1.10.0 to 1.10.1 (#9096)
+
+    - Don''t add a separator to global_keyprefix if it already has one (#9080)
+
+    - Update pymongo[srv] requirement from <4.8,>=4.0.2 to >=4.0.2,<4.9 (#9111)
+
+    - Added missing import in examples for Django (#9099)
+
+    - Bump Kombu to v5.4.0rc1 (#9117)
+
+    - Removed skipping Redis in t/smoke/tests/test_consumer.py tests (#9118)
+
+    - Update pytest-subtests to 0.13.0 (#9120)
+
+    - Increased smoke tests CI timeout (#9122)
+
+    - Bump Kombu to v5.4.0rc2 (#9127)
+
+    - Update zstandard to 0.23.0 (#9129)
+
+    - Update pytest-subtests to 0.13.1 (#9130)
+
+    - Changed retry to tenacity in smoke tests (#9133)
+
+    - Bump mypy from 1.10.1 to 1.11.0 (#9135)
+
+    - Update cryptography to 43.0.0 (#9138)
+
+    - Update pytest to 8.3.1 (#9137)
+
+    - Added support for Quorum Queues (#9121)
+
+    - Bump Kombu to v5.4.0rc3 (#9139)
+
+    - Cleanup in Changelog.rst (#9141)
+
+    - Update Django docs for CELERY_CACHE_BACKEND (#9143)
+
+    - Added missing docs to previous releases (#9144)
+
+    - Fixed a few documentation build warnings (#9145)
+
+    - docs(README): link invalid (#9148)
+
+    - Prepare for (pre) release: v5.5.0b1 (#9146)
+
+    - Bump pytest from 8.3.1 to 8.3.2 (#9153)
+
+    - Remove setuptools deprecated test command from setup.py (#9159)
+
+    - Pin pre-commit to latest version 3.8.0 from Python 3.9 (#9156)
+
+    - Bump mypy from 1.11.0 to 1.11.1 (#9164)
+
+    - Change "docker-compose" to "docker compose" in Makefile (#9169)
+
+    - update python versions and docker compose (#9171)
+
+    - Add support for Pydantic model validation/serialization (fixes #8751) (#9023)
+
+    - Allow local dynamodb to be installed on another host than localhost (#8965)
+
+    - Terminate job implementation for gevent concurrency backend (#9083)
+
+    - Bump Kom'
+prohibition_candidates:
+- file: CONTRIBUTING.rst
+  line: 4
+  section: Contributing
+  text: "Contributing\n==============\n\nWelcome!\n\nThis document is fairly extensive and you aren't really expected\nto\
+    \ study this in detail for small contributions;\n\n    The most important rule is that contributing must be easy\n   \
+    \ and that the community is friendly and not nitpicking on details,\n    such as coding style.\n\nIf you're reporting\
+    \ a bug you should read the Reporting bugs section\nbelow to ensure that your bug report contains enough information\n\
+    to successfully diagnose the issue, and if you're contributing code\nyou should try to mimic the conventions you see surrounding\
+    \ the code\nyou're working on, but in the end all patches will be cleaned up by\nthe person merging the changes so don't\
+    \ worry too much.\n\n.. contents::\n    :local:\n\n.. _community-code-of-conduct:"
+- file: CONTRIBUTING.rst
+  line: 69
+  section: Be collaborative
+  text: 'Community Code of Conduct
+
+    Be collaborative
+
+    ----------------
+
+
+    Collaboration is central to Celery and to the larger free software community.
+
+    We should always be open to collaboration. Your work should be done
+
+    transparently and patches from Celery should be given back to the community
+
+    when they''re made, not just when the distribution releases. If you wish
+
+    to work on new code for existing upstream projects, at least keep those
+
+    projects informed of your ideas and progress. It may not be possible to
+
+    get consensus from upstream, or even from your colleagues about the correct
+
+    implementation for an idea, so don''t feel obliged to have that agreement
+
+    before you begin, but at least keep the outside world informed of your work,
+
+    and publish your work in a way that allows outsiders to test, discuss, and
+
+    contribute to your efforts.'
+- file: CONTRIBUTING.rst
+  line: 121
+  section: Security
+  text: "Reporting Bugs\nSecurity\n--------\n\nYou must never report security related issues, vulnerabilities or bugs\nincluding\
+    \ sensitive information to the bug tracker, or elsewhere in public.\nInstead sensitive bugs must be sent by email to ``security@celeryproject.org``.\n\
+    \nIf you'd like to submit the information encrypted our PGP key is::\n\n    -----BEGIN PGP PUBLIC KEY BLOCK-----\n   \
+    \ Version: GnuPG v1.4.15 (Darwin)\n\n    mQENBFJpWDkBCADFIc9/Fpgse4owLNvsTC7GYfnJL19XO0hnL99sPx+DPbfr+cSE\n    9wiU+Wp2TfUX7pCLEGrODiEP6ZCZbgtiPgId+JYvMxpP6GXbjiIlHRw1EQNH8RlX\n\
+    \    cVxy3rQfVv8PGGiJuyBBjxzvETHW25htVAZ5TI1+CkxmuyyEYqgZN2fNd0wEU19D\n    +c10G1gSECbCQTCbacLSzdpngAt1Gkrc96r7wGHBBSvDaGDD2pFSkVuTLMbIRrVp\n\
+    \    lnKOPMsUijiip2EMr2DvfuXiUIUvaqInTPNWkDynLoh69ib5xC19CSVLONjkKBsr\n    Pe+qAY29liBatatpXsydY7GIUzyBT3MzgMJlABEBAAG0MUNlbGVyeSBTZWN1cml0\n\
+    \    eSBUZWFtIDxzZWN1cml0eUBjZWxlcnlwcm9qZWN0Lm9yZz6JATgEEwECACIFAlJp\n    WDkCGwMGCwkIBwMCBhUIAgkKCwQWAgMBAh4BAheAAAoJEOArFOUDCicIw1IH/26f\n\
+    \    CViDC7/P13jr+srRdjAsWvQztia9HmTlY8cUnbmkR9w6b6j3F2ayw8VhkyFWgYEJ\n    wtPBv8mHKADiVSFARS+0yGsfCkia5wDSQuIv6XqRlIrXUyqJbmF4NUFTyCZYoh+C\n\
+    \    ZiQpN9xGhFPr5QDlMx2izWg1rvWlG1jY2Es1v/xED3AeCOB1eUGvRe/uJHKjGv7J\n    rj0pFcptZX+WDF22AN235WYwgJM6TrNfSu8sv8vNAQOVnsKcgsqhuwomSGsOfMQj\n\
+    \    LFzIn95MKBBU1G5wOs7JtwiV9jefGqJGBO2FAvOVbvPdK/saSnB+7K36dQcIHqms\n    5hU4Xj0RIJiod5idlRC5AQ0EUmlYOQEIAJs8OwHMkrdcvy9kk2HBVbdqhgAREMKy\n\
+    \    gmphDp7prRL9FqSY/dKpCbG0u82zyJypdb7QiaQ5pfPzPpQcd2dIcohkkh7G3E+e\n    hS2L9AXHpwR26/PzMBXyr2iNnNc4vTksHvGVDxzFnRpka6vbI/hrrZmYNYh9EAiv\n\
+    \    uhE54b3/XhXwFgHjZXb9i8hgJ3nsO0pRwvUAM1bRGMbvf8e9F+kqgV0yWYNnh6QL\n    4Vpl1+epqp2RKPHyNQftbQyrAHXT9kQF9pPlx013MKYaFTADscuAp4T3dy7xmiwS\n\
+    \    crqMbZLzfrxfFOsNxTUGE5vmJCcm+mybAtRo4aV6ACohAO9NevMx8pUAEQEAAYkB\n    HwQYAQIACQUCUmlYOQIbDAAKCRDgKxTlAwonCNFbB/9esir/f7TufE+isNqErzR/\n\
+    \    aZKZo2WzZR9c75kbqo6J6DYuUHe6xI0OZ2qZ60iABDEZAiNXGulysFLCiPdatQ8x\n    8zt3DF9BMkEck54ZvAjpNSern6zfZb1jPYWZq3TKxlTs/GuCgBAuV4i5vDTZ7xK/\n\
+    \    aF+OFY5zN7ciZHkqLgMiTZ+RhqRcK6FhVBP/Y7d9NlBOcDBTxxE1ZO1ute6n7guJ\n    ciw4hfoRk8qNN19szZuq3UU64zpkM2sBsIFM9tGF2FADRxiOaOWZHmIyVZriPFqW\n\
+    \    RUwjSjs7jBVNq0Vy4fCu/5+e+XLOUBOoqtM5W7ELt0t1w9tXebtPEetV86in8fU2\n    =0chn\n    -----END PGP PUBLIC KEY BLOCK-----"
+- file: CONTRIBUTING.rst
+  line: 161
+  section: Other bugs
+  text: "Reporting Bugs\nOther bugs\n----------\n\nBugs can always be described on `GitHub Discussions`_, but the best\nway\
+    \ to report an issue and to ensure a timely response is to use the\nissue tracker.\n\n1) **Create a GitHub account**.\n\
+    \nYou need to `create a GitHub account`_ to be able to create new issues\nand participate in the discussion.\n\n.. _`create\
+    \ a GitHub account`: https://github.com/signup/free\n\n2) **Determine if your bug is really a bug**.\n\nYou shouldn't\
+    \ file a bug if you're requesting support. For that you can use\n`GitHub Discussions`_. If you still need support\nyou\
+    \ can open a github issue, please prepend the title with ``[QUESTION]``.\n\n3) **Make sure your bug hasn't already been\
+    \ reported**.\n\nSearch through the appropriate Issue tracker. If a bug like yours was found,\ncheck if you have new information\
+    \ that could be reported to help\nthe developers fix the bug.\n\n4) **Check if you're using the latest version**.\n\n\
+    A bug could be fixed by some other improvements and fixes - it might not have an\nexisting report in the bug tracker.\
+    \ Make sure you're using the latest releases of\ncelery, billiard, kombu, amqp, and vine.\n\n5) **Collect information\
+    \ about the bug**.\n\nTo have the best chance of having a bug fixed, we need to be able to easily\nreproduce the conditions\
+    \ that caused it. Most of the time this information\nwill be from a Python traceback message, though some bugs might be\
+    \ in design,\nspelling or other errors on the website/docs/code.\n\n    A) If the error is from a Python traceback, include\
+    \ it in the bug report.\n\n    B) We also need to know what platform you're running (Windows, macOS, Linux,\n       etc.),\
+    \ the version of your Python interpreter, and the version of Celery,\n       and related packages that you were running\
+    \ when the bug occurred.\n\n    C) If you're reporting a race condition or a deadlock, tracebacks can be\n       hard\
+    \ to get or might not be that useful. Try to inspect the process to\n       get more diagnostic data. Some ideas:\n\n\
+    \       * Enable Celery's :ref:`breakpoint signal <breakpoint_signal>` and use it\n         to inspect the process's state.\
+    \ This will allow you to open a\n         :mod:`pdb` session.\n       * Collect tracing data using `strace`_(Linux),\n\
+    \         :command:`dtruss` (macOS), and :command:`ktrace` (BSD),\n         `ltrace`_, and `lsof`_.\n\n    D) Include\
+    \ the output from the :command:`celery report` command:\n\n        .. code-block:: console\n\n            $ celery -A\
+    \ proj report\n\n        This will also include your configuration settings and it will try to\n        remove values\
+    \ for keys known to be sensitive, but make sure you also\n        verify the information before submitting so that it\
+    \ doesn't contain\n        confidential information like API tokens and authentication\n        credentials.\n\n    E)\
+    \ Your issue might be tagged as `Needs Test Case`. A test case represents\n       all the details needed to reproduce\
+    \ what your issue is reporting.\n       A test case can be some minimal code that reproduces the issue or\n       detailed\
+    \ instructions and configuration values that reproduces\n       said issue.\n\n6) **Submit the bug**.\n\nBy default `GitHub`_\
+    \ will email you to let you know when new comments have\nbeen made on your bug. In the event you've turned this feature\
+    \ off, you\nshould check back on occasion to ensure you don't miss any questions a\ndeveloper trying to fix the bug might\
+    \ ask.\n\n.. _`GitHub`: https://github.com\n.. _`strace`: https://en.wikipedia.org/wiki/Strace\n.. _`ltrace`: https://en.wikipedia.org/wiki/Ltrace\n\
+    .. _`lsof`: https://en.wikipedia.org/wiki/Lsof\n\n.. _issue-trackers:"
+- file: CONTRIBUTING.rst
+  line: 359
+  section: Archived branches
+  text: 'Branches
+
+    Archived branches
+
+    -----------------
+
+
+    Archived branches are kept for preserving history only,
+
+    and theoretically someone could provide patches for these if they depend
+
+    on a series that''s no longer officially supported.
+
+
+    An archived version is named ``X.Y-archived``.
+
+
+    To maintain a cleaner history and drop compatibility to continue improving
+
+    the project, we **do not have any archived version** right now.'
+- file: CONTRIBUTING.rst
+  line: 407
+  section: Forking and setting up the repository
+  text: "Working on Features & Patches\nForking and setting up the repository\n-------------------------------------\n\nFirst\
+    \ you need to fork the Celery repository; a good introduction to this\nis in the GitHub Guide: `Fork a Repo`_.\n\nAfter\
+    \ you have cloned the repository, you should checkout your copy\nto a directory on your machine:\n\n.. code-block:: console\n\
+    \n    $ git clone git@github.com:username/celery.git\n\nWhen the repository is cloned, enter the directory to set up easy\
+    \ access\nto upstream changes:\n\n.. code-block:: console\n\n    $ cd celery\n    $ git remote add upstream git@github.com:celery/celery.git\n\
+    \    $ git fetch upstream\n\nIf you need to pull in new changes from upstream you should\nalways use the ``--rebase``\
+    \ option to ``git pull``:\n\n.. code-block:: console\n\n    git pull --rebase upstream main\n\nWith this option, you don't\
+    \ clutter the history with merging\ncommit notes. See `Rebasing merge commits in git`_.\nIf you want to learn more about\
+    \ rebasing, see the `Rebase`_\nsection in the GitHub guides.\n\nIf you need to work on a different branch than the one\
+    \ git calls ``main``, you can\nfetch and checkout a remote branch like this::\n\n    git checkout --track -b 5.0-devel\
+    \ upstream/5.0-devel\n\n**Note:** Any feature or fix branch should be created from ``upstream/main``.\n\n.. _`Fork a Repo`:\
+    \ https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo\n.. _`Rebasing\
+    \ merge commits in git`:\n    https://web.archive.org/web/20150627054345/http://marketblog.envato.com/general/rebasing-merge-commits-in-git/\n\
+    .. _`Rebase`: https://docs.github.com/en/get-started/using-git/about-git-rebase\n\n.. _contributing-docker-development:"
+- file: CONTRIBUTING.rst
+  line: 596
+  section: Running the unit test suite
+  text: "Working on Features & Patches\nRunning the unit test suite\n---------------------------\n\nIf you like to develop\
+    \ using virtual environments or just outside docker,\nyou must make sure all necessary dependencies are installed.\nThere\
+    \ are multiple requirements files to make it easier to install all dependencies.\nYou do not have to use every requirements\
+    \ file but you must use `default.txt`.\n\n.. code-block:: console\n\n   # pip install -U -r requirements/default.txt\n\
+    \nTo run the Celery test suite you need to install\n:file:`requirements/test.txt`.\n\n.. code-block:: console\n\n    $\
+    \ pip install -U -r requirements/test.txt\n    $ pip install -U -r requirements/default.txt\n\nAfter installing the dependencies\
+    \ required, you can now execute\nthe test suite by calling :pypi:`pytest <pytest>`:\n\n.. code-block:: console\n\n   \
+    \ $ pytest t/unit\n    $ pytest t/integration\n\nSome useful options to :command:`pytest` are:\n\n* ``-x``\n\n    Stop\
+    \ running the tests at the first test that fails.\n\n* ``-s``\n\n    Don't capture output\n\n* ``-v``\n\n    Run with\
+    \ verbose output.\n\nIf you want to run the tests for a single test file only\nyou can do so like this:\n\n.. code-block::\
+    \ console\n\n    $ pytest t/unit/worker/test_worker.py\n\n.. _contributing-coverage:"
+- file: CONTRIBUTING.rst
+  line: 931
+  section: Status Labels
+  text: "Working on Features & Patches > Creating pull requests\nStatus Labels\n~~~~~~~~~~~~~~\n\nThere are `different labels`_\
+    \ used to easily manage github issues and PRs.\nMost of these labels make it easy to categorize each issue with important\n\
+    details. For instance, you might see a ``Component:canvas`` label on an issue or PR.\nThe ``Component:canvas`` label means\
+    \ the issue or PR corresponds to the canvas functionality.\nThese labels are set by the maintainers and for the most part\
+    \ external contributors\nshould not worry about them. A subset of these labels are prepended with **Status:**.\nUsually\
+    \ the **Status:** labels show important actions which the issue or PR needs.\nHere is a summary of such statuses:\n\n\
+    - **Status: Cannot Reproduce**\n\n  One or more Celery core team member has not been able to reproduce the issue.\n\n\
+    - **Status: Confirmed**\n\n  The issue or PR has been confirmed by one or more Celery core team member.\n\n- **Status:\
+    \ Duplicate**\n\n  A duplicate issue or PR.\n\n- **Status: Feedback Needed**\n\n  One or more Celery core team member\
+    \ has asked for feedback on the issue or PR.\n\n- **Status: Has Testcase**\n\n  It has been confirmed the issue or PR\
+    \ includes a test case.\n  This is particularly important to correctly write tests for any new\n  feature or bug fix.\n\
+    \n- **Status: In Progress**\n\n  The PR is still in progress.\n\n- **Status: Invalid**\n\n  The issue reported or the\
+    \ PR is not valid for the project.\n\n- **Status: Needs Documentation**\n\n  The PR does not contain documentation for\
+    \ the feature or bug fix proposed.\n\n- **Status: Needs Rebase**\n\n  The PR has not been rebased with ``main``. It is\
+    \ very important to rebase\n  PRs before they can be merged to ``main`` to solve any merge conflicts.\n\n- **Status: Needs\
+    \ Test Coverage**\n\n  Celery uses `codecov`_ to verify code coverage. Please make sure PRs do not\n  decrease code coverage.\
+    \ This label will identify PRs which need code coverage.\n\n- **Status: Needs Test Case**\n\n  The issue or PR needs a\
+    \ test case. A test case can be a minimal code snippet\n  that reproduces an issue or a detailed set of instructions and\
+    \ configuration values\n  that reproduces the issue reported. If possible a test case can be submitted in\n  the form\
+    \ of a PR to Celery's integration suite. The test case will be marked\n  as failed until the bug is fixed. When a test\
+    \ case cannot be run by Celery's\n  integration suite, then it's better to describe in the issue itself.\n\n- **Status:\
+    \ Needs Verification**\n\n  This label is used to notify other users we need to verify the test case offered\n  by the\
+    \ reporter and/or we need to include the test in our integration suite.\n\n- **Status: Not a Bug**\n\n  It has been decided\
+    \ the issue reported is not a bug.\n\n- **Status: Won't Fix**\n\n  It has been decided the issue will not be fixed. Sadly\
+    \ the Celery project does\n  not have unlimited resources and sometimes this decision has to be made.\n  Although, any\
+    \ external contributors are invited to help out even if an\n  issue or PR is labeled as ``Status: Won't Fix``.\n\n- **Status:\
+    \ Works For Me**\n\n  One or more Celery core team members have confirmed the issue reported works\n  for them.\n\n..\
+    \ _`different labels`: https://github.com/celery/celery/labels\n.. _`codecov`: https://codecov.io/gh/celery/celery\n\n\
+    .. _coding-style:"
+- file: CONTRIBUTING.rst
+  line: 1022
+  section: Coding Style
+  text: "Coding Style\n============\n\nYou should probably be able to pick up the coding style\nfrom surrounding code, but\
+    \ it is a good idea to be aware of the\nfollowing conventions.\n\n* All Python code must follow the :pep:`8` guidelines.\n\
+    \n:pypi:`pep8` is a utility you can use to verify that your code\nis following the conventions.\n\n* Docstrings must follow\
+    \ the :pep:`257` conventions, and use the following\n  style.\n\n    Do this:\n\n    .. code-block:: python\n\n      \
+    \  def method(self, arg):\n            \"\"\"Short description.\n\n            More details.\n\n            \"\"\"\n\n\
+    \    or:\n\n    .. code-block:: python\n\n        def method(self, arg):\n            \"\"\"Short description.\"\"\"\n\
+    \n\n    but not this:\n\n    .. code-block:: python\n\n        def method(self, arg):\n            \"\"\"\n          \
+    \  Short description.\n            \"\"\"\n\n* Lines shouldn't exceed 78 columns.\n\n  You can enforce this in :command:`vim`\
+    \ by setting the ``textwidth`` option:\n\n  .. code-block:: vim\n\n        set textwidth=78\n\n  If adhering to this limit\
+    \ makes the code less readable, you have one more\n  character to go on. This means 78 is a soft limit, and 79 is the\
+    \ hard\n  limit :)\n\n* Import order\n\n    * Python standard library (`import xxx`)\n    * Python standard library (`from\
+    \ xxx import`)\n    * Third-party packages.\n    * Other modules from the current package.\n\n    or in case of code using\
+    \ Django:\n\n    * Python standard library (`import xxx`)\n    * Python standard library (`from xxx import`)\n    * Third-party\
+    \ packages.\n    * Django packages.\n    * Other modules from the current package.\n\n    Within these sections the imports\
+    \ should be sorted by module name.\n\n    Example:\n\n    .. code-block:: python\n\n        import threading\n       \
+    \ import time\n\n        from collections import deque\n        from Queue import Queue, Empty\n\n        from .platforms\
+    \ import Pidfile\n        from .utils.time import maybe_timedelta\n\n* Wild-card imports must not be used (`from xxx import\
+    \ *`).\n\n* For distributions where Python 2.5 is the oldest support version,\n  additional rules apply:\n\n    * Absolute\
+    \ imports must be enabled at the top of every module::\n\n        from __future__ import absolute_import\n\n    * If the\
+    \ module uses the :keyword:`with` statement and must be compatible\n      with Python 2.5 (celery isn't), then it must\
+    \ also enable that::\n\n        from __future__ import with_statement\n\n    * Every future import must be on its own\
+    \ line, as older Python 2.5\n      releases didn't support importing multiple features on the\n      same future import\
+    \ line::\n\n        # Good\n        from __future__ import absolute_import\n        from __future__ import with_statement\n\
+    \n        # Bad\n        from __future__ import absolute_import, with_statement\n\n     (Note that this rule doesn't apply\
+    \ if the package doesn't include\n     support for Python 2.5)\n\n\n* Note that we use \"new-style\" relative imports\
+    \ when the distribution\n  doesn't support Python versions below 2.5\n\n    This requires Python 2.5 or later:\n\n   \
+    \ .. code-block:: python\n\n        from . import submodule\n\n\n.. _feature-with-extras:"
+- file: README.rst
+  line: 120
+  section: What do I need?
+  text: 'What do I need?
+
+    ===============
+
+
+    Celery version 5.6.x runs on:
+
+
+    - Python (3.9, 3.10, 3.11, 3.12, 3.13)
+
+    - PyPy3.9+ (v7.3.12+)
+
+
+    This is the last version of Celery which will support Python 3.9.
+
+    Celery v5.7.x will work on Python 3.10 or newer versions.
+
+
+    If you''re running an older version of Python, you need to be running
+
+    an older version of Celery:
+
+
+
+    - Python 3.8: Celery 5.5 or earlier.
+
+    - Python 3.7: Celery 5.2 or earlier.
+
+    - Python 3.6: Celery 5.1 or earlier.
+
+    - Python 2.7: Celery 4.x series.
+
+    - Python 2.6: Celery series 3.1 or earlier.
+
+    - Python 2.5: Celery series 3.0 or earlier.
+
+    - Python 2.4: Celery series 2.2 or earlier.
+
+
+    Celery is a project with minimal funding,
+
+    so we don''t support Microsoft Windows but it should be working.
+
+    Please don''t open any issues related to that platform.
+
+
+    *Celery* is usually used with a message broker to send and receive messages.
+
+    The RabbitMQ, Redis transports are feature complete,
+
+    but there''s also experimental support for a myriad of other solutions, including
+
+    using SQLite for local development.
+
+
+    *Celery* can run on a single machine, on multiple machines, or even
+
+    across datacenters.'
+- file: README.rst
+  line: 525
+  section: Contributors
+  text: "Credits\nContributors\n------------\n\nThis project exists thanks to all the people who contribute. Development of\n\
+    `celery` happens at GitHub: https://github.com/celery/celery\n\nYou're highly encouraged to participate in the development\n\
+    of `celery`. If you don't like GitHub (for some reason) you're welcome\nto send regular patches.\n\nBe sure to also read\
+    \ the `Contributing to Celery`_ section in the\ndocumentation.\n\n.. _`Contributing to Celery`:\n    https://docs.celeryq.dev/en/stable/contributing.html"

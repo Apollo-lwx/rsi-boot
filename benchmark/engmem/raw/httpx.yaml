@@ -1,0 +1,1127 @@
+convention_candidates:
+- file: .github/CONTRIBUTING.md
+  line: 12
+  section: Reporting Bugs or Other Issues
+  text: 'Contributing
+
+    ## Reporting Bugs or Other Issues
+
+
+    Found something that HTTPX should support?
+
+    Stumbled upon some unexpected behaviour?
+
+
+    Contributions should generally start out with [a discussion](https://github.com/encode/httpx/discussions).
+
+    Possible bugs may be raised as a "Potential Issue" discussion, feature requests may
+
+    be raised as an "Ideas" discussion. We can then determine if the discussion needs
+
+    to be escalated into an "Issue" or not, or if we''d consider a pull request.
+
+
+    Try to be more descriptive as you can and in case of a bug report,
+
+    provide as much information as possible like:
+
+
+    - OS platform
+
+    - Python version
+
+    - Installed dependencies and versions (`python -m pip freeze`)
+
+    - Code snippet
+
+    - Error traceback
+
+
+    You should always try to reduce any examples to the *simplest possible case*
+
+    that demonstrates the issue.
+
+
+    Some possibly useful tips for narrowing down potential issues...
+
+
+    - Does the issue exist on HTTP/1.1, or HTTP/2, or both?
+
+    - Does the issue exist with `Client`, `AsyncClient`, or both?
+
+    - When using `AsyncClient` does the issue exist when using `asyncio` or `trio`, or both?'
+- file: .github/CONTRIBUTING.md
+  line: 59
+  section: Testing and Linting
+  text: "Contributing\n## Testing and Linting\n\nWe use custom shell scripts to automate testing, linting,\nand documentation\
+    \ building workflow.\n\nTo run the tests, use:\n\n```shell\n$ scripts/test\n```\n\n!!! warning\n    The test suite spawns\
+    \ testing servers on ports **8000** and **8001**.\n    Make sure these are not in use, so the tests can run properly.\n\
+    \nYou can run a single test script like this:\n\n```shell\n$ scripts/test -- tests/test_multipart.py\n```\n\nTo run the\
+    \ code auto-formatting:\n\n```shell\n$ scripts/lint\n```\n\nLastly, to run code checks separately (they are also run as\
+    \ part of `scripts/test`), run:\n\n```shell\n$ scripts/check\n```"
+- file: .github/CONTRIBUTING.md
+  line: 102
+  section: Resolving Build / CI Failures
+  text: "Contributing\n## Resolving Build / CI Failures\n\nOnce you've submitted your pull request, the test suite will automatically\
+    \ run, and the results will show up in GitHub.\nIf the test suite fails, you'll want to click through to the \"Details\"\
+    \ link, and try to identify why the test suite failed.\n\n<p align=\"center\" style=\"margin: 0 0 10px\">\n  <img src=\"\
+    https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail.png\" alt='Failing PR commit status'>\n\
+    </p>\n\nHere are some common ways the test suite can fail:"
+- file: .github/CONTRIBUTING.md
+  line: 113
+  section: Check Job Failed
+  text: "Contributing > Resolving Build / CI Failures\n### Check Job Failed\n\n<p align=\"center\" style=\"margin: 0 0 10px\"\
+    >\n  <img src=\"https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail-check.png\" alt='Failing\
+    \ GitHub action lint job'>\n</p>\n\nThis job failing means there is either a code formatting issue or type-annotation\
+    \ issue.\nYou can look at the job output to figure out why it's failed or within a shell run:\n\n```shell\n$ scripts/check\n\
+    ```\n\nIt may be worth it to run `$ scripts/lint` to attempt auto-formatting the code\nand if that job succeeds commit\
+    \ the changes."
+- file: .github/CONTRIBUTING.md
+  line: 134
+  section: Python 3.X Job Failed
+  text: "Contributing > Resolving Build / CI Failures\n### Python 3.X Job Failed\n\n<p align=\"center\" style=\"margin: 0\
+    \ 0 10px\">\n  <img src=\"https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail-test.png\" alt='Failing\
+    \ GitHub action test job'>\n</p>\n\nThis job failing means the unit tests failed or not all code paths are covered by\
+    \ unit tests.\n\nIf tests are failing you will see this message under the coverage report:\n\n`=== 1 failed, 435 passed,\
+    \ 1 skipped, 1 xfailed in 11.09s ===`\n\nIf tests succeed but coverage doesn't reach our current threshold, you will see\
+    \ this\nmessage under the coverage report:\n\n`FAIL Required test coverage of 100% not reached. Total coverage: 99.00%`"
+- file: .github/CONTRIBUTING.md
+  line: 151
+  section: Releasing
+  text: "Contributing\n## Releasing\n\n*This section is targeted at HTTPX maintainers.*\n\nBefore releasing a new version,\
+    \ create a pull request that includes:\n\n- **An update to the changelog**:\n    - We follow the format from [keepachangelog](https://keepachangelog.com/en/1.0.0/).\n\
+    \    - [Compare](https://github.com/encode/httpx/compare/) `master` with the tag of the latest release, and list all entries\
+    \ that are of interest to our users:\n        - Things that **must** go in the changelog: added, changed, deprecated or\
+    \ removed features, and bug fixes.\n        - Things that **should not** go in the changelog: changes to documentation,\
+    \ tests or tooling.\n        - Try sorting entries in descending order of impact / importance.\n        - Keep it concise\
+    \ and to-the-point. \U0001F3AF\n- **A version bump**: see `__version__.py`.\n\nFor an example, see [#1006](https://github.com/encode/httpx/pull/1006).\n\
+    \nOnce the release PR is merged, create a\n[new release](https://github.com/encode/httpx/releases/new) including:\n\n\
+    - Tag version like `0.13.3`.\n- Release title `Version 0.13.3`\n- Description copied from the changelog.\n\nOnce created\
+    \ this release will be automatically uploaded to PyPI.\n\nIf something goes wrong with the PyPI job the release can be\
+    \ published using the\n`scripts/publish` script."
+- file: .github/CONTRIBUTING.md
+  line: 180
+  section: Development proxy setup
+  text: "Contributing\n## Development proxy setup\n\nTo test and debug requests via a proxy it's best to run a proxy server\
+    \ locally.\nAny server should do but HTTPCore's test suite uses\n[`mitmproxy`](https://mitmproxy.org/) which is written\
+    \ in Python, it's fully\nfeatured and has excellent UI and tools for introspection of requests.\n\nYou can install `mitmproxy`\
+    \ using `pip install mitmproxy` or [several\nother ways](https://docs.mitmproxy.org/stable/overview-installation/).\n\n\
+    `mitmproxy` does require setting up local TLS certificates for HTTPS requests,\nas its main purpose is to allow developers\
+    \ to inspect requests that pass through\nit. We can set them up follows:\n\n1. [`pip install trustme-cli`](https://github.com/sethmlarson/trustme-cli/).\n\
+    2. `trustme-cli -i example.org www.example.org`, assuming you want to test\nconnecting to that domain, this will create\
+    \ three files: `server.pem`,\n`server.key` and `client.pem`.\n3. `mitmproxy` requires a PEM file that includes the private\
+    \ key and the\ncertificate so we need to concatenate them:\n`cat server.key server.pem > server.withkey.pem`.\n4. Start\
+    \ the proxy server `mitmproxy --certs server.withkey.pem`, or use the\n[other mitmproxy commands](https://docs.mitmproxy.org/stable/)\
+    \ with different\nUI options.\n\nAt this point the server is ready to start serving requests, you'll need to\nconfigure\
+    \ HTTPX as described in the\n[proxy section](https://www.python-httpx.org/advanced/#http-proxying) and\nthe [SSL certificates\
+    \ section](https://www.python-httpx.org/advanced/#ssl-certificates),\nthis is where our previously generated `client.pem`\
+    \ comes in:\n\n```\nimport httpx\n\nssl_context = httpx.SSLContext()\nssl_context.load_verify_locations(\"/path/to/client.pem\"\
+    )\n\nwith httpx.Client(proxy=\"http://127.0.0.1:8080/\", ssl_context=ssl_context) as client:\n    response = client.get(\"\
+    https://example.org\")\n    print(response.status_code)  # should print 200\n```\n\nNote, however, that HTTPS requests\
+    \ will only succeed to the host specified\nin the SSL/TLS certificate we generated, HTTPS requests to other hosts will\n\
+    raise an error like:\n\n```\nssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate\nverify failed:\
+    \ Hostname mismatch, certificate is not valid for\n'duckduckgo.com'. (_ssl.c:1108)\n```\n\nIf you want to make requests\
+    \ to more hosts you'll need to regenerate the\ncertificates and include all the hosts you intend to connect to in the\n\
+    seconds step, i.e.\n\n`trustme-cli -i example.org www.example.org duckduckgo.com www.duckduckgo.com`"
+- file: docs/contributing.md
+  line: 12
+  section: Reporting Bugs or Other Issues
+  text: 'Contributing
+
+    ## Reporting Bugs or Other Issues
+
+
+    Found something that HTTPX should support?
+
+    Stumbled upon some unexpected behaviour?
+
+
+    Contributions should generally start out with [a discussion](https://github.com/encode/httpx/discussions).
+
+    Possible bugs may be raised as a "Potential Issue" discussion, feature requests may
+
+    be raised as an "Ideas" discussion. We can then determine if the discussion needs
+
+    to be escalated into an "Issue" or not, or if we''d consider a pull request.
+
+
+    Try to be more descriptive as you can and in case of a bug report,
+
+    provide as much information as possible like:
+
+
+    - OS platform
+
+    - Python version
+
+    - Installed dependencies and versions (`python -m pip freeze`)
+
+    - Code snippet
+
+    - Error traceback
+
+
+    You should always try to reduce any examples to the *simplest possible case*
+
+    that demonstrates the issue.
+
+
+    Some possibly useful tips for narrowing down potential issues...
+
+
+    - Does the issue exist on HTTP/1.1, or HTTP/2, or both?
+
+    - Does the issue exist with `Client`, `AsyncClient`, or both?
+
+    - When using `AsyncClient` does the issue exist when using `asyncio` or `trio`, or both?'
+- file: docs/contributing.md
+  line: 59
+  section: Testing and Linting
+  text: "Contributing\n## Testing and Linting\n\nWe use custom shell scripts to automate testing, linting,\nand documentation\
+    \ building workflow.\n\nTo run the tests, use:\n\n```shell\n$ scripts/test\n```\n\n!!! warning\n    The test suite spawns\
+    \ testing servers on ports **8000** and **8001**.\n    Make sure these are not in use, so the tests can run properly.\n\
+    \nAny additional arguments will be passed to `pytest`. See the [pytest documentation](https://docs.pytest.org/en/latest/how-to/usage.html)\
+    \ for more information.\n\nFor example, to run a single test script:\n\n```shell\n$ scripts/test tests/test_multipart.py\n\
+    ```\n\nTo run the code auto-formatting:\n\n```shell\n$ scripts/lint\n```\n\nLastly, to run code checks separately (they\
+    \ are also run as part of `scripts/test`), run:\n\n```shell\n$ scripts/check\n```"
+- file: docs/contributing.md
+  line: 104
+  section: Resolving Build / CI Failures
+  text: "Contributing\n## Resolving Build / CI Failures\n\nOnce you've submitted your pull request, the test suite will automatically\
+    \ run, and the results will show up in GitHub.\nIf the test suite fails, you'll want to click through to the \"Details\"\
+    \ link, and try to identify why the test suite failed.\n\n<p align=\"center\" style=\"margin: 0 0 10px\">\n  <img src=\"\
+    https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail.png\" alt='Failing PR commit status'>\n\
+    </p>\n\nHere are some common ways the test suite can fail:"
+- file: docs/contributing.md
+  line: 115
+  section: Check Job Failed
+  text: "Contributing > Resolving Build / CI Failures\n### Check Job Failed\n\n<p align=\"center\" style=\"margin: 0 0 10px\"\
+    >\n  <img src=\"https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail-check.png\" alt='Failing\
+    \ GitHub action lint job'>\n</p>\n\nThis job failing means there is either a code formatting issue or type-annotation\
+    \ issue.\nYou can look at the job output to figure out why it's failed or within a shell run:\n\n```shell\n$ scripts/check\n\
+    ```\n\nIt may be worth it to run `$ scripts/lint` to attempt auto-formatting the code\nand if that job succeeds commit\
+    \ the changes."
+- file: docs/contributing.md
+  line: 136
+  section: Python 3.X Job Failed
+  text: "Contributing > Resolving Build / CI Failures\n### Python 3.X Job Failed\n\n<p align=\"center\" style=\"margin: 0\
+    \ 0 10px\">\n  <img src=\"https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail-test.png\" alt='Failing\
+    \ GitHub action test job'>\n</p>\n\nThis job failing means the unit tests failed or not all code paths are covered by\
+    \ unit tests.\n\nIf tests are failing you will see this message under the coverage report:\n\n`=== 1 failed, 435 passed,\
+    \ 1 skipped, 1 xfailed in 11.09s ===`\n\nIf tests succeed but coverage doesn't reach our current threshold, you will see\
+    \ this\nmessage under the coverage report:\n\n`FAIL Required test coverage of 100% not reached. Total coverage: 99.00%`"
+- file: docs/contributing.md
+  line: 153
+  section: Releasing
+  text: "Contributing\n## Releasing\n\n*This section is targeted at HTTPX maintainers.*\n\nBefore releasing a new version,\
+    \ create a pull request that includes:\n\n- **An update to the changelog**:\n    - We follow the format from [keepachangelog](https://keepachangelog.com/en/1.0.0/).\n\
+    \    - [Compare](https://github.com/encode/httpx/compare/) `master` with the tag of the latest release, and list all entries\
+    \ that are of interest to our users:\n        - Things that **must** go in the changelog: added, changed, deprecated or\
+    \ removed features, and bug fixes.\n        - Things that **should not** go in the changelog: changes to documentation,\
+    \ tests or tooling.\n        - Try sorting entries in descending order of impact / importance.\n        - Keep it concise\
+    \ and to-the-point. \U0001F3AF\n- **A version bump**: see `__version__.py`.\n\nFor an example, see [#1006](https://github.com/encode/httpx/pull/1006).\n\
+    \nOnce the release PR is merged, create a\n[new release](https://github.com/encode/httpx/releases/new) including:\n\n\
+    - Tag version like `0.13.3`.\n- Release title `Version 0.13.3`\n- Description copied from the changelog.\n\nOnce created\
+    \ this release will be automatically uploaded to PyPI.\n\nIf something goes wrong with the PyPI job the release can be\
+    \ published using the\n`scripts/publish` script."
+- file: docs/contributing.md
+  line: 182
+  section: Development proxy setup
+  text: 'Contributing
+
+    ## Development proxy setup
+
+
+    To test and debug requests via a proxy it''s best to run a proxy server locally.
+
+    Any server should do but HTTPCore''s test suite uses
+
+    [`mitmproxy`](https://mitmproxy.org/) which is written in Python, it''s fully
+
+    featured and has excellent UI and tools for introspection of requests.
+
+
+    You can install `mitmproxy` using `pip install mitmproxy` or [several
+
+    other ways](https://docs.mitmproxy.org/stable/overview-installation/).
+
+
+    `mitmproxy` does require setting up local TLS certificates for HTTPS requests,
+
+    as its main purpose is to allow developers to inspect requests that pass through
+
+    it. We can set them up follows:
+
+
+    1. [`pip install trustme-cli`](https://github.com/sethmlarson/trustme-cli/).
+
+    2. `trustme-cli -i example.org www.example.org`, assuming you want to test
+
+    connecting to that domain, this will create three files: `server.pem`,
+
+    `server.key` and `client.pem`.
+
+    3. `mitmproxy` requires a PEM file that includes the private key and the
+
+    certificate so we need to concatenate them:
+
+    `cat server.key server.pem > server.withkey.pem`.
+
+    4. Start the proxy server `mitmproxy --certs server.withkey.pem`, or use the
+
+    [other mitmproxy commands](https://docs.mitmproxy.org/stable/) with different
+
+    UI options.
+
+
+    At this point the server is ready to start serving requests, you''ll need to
+
+    configure HTTPX as described in the
+
+    [proxy section](https://www.python-httpx.org/advanced/proxies/#http-proxies) and
+
+    the [SSL certificates section](https://www.python-httpx.org/advanced/ssl/),
+
+    this is where our previously generated `client.pem` comes in:
+
+
+    ```python
+
+    ctx = ssl.create_default_context(cafile="/path/to/client.pem")
+
+    client = httpx.Client(proxy="http://127.0.0.1:8080/", verify=ctx)
+
+    ```
+
+
+    Note, however, that HTTPS requests will only succeed to the host specified
+
+    in the SSL/TLS certificate we generated, HTTPS requests to other hosts will
+
+    raise an error like:
+
+
+    ```
+
+    ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate
+
+    verify failed: Hostname mismatch, certificate is not valid for
+
+    ''duckduckgo.com''. (_ssl.c:1108)
+
+    ```
+
+
+    If you want to make requests to more hosts you''ll need to regenerate the
+
+    certificates and include all the hosts you intend to connect to in the
+
+    seconds step, i.e.
+
+
+    `trustme-cli -i example.org www.example.org duckduckgo.com www.duckduckgo.com`'
+- file: README.md
+  line: 59
+  section: Features
+  text: '## Features
+
+
+    HTTPX builds on the well-established usability of `requests`, and gives you:
+
+
+    * A broadly [requests-compatible API](https://www.python-httpx.org/compatibility/).
+
+    * An integrated command-line client.
+
+    * HTTP/1.1 [and HTTP/2 support](https://www.python-httpx.org/http2/).
+
+    * Standard synchronous interface, but with [async support if you need it](https://www.python-httpx.org/async/).
+
+    * Ability to make requests directly to [WSGI applications](https://www.python-httpx.org/advanced/transports/#wsgi-transport)
+    or [ASGI applications](https://www.python-httpx.org/advanced/transports/#asgi-transport).
+
+    * Strict timeouts everywhere.
+
+    * Fully type annotated.
+
+    * 100% test coverage.
+
+
+    Plus all the standard features of `requests`...
+
+
+    * International Domains and URLs
+
+    * Keep-Alive & Connection Pooling
+
+    * Sessions with Cookie Persistence
+
+    * Browser-style SSL Verification
+
+    * Basic/Digest Authentication
+
+    * Elegant Key/Value Cookies
+
+    * Automatic Decompression
+
+    * Automatic Content Decoding
+
+    * Unicode Response Bodies
+
+    * Multipart File Uploads
+
+    * HTTP(S) Proxy Support
+
+    * Connection Timeouts
+
+    * Streaming Downloads
+
+    * .netrc Support
+
+    * Chunked Requests'
+files_seen:
+- .github/CONTRIBUTING.md
+- CHANGELOG.md
+- README.md
+- docs/contributing.md
+fix_candidates:
+- file: CHANGELOG.md
+  line: 21
+  section: 0.28.0 (28th November, 2024)
+  text: 'Changelog
+
+    ## 0.28.0 (28th November, 2024)
+
+
+    Be aware that the default *JSON request bodies now use a more compact representation*. This is generally considered a
+    prefered style, tho may require updates to test suites.
+
+
+    The 0.28 release includes a limited set of deprecations...
+
+
+    **Deprecations**:
+
+
+    We are working towards a simplified SSL configuration API.
+
+
+    *For users of the standard `verify=True` or `verify=False` cases, or `verify=<ssl_context>` case this should require no
+    changes. The following cases have been deprecated...*
+
+
+    * The `verify` argument as a string argument is now deprecated and will raise warnings.
+
+    * The `cert` argument is now deprecated and will raise warnings.
+
+
+    Our revised [SSL documentation](docs/advanced/ssl.md) covers how to implement the same behaviour with a more constrained
+    API.
+
+
+    **The following changes are also included**:
+
+
+    * The deprecated `proxies` argument has now been removed.
+
+    * The deprecated `app` argument has now been removed.
+
+    * JSON request bodies use a compact representation. (#3363)
+
+    * Review URL percent escape sets, based on WHATWG spec. (#3371, #3373)
+
+    * Ensure `certifi` and `httpcore` are only imported if required. (#3377)
+
+    * Treat `socks5h` as a valid proxy scheme. (#3178)
+
+    * Cleanup `Request()` method signature in line with `client.request()` and `httpx.request()`. (#3378)
+
+    * Bugfix: When passing `params={}`, always strictly update rather than merge with an existing querystring. (#3364)'
+- file: CHANGELOG.md
+  line: 51
+  section: Fixed
+  text: 'Changelog > 0.27.2 (27th August, 2024)
+
+    ### Fixed
+
+
+    * Reintroduced supposedly-private `URLTypes` shortcut. (#2673)'
+- file: CHANGELOG.md
+  line: 61
+  section: Fixed
+  text: 'Changelog > 0.27.1 (27th August, 2024)
+
+    ### Fixed
+
+
+    * Improved error messaging for `InvalidURL` exceptions. (#3250)
+
+    * Fix `app` type signature in `ASGITransport`. (#3109)'
+- file: CHANGELOG.md
+  line: 72
+  section: Fixed
+  text: 'Changelog > 0.27.0 (21st February, 2024)
+
+    ### Fixed
+
+
+    * Respect the `http1` argument while configuring proxy transports. (#3023)
+
+    * Fix RFC 2069 mode digest authentication. (#3045)'
+- file: CHANGELOG.md
+  line: 87
+  section: Fixed
+  text: 'Changelog > 0.26.0 (20th December, 2023)
+
+    ### Fixed
+
+
+    * Fix cases of double escaping of URL path components. Allow / as a safe character in the query portion. (#2990)
+
+    * Handle `NO_PROXY` envvar cases when a fully qualified URL is supplied as the value. (#2741)
+
+    * Allow URLs where username or password contains unescaped ''@''. (#2986)
+
+    * Ensure ASGI `raw_path` does not include URL query component. (#2999)
+
+    * Ensure `Response.iter_text()` cannot yield empty strings. (#2998)'
+- file: CHANGELOG.md
+  line: 108
+  section: Fixed
+  text: 'Changelog > 0.25.1 (3rd November, 2023)
+
+    ### Fixed
+
+
+    * Raise `ValueError` on `Response.encoding` being set after `Response.text` has been accessed. (#2852)'
+- file: CHANGELOG.md
+  line: 125
+  section: Fixed
+  text: 'Changelog > 0.25.0 (11th September, 2023)
+
+    ### Fixed
+
+
+    * Return `500` error response instead of exceptions when `raise_app_exceptions=False` is set on `ASGITransport`. (#2669)
+
+    * Ensure all `WSGITransport` environs have a `SERVER_PROTOCOL`. (#2708)
+
+    * Always encode forward slashes as `%2F` in query parameters (#2723)
+
+    * Use Mozilla documentation instead of `httpstatuses.com` for HTTP error reference (#2768)'
+- file: CHANGELOG.md
+  line: 138
+  section: Fixed
+  text: 'Changelog > 0.24.1 (17th May, 2023)
+
+    ### Fixed
+
+
+    * Fix optional percent-encoding behaviour. (#2671)
+
+    * More robust checking for opening upload files in binary mode. (#2630)
+
+    * Properly support IP addresses in `NO_PROXY` environment variable. (#2659)
+
+    * Set default file for `NetRCAuth()` to `None` to use the stdlib default. (#2667)
+
+    * Set logging request lines to INFO level for async requests, in line with sync requests. (#2656)
+
+    * Fix which gen-delims need to be escaped for path/query/fragment components in URL. (#2701)'
+- file: CHANGELOG.md
+  line: 162
+  section: Fixed
+  text: 'Changelog > 0.23.3 (4th January, 2023)
+
+    ### Fixed
+
+
+    * Version 0.23.2 accidentally included stricter type checking on query parameters. This shouldn''ve have been included
+    in a minor version bump, and is now reverted. (#2523, #2539)'
+- file: CHANGELOG.md
+  line: 172
+  section: Fixed
+  text: 'Changelog > 0.23.2 (2nd January, 2023)
+
+    ### Fixed
+
+
+    * Multipart file uploads where the file length cannot be determine now use chunked transfer encoding, rather than loading
+    the entire file into memory in order to determine the `Content-Length`. (#2382)
+
+    * Raise `TypeError` if content is passed a dict-instance. (#2495)
+
+    * Partially revert the API breaking change in 0.23.1, which removed `RawURL`. We continue to expose a `url.raw` property
+    which is now a plain named-tuple. This API is still expected to be deprecated, but we will do so with a major version
+    bump. (#2481)'
+- file: CHANGELOG.md
+  line: 192
+  section: Fixed
+  text: 'Changelog > 0.23.1 (18th November, 2022)
+
+    ### Fixed
+
+
+    * Don''t drop empty query parameters. (#2354)'
+- file: CHANGELOG.md
+  line: 209
+  section: Fixed
+  text: 'Changelog > 0.23.0 (23rd May, 2022)
+
+    ### Fixed
+
+
+    * Fix `URL.copy_with` for some oddly formed URL cases. (#2185)
+
+    * Digest authentication should use case-insensitive comparison for determining which algorithm is being used. (#2204)
+
+    * Fix console markup escaping in command line client. (#1866)
+
+    * When files are used in multipart upload, ensure we always seek to the start of the file. (#2065)
+
+    * Ensure that `iter_bytes` never yields zero-length chunks. (#2068)
+
+    * Preserve `Authorization` header for redirects that are to the same origin, but are an `http`-to-`https` upgrade. (#2074)
+
+    * When responses have binary output, don''t print the output to the console in the command line client. Use output like
+    `<16086 bytes of binary data>` instead. (#2076)
+
+    * Fix display of `--proxies` argument in the command line client help. (#2125)
+
+    * Close responses when task cancellations occur during stream reading. (#2156)
+
+    * Fix type error on accessing `.request` on `HTTPError` exceptions. (#2158)'
+- file: CHANGELOG.md
+  line: 229
+  section: Fixed
+  text: 'Changelog > 0.22.0 (26th January, 2022)
+
+    ### Fixed
+
+
+    * Don''t perform unreliable close/warning on `__del__` with unclosed clients. (#2026)
+
+    * Fix `Headers.update(...)` to correctly handle repeated headers (#2038)'
+- file: CHANGELOG.md
+  line: 236
+  section: Fixed
+  text: 'Changelog > 0.21.3 (6th January, 2022)
+
+    ### Fixed
+
+
+    * Fix streaming uploads using `SyncByteStream` or `AsyncByteStream`. Regression in 0.21.2. (#2016)'
+- file: CHANGELOG.md
+  line: 242
+  section: Fixed
+  text: 'Changelog > 0.21.2 (5th January, 2022)
+
+    ### Fixed
+
+
+    * HTTP/2 support for tunnelled proxy cases. (#2009)
+
+    * Improved the speed of large file uploads. (#1948)'
+- file: CHANGELOG.md
+  line: 249
+  section: Fixed
+  text: 'Changelog > 0.21.1 (16th November, 2021)
+
+    ### Fixed
+
+
+    * The `response.url` property is now correctly annotated as `URL`, instead of `Optional[URL]`. (#1940)'
+- file: CHANGELOG.md
+  line: 332
+  section: Fixed
+  text: 'Changelog > 0.20.0 (13th October, 2021)
+
+    ### Fixed
+
+
+    * `response.iter_bytes()` no longer raises a ValueError when called on a response with no content. (Pull #1827)
+
+    * The `''wsgi.error''` configuration now defaults to `sys.stderr`, and is corrected to be a `TextIO` interface, not a
+    `BytesIO` interface. Additionally, the WSGITransport now accepts a `wsgi_error` configuration. (Pull #1828)
+
+    * Follow the WSGI spec by properly closing the iterable returned by the application. (Pull #1830)'
+- file: CHANGELOG.md
+  line: 360
+  section: Fixed
+  text: 'Changelog > 0.18.2 (17th June, 2021)
+
+    ### Fixed
+
+
+    * Clean up some cases where warnings were being issued. (Pull #1687)
+
+    * Prefer Content-Length over Transfer-Encoding: chunked for content=<file-like> cases. (Pull #1619)'
+- file: CHANGELOG.md
+  line: 372
+  section: Fixed
+  text: 'Changelog > 0.18.1 (29th April, 2021)
+
+    ### Fixed
+
+
+    * Pass through `timeout=...` in top-level httpx.stream() function. (Pull #1613)
+
+    * Map httpcore transport close exceptions to httpx exceptions. (Pull #1606)'
+- file: CHANGELOG.md
+  line: 413
+  section: Fixed
+  text: 'Changelog > 0.18.0 (27th April, 2021)
+
+    ### Fixed
+
+
+    * Fix Content-Length for cases of `files=...` where unicode string is used as the file content. (Pull #1537)
+
+    * Fix some cases of merging relative URLs against `Client(base_url=...)`. (Pull #1532)
+
+    * The `request.content` attribute is now always available except for streaming content, which requires an explicit `.read()`.
+    (Pull #1583)'
+- file: CHANGELOG.md
+  line: 421
+  section: Fixed
+  text: 'Changelog > 0.17.1 (March 15th, 2021)
+
+    ### Fixed
+
+
+    * Type annotation on `CertTypes` allows `keyfile` and `password` to be optional. (Pull #1503)
+
+    * Fix httpcore pinned version. (Pull #1495)'
+- file: CHANGELOG.md
+  line: 438
+  section: Fixed
+  text: 'Changelog > 0.17.0 (February 28th, 2021)
+
+    ### Fixed
+
+
+    * Add missing `raw_path` to ASGI scope. (Pull #1357)
+
+    * Tweak `create_ssl_context` defaults to use `trust_env=True`. (Pull #1447)
+
+    * Properly URL-escape WSGI `PATH_INFO`. (Pull #1391)
+
+    * Properly set default ports in WSGI transport. (Pull #1469)
+
+    * Properly encode slashes when using `base_url`. (Pull #1407)
+
+    * Properly map exceptions in `request.aclose()`. (Pull #1465)'
+- file: CHANGELOG.md
+  line: 449
+  section: Fixed
+  text: 'Changelog > 0.16.1 (October 8th, 2020)
+
+    ### Fixed
+
+
+    * Support literal IPv6 addresses in URLs. (Pull #1349)
+
+    * Force lowercase headers in ASGI scope dictionaries. (Pull #1351)'
+- file: CHANGELOG.md
+  line: 479
+  section: Fixed
+  text: 'Changelog > 0.15.4 (September 25th, 2020)
+
+    ### Fixed
+
+
+    * Fix automatic `.read()` when `Response` instances are created with `content=<str>` (Pull #1324)'
+- file: CHANGELOG.md
+  line: 485
+  section: Fixed
+  text: 'Changelog > 0.15.3 (September 24th, 2020)
+
+    ### Fixed
+
+
+    * Fixed connection leak in async client due to improper closing of response streams. (Pull #1316)'
+- file: CHANGELOG.md
+  line: 491
+  section: Fixed
+  text: 'Changelog > 0.15.2 (September 23nd, 2020)
+
+    ### Fixed
+
+
+    * Fixed `response.elapsed` property. (Pull #1313)
+
+    * Fixed client authentication interaction with `.stream()`. (Pull #1312)'
+- file: CHANGELOG.md
+  line: 498
+  section: Fixed
+  text: 'Changelog > 0.15.1 (September 23nd, 2020)
+
+    ### Fixed
+
+
+    * ASGITransport now properly applies URL decoding to the `path` component, as-per the ASGI spec. (Pull #1307)'
+- file: CHANGELOG.md
+  line: 526
+  section: Fixed
+  text: 'Changelog > 0.15.0 (September 22nd, 2020)
+
+    ### Fixed
+
+
+    * Swapped ordering of redirects and authentication flow. (Pull #1267)
+
+    * `.netrc` lookups should use host, not host+port. (Pull #1298)'
+- file: CHANGELOG.md
+  line: 552
+  section: Fixed
+  text: 'Changelog > 0.14.3 (September 2nd, 2020)
+
+    ### Fixed
+
+
+    * `DigestAuth` now handles responses that include multiple ''WWW-Authenticate'' headers. (Pull #1240)
+
+    * Call into transport `__enter__`/`__exit__` or `__aenter__`/`__aexit__` when client is used in a context manager style.
+    (Pull #1218)'
+- file: CHANGELOG.md
+  line: 567
+  section: Fixed
+  text: 'Changelog > 0.14.2 (August 24th, 2020)
+
+    ### Fixed
+
+
+    * Ensure that automatically included headers on a request may be modified. (Pull #1205)
+
+    * Allow explicit `Content-Length` header on streaming requests. (Pull #1170)
+
+    * Handle URL quoted usernames and passwords properly. (Pull #1159)
+
+    * Use more consistent default for `HEAD` requests, setting `allow_redirects=True`. (Pull #1183)
+
+    * If a transport error occurs while streaming the response, raise an `httpx` exception, not the underlying `httpcore`
+    exception. (Pull #1190)
+
+    * Include the underlying `httpcore` traceback, when transport exceptions occur. (Pull #1199)'
+- file: CHANGELOG.md
+  line: 582
+  section: Fixed
+  text: 'Changelog > 0.14.1 (August 11th, 2020)
+
+    ### Fixed
+
+
+    * Handling multiple `Set-Cookie` headers became broken in the 0.14.0 release, and is now resolved. (Pull #1156)'
+- file: CHANGELOG.md
+  line: 652
+  section: Fixed
+  text: 'Changelog > 0.14.0 (August 7th, 2020)
+
+    ### Fixed
+
+
+    * Add missing `Response.next()` method. (Pull #1055)
+
+    * Ensure all exception classes are exposed as public API. (Pull #1045)
+
+    * Support multiple items with an identical field name in multipart encodings. (Pull #777)
+
+    * Skip HSTS preloading on single-label domains. (Pull #1074)
+
+    * Fixes for `Response.iter_lines()`. (Pull #1033, #1075)
+
+    * Ignore permission errors when accessing `.netrc` files. (Pull #1104)
+
+    * Allow bare hostnames in `HTTP_PROXY` etc... environment variables. (Pull #1120)
+
+    * Settings `app=...` or `transport=...` bypasses any environment based proxy defaults. (Pull #1122)
+
+    * Fix handling of `.base_url` when a path component is included in the base URL. (Pull #1130)
+
+
+    ---'
+- file: CHANGELOG.md
+  line: 668
+  section: Fixed
+  text: 'Changelog > 0.13.3 (May 29th, 2020)
+
+    ### Fixed
+
+
+    * Include missing keepalive expiry configuration. (Pull #1005)
+
+    * Improved error message when URL redirect has a custom scheme. (Pull #1002)'
+- file: CHANGELOG.md
+  line: 675
+  section: Fixed
+  text: 'Changelog > 0.13.2 (May 27th, 2020)
+
+    ### Fixed
+
+
+    * Include explicit "Content-Length: 0" on POST, PUT, PATCH if no request body is used. (Pull #995)
+
+    * Add `http2` option to `httpx.Client`. (Pull #982)
+
+    * Tighten up API typing in places. (Pull #992, #999)'
+- file: CHANGELOG.md
+  line: 683
+  section: Fixed
+  text: 'Changelog > 0.13.1 (May 22nd, 2020)
+
+    ### Fixed
+
+
+    * Fix pool options deprecation warning. (Pull #980)
+
+    * Include `httpx.URLLib3ProxyTransport` in top-level API. (Pull #979)'
+- file: CHANGELOG.md
+  line: 713
+  section: Fixed
+  text: 'Changelog > 0.13.0 (May 22nd, 2020)
+
+    ### Fixed
+
+
+    * Performance improvement in brotli decoder. (Pull #906)
+
+    * Proper warning level of deprecation notice in `Response.stream` and `Response.raw`. (Pull #908)
+
+    * Fix support for generator based WSGI apps. (Pull #887)
+
+    * Reuse of connections on HTTP/2 in close concurrency situations. (Pull encode/httpcore#81)
+
+    * Honor HTTP/2 max concurrent streams settings (Pull encode/httpcore#89, encode/httpcore#90)
+
+    * Fix bytes support in multipart uploads. (Pull #974)
+
+    * Improve typing support for `files=...`. (Pull #976)'
+- file: CHANGELOG.md
+  line: 736
+  section: Fixed
+  text: 'Changelog > 0.13.0.dev2 (May 12th, 2020)
+
+    ### Fixed
+
+
+    * Reuse of connections on HTTP/2 in close concurrency situations. (HTTPCore Pull #81)
+
+    * When using an `app=<ASGI app>` observe neater disconnect behaviour instead of sending empty body messages. (Pull #919)'
+- file: CHANGELOG.md
+  line: 745
+  section: Fixed
+  text: 'Changelog > 0.13.0.dev1 (May 6th, 2020)
+
+    ### Fixed
+
+
+    * Passing `http2` flag to proxy dispatchers. (Pull #934)
+
+    * Use [`httpcore` v0.8.3](https://github.com/encode/httpcore/releases/tag/0.8.3)
+
+    which addresses problems in handling of headers when using proxies.'
+- file: CHANGELOG.md
+  line: 772
+  section: Fixed
+  text: 'Changelog > 0.13.0.dev0 (April 30th, 2020)
+
+    ### Fixed
+
+
+    * Performance improvement in brotli decoder. (Pull #906)
+
+    * Proper warning level of deprecation notice in `Response.stream` and `Response.raw`. (Pull #908)
+
+    * Fix support for generator based WSGI apps. (Pull #887)'
+- file: CHANGELOG.md
+  line: 786
+  section: Fixed
+  text: 'Changelog > 0.12.1 (March 19th, 2020)
+
+    ### Fixed
+
+
+    * Resolved packaging issue, where additional files were being included.'
+- file: CHANGELOG.md
+  line: 808
+  section: Fixed
+  text: 'Changelog > 0.12.0 (March 9th, 2020)
+
+    ### Fixed
+
+
+    * Support basic auth credentials in proxy URLs. (Pull #780)
+
+    * Fix `httpx.Proxy(url, mode="FORWARD_ONLY")` configuration. (Pull #788)
+
+    * Fallback to setting headers as UTF-8 if no encoding is specified. (Pull #820)
+
+    * Close proxy dispatches classes on client close. (Pull #826)
+
+    * Support custom `cert` parameters even if `verify=False`. (Pull #796)
+
+    * Don''t support invalid dict-of-dicts form data in `data=...`. (Pull #811)
+
+
+    ---'
+- file: CHANGELOG.md
+  line: 821
+  section: Fixed
+  text: 'Changelog > 0.11.1 (January 17th, 2020)
+
+    ### Fixed
+
+
+    * Fixed usage of `proxies=...` on `Client()`. (Pull #763)
+
+    * Support both `zlib` and `deflate` style encodings on `Content-Encoding: deflate`. (Pull #758)
+
+    * Fix for streaming a redirect response body with `allow_redirects=False`. (Pull #766)
+
+    * Handle redirect with malformed Location headers missing host. (Pull #774)'
+- file: CHANGELOG.md
+  line: 853
+  section: Fixed
+  text: 'Changelog > 0.11.0 (January 9th, 2020)
+
+    ### Fixed
+
+
+    - Redirect loop detection matches against `(method, url)` rather than `url`. (Pull #734)
+
+
+    ---'
+- file: CHANGELOG.md
+  line: 861
+  section: Fixed
+  text: 'Changelog > 0.10.1 (December 31st, 2019)
+
+    ### Fixed
+
+
+    - Fix issue with concurrent connection acquisition. (Pull #700)
+
+    - Fix write error on closing HTTP/2 connections. (Pull #699)'
+- file: CHANGELOG.md
+  line: 874
+  section: Fixed
+  text: 'Changelog > 0.10.0 (December 29th, 2019)
+
+    ### Fixed
+
+
+    - End HTTP/2 streams immediately on no-body requests, rather than sending an empty body message. (Pull #682)
+
+    - Improve typing for `Response.request`: switch from `Optional[Request]` to `Request`. (Pull #666)
+
+    - `Response.elapsed` now reflects the entire download time. (Pull #687, #692)'
+- file: CHANGELOG.md
+  line: 896
+  section: Fixed
+  text: 'Changelog > 0.9.5 (December 20th, 2019)
+
+    ### Fixed
+
+
+    - Fix Host header and HSTS rewrites when an explicit `:80` port is included in URL. (Pull #649)
+
+    - Query Params on the URL string are merged with any `params=...` argument. (Pull #653)
+
+    - More robust behavior when closing connections. (Pull #640)
+
+    - More robust behavior when handling HTTP/2 headers with trailing whitespace. (Pull #637)
+
+    - Allow any explicit `Content-Type` header to take precedence over the encoding default. (Pull #633)'
+- file: CHANGELOG.md
+  line: 906
+  section: Fixed
+  text: 'Changelog > 0.9.4 (December 12th, 2019)
+
+    ### Fixed
+
+
+    - Added expiry to Keep-Alive connections, resolving issues with acquiring connections. (Pull #627)
+
+    - Increased flow control windows on HTTP/2, resolving download speed issues. (Pull #629)'
+- file: CHANGELOG.md
+  line: 913
+  section: Fixed
+  text: 'Changelog > 0.9.3 (December 7th, 2019)
+
+    ### Fixed
+
+
+    - Fixed HTTP/2 with autodetection backend. (Pull #614)'
+- file: CHANGELOG.md
+  line: 948
+  section: Fixed
+  text: 'Changelog > 0.9.0 (December 6th, 2019)
+
+    ### Fixed
+
+
+    - Requests or Clients with `timeout=None` now correctly always disable timeouts. (Pull #592)
+
+    - Request ''Authorization'' headers now have priority over `.netrc` authentication info. (Commit 095b691)
+
+    - Files without a filename no longer set a Content-Type in multipart data. (Commit ed94950)'
+- file: CHANGELOG.md
+  line: 983
+  section: Fixed
+  text: 'Changelog > 0.7.7 (November 15, 2019)
+
+    ### Fixed
+
+
+    - Resolve an issue with cookies behavior on redirect requests. (Pull #529)'
+- file: CHANGELOG.md
+  line: 998
+  section: Fixed
+  text: 'Changelog > 0.7.6 (November 2, 2019)
+
+    ### Fixed
+
+
+    - Tweak multipart files: omit null filenames, add support for `str` file contents. (Pull #482)
+
+    - Cache NETRC authentication per-client. (Pull #400)
+
+    - Rely on `getproxies` for all proxy environment variables. (Pull #470)
+
+    - Wait for the `asyncio` stream to close when closing a connection. (Pull #494)'
+- file: CHANGELOG.md
+  line: 1014
+  section: Fixed
+  text: "Changelog > 0.7.5 (October 10, 2019)\n### Fixed\n\n- Username and password are no longer included in the `Host` header\
+    \ when basic authentication\n  credentials are supplied via the URL. (Pull #417)"
+- file: CHANGELOG.md
+  line: 1035
+  section: Fixed
+  text: 'Changelog > 0.7.4 (September 25, 2019)
+
+    ### Fixed
+
+
+    - Fix a bug when using `Client` without timeouts in Python 3.6. (Pull #383)
+
+    - Propagate `Client` configuration to HTTP proxies. (Pull #377)'
+- file: CHANGELOG.md
+  line: 1054
+  section: Fixed
+  text: 'Changelog > 0.7.3 (September 20, 2019)
+
+    ### Fixed
+
+
+    - Fix distribution of type annotations for mypy (Pull #361).
+
+    - Set `Host` header when redirecting cross-origin. (Pull #321)
+
+    - Drop `Content-Length` headers on `GET` redirects. (Pull #310)
+
+    - Raise `KeyError` if header isn''t found in `Headers`. (Pull #324)
+
+    - Raise `NotRedirectResponse` in `response.next()` if there is no redirection to perform. (Pull #297)
+
+    - Fix bug in calculating the HTTP/2 maximum frame size. (Pull #153)'
+prohibition_candidates: []

@@ -1,0 +1,26 @@
+# EngMem-Bench 仓库清单 v0.1
+# 选仓标准：MIT/Apache/BSD 系许可证；社区活跃；有 CONTRIBUTING/AGENTS/docs 等
+# 工程约定类文档；Python 生态为主（与 RSI Boot 的目标用户场景一致）。
+# commit 字段由 collect.py 首次克隆后回写到 repos.lock.yaml，benchmark 以锁为准。
+repos:
+  - {name: requests,    url: https://github.com/psf/requests.git,           license: Apache-2.0}
+  - {name: flask,       url: https://github.com/pallets/flask.git,          license: BSD-3-Clause}
+  - {name: click,       url: https://github.com/pallets/click.git,          license: BSD-3-Clause}
+  - {name: httpx,       url: https://github.com/encode/httpx.git,           license: BSD-3-Clause}
+  - {name: fastapi,     url: https://github.com/fastapi/fastapi.git,        license: MIT}
+  - {name: starlette,   url: https://github.com/encode/starlette.git,       license: BSD-3-Clause}
+  - {name: uvicorn,     url: https://github.com/encode/uvicorn.git,         license: BSD-3-Clause}
+  - {name: pydantic,    url: https://github.com/pydantic/pydantic.git,      license: MIT}
+  - {name: pytest,      url: https://github.com/pytest-dev/pytest.git,      license: MIT}
+  - {name: black,       url: https://github.com/psf/black.git,              license: MIT}
+  - {name: celery,      url: https://github.com/celery/celery.git,          license: BSD-3-Clause}
+  - {name: sqlalchemy,  url: https://github.com/sqlalchemy/sqlalchemy.git,  license: MIT}
+  - {name: aiohttp,     url: https://github.com/aio-libs/aiohttp.git,       license: Apache-2.0}
+  - {name: gunicorn,    url: https://github.com/benoitc/gunicorn.git,       license: MIT}
+  - {name: pip,         url: https://github.com/pypa/pip.git,               license: MIT}
+  - {name: setuptools,  url: https://github.com/pypa/setuptools.git,        license: MIT}
+  - {name: pillow,      url: https://github.com/python-pillow/Pillow.git,   license: MIT-CMU}
+  - {name: scrapy,      url: https://github.com/scrapy/scrapy.git,          license: BSD-3-Clause}
+  - {name: tornado,     url: https://github.com/tornadoweb/tornado.git,     license: Apache-2.0}
+  - {name: psutil,      url: https://github.com/giampaolo/psutil.git,       license: BSD-3-Clause}
+  - {name: django,      url: https://github.com/django/django.git,          license: BSD-3-Clause}

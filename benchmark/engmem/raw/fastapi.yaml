@@ -1,0 +1,574 @@
+convention_candidates:
+- file: docs/en/docs/contributing.md
+  line: 5
+  section: Developing
+  text: 'Contributing
+
+    ## Developing
+
+
+    To contribute code to the project, please follow the guidelines in [tiangolo.com - Contributing](https://tiangolo.com/open-source/contributing/).'
+- file: README.md
+  line: 75
+  section: Opinions
+  text: '## Opinions
+
+
+
+
+    <div class="only-github" markdown="1">
+
+
+    "_[...] I''m using **FastAPI** a ton these days. [...] I''m actually planning to use it for all of my team''s **ML services
+    at Microsoft**. Some of them are getting integrated into the core **Windows** product and some **Office** products._"
+
+
+    <div style="text-align: right; margin-right: 10%;">Kabir Khan - <strong>Microsoft</strong> <a href="https://github.com/fastapi/fastapi/pull/26"><small>(ref)</small></a></div>
+
+
+    ---
+
+
+    "_We adopted the **FastAPI** library to spawn a **REST** server that can be queried to obtain **predictions**. [for Ludwig]_"
+
+
+    <div style="text-align: right; margin-right: 10%;">Piero Molino, Yaroslav Dudin, and Sai Sumanth Miryala - <strong>Uber</strong>
+    <a href="https://www.uber.com/us/en/blog/ludwig-v0-2/"><small>(ref)</small></a></div>
+
+
+    ---
+
+
+    "_**Netflix** is pleased to announce the open-source release of our **crisis management** orchestration framework: **Dispatch**!
+    [built with **FastAPI**]_"
+
+
+    <div style="text-align: right; margin-right: 10%;">Kevin Glisson, Marc Vilanova, Forest Monsen - <strong>Netflix</strong>
+    <a href="https://netflixtechblog.com/introducing-dispatch-da4b8a2a8072"><small>(ref)</small></a></div>
+
+
+    ---
+
+
+    "_If anyone is looking to build a production Python API, I would highly recommend **FastAPI**. It is **beautifully designed**,
+    **simple to use** and **highly scalable**, it has become a **key component** in our API first development strategy and
+    is driving many automations and services such as our Virtual TAC Engineer._"
+
+
+    <div style="text-align: right; margin-right: 10%;">Deon Pillsbury - <strong>Cisco</strong> <a href="https://www.linkedin.com/posts/deonpillsbury_cisco-cx-python-activity-6963242628536487936-trAp/"><small>(ref)</small></a></div>
+
+
+    ---
+
+
+    </div>'
+- file: README.md
+  line: 113
+  section: '**Typer**, the FastAPI of CLIs'
+  text: '## **Typer**, the FastAPI of CLIs
+
+
+    <a href="https://typer.tiangolo.com"><img src="https://typer.tiangolo.com/img/logo-margin/logo-margin-vector.svg" style="width:
+    20%;"></a>
+
+
+    If you are building a <abbr title="Command Line Interface">CLI</abbr> app to be used in the terminal instead of a web
+    API, check out [**Typer**](https://typer.tiangolo.com/).
+
+
+    **Typer** is FastAPI''s little sibling. And it''s intended to be the **FastAPI of CLIs**. ⌨️ 🚀'
+- file: README.md
+  line: 128
+  section: Installation
+  text: '## Installation
+
+
+    First, [install `uv`](https://docs.astral.sh/uv/getting-started/installation/), and then add FastAPI to your project:
+
+
+    <div class="termy">
+
+
+    ```console
+
+    $ uv add "fastapi[standard]"
+
+
+    ---> 100%
+
+    ```
+
+
+    </div>
+
+
+    **Note**: Make sure you put `"fastapi[standard]"` in quotes to ensure it works in all terminals.
+
+
+    If you prefer to use `pip`, install `fastapi[standard]` inside a virtual environment. See the [installation guide](tutorial/#install-fastapi)
+    for the alternative steps.'
+- file: README.md
+  line: 237
+  section: Check it
+  text: 'Example
+
+    ### Check it
+
+
+    Open your browser at [http://127.0.0.1:8000/items/5?q=somequery](http://127.0.0.1:8000/items/5?q=somequery).
+
+
+    You will see the JSON response as:
+
+
+    ```JSON
+
+    {"item_id": 5, "q": "somequery"}
+
+    ```
+
+
+    You already created an API that:
+
+
+    * Receives HTTP requests in the _paths_ `/` and `/items/{item_id}`.
+
+    * Both _paths_ take `GET` <em>operations</em> (also known as HTTP _methods_).
+
+    * The _path_ `/items/{item_id}` has a _path parameter_ `item_id` that should be an `int`.
+
+    * The _path_ `/items/{item_id}` has an optional `str` _query parameter_ `q`.'
+- file: README.md
+  line: 270
+  section: Example upgrade
+  text: "## Example upgrade\n\nNow modify the file `main.py` to receive a body from a `PUT` request.\n\nDeclare the body using\
+    \ standard Python types, thanks to Pydantic.\n\n```Python hl_lines=\"2  7-10 23-25\"\nfrom fastapi import FastAPI\nfrom\
+    \ pydantic import BaseModel\n\napp = FastAPI()\n\n\nclass Item(BaseModel):\n    name: str\n    price: float\n    is_offer:\
+    \ bool | None = None\n\n\n@app.get(\"/\")\ndef read_root():\n    return {\"Hello\": \"World\"}\n\n\n@app.get(\"/items/{item_id}\"\
+    )\ndef read_item(item_id: int, q: str | None = None):\n    return {\"item_id\": item_id, \"q\": q}\n\n\n@app.put(\"/items/{item_id}\"\
+    )\ndef update_item(item_id: int, item: Item):\n    return {\"item_name\": item.name, \"item_id\": item_id}\n```\n\nThe\
+    \ `fastapi dev` server should reload automatically."
+- file: README.md
+  line: 490
+  section: '`standard` Dependencies'
+  text: "Dependencies\n### `standard` Dependencies\n\nWhen you install FastAPI with `uv add \"fastapi[standard]\"` it comes\
+    \ with the `standard` group of optional dependencies:\n\nUsed by Pydantic:\n\n* [`email-validator`](https://github.com/JoshData/python-email-validator)\
+    \ - for email validation.\n\nUsed by Starlette:\n\n* [`httpx2`](https://pydantic.dev/docs/httpx2/) (or `httpx`) - Used\
+    \ by the `TestClient`.\n* [`jinja2`](https://jinja.palletsprojects.com) - Required if you want to use the default template\
+    \ configuration.\n* [`python-multipart`](https://github.com/Kludex/python-multipart) - Required if you want to support\
+    \ form <dfn title=\"converting the string that comes from an HTTP request into Python data\">\"parsing\"</dfn>, with `request.form()`.\n\
+    \nUsed by FastAPI:\n\n* [`uvicorn`](https://uvicorn.dev) - for the server that loads and serves your application. This\
+    \ includes `uvicorn[standard]`, which includes some dependencies (e.g. `uvloop`) needed for high performance serving.\n\
+    * `fastapi-cli[standard]` - to provide the `fastapi` command.\n    * This includes `fastapi-cloud-cli`, which allows you\
+    \ to deploy your FastAPI application to [FastAPI Cloud](https://fastapicloud.com)."
+- file: README.md
+  line: 518
+  section: Additional Optional Dependencies
+  text: 'Dependencies
+
+    ### Additional Optional Dependencies
+
+
+    There are some additional dependencies you might want to install.
+
+
+    Additional optional Pydantic dependencies:
+
+
+    * [`pydantic-settings`](https://pydantic.dev/docs/validation/latest/concepts/pydantic_settings/) - for settings management.
+
+    * [`pydantic-extra-types`](https://github.com/pydantic/pydantic-extra-types) - for extra types to be used with Pydantic.
+
+
+    Additional optional FastAPI dependencies:
+
+
+    * [`orjson`](https://github.com/ijl/orjson) - Required if you want to use `ORJSONResponse`.
+
+    * [`ujson`](https://github.com/ultrajson/ultrajson) - Required if you want to use `UJSONResponse`.'
+files_seen:
+- README.md
+- docs/en/docs/contributing.md
+- docs/en/docs/release-notes.md
+fix_candidates:
+- file: docs/en/docs/release-notes.md
+  line: 52
+  section: Fixes
+  text: 'Release Notes > 0.161.1 (2026-10-22)
+
+    ### Fixes
+
+
+    * 🐛 Fix OpenAPI schemas for standalone nullable form unions. PR [#16598](https://github.com/fastapi/fastapi/pull/16598)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 96
+  section: Fixes
+  text: 'Release Notes > 0.158.1 (2026-10-21)
+
+    ### Fixes
+
+
+    * 🐛 Preserve form media types in OpenAPI. PR [#16579](https://github.com/fastapi/fastapi/pull/16579) by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 123
+  section: Fixes
+  text: 'Release Notes > 0.156.8 (2026-10-21)
+
+    ### Fixes
+
+
+    * 🐛 Preserve uploaded file positions when converting to `bytes`. PR [#16566](https://github.com/fastapi/fastapi/pull/16566)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 129
+  section: Fixes
+  text: 'Release Notes > 0.156.7 (2026-10-21)
+
+    ### Fixes
+
+
+    * 🐛 Fix validation error locations for form and file `AliasChoices`. PR [#16564](https://github.com/fastapi/fastapi/pull/16564)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 135
+  section: Fixes
+  text: 'Release Notes > 0.156.6 (2026-10-21)
+
+    ### Fixes
+
+
+    * 🐛 Respect model alias settings for query, header, and cookie parameters. PR [#16562](https://github.com/fastapi/fastapi/pull/16562)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 141
+  section: Fixes
+  text: 'Release Notes > 0.156.5 (2026-10-21)
+
+    ### Fixes
+
+
+    * 🐛 Fix `AliasChoices` for path parameters. PR [#16560](https://github.com/fastapi/fastapi/pull/16560) by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 147
+  section: Fixes
+  text: 'Release Notes > 0.156.4 (2026-10-21)
+
+    ### Fixes
+
+
+    * 🐛 Fix `AliasChoices` for named JSON body parameters. PR [#16559](https://github.com/fastapi/fastapi/pull/16559) by [@tiangolo](https://github.com/tiangolo).
+
+    * 🐛 Fix `AliasChoices` extraction for form models. PR [#16557](https://github.com/fastapi/fastapi/pull/16557) by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 154
+  section: Fixes
+  text: 'Release Notes > 0.156.3 (2026-10-20)
+
+    ### Fixes
+
+
+    * 🐛 Fix `AliasChoices` for query parameters, headers, and cookies. PR [#16555](https://github.com/fastapi/fastapi/pull/16555)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 160
+  section: Fixes
+  text: 'Release Notes > 0.156.2 (2026-10-20)
+
+    ### Fixes
+
+
+    * 🐛 Preserve Pydantic field metadata in inferred request parameters. PR [#16553](https://github.com/fastapi/fastapi/pull/16553)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 166
+  section: Fixes
+  text: 'Release Notes > 0.156.1 (2026-10-20)
+
+    ### Fixes
+
+
+    * 🐛 Preserve Pydantic field metadata when request options are omitted. PR [#16549](https://github.com/fastapi/fastapi/pull/16549)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 172
+  section: Fixes
+  text: 'Release Notes > 0.156.0 (2026-10-20)
+
+    ### Fixes
+
+
+    * 🐛 Preserve Pydantic `Field()` attributes in request parameters. PR [#16547](https://github.com/fastapi/fastapi/pull/16547)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 194
+  section: Fixes
+  text: 'Release Notes > 0.153.0 (2026-10-20)
+
+    ### Fixes
+
+
+    * 🐛 Apply browser form handling to unions of Pydantic models. PR [#16540](https://github.com/fastapi/fastapi/pull/16540)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 202
+  section: Fixes
+  text: 'Release Notes > 0.152.0 (2026-10-20)
+
+    ### Fixes
+
+
+    * 🐛 Fix header model validation errors to report HTTP header names. PR [#16538](https://github.com/fastapi/fastapi/pull/16538)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 286
+  section: Fixes
+  text: 'Release Notes > 0.143.5 (2026-10-18)
+
+    ### Fixes
+
+
+    * 🐛 Fix handling of empty value for `byte` file list parameter. PR [#9383](https://github.com/fastapi/fastapi/pull/9383)
+    by [@Viicos](https://github.com/Viicos).'
+- file: docs/en/docs/release-notes.md
+  line: 298
+  section: Fixes
+  text: 'Release Notes > 0.143.3 (2026-10-16)
+
+    ### Fixes
+
+
+    * 🐛 Fix non-finite float serialization in JSONL and SSE streams. PR [#16509](https://github.com/fastapi/fastapi/pull/16509)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 308
+  section: Fixes
+  text: 'Release Notes > 0.143.2 (2026-10-15)
+
+    ### Fixes
+
+
+    * 🐛 Fix blocking frontend fallback file checks. PR [#16503](https://github.com/fastapi/fastapi/pull/16503) by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 334
+  section: Fixes
+  text: 'Release Notes > 0.143.1 (2026-10-14)
+
+    ### Fixes
+
+
+    * 🐛 Fix included route metadata in `iter_route_contexts()`. PR [#16484](https://github.com/fastapi/fastapi/pull/16484)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 350
+  section: Fixes
+  text: 'Release Notes > 0.142.4 (2026-10-07)
+
+    ### Fixes
+
+
+    * 🐛 Isolate FastAPI telemetry for excluded requests. PR [#16470](https://github.com/fastapi/fastapi/pull/16470) by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 356
+  section: Fixes
+  text: 'Release Notes > 0.142.3 (2026-10-07)
+
+    ### Fixes
+
+
+    * 🐛 Cache OpenTelemetry tracers to preserve warning deduplication. PR [#16468](https://github.com/fastapi/fastapi/pull/16468)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 399
+  section: Fixes
+  text: 'Release Notes > 0.142.2 (2026-09-30)
+
+    ### Fixes
+
+
+    * 🐛 Allow startup when automatic OpenTelemetry configuration fails. PR [#16418](https://github.com/fastapi/fastapi/pull/16418)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 405
+  section: Fixes
+  text: 'Release Notes > 0.142.1 (2026-09-29)
+
+    ### Fixes
+
+
+    * 🐛 Fix repeated endpoint wrapping in included routers. PR [#16414](https://github.com/fastapi/fastapi/pull/16414) by
+    [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 485
+  section: Fixes
+  text: 'Release Notes > 0.141.1 (2026-07-29)
+
+    ### Fixes
+
+
+    * 🐛 Fix support for background tasks and headers from dependencies in `app.frontend()`. PR [#16105](https://github.com/fastapi/fastapi/pull/16105)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 501
+  section: Fixes
+  text: 'Release Notes > 0.140.13 (2026-07-28)
+
+    ### Fixes
+
+
+    * 🐛 Fix `status_code` being ignored for SSE and JSONL streaming endpoints. PR [#15937](https://github.com/fastapi/fastapi/pull/15937)
+    by [@SAURABHSALVE](https://github.com/SAURABHSALVE).'
+- file: docs/en/docs/release-notes.md
+  line: 512
+  section: Fixes
+  text: 'Release Notes > 0.140.12 (2026-07-28)
+
+    ### Fixes
+
+
+    * 🐛 Fix line splitting in `format_sse_event` to comply with SSE spec. PR [#15515](https://github.com/fastapi/fastapi/pull/15515)
+    by [@Zawwarsami16](https://github.com/Zawwarsami16).'
+- file: docs/en/docs/release-notes.md
+  line: 518
+  section: Fixes
+  text: 'Release Notes > 0.140.11 (2026-07-28)
+
+    ### Fixes
+
+
+    * 🐛 Fix `response_model_*` params ignored for non-generator endpoints with `Iterable[..]` return type. PR [#15093](https://github.com/fastapi/fastapi/pull/15093)
+    by [@YuriiMotov](https://github.com/YuriiMotov).'
+- file: docs/en/docs/release-notes.md
+  line: 524
+  section: Fixes
+  text: 'Release Notes > 0.140.10 (2026-07-28)
+
+    ### Fixes
+
+
+    * 🐛 Fix handling sequences with nested Annotated types. PR [#14874](https://github.com/fastapi/fastapi/pull/14874) by
+    [@YuriiMotov](https://github.com/YuriiMotov).'
+- file: docs/en/docs/release-notes.md
+  line: 528
+  section: Internal
+  text: 'Release Notes > 0.140.10 (2026-07-28)
+
+    ### Internal
+
+
+    * 🐛 Accept any base test failure as regression. PR [#16092](https://github.com/fastapi/fastapi/pull/16092) by [@tiangolo](https://github.com/tiangolo).
+
+    * 🐛 Preserve pytest exit code in regression check. PR [#16091](https://github.com/fastapi/fastapi/pull/16091) by [@tiangolo](https://github.com/tiangolo).
+
+    * ✅ Test PR regressions against base code. PR [#16090](https://github.com/fastapi/fastapi/pull/16090) by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 536
+  section: Fixes
+  text: 'Release Notes > 0.140.9 (2026-07-28)
+
+    ### Fixes
+
+
+    * 🐛 Fix `exclude_defaults` not propagated to dict keys and values in `jsonable_encoder`. PR [#16043](https://github.com/fastapi/fastapi/pull/16043)
+    by [@MBGrao](https://github.com/MBGrao).'
+- file: docs/en/docs/release-notes.md
+  line: 548
+  section: Fixes
+  text: 'Release Notes > 0.140.8 (2026-07-28)
+
+    ### Fixes
+
+
+    * 🐛 Fix stream item type lost when using `include_router()`. PR [#15077](https://github.com/fastapi/fastapi/pull/15077)
+    by [@alex-raw](https://github.com/alex-raw).'
+- file: docs/en/docs/release-notes.md
+  line: 624
+  section: Fixes
+  text: 'Release Notes > 0.139.2 (2026-07-16)
+
+    ### Fixes
+
+
+    * 🐛 Refactor router route building to make it thread-safe, mainly relevant for tests running in parallel threads (uncommon).
+    PR [#16013](https://github.com/fastapi/fastapi/pull/16013) by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 630
+  section: Fixes
+  text: 'Release Notes > 0.139.1 (2026-07-16)
+
+    ### Fixes
+
+
+    * 🐛 Fix frontend fallback support for doted paths like `/users/john.doe`. PR [#16011](https://github.com/fastapi/fastapi/pull/16011)
+    by [@tiangolo](https://github.com/tiangolo).'
+- file: docs/en/docs/release-notes.md
+  line: 808
+  section: Fixes
+  text: 'Release Notes > 0.137.1 (2026-06-15)
+
+    ### Fixes
+
+
+    * 🚨 Fix typing checks for APIRoute. PR [#15765](https://github.com/fastapi/fastapi/pull/15765) by [@tiangolo](https://github.com/tiangolo).
+
+    * 🐛 Fix bug, allow empty path in path operation in prefixless router. PR [#15763](https://github.com/fastapi/fastapi/pull/15763)
+    by [@tiangolo](https://github.com/tiangolo).'
+prohibition_candidates:
+- file: README.md
+  line: 148
+  section: Create it
+  text: "Example\n### Create it\n\nCreate a file `main.py` with:\n\n```Python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\
+    \n\n@app.get(\"/\")\ndef read_root():\n    return {\"Hello\": \"World\"}\n\n\n@app.get(\"/items/{item_id}\")\ndef read_item(item_id:\
+    \ int, q: str | None = None):\n    return {\"item_id\": item_id, \"q\": q}\n```\n\n<details markdown=\"1\">\n<summary>Or\
+    \ use <code>async def</code>...</summary>\n\nIf your code uses `async` / `await`, use `async def`:\n\n```Python hl_lines=\"\
+    7  12\"\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n\n@app.get(\"/\")\nasync def read_root():\n    return {\"Hello\"\
+    : \"World\"}\n\n\n@app.get(\"/items/{item_id}\")\nasync def read_item(item_id: int, q: str | None = None):\n    return\
+    \ {\"item_id\": item_id, \"q\": q}\n```\n\n**Note**:\n\nIf you don't know, check the _\"In a hurry?\"_ section about [`async`\
+    \ and `await` in the docs](https://fastapi.tiangolo.com/async/#in-a-hurry).\n\n</details>"
+- file: README.md
+  line: 330
+  section: Recap
+  text: "Example upgrade\n### Recap\n\nIn summary, you declare **once** the types of parameters, body, etc. as function parameters.\n\
+    \nYou do that with standard modern Python types.\n\nYou don't have to learn a new syntax, the methods or classes of a\
+    \ specific library, etc.\n\nJust standard **Python**.\n\nFor example, for an `int`:\n\n```Python\nitem_id: int\n```\n\n\
+    or for a more complex `Item` model:\n\n```Python\nitem: Item\n```\n\n...and with that single declaration you get:\n\n\
+    * Editor support, including:\n    * Completion.\n    * Type checks.\n* Validation of data:\n    * Automatic and clear\
+    \ errors when the data is invalid.\n    * Validation even for deeply nested JSON objects.\n* <dfn title=\"also known as:\
+    \ serialization, parsing, marshalling\">Conversion</dfn> of input data: coming from the network to Python data and types.\
+    \ Reading from:\n    * JSON.\n    * Path parameters.\n    * Query parameters.\n    * Cookies.\n    * Headers.\n    * Forms.\n\
+    \    * Files.\n* <dfn title=\"also known as: serialization, parsing, marshalling\">Conversion</dfn> of output data: converting\
+    \ from Python data and types to network data (as JSON):\n    * Convert Python types (`str`, `int`, `float`, `bool`, `list`,\
+    \ etc).\n    * `datetime` objects.\n    * `UUID` objects.\n    * Database models.\n    * ...and many more.\n* Automatic\
+    \ interactive API documentation, including 2 alternative user interfaces:\n    * Swagger UI.\n    * ReDoc.\n\n---\n\n\
+    Coming back to the previous code example, **FastAPI** will:\n\n* Validate that there is an `item_id` in the path for `GET`\
+    \ and `PUT` requests.\n* Validate that the `item_id` is of type `int` for `GET` and `PUT` requests.\n    * If it is not,\
+    \ the client will see a useful, clear error.\n* Check if there is an optional query parameter named `q` (as in `http://127.0.0.1:8000/items/foo?q=somequery`)\
+    \ for `GET` requests.\n    * As the `q` parameter is declared with `= None`, it is optional.\n    * Without the `None`\
+    \ it would be required (as is the body in the case with `PUT`).\n* For `PUT` requests to `/items/{item_id}`, read the\
+    \ body as JSON:\n    * Check that it has a required attribute `name` that should be a `str`.\n    * Check that it has\
+    \ a required attribute `price` that has to be a `float`.\n    * Check that it has an optional attribute `is_offer`, that\
+    \ should be a `bool`, if present.\n    * All this would also work for deeply nested JSON objects.\n* Convert from and\
+    \ to JSON automatically.\n* Document everything with OpenAPI, that can be used by:\n    * Interactive documentation systems.\n\
+    \    * Automatic client code generation systems, for many languages.\n* Provide 2 interactive documentation web interfaces\
+    \ directly.\n\n---\n\nWe just scratched the surface, but you already get the idea of how it all works.\n\nTry changing\
+    \ the line with:\n\n```Python\n    return {\"item_name\": item.name, \"item_id\": item_id}\n```\n\n...from:\n\n```Python\n\
+    \        ... \"item_name\": item.name ...\n```\n\n...to:\n\n```Python\n        ... \"item_price\": item.price ...\n```\n\
+    \n...and see how your editor will auto-complete the attributes and know their types:\n\n![editor support](https://fastapi.tiangolo.com/img/vscode-completion.png)\n\
+    \nFor a more complete example including more features, see the <a href=\"https://fastapi.tiangolo.com/tutorial/\">Tutorial\
+    \ - User Guide</a>.\n\n**Spoiler alert**: the tutorial - user guide includes:\n\n* Declaration of **parameters** from\
+    \ other different places such as: **headers**, **cookies**, **form fields** and **files**.\n* How to set **validation\
+    \ constraints** such as `maximum_length` or `regex`.\n* A very powerful and easy to use **<dfn title=\"also known as components,\
+    \ resources, providers, services, injectables\">Dependency Injection</dfn>** system.\n* Security and authentication, including\
+    \ support for **OAuth2** with **JWT tokens** and **HTTP Basic** auth.\n* More advanced (but equally easy) techniques for\
+    \ declaring **deeply nested JSON models** (thanks to Pydantic).\n* **GraphQL** integration with [Strawberry](https://strawberry.rocks)\
+    \ and other libraries.\n* Many extra features (thanks to Starlette) such as:\n    "
+- file: README.md
+  line: 510
+  section: Without `standard` Dependencies
+  text: 'Dependencies
+
+    ### Without `standard` Dependencies
+
+
+    If you don''t want to include the `standard` optional dependencies, you can install with `uv add fastapi` instead of `uv
+    add "fastapi[standard]"`.'

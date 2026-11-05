@@ -1,0 +1,74 @@
+repo: fastapi
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "What is the recommended way to add FastAPI with its standard dependencies to a project?"
+    answer: "Install uv first, then run: uv add \"fastapi[standard]\"."
+    gold: ["README.md::Installation"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "When installing FastAPI's standard flavor, why must \"fastapi[standard]\" be quoted?"
+    answer: "The README explicitly warns to put \"fastapi[standard]\" in quotes so the shell does not misinterpret the brackets."
+    gold: ["README.md::Installation"]
+  - id: conv-003
+    type: convention
+    difficulty: easy
+    question: "How do you install FastAPI without the standard optional dependencies?"
+    answer: "uv add fastapi (instead of uv add \"fastapi[standard]\")."
+    gold: ["README.md::Without `standard` Dependencies"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "Which package in FastAPI's standard dependency group is used by Pydantic for email validation?"
+    answer: "email-validator."
+    gold: ["README.md::`standard` Dependencies"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "Where are FastAPI's code contribution guidelines hosted?"
+    answer: "At tiangolo.com/open-source/contributing/ (linked from docs/en/docs/contributing.md)."
+    gold: ["docs/en/docs/contributing.md::Developing"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "Which sibling project does FastAPI's README recommend for building CLI terminal apps?"
+    answer: "Typer, 'the FastAPI of CLIs'."
+    gold: ["README.md::**Typer**, the FastAPI of CLIs"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: medium
+    question: "Do FastAPI users need to learn a new syntax or library-specific methods/classes to declare parameter types?"
+    answer: "No. Declaration uses standard modern Python types only."
+    gold: ["README.md::Recap"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What did FastAPI 0.161.1 fix about OpenAPI schemas?"
+    answer: "Fixed OpenAPI schemas for standalone nullable form unions."
+    gold: ["docs/en/docs/release-notes.md::Fixes@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What did FastAPI 0.158.1 preserve in OpenAPI?"
+    answer: "Form media types."
+    gold: ["docs/en/docs/release-notes.md::Fixes@2"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What did FastAPI 0.156.8 fix about uploaded files?"
+    answer: "It preserves uploaded file positions when converting to bytes."
+    gold: ["docs/en/docs/release-notes.md::Fixes@3"]
+  - id: fix-004
+    type: fix
+    difficulty: hard
+    question: "Which FastAPI release fixed validation error locations for form and file AliasChoices?"
+    answer: "0.156.7."
+    gold: ["docs/en/docs/release-notes.md::Fixes@4"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "Is FastAPI's standard dependency group mandatory to use the framework?"
+    answer: "No — install plain 'uv add fastapi' to skip the standard optional dependencies."
+    gold: ["README.md::Without `standard` Dependencies"]

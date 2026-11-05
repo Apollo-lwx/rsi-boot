@@ -1,0 +1,122 @@
+repo: httpx
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "In httpx, where should possible bugs and feature requests be raised before opening an issue?"
+    answer: "GitHub Discussions: 'Potential Issue' discussions for possible bugs, 'Ideas' discussions for feature requests."
+    gold: [".github/CONTRIBUTING.md::Reporting Bugs or Other Issues"]
+  - id: conv-002
+    type: convention
+    difficulty: easy
+    question: "What command runs the httpx test suite?"
+    answer: "scripts/test"
+    gold: [".github/CONTRIBUTING.md::Testing and Linting"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "Which two local ports must be free before running httpx's test suite, and why?"
+    answer: "Ports 8000 and 8001, because the test suite spawns testing servers on them."
+    gold: [".github/CONTRIBUTING.md::Testing and Linting"]
+  - id: conv-004
+    type: convention
+    difficulty: easy
+    question: "What command runs code auto-formatting in httpx?"
+    answer: "scripts/lint"
+    gold: [".github/CONTRIBUTING.md::Testing and Linting"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "How do you run a single test script (e.g. tests/test_multipart.py) in httpx?"
+    answer: "scripts/test -- tests/test_multipart.py"
+    gold: [".github/CONTRIBUTING.md::Testing and Linting"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "If the 'Check' CI job fails on an httpx pull request, what two kinds of problems does that indicate?"
+    answer: "A code formatting issue or a type-annotation issue."
+    gold: [".github/CONTRIBUTING.md::Check Job Failed"]
+  - id: conv-007
+    type: convention
+    difficulty: medium
+    question: "What two things must an httpx release pull request include?"
+    answer: "An update to the changelog and a version bump in __version__.py."
+    gold: [".github/CONTRIBUTING.md::Releasing"]
+  - id: conv-008
+    type: convention
+    difficulty: hard
+    question: "Which changelog format does httpx follow for releases, and how should entries be sorted?"
+    answer: "keepachangelog format, entries sorted in descending order of impact/importance."
+    gold: [".github/CONTRIBUTING.md::Releasing"]
+  - id: conv-009
+    type: convention
+    difficulty: hard
+    question: "Which proxy tool does httpx recommend for testing and debugging requests locally, and what pip package sets up its local TLS certificates?"
+    answer: "mitmproxy; certificates are created with trustme-cli."
+    gold: [".github/CONTRIBUTING.md::Development proxy setup"]
+  - id: conv-010
+    type: convention
+    difficulty: medium
+    question: "When cutting an httpx release, what do the git tag and the release title look like?"
+    answer: "Tag like `0.13.3`, release title `Version 0.13.3`, description copied from the changelog."
+    gold: [".github/CONTRIBUTING.md::Releasing"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: medium
+    question: "Which kinds of changes must NOT go into the httpx changelog?"
+    answer: "Changes to documentation, tests, or tooling."
+    gold: [".github/CONTRIBUTING.md::Releasing"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What changed about default JSON request bodies in httpx 0.28.0, and what might it require users to update?"
+    answer: "They now use a more compact representation, which may require updates to test suites."
+    gold: ["CHANGELOG.md::0.28.0 (28th November, 2024)"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "Which httpx release reintroduced the supposedly-private URLTypes shortcut?"
+    answer: "0.27.2."
+    gold: ["CHANGELOG.md::Fixed@1"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "In httpx 0.27.1, the `app` type signature was fixed in which transport class?"
+    answer: "ASGITransport."
+    gold: ["CHANGELOG.md::Fixed@2"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "Which digest authentication mode did httpx 0.27.0 fix?"
+    answer: "RFC 2069 mode digest authentication."
+    gold: ["CHANGELOG.md::Fixed@3"]
+  - id: fix-005
+    type: fix
+    difficulty: hard
+    question: "What does httpx raise if you set Response.encoding after Response.text has been accessed, and since which version?"
+    answer: "ValueError, since 0.25.1."
+    gold: ["CHANGELOG.md::Fixed@5"]
+  - id: fix-006
+    type: fix
+    difficulty: hard
+    question: "Which httpx version fixed double escaping of URL path components and started allowing unescaped '@' in URL usernames and passwords?"
+    answer: "0.26.0."
+    gold: ["CHANGELOG.md::Fixed@4"]
+  - id: fix-007
+    type: fix
+    difficulty: medium
+    question: "In httpx 0.25.0, what does ASGITransport return when raise_app_exceptions=False, and how are forward slashes in query parameters encoded?"
+    answer: "A 500 error response instead of exceptions; forward slashes are always encoded as %2F."
+    gold: ["CHANGELOG.md::Fixed@6"]
+  - id: fix-008
+    type: fix
+    difficulty: medium
+    question: "What two NO_PROXY/netrc related fixes landed in httpx 0.24.1?"
+    answer: "IP addresses are properly supported in the NO_PROXY environment variable, and NetRCAuth()'s default file was set to None to use the stdlib default."
+    gold: ["CHANGELOG.md::Fixed@7"]
+  - id: conv-011
+    type: convention
+    difficulty: medium
+    question: "How do you preview httpx's documentation site locally?"
+    answer: "Run scripts/docs (documentation pages live under docs/)."
+    gold: [".github/CONTRIBUTING.md::Documenting"]

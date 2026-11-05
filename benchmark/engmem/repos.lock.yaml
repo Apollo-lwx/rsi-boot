@@ -1,0 +1,84 @@
+aiohttp:
+  commit: a2c6c92ccbe2e11735abea5fa1d901a09b5a3662
+  license: Apache-2.0
+  url: https://github.com/aio-libs/aiohttp.git
+black:
+  commit: b1c244db985218e4b643a37153870d059a3f1e21
+  license: MIT
+  url: https://github.com/psf/black.git
+celery:
+  commit: 5d83c46ebb3f7183998f55fa2e5af0ad0038b278
+  license: BSD-3-Clause
+  url: https://github.com/celery/celery.git
+click:
+  commit: 2247b35ea1c47c727d7a06e51fa280e12a863ff6
+  license: BSD-3-Clause
+  url: https://github.com/pallets/click.git
+django:
+  commit: b501b8493f31cf8cba31211d59b3b78642b8cb02
+  license: BSD-3-Clause
+  url: https://github.com/django/django.git
+fastapi:
+  commit: 5cb6272ed7e3e07eaf6978e1e65b94aca76fa8e0
+  license: MIT
+  url: https://github.com/fastapi/fastapi.git
+flask:
+  commit: 49943b5a94413a530761350f04e896f76e8d620e
+  license: BSD-3-Clause
+  url: https://github.com/pallets/flask.git
+gunicorn:
+  commit: afc7d2fd5dd9f1de455b1be6c10044030c0adf8e
+  license: MIT
+  url: https://github.com/benoitc/gunicorn.git
+httpx:
+  commit: b5addb64f0161ff6bfe94c124ef76f6a1fba5254
+  license: BSD-3-Clause
+  url: https://github.com/encode/httpx.git
+pillow:
+  commit: eca0d47d9c63e40a09ea91ad5c05c9bbe96a8896
+  license: MIT-CMU
+  url: https://github.com/python-pillow/Pillow.git
+pip:
+  commit: 42f71db0668896db06742a89f975c7d5f3132677
+  license: MIT
+  url: https://github.com/pypa/pip.git
+psutil:
+  commit: c7e6eb945a525f57c3843284e8f66ef4701af02c
+  license: BSD-3-Clause
+  url: https://github.com/giampaolo/psutil.git
+pydantic:
+  commit: 77fad186682d0c22cad713e34ca9b8b830362ed0
+  license: MIT
+  url: https://github.com/pydantic/pydantic.git
+pytest:
+  commit: 8b005ed7f972987033ec34dc1e68b0635fb8142b
+  license: MIT
+  url: https://github.com/pytest-dev/pytest.git
+requests:
+  commit: 3c7baaa05ab4aa49cc819ce3a819d260de19c157
+  license: Apache-2.0
+  url: https://github.com/psf/requests.git
+scrapy:
+  commit: 2d22bf9ae9a2953bc55e017bc89f3ec469c820c8
+  license: BSD-3-Clause
+  url: https://github.com/scrapy/scrapy.git
+setuptools:
+  commit: 049ae8e3083514378aedb352a2017fbc306bd126
+  license: MIT
+  url: https://github.com/pypa/setuptools.git
+sqlalchemy:
+  commit: 10901e3102260d0b39df253bdfc88fb57e244969
+  license: MIT
+  url: https://github.com/sqlalchemy/sqlalchemy.git
+starlette:
+  commit: 0f08970e5cce0aec4fc1cea7447c262d741795eb
+  license: BSD-3-Clause
+  url: https://github.com/encode/starlette.git
+tornado:
+  commit: 57deb98e96e13c5887ddde237c266fa4872ae46d
+  license: Apache-2.0
+  url: https://github.com/tornadoweb/tornado.git
+uvicorn:
+  commit: a99c1b76ee9caea67ff98e2ccc457bd372db193f
+  license: BSD-3-Clause
+  url: https://github.com/encode/uvicorn.git

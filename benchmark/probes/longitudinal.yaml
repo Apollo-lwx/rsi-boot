@@ -1,0 +1,31 @@
+# 纵向自改进实验探针包（benchmark/longitudinal.py 专用）
+# stable-*：第 0 轮种子知识，整个实验期间应保持通过（回归护栏）
+# learn-N：第 N 轮通过合成反馈注入的知识，注入前不应通过、注入后应通过
+version: "1"
+seed_docs: []
+probes:
+  - id: stable-1
+    kind: recall
+    question: "What test framework does this project use?"
+    hit_any: ["pytest"]
+    top_k: 5
+  - id: stable-2
+    kind: recall
+    question: "What is required before merging a pull request to main?"
+    hit_any: ["approval"]
+    top_k: 5
+  - id: learn-1
+    kind: recall
+    question: "What must database migrations always support?"
+    hit_any: ["reversible"]
+    top_k: 5
+  - id: learn-2
+    kind: recall
+    question: "What is the correct command to deploy to staging?"
+    hit_any: ["deploy-staging"]
+    top_k: 5
+  - id: learn-3
+    kind: recall
+    question: "What must never be logged on the payments service?"
+    hit_any: ["request bodies"]
+    top_k: 5

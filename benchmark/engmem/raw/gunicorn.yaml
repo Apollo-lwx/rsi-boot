@@ -1,0 +1,187 @@
+convention_candidates:
+- file: SECURITY.md
+  line: 3
+  section: Reporting a Vulnerability
+  text: "Security Policy\n## Reporting a Vulnerability\n\n**Please note that public Github issues are open for everyone to\
+    \ see!**\n\nIf you believe you are found a problem in Gunicorn software, examples or documentation, we encourage you to\
+    \ send your\n report privately via [email](mailto:security@gunicorn.org?subject=Security%20issue%20in%20Gunicorn), or\
+    \ via Github\n using the *Report a vulnerability* button in the [Security](https://github.com/benoitc/gunicorn/security)\
+    \ section."
+- file: SECURITY.md
+  line: 11
+  section: Supported Releases
+  text: "Security Policy\n## Supported Releases\n\nPlease target reports against :white_check_mark: or current master. Please\
+    \ understand that :x: will\n not receive further security attention.\n\n| Version | Status             |\n| ------- |\
+    \ ------------------ |\n| 26.0.0  | :white_check_mark: |\n| 25.3.0  | :white_check_mark: |\n| 24.1.1  | :x:          \
+    \      |\n| 23.0.0  | :x:                |\n| 22.0.0  | :x:                |\n| < 22.0  | :x:                |"
+- file: CONTRIBUTING.md
+  line: 1
+  section: Contributing to Gunicorn
+  text: '# Contributing to Gunicorn
+
+
+    Want to hack on Gunicorn? Awesome! Here are instructions to get you
+
+    started. They are probably not perfect, please let us know if anything
+
+    feels wrong or incomplete.'
+- file: CONTRIBUTING.md
+  line: 24
+  section: Start with a Discussion
+  text: 'Contributing to Gunicorn > Contribution guidelines
+
+    ### Start with a Discussion
+
+
+    We use [GitHub Discussions](https://github.com/benoitc/gunicorn/discussions)
+
+    as the starting point for all bug reports, feature requests, and questions.
+
+    This allows for proper triage before creating formal issues.
+
+
+    - **Bug reports**: Start in [Q&A](https://github.com/benoitc/gunicorn/discussions/categories/q-a)
+
+    - **Feature requests**: Start in [Ideas](https://github.com/benoitc/gunicorn/discussions/categories/ideas)
+
+    - **Questions**: Start in [Q&A](https://github.com/benoitc/gunicorn/discussions/categories/q-a)
+
+
+    After discussion and triage, maintainers will create issues for confirmed
+
+    bugs and approved features.'
+- file: CONTRIBUTING.md
+  line: 145
+  section: I'm a maintainer, should I make pull requests too?
+  text: 'Contributing to Gunicorn > Decision process
+
+    ### I''m a maintainer, should I make pull requests too?
+
+
+    Primary maintainers are not required to create pull requests when
+
+    changing their own subdirectory, but secondary maintainers are.'
+- file: CONTRIBUTING.md
+  line: 164
+  section: What are a maintainer's responsibility?
+  text: 'Contributing to Gunicorn > Decision process
+
+    ### What are a maintainer''s responsibility?
+
+
+    It is every maintainer''s responsibility to:
+
+
+    * 1) Expose a clear roadmap for improving their component.
+
+    * 2) Deliver prompt feedback and decisions on pull requests.
+
+    * 3) Be available to anyone with questions, bug reports, criticism etc. on their component. This includes irc, github
+    requests and the mailing list.
+
+    * 4) Make sure their component respects the philosophy, design and roadmap of the project.'
+- file: README.md
+  line: 1
+  section: Gunicorn
+  text: "# Gunicorn\n\n<p align=\"center\">\n  <strong>Gunicorn is maintained by volunteers. If it powers your production,\
+    \ please consider supporting us:</strong><br>\n  <a href=\"https://github.com/sponsors/benoitc\"><img src=\"https://img.shields.io/badge/GitHub_Sponsors-❤-ea4aaa?style=for-the-badge&logo=github\"\
+    \ alt=\"GitHub Sponsors\"></a>\n  <a href=\"https://checkout.revolut.com/pay/74cf6fe1-358e-4880-b800-3f0936ce94be\"><img\
+    \ src=\"https://img.shields.io/badge/Revolut-Donate-191c20?style=for-the-badge\" alt=\"Revolut\"></a>\n</p>\n\n[![PyPI\
+    \ version](https://img.shields.io/pypi/v/gunicorn.svg?style=flat)](https://pypi.python.org/pypi/gunicorn)\n[![Supported\
+    \ Python versions](https://img.shields.io/pypi/pyversions/gunicorn.svg)](https://pypi.python.org/pypi/gunicorn)\n[![Build\
+    \ Status](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml/badge.svg)](https://github.com/benoitc/gunicorn/actions/workflows/tox.yml)\n\
+    \nGunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork\nworker model ported from Ruby's [Unicorn](https://bogomips.org/unicorn/)\
+    \ project. The Gunicorn server is broadly\ncompatible with various web frameworks, simply implemented, light on server\n\
+    resource usage, and fairly speedy.\n\n**New in v25**: Per-app worker allocation for dirty arbiters, HTTP/2 support (beta)!"
+files_seen:
+- CONTRIBUTING.md
+- README.md
+- SECURITY.md
+fix_candidates: []
+prohibition_candidates:
+- file: CONTRIBUTING.md
+  line: 9
+  section: Pull requests are always welcome
+  text: 'Contributing to Gunicorn > Contribution guidelines
+
+    ### Pull requests are always welcome
+
+
+    We are always thrilled to receive pull requests, and do our best to
+
+    process them as fast as possible. Not sure if that typo is worth a pull
+
+    request? Do it! We will appreciate it.
+
+
+    If your pull request is not accepted on the first try, don''t be
+
+    discouraged! If there''s a problem with the implementation, hopefully you
+
+    received feedback on what to improve.
+
+
+    We''re trying very hard to keep Gunicorn lean and focused. We don''t want it
+
+    to do everything for everybody. This means that we might decide against
+
+    incorporating a new feature. However, there might be a way to implement
+
+    that feature *on top of* Gunicorn.'
+- file: CONTRIBUTING.md
+  line: 37
+  section: Check for existing discussions first!
+  text: 'Contributing to Gunicorn > Contribution guidelines
+
+    ### Check for existing discussions first!
+
+
+    Please take a moment to check that a discussion or issue doesn''t already exist
+
+    documenting your bug report or improvement proposal. If it does, it
+
+    never hurts to add a quick "+1" or "I have this problem too". This will
+
+    help prioritize the most common problems and requests.'
+- file: CONTRIBUTING.md
+  line: 45
+  section: Conventions
+  text: "Contributing to Gunicorn > Contribution guidelines\n### Conventions\n\nDon't comment on closed issues or PRs, instead\
+    \ open a new issue and link it to\nthe old one.\n\nFork the repo and make changes on your fork in a feature branch:\n\n\
+    - If it's a bugfix branch, name it XXX-something where XXX is the number\n  of the issue\n- If it's a feature branch,\
+    \ create an enhancement issue to announce your\n  intentions, and name it XXX-something where XXX is the number of the\n\
+    issue.\n\nSubmit unit tests for your changes. Python has a great test framework built\nin; use it! Take a look at existing\
+    \ tests for inspiration. Run the full\ntest suite on your branch before submitting a pull request.\n\nMake sure you include\
+    \ relevant updates or additions to documentation\nwhen creating or modifying features.\n\nIf you are adding a new configuration\
+    \ option or updating an existing one,\nplease do it in `gunicorn/config.py`, then run `mkdocs build` to update\n`docs/content/reference/settings.md`.\n\
+    \nWrite clean code.\n\nPull requests descriptions should be as clear as possible and include a\nreference to all the issues\
+    \ that they address.\n\nCode review comments may be added to your pull request. Discuss, then\nmake the suggested modifications\
+    \ and push additional commits to your\nfeature branch. Be sure to post a comment after pushing. The new commits\nwill\
+    \ show up in the pull request automatically, but the reviewers will\nnot be notified unless you comment.\n\nBefore the\
+    \ pull request is merged, make sure that you squash your\ncommits into logical units of work using `git rebase -i` and\
+    \ `git push\n-f`. After every commit the test suite should be passing. Include\ndocumentation changes in the same commit\
+    \ so that a revert would remove\nall traces of the feature or fix.\n\nCommits that fix or close an issue should include\
+    \ a reference like\n`Closes #XXX` or `Fixes #XXX`, which will automatically close the issue\nwhen merged.\n\nAdd your\
+    \ name to the THANKS file, but make sure the list is sorted and\nyour name and email address match your git configuration.\
+    \ The THANKS\nfile is regenerated occasionally from the git commit history, so a\nmismatch may result in your changes\
+    \ being overwritten."
+- file: CONTRIBUTING.md
+  line: 154
+  section: How can I become a maintainer?
+  text: 'Contributing to Gunicorn > Decision process
+
+    ### How can I become a maintainer?
+
+
+    * Step 1: learn the component inside out
+
+    * Step 2: make yourself useful by contributing code, bugfixes, support etc.
+
+    * Step 3: volunteer on our [Libera Chat](https://libera.chat/) irc channel [#gunicorn](https://web.libera.chat/?channels=#gunicorn)
+
+
+    Don''t forget: being a maintainer is a time investment. Make sure you
+
+    will have time to make yourself available.  You don''t have to be a
+
+    maintainer to make a difference on the project!'

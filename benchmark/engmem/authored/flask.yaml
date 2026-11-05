@@ -1,0 +1,32 @@
+repo: flask
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: medium
+    question: "Where does Flask's in-repo contributing documentation point contributors for the detailed contribution guide?"
+    answer: "The Pallets detailed contributing documentation at palletsprojects.com/contributing/."
+    gold: ["docs/contributing.rst::Contributing"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "Which header did Flask 2.3.2 start setting when the session is accessed, modified, or refreshed?"
+    answer: "Vary: Cookie."
+    gold: ["CHANGES.rst::Version 2.3.2"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "Flask 2.3.2 updated the Werkzeug requirement to which minimum version to apply recent bug fixes (GHSA-m2qf-hxjv-5gpq)?"
+    answer: ">=2.3.3."
+    gold: ["CHANGES.rst::Version 2.3.2"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "Flask 2.2.2's Werkzeug dependency bump (>=2.2.2) pulled in fixes related to which three areas?"
+    answer: "The new faster router, header parsing, and the development server."
+    gold: ["CHANGES.rst::Version 2.2.2"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "Which methods' type annotations did Flask 2.0.2 fix?"
+    answer: "teardown_* methods and the before_request / before_app_request decorators."
+    gold: ["CHANGES.rst::Version 2.0.2"]

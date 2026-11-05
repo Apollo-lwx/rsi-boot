@@ -1,0 +1,44 @@
+repo: black
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "What is the basic command to format code with Black?"
+    answer: "black {source_file_or_directory}"
+    gold: ["README.md::Usage"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "If running Black as a script does not work, how can you run it as a package?"
+    answer: "python -m black {source_file_or_directory}"
+    gold: ["README.md::Usage"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What kind of security issue did Black 26.10.1 fix?"
+    answer: "A security issue in Black's bundled GitHub Action."
+    gold: ["CHANGES.md::Highlights@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "Which stable style did Black 26.1.0 introduce, and name one stabilized change?"
+    answer: "The 2026 stable style; e.g. always_one_newline_after_import (always force one blank line after imports)."
+    gold: ["CHANGES.md::Highlights@2"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What parser regression did Black 24.8.0 fix regarding f-strings?"
+    answer: "Black failed to parse a multiline f-string containing another multiline string."
+    gold: ["CHANGES.md::Parser@1"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "What two f-string regressions did Black 24.8.0 fix in its parser?"
+    answer: "Failure to parse a multiline f-string containing another multiline string, and failure to parse an escaped single quote inside an f-string."
+    gold: ["CHANGES.md::Parser@1"]
+  - id: fix-005
+    type: fix
+    difficulty: medium
+    question: "What kind of release was Black 24.4.2 and what did it address?"
+    answer: "A bugfix release fixing two regressions in the new f-string parser introduced in 24.4.1."
+    gold: ["CHANGES.md::Version 24.4.2"]

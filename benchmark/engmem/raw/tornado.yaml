@@ -1,0 +1,193 @@
+convention_candidates:
+- file: SECURITY.md
+  line: 16
+  section: Denial of service
+  text: 'Security Policy
+
+    ## Denial of service
+
+
+    Any server spends CPU time processing the requests it receives, so the fact
+
+    that a client can make Tornado consume CPU is not in itself a vulnerability.
+
+    As a baseline, processing a stream of tiny pipelined HTTP/1.1 requests (to a
+
+    trivial handler) costs about 9µs of CPU per byte received (CPython 3.13 on a
+
+    typical cloud VM; this will vary with hardware and Python version). Tornado
+
+    also yields to the event loop between requests, so processing them stalls
+
+    other connections for only a few milliseconds at a time.
+
+
+    A report of a denial-of-service vulnerability should demonstrate either an
+
+    input that costs substantially more CPU per byte than this baseline, or one
+
+    that blocks the event loop (stalling all other connections) for substantially
+
+    longer than this.'
+- file: SECURITY.md
+  line: 31
+  section: Tests for security fixes
+  text: 'Security Policy
+
+    ## Tests for security fixes
+
+
+    A security fix should have the unit tests appropriate to the code it
+
+    changes, and also a test in `tornado/test/security_corpus_test.py`. That
+
+    file sends the trigger input of each past vulnerability to a real server
+
+    (or explains where the tests are for fixes that can''t be reached that
+
+    way), and checks only what a client can see, so that its tests keep
+
+    working when the code they cover is rewritten.'
+- file: CONTRIBUTING.md
+  line: 83
+  section: Documentation
+  text: 'Contributing to Tornado
+
+    ## Documentation
+
+
+    We use Sphinx with the `autodoc` extension to build our docs. To build the docs run
+
+    `tox -e docs` and find the output in `./.tox/docs/tmp/html/index.html`'
+- file: CONTRIBUTING.md
+  line: 107
+  section: PR Checklist
+  text: "Contributing to Tornado\n## PR Checklist\n\n- [ ] Run `tox -e lint,docs,py3` locally and make sure it passes\n- [\
+    \ ] If you modify `curl_httpclient.py`, also run `tox -e py3-full`\n- [ ] Review your changes for any backwards incompatibilities\
+    \ that may affect\n      downstream applications using Tornado"
+files_seen:
+- CONTRIBUTING.md
+- README.rst
+- SECURITY.md
+- docs/releases/v6.5.6.rst
+- docs/releases/v6.5.8.rst
+- docs/releases/v6.5.9.rst
+- docs/releases/v6.6.0.rst
+fix_candidates:
+- file: docs/releases/v6.6.0.rst
+  line: 103
+  section: '`tornado.iostream`'
+  text: "What's new in Tornado 6.6.0 > Oct 21, 2026\n`tornado.iostream`\n~~~~~~~~~~~~~~~~~~\n\n- Fixed a socket leak when\
+    \ a timeout occurs during a TLS handshake, or when the connection\n  of a `.SSLIOStream` is cancelled.\n- Fixed errors\
+    \ relating to \"existing exports of data\" on PyPy 8.0.\n- Tests now pass when Python is built with AWS-LC or BoringCrypto\
+    \ instead of OpenSSL."
+- file: docs/releases/v6.5.9.rst
+  line: 7
+  section: Security fixes
+  text: "What's new in Tornado 6.5.9 > Sep 14, 2026\nSecurity fixes\n~~~~~~~~~~~~~~\n\n- `.StaticFileHandler` no longer follows\
+    \ symlinks outside of the static root directory.\n  Applications that wish to continue the previous behavior may set the\
+    \ new argument\n  ``allowed_symlink_directory`` to the directory (an ancestor of the static root) that\n  should be used\
+    \ for symlink validation. Thanks to `Yasha-ops <https://github.com/Yasha-ops>`_\n  and `iaohkut-from-NightWolf-Team <https://github.com/iaohkut-from-NightWolf-Team>`_\
+    \ for\n  reporting this issue.\n- ``curl_httpclient`` has a new ``max_body_size`` argument (default 100MB, same as\n \
+    \ for ``simple_httpclient``). This limit is enforced on all requests, whether or not\n  ``streaming_callback`` is used.\
+    \ ``curl_httpclient`` now also controls its memory usage\n  when decompressing response bodies. Thanks to `afldl <https://github.com/afldl>`_,\n\
+    \  `iaohkut-from-NightWolf-Team <https://github.com/iaohkut-from-NightWolf-Team>`_, and\n  `aoto-tech <https://github.com/aoto-tech>`_\
+    \ for reporting this issue.\n- ``simple_httpclient`` now correctly applies the ``max_body_size`` limit to responses\n\
+    \  using HTTP/1.0 format (no ``Content-Length`` or ``Transfer-Encoding``). Previously it\n  silently truncated such responses\
+    \ at ``max_buffer_size`` instead. Thanks to\n  `afldl <https://github.com/afldl>`_ for reporting this issue.\n- ``simple_httpclient``\
+    \ now rejects responses that use more than 10 ``100 Continue`` responses,\n  which could previously cause stack overflow\
+    \ errors. Thanks to `afldl <https://github.com/afldl>`_\n  for reporting this issue.\n- The limit ``ParseBodyConfig.urlencoded.max_argument``\
+    \ is now applied to URL arguments\n  in addition to ``POST`` bodies. Thanks to \n  `iaohkut-from-NightWolf-Team <https://github.com/iaohkut-from-NightWolf-Team>`_,\n\
+    \  `afldl <https://github.com/afldl>`_, and `manus-pi <https://github.com/manus-pi>`_\n  for reporting this issue."
+- file: docs/releases/v6.5.9.rst
+  line: 35
+  section: Bug fixes
+  text: 'What''s new in Tornado 6.5.9 > Sep 14, 2026
+
+    Bug fixes
+
+    ~~~~~~~~~'
+- file: docs/releases/v6.5.8.rst
+  line: 7
+  section: Security fixes
+  text: "What's new in Tornado 6.5.8 > Aug 6, 2026\nSecurity fixes\n~~~~~~~~~~~~~~\n\n- Form-encoded ``POST`` bodies are now\
+    \ subject to a limit of 1000 arguments by default. This\n  prevents a CPU and memory denial of service attack. This limit\
+    \ can be overridden via the\n  `.set_parse_body_config` function. Thanks to `Arpit Jain <https://github.com/arpitjain099>`_\
+    \ \n  for reporting this issue.\n- Multipart parsing now rejects requests with an excessive number of parts earlier in\
+    \ the parsing\n  process, limiting memory consumption. Thanks to `afldl <https://github.com/afldl>`_ for\n  reporting\
+    \ this issue.\n- The deprecated mixed-case arguments to `.RequestHandler.set_cookie` now enforce the same\n  restrictions\
+    \ on invalid characters that were introduced in Tornado 6.5.5 for the standard\n  lowercase arguments. Thanks to `sec-reex\
+    \ <https://github.com/sec-reex>`_ and\n  `Arpit Jain <https://github.com/arpitjain099>`_ for reporting this issue."
+- file: docs/releases/v6.5.6.rst
+  line: 7
+  section: Security fixes
+  text: "What's new in Tornado 6.5.6 > May 27, 2026\nSecurity fixes\n~~~~~~~~~~~~~~\n\n- ``SimpleAsyncHTTPClient`` now strips\
+    \ the ``Authorization`` and ``Cookie`` headers from the request\n  when following a redirect to a different origin. This\
+    \ matches the default behavior of\n  ``CurlAsyncHTTPClient``. Applications that need different behavior here can set\n\
+    \  ``follow_redirects=False`` and handle redirects manually. Thanks to `Yannick\n  Wang <https://github.com/noobone123>`_\
+    \ for being first to report this issue, as well as\n  additional reporters `Kai Aizen <https://github.com/SnailSploit>`_,\n\
+    \  `HunSec <https://github.com/0xHunSec>`_, and `Thai Son Dinh <https://github.com/sondt99>`_.\n  `CVE-2026-49853 <https://github.com/tornadoweb/tornado/security/advisories/GHSA-3x9g-8vmp-wqvf>`_\n\
+    - ``SimpleAsyncHTTPClient`` now enforces ``max_body_size`` on the decompressed size of the response,\n  rather than the\
+    \ compressed size. This prevents a denial-of-service attack via a very large\n  compressed response. Thanks to `Yuichiro\
+    \ Kedashiro <https://github.com/yuui25>`_ for reporting this\n  issue.\n  `CVE-2026-49855 <https://github.com/tornadoweb/tornado/security/advisories/GHSA-mgf9-4vpg-hj56>`_\n\
+    - Fixed a bug in the C extension that could have read up to three bytes past the end of an input\n  array. Thanks to `Thai\
+    \ Son Dinh <https://github.com/sondt99>`_ for reporting this issue.\n  `CVE-2026-49854 <https://github.com/tornadoweb/tornado/security/advisories/GHSA-cx3h-4qpv-8hc9>`_\n\
+    - ``OpenIDMixin`` has improved parsing for the ``check_authentication`` response. Thanks to\n  `Yannick Wang <https://github.com/noobone123>`_\
+    \ for reporting this issue."
+- file: docs/releases/v6.5.6.rst
+  line: 29
+  section: Bug fixes
+  text: "What's new in Tornado 6.5.6 > May 27, 2026\nBug fixes\n~~~~~~~~~\n\n- ``CurlAsyncHTTPClient`` has been updated to\
+    \ use non-deprecated APIs, avoiding deprecation\n  warnings with recent versions of ``pycurl``."
+prohibition_candidates:
+- file: CONTRIBUTING.md
+  line: 3
+  section: The basics
+  text: "Contributing to Tornado\n## The basics\n\n* We use `black` as code formatter and recommend configuring your editor\
+    \ to run this automatically\n  (using the version specified in `requirements.txt`). Commits that are not properly formatted\n\
+    \  by `black` will be rejected in CI.\n* We update `requirements.txt` infrequently. It is important to install the versions\
+    \ of tools\n  like `black` and `mypy` from `requirements.txt` instead of running their latest versions\n  (don't just\
+    \ use `uvx`). Older release branches like `branch6.5` have their own\n  `requirements.txt` so reinstall these tools (or\
+    \ switch virtualenvs) when switching branches.\n* The `types-pycurl` package should be installed when running `mypy`.\n\
+    * Run `flake8` from the project root directory so it can see `.flake8`, this prevents spurious\n  warnings.\n* Before\
+    \ committing, it is recommended to run `tox -e lint,docs,py3`. This will verify that the\n  code is formatted correctly,\
+    \ type checking with `mypy` passes, the `sphinx` build for docs has\n  no errors, and the main test suite passes with\
+    \ the current version of python.\n* Nearly all code changes should have new or updated tests covering the changed behavior.\n\
+    \  Red/green TDD is encouraged."
+- file: CONTRIBUTING.md
+  line: 21
+  section: Testing
+  text: "Contributing to Tornado\n## Testing\n\n* We use `tox` as a test runner to run tests in various configurations with\
+    \ the correct\n  dependencies. `tox -e py3` runs most of the tests, while `tox -e py3-full` can be used\n  to run a more\
+    \ extensive version of the test suite which as extra dependencies. The\n  `-full` configurations are necessary when working\
+    \ on certain modules, including\n  `curl_httpclient.py`, `twisted.py`, or `pycares.py`.\n* The fastest way to run the\
+    \ tests is to bypass `tox` and run `python3 -m tornado.test`.\n  To run a subset of tests, add a module, class, or method\
+    \ name to the command line:\n  `python3 -m tornado.test.httputil_test`.\n* `tox -e coverage` measures test coverage across\
+    \ the `-full` configurations and writes an\n  HTML report to `.tox/coverage-data/html`. CI fails if total coverage drops\
+    \ below the floor\n  set in `tox.ini`; raise the floor when you raise coverage.\n* `tornado/test/property_test.py` holds\
+    \ property-based tests using `hypothesis`, which is\n  installed in the `-full` configurations (the tests are skipped\
+    \ without it). They are a good\n  place for invariants of parsers and encoders: round-trips, agreement with a simple model,\
+    \ and\n  \"malformed input raises `HTTPInputError` and nothing else\". When one fails, also add the\n  failing input as\
+    \ an example-based test so it stays covered.\n* `tornado/test/api_test.py` compares the public API (names and signatures)\
+    \ to the snapshot in\n  `tornado/test/api.txt`. When you change the API on purpose, run\n  `python -m tornado.test.api_test\
+    \ --update` from the repository root (with the `-full`\n  dependencies installed) and commit the updated snapshot. Imports\
+    \ are left out of the snapshot\n  unless they use the `import X as X` form that marks a re-export. `tox -e docs` checks\
+    \ that everything in the docs\n  is in the snapshot.\n* Code that parses untrusted input should have resource-budget tests.\
+    \ `assert_linear_scaling`\n  in `tornado/test/util.py` checks that time grows linearly with the input, and\n  `assert_memory_budget`\
+    \ checks peak memory per byte of input (or per byte of a configured\n  limit such as `max_body_size`). Look for the worst-case\
+    \ input (many tiny fields, deep\n  escaping, highly compressible data) and keep sizes small enough that the test takes\
+    \ a\n  fraction of a second. A fix for a denial-of-service bug should come with such a test, and\n  the test should fail\
+    \ on the code before the fix.\n* The \"Compare benchmarks\" CI job runs `maint/benchmark/ci_benchmark.py` against the\
+    \ PR and\n  its base branch and fails if anything is more than 20% slower, or if an adversarial input\n  exceeds its absolute\
+    \ budget (`BUDGETS` in that file). To run the comparison locally, check\n  out the base in another directory and run\n\
+    \  `python maint/benchmark/compare_benchmarks.py --base ../base --head .`. When you add a\n  parser or a resource-budget\
+    \ test for one, add a benchmark of its worst-case input too.\n* Don't remove a public name, argument or behavior without\
+    \ deprecating it first: it should\n  emit a `DeprecationWarning` and have a `.. deprecated::` note (saying what to use\
+    \ instead)\n  for at least one minor release before it goes. See `maint/RELEASING.md`.\n* `tox -e lint` runs flake8, black\
+    \ and mypy. mypy runs in strict mode, relaxed for the tests\n  (see `setup.cfg`), and reports `# type: ignore` comments\
+    \ that are no longer needed. Names\n  that a module re-exports need the `import X as X` form. It also type-checks the\
+    \ client code\n  in `maint/test/mypy` against the installed package: add to `good.py` when you change\n  annotations that\
+    \ applications rely on.\n* Tests can also be run with the standard library's `unittest` package CLI. This is useful\n\
+    \  for integration with some editors. However, this mode skips a few checks, notably the\n  requirement that tests do\
+    \ not generate any log output without corresponding ExpectLog\n  assertions.\n* Tornado does not use `pytest`. Some effort\
+    \ has been made to make the tests work with \n  the `pytest` runner, but this is not maintained.\n* Tests must run o"

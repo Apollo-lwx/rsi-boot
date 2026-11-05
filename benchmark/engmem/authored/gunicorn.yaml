@@ -1,0 +1,92 @@
+repo: gunicorn
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "What is the starting point for all bug reports, feature requests, and questions in gunicorn?"
+    answer: "GitHub Discussions."
+    gold: ["CONTRIBUTING.md::Start with a Discussion"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "How must feature branches be named in gunicorn?"
+    answer: "XXX-something where XXX is the issue number (for features, create an enhancement issue first to announce intentions)."
+    gold: ["CONTRIBUTING.md::Conventions"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "When adding or updating a configuration option in gunicorn, which file do you edit and what do you run afterwards?"
+    answer: "Edit gunicorn/config.py, then run mkdocs build to update docs/content/reference/settings.md."
+    gold: ["CONTRIBUTING.md::Conventions"]
+  - id: conv-004
+    type: convention
+    difficulty: hard
+    question: "After pushing additional commits to address review comments in gunicorn, why must you also post a comment?"
+    answer: "The new commits show up automatically, but reviewers are not notified unless you comment."
+    gold: ["CONTRIBUTING.md::Conventions"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "Before a gunicorn pull request is merged, how should commits be organized?"
+    answer: "Squash them into logical units of work using git rebase -i and git push -f; the test suite should pass after every commit, and documentation changes go in the same commit."
+    gold: ["CONTRIBUTING.md::Conventions"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "What must you mind when adding your name to gunicorn's THANKS file?"
+    answer: "Keep the list sorted and make sure name/email match your git configuration, since the file is regenerated from git history."
+    gold: ["CONTRIBUTING.md::Conventions"]
+  - id: conv-007
+    type: convention
+    difficulty: medium
+    question: "Do primary maintainers in gunicorn have to create pull requests for their own subdirectory?"
+    answer: "No — primary maintainers are not required to, but secondary maintainers are."
+    gold: ["CONTRIBUTING.md::I'm a maintainer, should I make pull requests too?"]
+  - id: conv-008
+    type: convention
+    difficulty: medium
+    question: "What are the three steps to become a gunicorn maintainer?"
+    answer: "Learn the component inside out; make yourself useful contributing code/bugfixes/support; volunteer on the Libera Chat #gunicorn IRC channel."
+    gold: ["CONTRIBUTING.md::How can I become a maintainer?"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What should you do instead of commenting on closed issues or PRs in gunicorn?"
+    answer: "Open a new issue and link it to the old one."
+    gold: ["CONTRIBUTING.md::Conventions"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "What should you check before opening a new discussion about a bug or proposal in gunicorn?"
+    answer: "That a discussion or issue documenting it doesn't already exist."
+    gold: ["CONTRIBUTING.md::Check for existing discussions first!"]
+  - id: conv-009
+    type: convention
+    difficulty: easy
+    question: "Are small pull requests, even typo fixes, welcome in gunicorn?"
+    answer: "Yes — pull requests are always welcome, and the team processes them as fast as possible."
+    gold: ["CONTRIBUTING.md::Pull requests are always welcome"]
+  - id: conv-010
+    type: convention
+    difficulty: medium
+    question: "What are a gunicorn maintainer's responsibilities?"
+    answer: "Expose a clear roadmap for their component and deliver prompt feedback and decisions."
+    gold: ["CONTRIBUTING.md::What are a maintainer's responsibility?"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: easy
+    question: "Where should gunicorn security problems be reported, and why not as public GitHub issues?"
+    answer: "Privately via security@gunicorn.org or the 'Report a vulnerability' button; public issues are visible to everyone."
+    gold: ["SECURITY.md::Reporting a Vulnerability"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: medium
+    question: "Which gunicorn versions receive security attention?"
+    answer: "26.0.0, 25.3.0, and current master; 24.1.1 and older do not."
+    gold: ["SECURITY.md::Supported Releases"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: medium
+    question: "What is gunicorn's policy on issues affecting end-of-life Python environments?"
+    answer: "They will not be prioritized; gunicorn supports Python 3.10+ versions still maintained by the PSF."
+    gold: ["SECURITY.md::Python Versions"]

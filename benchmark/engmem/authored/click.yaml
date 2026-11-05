@@ -1,0 +1,68 @@
+repo: click
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "In the click repository, which tox command runs stress tests for race conditions in the test runner?"
+    answer: "tox r -e stress"
+    gold: ["docs/contributing.md::Extra Test Environments"]
+  - id: conv-002
+    type: convention
+    difficulty: easy
+    question: "How do click developers run tests in parallel in a random order to detect test pollution?"
+    answer: "tox r -e random"
+    gold: ["docs/contributing.md::Extra Test Environments"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "What does click's nightly workflow (.github/workflows/nightly.yaml) run to catch downstream regressions?"
+    answer: "Flask's test suite against click's main and stable branches."
+    gold: ["docs/contributing.md::Extra Test Environments"]
+  - id: conv-004
+    type: convention
+    difficulty: easy
+    question: "At how many characters must Markdown files be wrapped in the click project?"
+    answer: "80 characters."
+    gold: ["docs/contributing.md::Formatting"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "Why does click's code style forbid ternary expressions (x if cond else y)?"
+    answer: "Because coverage cannot measure both branches; use an explicit if/else block instead."
+    gold: ["docs/contributing.md::Code Style"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "What is click's policy on adding external dependencies for a new feature?"
+    answer: "Do not add unnecessary dependencies; if the standard library can implement it, do not pull in an external package."
+    gold: ["docs/contributing.md::Code Style"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "Which click version added built-in shell completion support for PowerShell?"
+    answer: "8.5.0."
+    gold: ["CHANGES.md::Version 8.5.0"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "In click 8.1.8, the type hints of which function were fixed?"
+    answer: "click.open_file()."
+    gold: ["CHANGES.md::Version 8.1.8"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "Click 8.3.0 reworked the relationship between which two option parameters for flag handling?"
+    answer: "flag_value and default."
+    gold: ["CHANGES.md::Version 8.3.0"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "What display problem with the error message for an invalid click.Path was fixed in 8.1.8?"
+    answer: "The error message displayed on multiple lines."
+    gold: ["CHANGES.md::Version 8.1.8"]
+  - id: fix-005
+    type: fix
+    difficulty: easy
+    question: "Before PowerShell support in click 8.5.0, which shells already had built-in completion?"
+    answer: "bash, zsh, and fish."
+    gold: ["CHANGES.md::Version 8.5.0"]

@@ -1,0 +1,375 @@
+convention_candidates:
+- file: SECURITY.md
+  line: 1
+  section: Security Contact
+  text: '# Security Contact
+
+
+    To report a security vulnerability, please file a security advisory in GitHub. For help or for questions, escalate through
+    the [Tidelift security contact](https://tidelift.com/security).'
+- file: README.rst
+  line: 1
+  section: (preamble)
+  text: ".. |pypi-version| image:: https://img.shields.io/pypi/v/setuptools.svg\n   :target: https://pypi.org/project/setuptools\n\
+    \n.. |py-version| image:: https://img.shields.io/pypi/pyversions/setuptools.svg\n\n.. |test-badge| image:: https://github.com/pypa/setuptools/actions/workflows/main.yml/badge.svg\n\
+    \   :target: https://github.com/pypa/setuptools/actions?query=workflow%3A%22tests%22\n   :alt: tests\n\n.. |ruff-badge|\
+    \ image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json\n\
+    \   :target: https://github.com/astral-sh/ruff\n   :alt: Ruff\n\n.. |docs-badge| image:: https://img.shields.io/readthedocs/setuptools/latest.svg\n\
+    \   :target: https://setuptools.pypa.io\n\n.. |skeleton-badge| image:: https://img.shields.io/badge/skeleton-2026-informational\n\
+    \   :target: https://blog.jaraco.com/skeleton\n\n.. |codecov-badge| image:: https://img.shields.io/codecov/c/github/pypa/setuptools/master.svg?logo=codecov&logoColor=white\n\
+    \   :target: https://codecov.io/gh/pypa/setuptools\n\n.. |tidelift-badge| image:: https://tidelift.com/badges/github/pypa/setuptools?style=flat\n\
+    \   :target: https://tidelift.com/subscription/pkg/pypi-setuptools?utm_source=pypi-setuptools&utm_medium=readme\n\n..\
+    \ |discord-badge| image:: https://img.shields.io/discord/803025117553754132\n   :target: https://discord.com/channels/803025117553754132/815945031150993468\n\
+    \   :alt: Discord\n\n|pypi-version| |py-version| |test-badge| |ruff-badge| |docs-badge| |skeleton-badge| |codecov-badge|\
+    \ |discord-badge|\n\nSee the `Quickstart <https://setuptools.pypa.io/en/latest/userguide/quickstart.html>`_\nand the `User's\
+    \ Guide <https://setuptools.pypa.io/en/latest/userguide/>`_ for\ninstructions on how to use Setuptools.\n\nQuestions and\
+    \ comments should be directed to `GitHub Discussions\n<https://github.com/pypa/setuptools/discussions>`_.\nBug reports\
+    \ and especially tested patches may be\nsubmitted directly to the `bug tracker\n<https://github.com/pypa/setuptools/issues>`_."
+files_seen:
+- AGENTS.md
+- NEWS.rst
+- README.rst
+- SECURITY.md
+fix_candidates:
+- file: NEWS.rst
+  line: 4
+  section: Bugfixes
+  text: "v84.2.1\nBugfixes\n--------\n\n- Changed wheel tags and stable-ABI validation to use sysconfig data. (#5360)\n- Fixed\
+    \ unimportable extensions on free-threaded Python 3.13 and 3.14 when\n  ``Extension.py_limited_api`` is enabled. These\
+    \ builds now use their\n  version-specific extension suffix instead of using the unsupported ``.abi3t``\n  suffix. (#5363)"
+- file: NEWS.rst
+  line: 54
+  section: Bugfixes
+  text: "v84.1.0\nBugfixes\n--------\n\n- ``Wheel.install_as_egg`` no longer creates namespace package directories\n  outside\
+    \ of the destination egg directory. Entries in a wheel's\n  ``namespace_packages.txt`` were split on ``.`` and passed\
+    \ straight to\n  ``os.path.join``, so an entry that was absolute, drive-qualified, or UNC\n  discarded the destination\
+    \ and placed an ``__init__.py`` at a path chosen by\n  the wheel. Namespace entries are now validated as dotted module\
+    \ names on\n  every platform -- see GHSA-xmj3-9gf7-h52w.\n\n  This code path is reached only by the deprecated ``setup_requires``\n\
+    \  mechanism when ``setup()`` is invoked outside a PEP 517 frontend; the\n  setuptools build backend never reaches it.\n\
+    - ``setuptools.archive_util`` no longer extracts archive members outside of the\n  requested extraction directory. Both\
+    \ the tar and zip formats specify ``/`` as\n  the only path separator, but the guard against ``..`` components split member\n\
+    \  names on ``/`` alone, so a name such as ``..\\escaped.txt`` was treated as a\n  single component and then resolved\
+    \ as a traversal by the filesystem on\n  Windows. Member names containing a backslash, a drive letter, or a UNC prefix\n\
+    \  are now rejected on every platform, as are members whose resolved destination\n  falls outside the extraction directory\
+    \ -- see GHSA-grgh-hr87-3jpw."
+- file: NEWS.rst
+  line: 358
+  section: Bugfixes
+  text: 'v80.0.1
+
+    Bugfixes
+
+    --------
+
+
+    - Fixed index_url logic in develop compatibility shim. (#4966)'
+- file: NEWS.rst
+  line: 484
+  section: Bugfixes
+  text: 'v77.0.2
+
+    Bugfixes
+
+    --------
+
+
+    - Restore ``distutils.ccompiler._default_compilers`` -- by :user:`ManiacDC` (#4876)
+
+    - Fixed copy pasta in ``msvc.shared_lib_format``\. (#4885)'
+- file: NEWS.rst
+  line: 561
+  section: Bugfixes
+  text: 'v75.3.4
+
+    Bugfixes
+
+    --------
+
+
+    - Backport CVE-47273 from 78.1.1 for Python 3.8. (#4946)
+
+    - Reverted distutils changes that broke the monkey patching of command classes. (#4902)'
+- file: NEWS.rst
+  line: 577
+  section: v75.3.2
+  text: 'v75.3.2
+
+    =======
+
+
+    - Fixed version error in changelog.'
+- file: NEWS.rst
+  line: 622
+  section: Bugfixes
+  text: "v75.8.2\nBugfixes\n--------\n\n- Fixed ``pkg_resources.require(...)`` to also consider standardised\n  ``dist-info``\
+    \ directories. (#4856)"
+- file: NEWS.rst
+  line: 632
+  section: Bugfixes
+  text: "v75.8.1\nBugfixes\n--------\n\n- Fix wheel file naming to follow binary distribution specification -- by :user:`di`\
+    \ (#4766)\n- Fixed crash generating error message printed when building wheels for the\n  free-threaded build using the\
+    \ limited API. -- by :user:`ngoldbaum` (#4809)\n- Fix documentation for recent CFLAGS distutils change. -- by :user:`thesamesam`\
+    \ (#4836)"
+- file: NEWS.rst
+  line: 655
+  section: Features
+  text: 'v75.7.0
+
+    Features
+
+    --------
+
+
+    - Synced with pypa/distutils@c97a3db2f including better support for free threaded Python on Windows (pypa/distutils#310),
+    improved typing support, and linter accommodations. (#4478)
+
+    - Synced with pypa/distutils@ff11eed0c including bugfix for duplicate CFLAGS and adaption to support Python 3.13 is_abs
+    in the C compiler (#4669). (#4790)'
+- file: NEWS.rst
+  line: 820
+  section: Bugfixes
+  text: 'v74.1.2
+
+    Bugfixes
+
+    --------
+
+
+    - Fixed TypeError in sdist filelist processing by adding support for pathlib Paths for the build_base. (#4615)
+
+    - Removed degraded and deprecated ``test_integration`` (easy_install) from the test suite. (#4632)'
+- file: NEWS.rst
+  line: 830
+  section: Bugfixes
+  text: 'v74.1.1
+
+    Bugfixes
+
+    --------
+
+
+    - Fixed TypeError in ``msvc.EnvironmentInfo.return_env`` when no runtime redistributables are installed. (#1902)'
+- file: NEWS.rst
+  line: 1021
+  section: Bugfixes
+  text: 'v70.3.0
+
+    Bugfixes
+
+    --------
+
+
+    - Bugfix for building Cython extension on Windows (pypa/distutils#268).'
+- file: NEWS.rst
+  line: 1157
+  section: Bugfixes
+  text: 'v69.4.2
+
+    Bugfixes
+
+    --------
+
+
+    - Merged bugfix for pypa/distutils#246.'
+- file: NEWS.rst
+  line: 1172
+  section: Features
+  text: 'v69.4.0
+
+    Features
+
+    --------
+
+
+    - Merged with pypa/distutils@55982565e, including interoperability improvements for rfc822_escape (pypa/distutils#213),
+    dynamic resolution of config_h_filename for Python 3.13 compatibility (pypa/distutils#219), added support for the z/OS
+    compiler (pypa/distutils#216), modernized compiler options in unixcompiler (pypa/distutils#214), fixed accumulating flags
+    bug after compile/link (pypa/distutils#207), fixed enconding warnings (pypa/distutils#236), and general quality improvements
+    (pypa/distutils#234). (#4298)'
+- file: NEWS.rst
+  line: 1259
+  section: Bugfixes
+  text: 'v69.1.0
+
+    Bugfixes
+
+    --------
+
+
+    - In tests, rely on pytest-home for reusable fixture. (#4072)
+
+    - Explicitly marked as ``Protocol`` and fixed missing ``self`` argument in interfaces ``pkg_resources.IMetadataProvider``
+    and ``pkg_resources.IResourceProvider`` -- by :user:`Avasam` (#4144)
+
+    - Restored expectation that egg-link files would be named with dash separators for compatibility with pip prior to version
+    24. (#4167)'
+- file: NEWS.rst
+  line: 1297
+  section: Bugfixes
+  text: "v69.0.1\nBugfixes\n--------\n\n- Fixed imports of ``setuptools.dep_util.newer_group``.\n  A deprecation warning is\
+    \ issued instead of a hard failure. (#4126)"
+- file: NEWS.rst
+  line: 1517
+  section: Misc
+  text: 'v67.7.2
+
+    Misc
+
+    ----
+
+    * #3902: Fixed wrong URLs used in warnings and logs.'
+- file: NEWS.rst
+  line: 1526
+  section: Misc
+  text: 'v67.7.1
+
+    Misc
+
+    ----
+
+    * #3898: Fixes setuptools.dist:invalid_unless_false when value is false don''t raise error -- by :user:`jammarher`'
+- file: NEWS.rst
+  line: 1557
+  section: Misc
+  text: "v67.6.1\nMisc\n----\n* #3865: Fixed ``_WouldIgnoreField`` warnings for ``scripts`` and ``gui_scripts``,\n  when ``entry-points``\
+    \ is not listed in dynamic.\n* #3875: Update code generated by ``validate-pyproject`` to use v0.12.2.\n  This should fix\
+    \ default license patterns when ``pyproject.toml`` is used."
+- file: NEWS.rst
+  line: 1579
+  section: Misc
+  text: "v67.5.1\nMisc\n----\n* #3836: Fixed interaction between ``setuptools``' package auto-discovery and\n  auto-generated\
+    \ ``htmlcov`` files.\n\n  Previously, the ``htmlcov`` name was ignored when searching for single-file\n  modules, however\
+    \ the correct behaviour is to ignore it when searching for\n  packages (since it is supposed to be a directory, see `coverage\
+    \ config`_)\n  -- by :user:`yukihiko-shinoda`.\n\n  .. _coverage config: https://coverage.readthedocs.io/en/stable/config.html#html-directory\n\
+    * #3838: Improved error messages for ``pyproject.toml`` validations.\n* #3839: Fixed ``pkg_resources`` errors caused when\
+    \ parsing metadata of packages that\n  are already installed but do not conform with PEP 440."
+- file: NEWS.rst
+  line: 1637
+  section: Misc
+  text: 'v67.3.1
+
+    Misc
+
+    ----
+
+    * #3823: Fixes ``egg_info`` code path triggered during integration with ``pip``.'
+- file: NEWS.rst
+  line: 1713
+  section: Misc
+  text: "v66.1.1\nMisc\n----\n* #3782: Fixed problem with ``file`` directive in ``tool.setuptools.dynamic``\n  (``pyproject.toml``)\
+    \ when value is a simple string instead of list."
+- file: NEWS.rst
+  line: 1758
+  section: Misc
+  text: "v65.7.0\nMisc\n----\n* #3713: Fixed incomplete ``getattr`` statement that caused problems when accessing\n  undefined\
+    \ attribute."
+- file: NEWS.rst
+  line: 1789
+  section: Misc
+  text: 'v65.6.1
+
+    Misc
+
+    ----
+
+    * #3678: Improve clib builds reproducibility by sorting sources -- by :user:`danigm`
+
+    * #3684: Improved exception/traceback when invalid entry-points are specified.
+
+    * #3690: Fixed logging errors: ''underlying buffer has been detached'' (issue #1631).
+
+    * #3693: Merge pypa/distutils@3e9d47e with compatibility fix for distutils.log.Log.
+
+    * #3695, #3697, #3698, #3699: Changed minor text details (spelling, spaces ...)
+
+    * #3696: Removed unnecessary ``coding: utf-8`` annotations
+
+    * #3704: Fixed temporary build directories interference with auto-discovery.'
+- file: NEWS.rst
+  line: 1813
+  section: Misc
+  text: 'v65.5.1
+
+    Misc
+
+    ----
+
+    * #3638: Drop a test dependency on the ``mock`` package, always use :external+python:py:mod:`unittest.mock` -- by :user:`hroncok`
+
+    * #3659: Fixed REDoS vector in package_index -- by :user:`SCH227`'
+- file: NEWS.rst
+  line: 1823
+  section: Changes
+  text: 'v65.5.0
+
+    Changes
+
+    -------
+
+    * #3624: Fixed editable install for multi-module/no-package ``src``-layout projects.
+
+    * #3626: Minor refactorings to support distutils using stdlib logging module.'
+- file: NEWS.rst
+  line: 1843
+  section: Misc
+  text: 'v65.4.1
+
+    Misc
+
+    ----
+
+    * #3613: Fixed encoding errors in ``expand.StaticModule`` when system default encoding doesn''t match expectations for
+    source files.
+
+    * #3617: Merge with pypa/distutils@6852b20 including fix for pypa/distutils#181.'
+- file: NEWS.rst
+  line: 1870
+  section: Misc
+  text: 'v65.3.0
+
+    Misc
+
+    ----
+
+    * #3561: Fixed accidental name matching in editable hooks.'
+- file: NEWS.rst
+  line: 1879
+  section: Changes
+  text: 'v65.2.0
+
+    Changes
+
+    -------
+
+    * #3553: Sync with pypa/distutils@22b9bcf, including fixed cross-compiling support and removing deprecation warning per
+    pypa/distutils#169.'
+- file: NEWS.rst
+  line: 1925
+  section: Misc
+  text: "v65.0.1\nMisc\n----\n* #3526: Fixed backward compatibility of editable installs and custom ``build_ext``\n  commands\
+    \ inheriting directly from ``distutils``.\n* #3528: Fixed ``buid_meta.prepare_metadata_for_build_wheel`` when\n  given\
+    \ ``metadata_directory`` is ``\".\"``."
+- file: NEWS.rst
+  line: 1952
+  section: Misc
+  text: "v64.0.3\nMisc\n----\n* #3515: Fixed \"inline\" file copying for editable installations and\n  optional extensions.\n\
+    * #3517: Fixed ``editable_wheel`` to ensure other commands are finalized before using\n  them. This should prevent errors\
+    \ with plugins trying to use different commands\n  or reinitializing them.\n* #3517: Augmented filter to prevent transient/temporary\
+    \ source files from being\n  considered ``package_data`` or ``data_files``."
+- file: NEWS.rst
+  line: 1983
+  section: Misc
+  text: "v64.0.1\nMisc\n----\n* #3497: Fixed ``editable_wheel`` for legacy namespaces.\n* #3502: Fixed issue with editable\
+    \ install and single module distributions.\n* #3503: Added filter to ignore external ``.egg-info`` files in manifest.\n\
+    \n  Some plugins might rely on the fact that the ``.egg-info`` directory is\n  produced inside the project dir, which\
+    \ may not be the case in editable installs\n  (the ``.egg-info`` directory is produced inside the metadata directory given\
+    \ by\n  the build frontend via PEP 660 hooks)."
+prohibition_candidates:
+- file: AGENTS.md
+  line: 1
+  section: (whole)
+  text: '**Required first step:** Before reading further or making any changes, fetch and read the [skeleton](https://blog.jaraco.com/skeleton/)
+    document in its entirety. It is the authoritative source of truth for this project''s structure, conventions, testing,
+    and release process, and is not duplicated here. Do not act until you have ingested it.
+
+    '

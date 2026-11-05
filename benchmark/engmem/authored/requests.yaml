@@ -1,0 +1,158 @@
+repo: requests
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "In the requests project, where should usage questions be directed instead of the GitHub issue tracker?"
+    answer: "Stack Overflow, tagged with python-requests."
+    gold: [".github/CONTRIBUTING.md::Questions"]
+  - id: conv-002
+    type: convention
+    difficulty: easy
+    question: "Before filing a pull request in requests, what must you always do locally?"
+    answer: "Run the test suite locally."
+    gold: [".github/CONTRIBUTING.md::Good Pull Requests"]
+  - id: conv-003
+    type: convention
+    difficulty: easy
+    question: "What should you do before opening a new bug report in requests to avoid duplicates?"
+    answer: "Use the GitHub issue search to check whether it has been reported before."
+    gold: [".github/CONTRIBUTING.md::Good Bug Reports"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "According to requests' contribution guidelines, what should commit messages explain beyond 'Fixes #NNNN'?"
+    answer: "Why the change was made: why this is the right fix and what other options were ruled out."
+    gold: [".github/CONTRIBUTING.md::Good Pull Requests"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "What kind of tests must a pull request in requests include?"
+    answer: "Tests that fail without the proposed changes, so the fix cannot regress."
+    gold: [".github/CONTRIBUTING.md::Good Pull Requests"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "When cloning the requests repository fails with a bad commit timestamp error, what git flag works around it?"
+    answer: "-c fetch.fsck.badTimezone=ignore"
+    gold: ["README.md::Cloning the repository"]
+  - id: conv-007
+    type: convention
+    difficulty: medium
+    question: "Which two documents must you read before opening issues or proposing pull requests in requests?"
+    answer: "The Contributor's Guide and the AI Policy."
+    gold: [".github/CONTRIBUTING.md::Contribution Guidelines"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "Is it acceptable to ask 'how do I use Requests' questions on the requests GitHub issue tracker?"
+    answer: "No. The tracker is for bug reports and feature requests only; usage questions go to Stack Overflow."
+    gold: [".github/CONTRIBUTING.md::Questions"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "What happens in requests if your bug report duplicates an issue that a simple title search would have found?"
+    answer: "It will likely be closed extremely abruptly."
+    gold: [".github/CONTRIBUTING.md::Good Bug Reports"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "Does requests allow opening a pull request that someone else has already filed for the same change?"
+    answer: "No; contributors must search existing pull requests first and avoid duplicates."
+    gold: [".github/CONTRIBUTING.md::Good Pull Requests"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "Which CVE in requests fixed netrc credentials being retrieved for the wrong hostname via a maliciously crafted URL?"
+    answer: "CVE-2024-47081 (fixed in 2.32.4)."
+    gold: ["HISTORY.md::2.32.4 (2025-06-10)"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "In which requests release was parsing of malformed Content-Type header values fixed?"
+    answer: "2.33.1."
+    gold: ["HISTORY.md::2.33.1 (2026-03-30)"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "CVE-2026-25645 in requests concerned which utility function extracting to a predictable location?"
+    answer: "requests.utils.extract_zipped_paths."
+    gold: ["HISTORY.md::2.33.0 (2026-03-25)"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "In requests 2.34.1, the json input type was widened from dict and list to what?"
+    answer: "Mapping and Sequence."
+    gold: ["HISTORY.md::2.34.1 (2026-05-13)"]
+  - id: fix-005
+    type: fix
+    difficulty: hard
+    question: "What did requests 2.33.1 fix about the test cleanup related to CVE-2026-25645?"
+    answer: "It stopped leaving unnecessary files in the tmp directory."
+    gold: ["HISTORY.md::2.33.1 (2026-03-30)"]
+  - id: fix-006
+    type: fix
+    difficulty: easy
+    question: "What was the security issue in requests 2.32.0 involving verify=False on a Session?"
+    answer: "Setting verify=False on the first request from a Session caused subsequent requests to the same origin to also ignore certificate verification (GHSA-9wx4-h78v-vm56)."
+    gold: ["HISTORY.md::2.32.0 (2024-05-20)"]
+  - id: fix-007
+    type: fix
+    difficulty: medium
+    question: "What migration path did requests 2.32.2 offer custom HTTPAdapters impacted by the 2.32.0 CVE changes?"
+    answer: "_get_connection was renamed to the new public API get_connection_with_tls_context; get_connection is deprecated in all versions >=2.32.0."
+    gold: ["HISTORY.md::2.32.2 (2024-05-21)"]
+  - id: fix-008
+    type: fix
+    difficulty: medium
+    question: "What two bugs did requests 2.32.3 fix?"
+    answer: "Custom SSLContexts in HTTPAdapter subclasses were broken, and requests failed to run on Python versions compiled without the ssl module."
+    gold: ["HISTORY.md::2.32.3 (2024-05-29)"]
+  - id: fix-009
+    type: fix
+    difficulty: hard
+    question: "Which requests versions were vulnerable to Proxy-Authorization headers being forwarded to destination servers on HTTPS redirects, and when was it fixed?"
+    answer: "Versions 2.3.0 through 2.30.0; fixed in 2.31.0."
+    gold: ["HISTORY.md::2.31.0 (2023-05-22)"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: medium
+    question: "Under requests' AI policy, what happens to pull requests listing an LLM product as co-author?"
+    answer: "They cannot be merged and will be closed without further discussion."
+    gold: [".github/AI_POLICY.md::Summary"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: medium
+    question: "What does requests' AI policy say about posting LLM-generated review comments?"
+    answer: "Do not post them — 'we can prompt LLMs ourselves'; summaries may only be posted if fact-checked with 100% responsibility taken."
+    gold: [".github/AI_POLICY.md::Summary"]
+  - id: prohib-006
+    type: prohibition
+    difficulty: hard
+    question: "What does 'DoS-by-slop' lead to under requests' AI policy?"
+    answer: "A permanent ban."
+    gold: [".github/AI_POLICY.md::Generative AI / LLM Policy"]
+  - id: prohib-007
+    type: prohibition
+    difficulty: easy
+    question: "How should a potential security vulnerability in requests be disclosed?"
+    answer: "Open a draft Security Advisory on GitHub; do not disclose it publicly to anyone else."
+    gold: [".github/SECURITY.md::Vulnerability Disclosure"]
+  - id: prohib-008
+    type: prohibition
+    difficulty: medium
+    question: "What response time does requests promise for vulnerability reports?"
+    answer: "A project member responds within two days at the outside, usually within 12 hours."
+    gold: [".github/SECURITY.md::Timeline"]
+  - id: prohib-009
+    type: prohibition
+    difficulty: medium
+    question: "What is requests' fix-and-release goal for vulnerabilities, and on what days are security releases scheduled?"
+    answer: "A fix released within two weeks of initial disclosure; the release date is always on a weekday."
+    gold: [".github/SECURITY.md::Timeline"]
+  - id: prohib-010
+    type: prohibition
+    difficulty: hard
+    question: "Which downstream packagers does requests notify ahead of a public security release, and how far ahead?"
+    answer: "The Red Hat Python Maintenance Team and Daniele Tricoli (Debian), at least a week ahead, with the intended patch provided early."
+    gold: [".github/SECURITY.md::Timeline"]

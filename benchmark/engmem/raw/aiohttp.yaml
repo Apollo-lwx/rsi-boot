@@ -1,0 +1,577 @@
+convention_candidates:
+- file: AGENTS.md
+  line: 29
+  section: Documentation & code style
+  text: 'AGENTS.md
+
+    ## Documentation & code style
+
+
+    - User-visible API changes need a docs update under `docs/` (`docs/client_reference.rst` / `docs/web_reference.rst` plus
+    any narrative pages).
+
+    - Docstrings in code, prose in Sphinx; `make doc` builds locally.
+
+    - No docstrings or comments that just restate the code.'
+- file: AGENTS.md
+  line: 61
+  section: Threat model
+  text: 'AGENTS.md
+
+    ## Threat model
+
+
+    `THREAT_MODEL.md` is a living document and should be revised when:
+
+
+    - A CVE / GHSA is filed against aiohttp.
+
+    - The parser configuration changes (llhttp lenient flags, size limits, version regex).
+
+    - Any default referenced in the document changes (`client_max_size`, `client_max_fields`, `keepalive_timeout`, `max_redirects`,
+    `limit`, `limit_per_host`, etc.).
+
+    - The vendored llhttp version is bumped.
+
+    - A public API surface is added or removed in `client.py` / `web_*.py` / `multipart.py`.
+
+
+    When a chunk''s content is materially affected, update both the chunk and the relevant entries in §6.1–§6.4. The "Past
+    advisories / hardening (recap)" subsection of each chunk is the audit trail for what has been verified-in-place.'
+- file: CONTRIBUTING.rst
+  line: 4
+  section: Instructions for contributors
+  text: "Contributing\nInstructions for contributors\n-----------------------------\n\n\nIn order to make a clone of the GitHub_\
+    \ repo: open the link and press the\n\"Fork\" button on the upper-right menu of the web page.\n\nI hope everybody knows\
+    \ how to work with git and github nowadays :)\n\nWorkflow is pretty straightforward:\n\n  1. Clone the GitHub_ repo using\
+    \ the ``--recurse-submodules`` argument\n\n  2. Setup your machine with the required development environment\n\n  3. Make\
+    \ a change\n\n  4. Make sure all tests passed\n\n  5. Add a file into the ``CHANGES`` folder, named after the ticket or\
+    \ PR number\n\n  6. Commit changes to your own aiohttp clone\n\n  7. Make a pull request from the github page of your\
+    \ clone against the master branch\n\n  8. Optionally make backport Pull Request(s) for landing a bug fix into released\
+    \ aiohttp versions.\n\n.. important::\n\n    Please open the \"`contributing <https://docs.aiohttp.org/en/stable/contributing.html>`_\"\
+    \n    documentation page to get detailed information about all steps.\n\n.. _GitHub: https://github.com/aio-libs/aiohttp"
+- file: docs/contributing.rst
+  line: 8
+  section: Instructions for contributors
+  text: "Contributing\nInstructions for contributors\n-----------------------------\n\nIn order to make a clone of the GitHub_\
+    \ repo: open the link and press the \"Fork\" button on the upper-right menu of the web page.\n\nI hope everybody knows\
+    \ how to work with git and github nowadays :)\n\nWorkflow is pretty straightforward:\n\n  0. Make sure you are reading\
+    \ the latest version of this document.\n     It can be found in the GitHub_ repo in the ``docs`` subdirectory.\n\n  1.\
+    \ Clone the GitHub_ repo using the ``--recurse-submodules`` argument\n\n  2. Setup your machine with the required development\
+    \ environment\n\n  3. Make a change\n\n  4. Make sure all tests passed\n\n  5. Add a file into the ``CHANGES`` folder\
+    \ (see `Changelog update`_ for how).\n\n  6. Commit changes to your own aiohttp clone\n\n  7. Make a pull request from\
+    \ the github page of your clone against the master branch\n\n  8. Optionally make backport Pull Request(s) for landing\
+    \ a bug fix into released aiohttp versions.\n\n.. note::\n\n   The project uses *Squash-and-Merge* strategy for *GitHub\
+    \ Merge* button.\n\n   Basically it means that there is **no need to rebase** a Pull Request against\n   *master* branch.\
+    \ Just ``git merge`` *master* into your working copy (a fork) if\n   needed. The Pull Request is automatically squashed\
+    \ into the single commit\n   once the PR is accepted.\n\n.. note::\n\n   GitHub issue and pull request threads are automatically\
+    \ locked when there has\n   not been any recent activity for one year.  Please open a `new issue\n   <https://github.com/aio-libs/aiohttp/issues/new>`_\
+    \ for related bugs.\n\n   If you feel like there are important points in the locked discussions,\n   please include those\
+    \ excerpts into that new issue."
+- file: docs/contributing.rst
+  line: 55
+  section: Preconditions for running aiohttp test suite
+  text: "Contributing\nPreconditions for running aiohttp test suite\n--------------------------------------------\n\nWe expect\
+    \ you to use a python virtual environment to run our tests.\n\nThere are several ways to make a virtual environment.\n\
+    \nIf you like to use *virtualenv* please run:\n\n.. code-block:: shell\n\n   $ cd aiohttp\n   $ virtualenv --python=`which\
+    \ python3` venv\n   $ . venv/bin/activate\n\nFor standard python *venv*:\n\n.. code-block:: shell\n\n   $ cd aiohttp\n\
+    \   $ python3 -m venv venv\n   $ . venv/bin/activate\n\nFor *virtualenvwrapper*:\n\n.. code-block:: shell\n\n   $ cd aiohttp\n\
+    \   $ mkvirtualenv --python=`which python3` aiohttp\n\nThere are other tools like *pyvenv* but you know the rule of thumb\
+    \ now: create a python3 virtual environment and activate it.\n\nAfter that please install libraries required for development:\n\
+    \n.. code-block:: shell\n\n   $ make install-dev\n\n.. note::\n\n  For now, the development tooling depends on ``make``\
+    \ and assumes an Unix OS If you wish to contribute to aiohttp from a Windows machine, the easiest way is probably to `configure\
+    \ the WSL <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_ so you can use the same instructions. If it's\
+    \ not possible for you or if it doesn't work, please contact us so we can find a solution together.\n\nInstall pre-commit\
+    \ hooks:\n\n.. code-block:: shell\n\n   $ pre-commit install\n\n.. warning::\n\n  If you plan to use temporary ``print()``,\
+    \ ``pdb`` or ``ipdb`` within the test suite, execute it with ``-s``\n  and without the parallel ``pytest-xdist`` workers\
+    \ that are enabled by default:\n\n  .. code-block:: shell\n\n     $ pytest tests -s --numprocesses=0\n\n  in order to\
+    \ run the tests without output capturing.\n\nCongratulations, you are ready to run the test suite!\n\n.. include:: ../vendor/README.rst"
+- file: docs/contributing.rst
+  line: 119
+  section: Run autoformatter
+  text: "Contributing\nRun autoformatter\n-----------------\n\nThe project uses black_ + isort_ formatters to keep the source\
+    \ code style.\nPlease run `make fmt` after every change before starting tests.\n\n  .. code-block:: shell\n\n     $ make\
+    \ fmt"
+- file: docs/contributing.rst
+  line: 216
+  section: Documentation
+  text: "Contributing\nDocumentation\n-------------\n\nWe encourage documentation improvements.\n\nPlease before making a\
+    \ Pull Request about documentation changes run:\n\n.. code-block:: shell\n\n   $ make doc\n\nOnce it finishes it will\
+    \ output the index html page\n``open file:///.../aiohttp/docs/_build/html/index.html``.\n\nGo to the link and make sure\
+    \ your doc changes looks good."
+- file: docs/contributing.rst
+  line: 232
+  section: Spell checking
+  text: "Contributing\nSpell checking\n--------------\n\nWe use ``pyenchant`` and ``sphinxcontrib-spelling`` for running spell\n\
+    checker for documentation:\n\n.. code-block:: shell\n\n   $ make doc-spelling\n\nUnfortunately there are problems with\
+    \ running spell checker on MacOS X.\n\nTo run spell checker on Linux box you should install it first:\n\n.. code-block::\
+    \ shell\n\n   $ sudo apt-get install enchant\n   $ pip install sphinxcontrib-spelling"
+- file: docs/contributing.rst
+  line: 252
+  section: Preparing a pull request
+  text: 'Contributing
+
+    Preparing a pull request
+
+    ------------------------
+
+
+    When making a pull request, please include a short summary of the changes
+
+    and a reference to any issue tickets that the PR is intended to solve.
+
+    All PRs with code changes should include tests. All changes should
+
+    include a changelog entry.'
+- file: docs/contributing.rst
+  line: 273
+  section: Backporting
+  text: "Contributing\nBackporting\n-----------\n\nAll Pull Requests are created against *master* git branch.\n\nIf the Pull\
+    \ Request is not a new functionality but bug fixing\n*backport* to maintenance branch would be desirable.\n\n*aiohttp*\
+    \ project committer may ask for making a *backport* of the PR\ninto maintained branch(es), in this case he or she adds\
+    \ a github label\nlike *needs backport to 3.1*.\n\n*Backporting* is performed *after* main PR merging into master.\n Please\
+    \ do the following steps:\n\n1. Find *Pull Request's commit* for cherry-picking.\n\n   *aiohttp* does *squashing* PRs\
+    \ on merging, so open your PR page on\n   github and scroll down to message like ``asvetlov merged commit\n   f7b8921\
+    \ into master 9 days ago``.  ``f7b8921`` is the required commit number.\n\n2. Run `cherry_picker\n   <https://github.com/python/core-workflow/tree/master/cherry_picker>`_\n\
+    \   tool for making backport PR (the tool is already pre-installed from\n   ``./requirements/dev.txt``), e.g. ``cherry_picker\
+    \ f7b8921 3.1``.\n\n3. In case of conflicts fix them and continue cherry-picking by\n   ``cherry_picker --continue``.\n\
+    \n   ``cherry_picker --abort`` stops the process.\n\n   ``cherry_picker --status`` shows current cherry-picking status\n\
+    \   (like ``git status``)\n\n4. After all conflicts are done the tool opens a New Pull Request page\n   in a browser with\
+    \ pre-filed information.  Create a backport Pull\n   Request and wait for review/merging.\n\n5. *aiohttp* *committer*\
+    \ should remove *backport Git label* after\n   merging the backport."
+- file: README.rst
+  line: 146
+  section: Communication channels
+  text: 'Communication channels
+
+    ======================
+
+
+    *aio-libs Discussions*: https://github.com/aio-libs/aiohttp/discussions
+
+
+    *Matrix*: `#aio-libs:matrix.org <https://matrix.to/#/#aio-libs:matrix.org>`_
+
+
+    We support `Stack Overflow
+
+    <https://stackoverflow.com/questions/tagged/aiohttp>`_.
+
+    Please add *aiohttp* tag to your question there.'
+- file: README.rst
+  line: 157
+  section: Requirements
+  text: 'Requirements
+
+    ============
+
+
+    - multidict_
+
+    - yarl_
+
+    - frozenlist_
+
+
+    Optionally you may install the aiodns_ library (highly recommended for sake of speed).
+
+
+    .. _aiodns: https://pypi.python.org/pypi/aiodns
+
+    .. _multidict: https://pypi.python.org/pypi/multidict
+
+    .. _frozenlist: https://pypi.org/project/frozenlist/
+
+    .. _yarl: https://pypi.python.org/pypi/yarl'
+- file: README.rst
+  line: 186
+  section: Benchmarks
+  text: "Benchmarks\n==========\n\nIf you are interested in efficiency, the AsyncIO community maintains a\nlist of benchmarks\
+    \ on the official wiki:\nhttps://github.com/python/asyncio/wiki/Benchmarks\n\n--------\n\n.. image:: https://img.shields.io/matrix/aio-libs:matrix.org?label=Discuss%20on%20Matrix%20at%20%23aio-libs%3Amatrix.org&logo=matrix&server_fqdn=matrix.org&style=flat\n\
+    \   :target: https://matrix.to/#/%23aio-libs:matrix.org\n   :alt: Matrix Room — #aio-libs:matrix.org\n\n.. image:: https://img.shields.io/matrix/aio-libs-space:matrix.org?label=Discuss%20on%20Matrix%20at%20%23aio-libs-space%3Amatrix.org&logo=matrix&server_fqdn=matrix.org&style=flat\n\
+    \   :target: https://matrix.to/#/%23aio-libs-space:matrix.org\n   :alt: Matrix Space — #aio-libs-space:matrix.org\n\n\
+    .. image:: https://insights.linuxfoundation.org/api/badge/health-score?project=aiohttp\n   :target: https://insights.linuxfoundation.org/project/aiohttp\n\
+    \   :alt: LFX Health Score"
+files_seen:
+- AGENTS.md
+- CHANGES.rst
+- CLAUDE.md
+- CODE_OF_CONDUCT.md
+- CONTRIBUTING.rst
+- README.rst
+- docs/contributing.rst
+fix_candidates:
+- file: CHANGES.rst
+  line: 16
+  section: Bug fixes
+  text: "3.14.5 (2026-10-10)\nBug fixes\n---------\n\n- Stopped failing the WebSocket connection when a control frame has\
+    \ RSV1 set after ``permessage-deflate`` was negotiated; some clients set the bit on every frame and control frames are\
+    \ never decompressed -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`14007`."
+- file: CHANGES.rst
+  line: 91
+  section: Bug fixes
+  text: "3.14.4 (2026-10-04)\nBug fixes\n---------\n\n- Remove overlapping slots in ``RequestHandler``,\n  fix broken slots\
+    \ inheritance in :py:class:`~aiohttp.web.StreamResponse`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`6547`.\n\
+    \n\n\n- Fixed a segmentation fault in the C HTTP parser on Python 3.12 and newer when payload decompression raised an\
+    \ error while pending decompressed data was being drained, as seen with ``brotlicffi`` 1.2 -- by :user:`bdraco`.\n\n\n\
+    \  *Related issues and pull requests on GitHub:*\n  :issue:`13203`, :issue:`13249`.\n\n\n\n- Rejected control characters\
+    \ in the request target in the pure-Python HTTP parser,\n  matching the llhttp-backed parser, which already refuses them\n\
+    \  -- by :user:`arshsmith1`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13212`.\n\n\n\n- Stripped\
+    \ the trailing whitespace from header values in the C HTTP parser,\n  so that it matches the pure-Python parser and :rfc:`9110#section-5.5`\n\
+    \  -- by :user:`LuShadowX`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13246`.\n\n\n\n- Fixed the\
+    \ WebSocket reader rejecting a compressed data frame with close code 1002 when a control frame arrived before the first\
+    \ data frame (regression in 3.14.2) -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`13274`.\n\n\n\n- Fixed internally retried requests sending a truncated body when the request\n  data was a\
+    \ file object.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13329`, :issue:`13330`.\n\n\n\n- Fixed\
+    \ event loop state possibly being corrupted on Python 3.12+ -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull\
+    \ requests on GitHub:*\n  :issue:`13346`.\n\n\n\n- Fixed the HTTP parser raising :exc:`~aiohttp.ClientPayloadError` when\
+    \ a fully received ``Content-Length`` body was pending completion -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues\
+    \ and pull requests on GitHub:*\n  :issue:`13348`.\n\n\n\n- Bounded the per-read object overhead the WebSocket reader\
+    \ retains while reassembling a frame delivered across many small reads; the reads are joined once when the frame completes,\
+    \ and folded into a single buffer if they exceed a fragment cap, so a frame dribbled in tiny reads cannot pin unbounded\
+    \ per-read overhead -- by :user:`Dreamsorcerer` and :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`13352`, :issue:`13488`.\n\n\n\n- Fixed requests pipelined behind a request whose upgrade the handler declined\n\
+    \  going unanswered once there were more of them than the per-connection queue\n  holds. With the pure-Python parser the\
+    \ same requests were also served more\n  than once -- by :user:`rodrigobnogueira`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`13356`.\n\n\n\n- Reduced CPU consumption when encountering many concatenated members in a compressed\
+    \ payload and rejected large amounts of members -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`13362`.\n\n\n\n- Fixed excessive memory consumption with small WebSocket messages -- by :user:`Dreamsorcerer`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13393`.\n\n\n\n- Fixed an integer overflow on too large\
+    \ messages -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13415`.\n\n\n\n\
+    - Switched multipart handling to use spooled temporary files to reduce number of file descriptors needed -- by :user:`Dreamsorcerer`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13426`.\n\n\n\n- Fixed a limit on message tail after an\
+    \ upgrade request -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13501`.\n\
+    \n\n\n- Fixed some edge case handling in multipart parts using base 64 encoding -- by :user:`Dreamsorcerer`.\n\n\n  *Related\
+    \ issues and pull requests on GitHub:*\n  :issue:`13509`.\n\n\n\n- Fixed Cython 3.3.0 failing to compile the WebSocket\
+    \ reader: dropped the\n  ``Final[...]`` annotation from ``ALLOWED_CLOSE_CODES`` and the ``int``\n  annotation from the\
+    \ local ``start_pos`` in ``WebSocketReader._feed_d"
+- file: CHANGES.rst
+  line: 546
+  section: Improved documentation
+  text: "3.14.4 (2026-10-04)\nImproved documentation\n----------------------\n\n- Documented valid request URL forms when\
+    \ using :class:`~aiohttp.UnixConnector`, including ``base_url`` with an HTTP host -- by :user:`muhammad-a-dev`.\n\n\n\
+    \  *Related issues and pull requests on GitHub:*\n  :issue:`11324`, :issue:`13781`.\n\n\n\n- Corrected the documented\
+    \ signature of :meth:`~aiohttp.StreamReader.read_nowait`,\n  whose ``n`` parameter defaults to ``-1`` rather than the\
+    \ ``None`` that was\n  previously documented -- by :user:`LALITH0110`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`13295`.\n\n\n\n- Added ``interlock-cb``, an aiohttp client circuit breaker middleware, to the\n  third-party\
+    \ libraries page -- by :user:`bagowix`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13336`.\n\n\n\n\
+    - Documented that ``max_redirects=0`` means no limit and that ``allow_redirects=False`` disables redirects -- by :user:`monasco`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13658`.\n\n\n\n- Corrected the documented signature of\
+    \ :py:meth:`~aiohttp.StreamReader.readuntil`, which\n  showed a ``str`` separator although the method takes ``bytes``,\
+    \ and documented its\n  keyword-only ``max_size`` argument -- by :user:`hxperl`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`13686`.\n\n\n\n- Replaced most of the ``sphinx.ext.extlinks``-based roles in the documentation\n\
+    \  with :pypi:`sphinx-issues`, which ships the\n  ``:issue:``, ``:pr:``, ``:commit:`` and ``:user:`` roles out of the\
+    \ box.\n  Pull request references are now captioned ``#N`` instead of ``PR #N``, and\n  commit references as abbreviated,\
+    \ ``@``-prefixed hashes\n  -- by :user:`aiolibsbot`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13752`.\n\
+    \n\n\n- Fixed the ``Content-ID`` example in the multipart docs, which used a\n  constant missing from ``aiohttp.hdrs``\
+    \ and a value that is not a valid\n  message ID -- by :user:`asvetlov`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`13886`."
+- file: CHANGES.rst
+  line: 656
+  section: Contributor-facing changes
+  text: "3.14.4 (2026-10-04)\nContributor-facing changes\n--------------------------\n\n- The CI/CD is now in sync with the\
+    \ rest of the projects in terms of where\n  the ``cibuildwheel`` workflow lives -- by :user:`webknjaz`.\n\n\n\n  *Related\
+    \ commits on GitHub:*\n  :commit:`59c0123d`.\n\n\n- Moved the pytest configuration from :file:`setup.cfg` to a dedicated\n\
+    \  :file:`pytest.ini` that follows the layout shared with ``propcache`` and\n  other ``aio-libs`` projects. Compared to\
+    \ the old configuration,\n  ``minversion`` is raised from ``3.8.2`` to ``8.4``; ``pytest-xdist``\n  (``--numprocesses=auto``)\
+    \ and ``pytest-cov`` (``--cov``,\n  ``--cov-context=test``, ``--no-cov-on-fail``) are enabled by default\n  again, so\
+    \ pass ``--numprocesses=0`` and/or ``--no-cov`` to opt out, as\n  the :file:`Makefile` targets and CI jobs now do where\
+    \ needed;\n  ``--doctest-modules``, ``--strict-markers`` and\n  ``faulthandler_timeout = 30`` are enabled; ``-v`` is no\
+    \ longer added;\n  empty parameter sets are marked ``xfail`` instead of skipped;\n  ``--junitxml`` reports use ``xunit1``\
+    \ with captured output and\n  call-only durations; and ``norecursedirs`` skips more directories,\n  including :file:`tests/isolated/`\n\
+    \  -- by :user:`aiolibsbot`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12620`, :issue:`12621`.\n\
+    \n\n\n- Added check that change fragment matches PR number -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull\
+    \ requests on GitHub:*\n  :issue:`12788`.\n\n\n\n- CI now builds the ``sdist`` (and a pure-Python wheel) once, in a new\n\
+    \  ``build-pure-python-dists`` job, and shares that build across ``test``,\n  ``autobahn``, ``benchmark``, ``build-wheels``,\
+    \ ``test-mobile`` and the\n  ``sdist``-based half of linting, instead of every one of those jobs\n  checking out the repository\
+    \ and running ``make cythonize`` on its own\n  -- by :user:`webknjaz`.\n\n  Linting is also now split into ``lint-from-git``\
+    \ (the\n  :file:`requirements/runtime-deps.in` sync check and docs spell-checking,\n  which need real Git history) and\
+    \ ``lint-from-sdist`` (``mypy``,\n  ``slotscheck``, the changelog fragment check, and ``twine check``, which\n  build\
+    \ from the shared artifact instead), since an ``sdist`` tarball never\n  contains :file:`.git`.\n\n\n  *Related issues\
+    \ and pull requests on GitHub:*\n  :issue:`13363`, :issue:`13388`.\n\n\n\n- Synchronized the ``coverage.py`` configuration\
+    \ (:file:`.coveragerc.toml` and\n  :file:`.coveragerc-cython.toml`) with the pattern already established in\n  :external+yarl:doc:`yarl\
+    \ <index>`, :external+multidict:doc:`multidict\n  <index>`, ``frozenlist`` and other sibling projects\n  -- by :user:`webknjaz`.\n\
+    \n  Both files now anchor package discovery through ``source_pkgs`` instead of\n  relying on a same-named directory happening\
+    \ to exist relative to the\n  working directory, and add a ``[paths]`` mapping so coverage recorded\n  against an installed\
+    \ copy of ``aiohttp`` still combines correctly with\n  coverage recorded from the Git checkout. CI now lets ``pytest-cov``\
+    \ write\n  ``coverage.xml`` directly via ``--cov-report=xml`` instead of a separate\n  ``coverage xml`` step, and the\
+    \ Autobahn testsuite's subprocess-based\n  coverage collection (which uses ``coverage run --append``, incompatible\n \
+    \ with parallel mode) now opts out per-invocation via a\n  ``COVERAGE_PARALLEL_MODE`` environment variable instead of\
+    \ trying to\n  override it on the command line.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13422`.\n\
+    \n\n\n- Stopped the benchmark CI job from hanging in the CodSpeed runner's apt\n  install by installing ``libc6-dbg``\
+    \ up front with a bounded retry, and raised\n  the job timeout from 15 to 30 minutes -- by :user:`bdraco`.\n\n\n  *Related\
+    \ issues and pull requests on GitHub:*\n  :issue:`13489`.\n\n\n\n- Added benchmarks for reading masked WebSocket messages\
+    \ and fixed the\n  existing read benchmarks, which stopped measuring the parser after the\n  eighth large frame due to\
+    \ the queue limit -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13561`.\n\n\n\n\
+    - Removed sta"
+- file: CHANGES.rst
+  line: 836
+  section: Bug fixes
+  text: "3.14.3 (2026-07-22)\nBug fixes\n---------\n\n- Fixed the client dropping only the first ``Authorization``, ``Cookie``\
+    \ and\n  ``Proxy-Authorization`` header when a redirect crossed an origin -- by :user:`arshsmith1`.\n\n\n  *Related issues\
+    \ and pull requests on GitHub:*\n  :issue:`13180`.\n\n\n\n- Fixed error message construction in the C HTTP parser -- by\
+    \ :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13222`.\n\n\n\n\n----"
+- file: CHANGES.rst
+  line: 863
+  section: Bug fixes
+  text: "3.14.2 (2026-07-20)\nBug fixes\n---------\n\n- Fixed :py:attr:`~aiohttp.web.StreamResponse.last_modified` rounding\
+    \ a\n  :class:`datetime.datetime` with a fractional second down.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`5303`.\n\n\n\n- Fixed resolving ``localhost`` on Windows to fall back without ``AI_ADDRCONFIG``\n  when the\
+    \ first lookup fails, so ``localhost`` still works without an active\n  network.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`5357`.\n\n\n\n- Rejected multipart body parts whose ``Content-Length`` header is not a\n  plain\
+    \ sequence of digits (e.g. ``+5``, ``-1``, ``1_0``), matching the\n  strictness of the main request parser per :rfc:`9110#section-8.6`\n\
+    \  -- by :user:`dxbjavid`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12794`.\n\n\n\n- Fixed ``GunicornWebWorker``\
+    \ endlessly reloading when app fails during startup -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`12879`.\n\n\n\n- Fixed some inconsistent case sensitivity on request methods -- by :user:`Dreamsorcerer`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12931`.\n\n\n\n- Fixed ``IndexError: string index out of\
+    \ range`` in ``parse_content_disposition``\n  when a header parameter has an empty value (e.g. ``filename=``).\n  -- by\
+    \ :user:`JSap0914`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12948`.\n\n\n\n- Fixed the ``sock_read``\
+    \ timeout being re-armed on a keep-alive connection after\n  it had been returned to the pool. An idle pooled connection\
+    \ could be left with a\n  pending read timeout that fired and poisoned it, so the next request reusing the\n  connection\
+    \ failed immediately with :exc:`aiohttp.SocketTimeoutError`. The read\n  timeout is now only rescheduled when resuming\
+    \ a transport that was actually\n  paused -- by :user:`daragok`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`12953`, :issue:`12954`.\n\n\n\n- Fixed the client decompressing frames when ``permessage-deflate`` was not\
+    \ negotiated -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12976`.\n\n\n\
+    \n- Fixed ``DigestAuthMiddleware`` raising an ``IndexError`` on empty domain -- by :user:`Dreamsorcerer`.\n\n\n  *Related\
+    \ issues and pull requests on GitHub:*\n  :issue:`12983`.\n\n\n\n- Fixed :class:`~aiohttp.DigestAuthMiddleware` corrupting\
+    \ the ``Digest``\n  challenge when a ``WWW-Authenticate`` response offered more than one\n  authentication scheme -- by\
+    \ :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12984`.\n\n\n\n- Fixed client\
+    \ not closing cleanly after an exception -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`12985`.\n\n\n\n- Fixed control frames breaking fragmented WebSocket messages -- by :user:`arshsmith1`.\n\n\n\
+    \  *Related issues and pull requests on GitHub:*\n  :issue:`12988`.\n\n\n\n- Fixed ``parse_content_disposition`` rejecting\
+    \ otherwise-valid\n  ``Content-Disposition`` header values that contain optional whitespace (OWS)\n  around the disposition\
+    \ type (e.g. ``\"form-data ; name=\\\"field\\\"\"``).\n  The disposition type is now stripped before token validation,\
+    \ consistent with\n  how parameter keys are already handled -- by :user:`JSap0914`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`12996`.\n\n\n\n- Fixed an :exc:`IndexError` in the pure-Python HTTP parser -- by :user:`Dreamsorcerer`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13001`.\n\n\n\n- Fixed parsing optional whitespace in Content-Disposition\
+    \ -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`13002`.\n\n\n\n- Fixed\
+    \ request body not being read on rejected WebSocket upgrades -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull\
+    \ requests on GitHub:*\n  :issue:`13016`.\n\n\n\n- Fixed :exc:`LookupError` (and an unguarded :exc:`UnicodeDecodeError`)\
+    \ escaping\n  ``Content-Disposition`` parsing when a multipart part supplies an extended\n  parameter with an unknown\
+    \ charset\n  -- by :user:`arshsmith1`.\n\n\n  *Relat"
+- file: CHANGES.rst
+  line: 1096
+  section: Bug fixes
+  text: "3.14.1 (2026-06-07)\nBug fixes\n---------\n\n- Fixed a race condition in :py:class:`~aiohttp.TCPConnector` where\
+    \ closing the connector while a DNS resolution was in-flight could raise :py:exc:`AttributeError` instead of :py:exc:`~aiohttp.ClientConnectionError`\
+    \ -- by :user:`goingforstudying-ctrl`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12497`.\n\n\n\n\
+    - Fixed ``CancelledError`` not closing a connection -- by :user:`aiolibsbot`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`12795`.\n\n\n\n- Tightened up some websocket parser checks -- by :user:`Dreamsorcerer`.\n\n\n\
+    \  *Related issues and pull requests on GitHub:*\n  :issue:`12817`.\n\n\n\n- Fixed :class:`~aiohttp.CookieJar` dropping\
+    \ the host-only flag of cookies when persisted with :meth:`~aiohttp.CookieJar.save` and reloaded with :meth:`~aiohttp.CookieJar.load`,\
+    \ so a cookie set without a ``Domain`` attribute is again scoped to the exact host that set it after a reload; the absolute\
+    \ expiration deadline is now persisted as well, so a reloaded cookie keeps its original lifetime instead of being rescheduled\
+    \ from the load time. :meth:`~aiohttp.CookieJar.load` now replaces the jar contents rather than merging onto prior state,\
+    \ and loaded cookies pass through the same acceptance rules as :meth:`~aiohttp.CookieJar.update_cookies`, so a cookie\
+    \ for an IP-address host is dropped when loaded into a jar created without ``unsafe=True`` -- by :user:`bdraco`.\n\n\n\
+    \  *Related issues and pull requests on GitHub:*\n  :issue:`12824`.\n\n\n\n- Scoped :class:`~aiohttp.DigestAuthMiddleware`\
+    \ credentials to the origin of the first request it handles, so a redirect to a different origin no longer triggers a\
+    \ digest response computed from the configured credentials; a challenge from another origin is only answered when that\
+    \ origin falls within a protection space advertised by the anchor origin through the RFC 7616 ``domain`` directive --\
+    \ by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12825`.\n\n\n\n- Fixed the C HTTP\
+    \ parser not enforcing ``max_line_size`` on a request target or response reason phrase that is split across multiple reads;\
+    \ each fragment was checked on its own, so an accumulated line could exceed the limit without raising ``LineTooLong``.\
+    \ The accumulated length is now checked, matching the pure-Python parser -- by :user:`bdraco`.\n\n\n  *Related issues\
+    \ and pull requests on GitHub:*\n  :issue:`12826`.\n\n\n\n- Changed :class:`~aiohttp.TCPConnector` to reject legacy non-canonical\
+    \ numeric IPv4 host forms such as ``2130706433``, ``017700000001`` and ``127.1`` with :exc:`~aiohttp.InvalidUrlClientError`;\
+    \ only canonical dotted-quad IPv4 literals are now treated as IP address literals, while every other host is sent through\
+    \ the configured resolver -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12827`.\n\
+    \n\n\n- Fixed :meth:`~aiohttp.StreamReader.readany` and :meth:`~aiohttp.StreamReader.read_nowait` joining data fed back\
+    \ into the buffer during the call (when draining below the low water mark resumes reading) into a single unbounded :class:`bytes`;\
+    \ a call now returns only the chunks that were buffered when it started, keeping the drain of an unread auto-decompressed\
+    \ request body bounded by the read buffer -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`12828`.\n\n\n\n- Bounded the number of parsed-but-unhandled pipelined HTTP/1 requests buffered per connection\
+    \ on the server; once the queue reaches an internal limit the parser stops emitting and the transport is paused, resuming\
+    \ as the request handler drains the queue, so a client keeping one handler busy can no longer accumulate an unbounded\
+    \ backlog of pipelined requests -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12830`.\n\
+    \n\n\n- Fixed :meth:`aiohttp.web.Response.write_eof` skipping ``Payload.close()`` when the body write was interrupted\
+    \ by an error or cancellation, for example when a client disconnects mid-response; the payload clos"
+- file: CHANGES.rst
+  line: 1302
+  section: Bug fixes
+  text: "3.14.0 (2026-06-01)\nBug fixes\n---------\n\n- Fixed ``ZLibDecompressor`` silently dropping data past the first\n\
+    \  member when decompressing concatenated gzip/deflate streams. Each subsequent\n  member is now handed to a fresh decompressor,\
+    \ matching the behaviour already\n  implemented for ZSTD multi-frame streams.\n\n  -- by :user:`Ashutosh-177`\n\n\n  *Related\
+    \ issues and pull requests on GitHub:*\n  :issue:`7157`.\n\n\n\n- Improved the parser error message shown when TLS handshake\
+    \ bytes are received on an HTTP port -- by :user:`puneetdixit200`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`10142`.\n\n\n\n- Fixed the C parser failing to reject a response with a body when none was expected -- by :user:`Dreamsorcerer`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`10587`.\n\n\n\n- Fixed http parser not rejecting HTTP/1.1\
+    \ requests that do not have valid Host header.\n  -- by :user:`Cycloctane`.\n\n\n  *Related issues and pull requests on\
+    \ GitHub:*\n  :issue:`10600`.\n\n\n\n- Fixed misleading TLS-in-TLS warning being emitted when sending HTTPS requests through\
+    \ an HTTP proxy. The warning now only fires when the proxy itself uses HTTPS, which is the only case where TLS-in-TLS\
+    \ actually applies -- by :user:`wavebyrd`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`10683`.\n\n\
+    \n\n- Fixed ``AssertionError`` when the transport is ``None`` during WebSocket\n  preparation or file response sending\
+    \ (e.g. when a client disconnects\n  immediately after connecting). A ``ConnectionResetError`` is now raised\n  instead\
+    \ -- by :user:`agners`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`11761`.\n\n\n\n- Fixed ad-hoc\
+    \ cookies passed to individual requests not being sent when the session's cookie jar has ``unsafe=True`` and the target\
+    \ URL uses an IP address, by copying the ``unsafe`` setting from the session's cookie jar to the temporary cookie jar\
+    \ -- by :user:`Krishnachaitanyakc`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12011`.\n\n\n\n- Reset\
+    \ the WebSocket heartbeat timer on inbound data to avoid false ping/pong timeouts while receiving large frames\n  -- by\
+    \ :user:`hoffmang9`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12030`.\n\n\n\n- Switched :py:meth:`~aiohttp.CookieJar.save`\
+    \ to use JSON format and\n  :py:meth:`~aiohttp.CookieJar.load` to try JSON first with a fallback to\n  a restricted pickle\
+    \ unpickler -- by :user:`YuvalElbar6`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12091`.\n\n\n\n\
+    - Fixed redirects with consumed non-rewindable request bodies to raise\n  :class:`aiohttp.ClientPayloadError` instead\
+    \ of silently sending an empty body.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12195`.\n\n\n\n-\
+    \ Fixed zstd decompression failing with ``ClientPayloadError`` when the server\n  sends a response as multiple zstd frames\
+    \ -- by :user:`josu-moreno`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12234`.\n\n\n\n- Fixed spurious\
+    \ ``Future exception was never retrieved`` warning on disconnect during back-pressure -- by :user:`availov`.\n\n\n  *Related\
+    \ issues and pull requests on GitHub:*\n  :issue:`12281`.\n\n\n\n- ``Cookiejar.save()`` now uses ``0x600`` permissions\
+    \ to better protect them from being read by other users -- by :user:`digiscrypt`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`12312`.\n\n\n\n- Fixed a crash (:external+python:exc:`~http.cookies.CookieError`) in the cookie\
+    \ parser when receiving cookies\n  containing ASCII control characters on CPython builds with the :cve:`2026-3644`\n \
+    \ patch. The parser now gracefully skips cookies whose value contains control\n  characters instead of letting the exception\
+    \ propagate -- by :user:`rodrigobnogueira`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12395`.\n\n\
+    \n\n- Fixed digest authentication failing for requests whose path or query string contains percent-encoded reserved characters;\
+    \ the digest signature now uses the encoded request-target that is sent on the wire instead of the decoded form -- by\
+    \ :user:`bdraco`.\n\n\n  *Relate"
+- file: CHANGES.rst
+  line: 1633
+  section: Contributor-facing changes
+  text: "3.14.0 (2026-06-01)\nContributor-facing changes\n--------------------------\n\n- The coverage tool is now configured\
+    \ using the new native\n  auto-discovered :file:`.coveragerc.toml` file\n  -- by :user:`webknjaz`.\n\n  It is also set\
+    \ up to use the ``ctrace`` core that works\n  around the performance issues in the ``sysmon`` tracer\n  which is default\
+    \ under Python 3.14.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`11826`.\n\n\n\n- Fixed and reworked\
+    \ ``autobahn`` tests -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12173`.\n\
+    \n\n\n- Added a CI job to measure Cython coverage -- by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests\
+    \ on GitHub:*\n  :issue:`12349`.\n\n\n\n- Disabled ``coverage`` and ``xdist`` by default to ease local development --\
+    \ by :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12364`.\n\n\n\n- Avoid installation\
+    \ of backports.zstd on Python 3.14 in linting dependency set\n  -- by :user:`seifertm`.\n\n\n  *Related issues and pull\
+    \ requests on GitHub:*\n  :issue:`12406`.\n\n\n\n- Added ``--durations=30`` to the benchmark CI run so the slowest tests\
+    \ are reported when the job hits its timeout -- by :user:`aiolibsbot`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`12562`.\n\n\n\n- Fixed two flakey ``test_middleware_uses_session_avoids_recursion_with_*`` tests\n  that hard\
+    \ coded ``localhost`` in the inner middleware request; they now target\n  the bound server URL so happy eyeballs cannot\
+    \ pick an unbound address on\n  Windows runners -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`12571`.\n\n\n\n- Restricted the ``isal`` test dependency to CPython, since\n  ``isal`` 1.8.0 stopped publishing\
+    \ PyPy wheels and the source\n  build requires ``nasm``, which is not available on the CI\n  runners. The ``parametrize_zlib_backend``\
+    \ fixture already\n  calls ``pytest.importorskip``, so PyPy continues to exercise\n  the ``zlib`` and ``zlib_ng`` backends\
+    \ with no further\n  changes -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12589`.\n\
+    \n\n\n- Fixed a flakey ``test_tcp_connector_fingerprint_ok`` by aborting\n  the SSL shutdown on the test's TCP connector\
+    \ before returning.\n  The graceful TLS close was occasionally outliving the test event\n  loop on one of the CI jobs,\
+    \ and the teardown ``gc.collect()``\n  then surfaced the still-open transport as a\n  ``PytestUnraisableExceptionWarning``\
+    \ -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12592`.\n\n\n\n- Switched the\
+    \ ``cibuildwheel`` build frontend to ``build[uv]`` so\n  that ``uv`` provisions every build-isolation virtual environment\n\
+    \  in the wheel matrix, replacing the per-ABI ``pip`` resolve with a\n  roughly sub-second ``uv`` resolve\n  -- by :user:`bdraco`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12595`.\n\n\n\n- Fixed flaky ``test_handler_returns_not_response``\
+    \ and\n  ``test_handler_returns_none`` by routing ``loop.set_debug(True)``\n  through a new ``loop_debug_mode`` fixture\
+    \ that disables debug\n  mode before the ``aiohttp_client`` fixture finalizes. Leaving\n  debug on through teardown let\
+    \ PyPy 3.11's asyncio slow-callback\n  logger walk into ``Task.__repr__`` during connector close,\n  surfacing a spurious\
+    \ ``RuntimeWarning: coroutine was never\n  awaited`` -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on\
+    \ GitHub:*\n  :issue:`12603`.\n\n\n\n- Reduced runtime of several of the slowest unit tests\n  (decompress size-limit\
+    \ payloads from 64 MiB to 2 MiB,\n  ``test_chunk_splits_after_pause`` chunk count from 50000\n  to 20000, and ``test_set_cookies_max_age``\
+    \ sleep from 2\n  seconds to 1.1 seconds) without changing what they\n  exercise -- by :user:`bdraco`.\n\n\n  *Related\
+    \ issues and pull requests on GitHub:*\n  :issue:`12606`.\n\n\n\n- Added a default 120-second per-test timeout via ``pytest-timeout``\
+    \ so a\n  hung test surfaces by name in CI output instead of getting hidden behind\n  the job-level timeout added in :pr:`12619`.\
+    \ The ``"
+- file: CHANGES.rst
+  line: 1893
+  section: Bug fixes
+  text: "3.13.5 (2026-03-31)\nBug fixes\n---------\n\n- Skipped the duplicate singleton header check in lax mode (the default\
+    \ for response\n  parsing). In strict mode (request parsing, or ``-X dev``), all RFC 9110 singletons\n  are still enforced\
+    \ -- by :user:`bdraco`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12302`.\n\n\n\n\n----"
+- file: CHANGES.rst
+  line: 1932
+  section: Bug fixes
+  text: "3.13.4 (2026-03-28)\nBug fixes\n---------\n\n- Fixed server hanging indefinitely when chunked transfer encoding chunk-size\n\
+    \  does not match actual data length. The server now raises\n  ``TransferEncodingError`` instead of waiting forever for\
+    \ data that will\n  never arrive -- by :user:`Fridayai700`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`10596`.\n\
+    \n\n\n- Fixed access log timestamps ignoring daylight saving time (DST) changes. The\n  previous implementation used :py:data:`time.timezone`\
+    \ which is a constant and\n  does not reflect DST transitions -- by :user:`nightcityblade`.\n\n\n  *Related issues and\
+    \ pull requests on GitHub:*\n  :issue:`11283`.\n\n\n\n- Fixed ``RuntimeError: An event loop is running`` error when using\
+    \ ``aiohttp.GunicornWebWorker``\n  or ``aiohttp.GunicornUVLoopWebWorker`` on Python >=3.14.\n  -- by :user:`Tasssadar`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`11701`.\n\n\n\n- Fixed :exc:`ValueError` when creating\
+    \ a TLS connection with ``ClientTimeout(total=0)`` by converting ``0`` to ``None`` before passing to ``ssl_handshake_timeout``\
+    \ in :py:meth:`asyncio.loop.start_tls` -- by :user:`veeceey`.\n\n\n  *Related issues and pull requests on GitHub:*\n \
+    \ :issue:`11859`.\n\n\n\n- Restored :py:meth:`~aiohttp.BodyPartReader.decode` as a synchronous method\n  for backward\
+    \ compatibility. The method was inadvertently changed to async\n  in 3.13.3 as part of the decompression bomb security\
+    \ fix. A new\n  :py:meth:`~aiohttp.BodyPartReader.decode_iter` method is now available\n  for non-blocking decompression\
+    \ of large payloads using an async generator.\n  Internal aiohttp code uses the async variant to maintain security protections.\n\
+    \n  Changed multipart processing chunk sizes from 64 KiB to 256KiB, to better\n  match aiohttp internals\n  -- by :user:`bdraco`\
+    \ and :user:`Dreamsorcerer`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`11898`.\n\n\n\n- Fixed false-positive\
+    \ :py:class:`DeprecationWarning` for passing ``enable_cleanup_closed=True`` to :py:class:`~aiohttp.TCPConnector` specifically\
+    \ on Python 3.12.7.\n  -- by :user:`Robsdedude`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`11972`.\n\
+    \n\n\n- Fixed _sendfile_fallback over-reading beyond requested count -- by :user:`bysiber`.\n\n\n  *Related issues and\
+    \ pull requests on GitHub:*\n  :issue:`12096`.\n\n\n\n- Fixed digest auth dropping challenge fields with empty string\
+    \ values -- by :user:`bysiber`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12097`.\n\n\n\n- ``ClientConnectorCertificateError.os_error``\
+    \ no longer raises :exc:`AttributeError`\n  -- by :user:`themylogin`.\n\n\n  *Related issues and pull requests on GitHub:*\n\
+    \  :issue:`12136`.\n\n\n\n- Adjusted pure-Python request header value validation to align with RFC 9110 control-character\
+    \ handling, while preserving lax response parser behavior, and added regression tests for Host/header control-character\
+    \ cases.\n  -- by :user:`rodrigobnogueira`.\n\n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12231`.\n\n\
+    \n\n- Rejected duplicate singleton headers (``Host``, ``Content-Type``,\n  ``Content-Length``, etc.) in the C extension\
+    \ HTTP parser to match\n  the pure Python parser behaviour, preventing potential host-based\n  access control bypasses\
+    \ via parser differentials\n  -- by :user:`rodrigobnogueira`.\n\n\n  *Related issues and pull requests on GitHub:*\n \
+    \ :issue:`12240`.\n\n\n\n- Aligned the pure-Python HTTP request parser with the C parser by splitting\n  comma-separated\
+    \ and repeated ``Connection`` header values for keep-alive,\n  close, and upgrade handling -- by :user:`rodrigobnogueira`.\n\
+    \n\n  *Related issues and pull requests on GitHub:*\n  :issue:`12249`.\n\n\n\n\nImprov"
+prohibition_candidates:
+- file: AGENTS.md
+  line: 42
+  section: PRs
+  text: "AGENTS.md\n## PRs\n\n- **Prove it works before opening the PR**. This means:\n  - Relevant tests pass locally.\n\
+    \  - New behaviour is covered by a test.\n  - Any parser/websocket related changes have been tested with Cython extensions\
+    \ installed.\n- Use the shipped template at [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md).\n\
+    \  - A couple of sentences per section is plenty.\n  - Tick checklist boxes that apply; write `N/A` next to ones that\
+    \ do not.\n  - First-time contributors add themselves to `CONTRIBUTORS.txt` (alphabetical by first name).\n- **Draft.**\
+    \ Use `gh pr create --draft`.\n  - Every submission must be reviewed by a human before going out of draft; that review\
+    \ is the operator's job, not the maintainers'.\n  - Do not mark ready or request reviewers yourself.\n- **Disclosure.**\
+    \ One plain line at the bottom: `Drafted with <agent name and version>; reviewed by <human handle>.`\n- **No `Co-Authored-By:`**\
+    \ LLM trailers in commits or PR body.\n- Agent run output (test logs) goes in a collapsed `<details>` block **below**\
+    \ the template summary.\n\n**Commits**: Don't use conventional commits; match recent imperative subjects."
+- file: CODE_OF_CONDUCT.md
+  line: 35
+  section: Enforcement
+  text: 'Contributor Covenant Code of Conduct
+
+    ## Enforcement
+
+
+    Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at
+    andrew.svetlov@gmail.com. The project team will review and investigate all complaints, and will respond in a way that
+    it deems appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the
+    reporter of an incident. Further details of specific enforcement policies may be posted separately.
+
+
+    Project maintainers who do not follow or enforce the Code of Conduct in good faith may face temporary or permanent repercussions
+    as determined by other members of the project''s leadership.'
+- file: docs/contributing.rst
+  line: 130
+  section: Run aiohttp test suite
+  text: "Contributing\nRun aiohttp test suite\n----------------------\n\nAfter all the preconditions are met you can run tests\
+    \ typing the next\ncommand:\n\n.. code-block:: shell\n\n   $ make test\n\nThe command at first will run the *linters*\
+    \ (sorry, we don't accept\npull requests with pyflakes, black, isort, or mypy errors).\n\nOn *lint* success the tests\
+    \ will be run.\n\nPlease take a look on the produced output.\n\nAny extra texts (print statements and so on) should be\
+    \ removed."
+- file: docs/contributing.rst
+  line: 149
+  section: Code coverage
+  text: "Contributing\nCode coverage\n-------------\n\nWe use *codecov.io* as an indispensable tool for analyzing our coverage\n\
+    results. Visit https://codecov.io/gh/aio-libs/aiohttp to see coverage\nreports for the master branch, history, pull requests\
+    \ etc.\n\nWe'll use an example from a real PR to demonstrate how we use this.\nOnce the tests run in a PR, you'll see\
+    \ a comment posted by *codecov*.\nThe most important thing to check here is whether there are any new\nmissed or partial\
+    \ lines in the report:\n\n.. image:: _static/img/contributing-cov-comment.svg\n\nHere, the PR has introduced 1 miss and\
+    \ 2 partials. Now we\nclick the link in the comment header to open the full report:\n\n.. image:: _static/img/contributing-cov-header.svg\n\
+    \   :alt: Codecov report\n\nNow, if we look through the diff under 'Files changed' we find one of\nour partials:\n\n..\
+    \ image:: _static/img/contributing-cov-partial.svg\n   :alt: A while loop with partial coverage.\n\nIn this case, the\
+    \ while loop is never skipped in our tests. This is\nprobably not worth writing a test for (and may be a situation that\
+    \ is\nimpossible to trigger anyway), so we leave this alone.\n\nWe're still missing a partial and a miss, so we switch\
+    \ to the\n'Indirect changes' tab and take a look through the diff there. This\ntime we find the remaining 2 lines:\n\n\
+    .. image:: _static/img/contributing-cov-miss.svg\n   :alt: An if statement that isn't covered anymore.\n\nAfter reviewing\
+    \ the PR, we find that this code is no longer needed as\nthe changes mean that this method will never be called under\
+    \ those\nconditions. Thanks to this report, we were able to remove some\nredundant code from a performance-critical part\
+    \ of our codebase (this\ncheck would have been run, probably multiple times, for every single\nincoming request).\n\n\
+    .. tip::\n   Sometimes the diff on *codecov.io* doesn't make sense. This is usually\n   caused by the branch being out\
+    \ of sync with master. Try merging\n   master into the branch and it will likely fix the issue. Failing\n   that, try\
+    \ checking coverage locally as described in the next section."
+- file: docs/contributing.rst
+  line: 314
+  section: How to become an aiohttp committer
+  text: "Contributing\nHow to become an aiohttp committer\n----------------------------------\n\nContribute!\n\nThe easiest\
+    \ way is providing Pull Requests for issues in our bug\ntracker.  But if you have a great idea for the library improvement\n\
+    -- please make an issue and Pull Request.\n\n\n\nThe rules for committers are simple:\n\n1. No wild commits! Everything\
+    \ should go through PRs.\n2. Take a part in reviews. It's very important part of maintainer's activity.\n3. Pickup issues\
+    \ created by others, especially if they are simple.\n4. Keep test suite comprehensive. In practice it means leveling up\n\
+    \   coverage. 97% is not bad but we wish to have 100% someday. Well, 99%\n   is good target too.\n5. Don't hesitate to\
+    \ improve our docs. Documentation is a very important\n   thing, it's the key for project success. The documentation should\n\
+    \   not only cover our public API but help newbies to start using the\n   project and shed a light on non-obvious gotchas.\n\
+    \n\n\nAfter positive answer aiohttp committer creates an issue on github\nwith the proposal for nomination.  If the proposal\
+    \ will collect only\npositive votes and no strong objection -- you'll be a new member in\nour team.\n\n\n.. _GitHub: https://github.com/aio-libs/aiohttp\n\
+    \n.. _ipdb: https://pypi.python.org/pypi/ipdb\n\n.. _black: https://pypi.python.org/pypi/black\n\n.. _isort: https://pypi.python.org/pypi/isort"

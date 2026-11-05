@@ -1,0 +1,116 @@
+repo: pydantic
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "Where should security vulnerabilities in pydantic be reported?"
+    answer: "Via the security policy, not the regular issue tracker."
+    gold: ["docs/contributing.md::Issues"]
+  - id: conv-002
+    type: convention
+    difficulty: easy
+    question: "What are pydantic's tl;dr development commands for formatting, tests+linting, and docs?"
+    answer: "make format, make, and make docs."
+    gold: ["docs/contributing.md::Pull Requests"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "What are pydantic's development prerequisites (Python range and tools)?"
+    answer: "Python 3.10–3.15, uv, git, make (or nmake on Windows), and Rust stable (nightly for coverage)."
+    gold: ["docs/contributing.md::Prerequisites"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "Where do pydantic's two test suites live, and how is the pydantic-core suite exposed?"
+    answer: "tests/ for pydantic and pydantic-core/tests for pydantic-core, symlinked under tests/pydantic_core/."
+    gold: ["docs/contributing.md::Writing tests"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "Which tools build pydantic's documentation and its API reference?"
+    answer: "Material for MkDocs for the docs; mkdocstrings builds API docs from docstrings."
+    gold: ["docs/contributing.md::Documentation style"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "When are new versions of pydantic's documentation pushed?"
+    answer: "A new version with each minor release, and to a `dev` path with each commit to main."
+    gold: ["docs/contributing.md::Updating the documentation"]
+  - id: conv-007
+    type: convention
+    difficulty: hard
+    question: "What are pydantic's rules for pull request titles (case, mood, prefixes, issue references)?"
+    answer: "One line, sentence case, imperative mood, no fix:/feat(core): prefixes, starts with a verb, backticks for code elements, and no referenced issue in the title."
+    gold: ["docs/contributing.md::Commit and push your changes"]
+  - id: conv-008
+    type: convention
+    difficulty: hard
+    question: "What should the body of a pydantic pull request contain first, and what examples are recommended?"
+    answer: "First reference the issue (e.g. 'Fixes #1234'); before/after code examples are recommended."
+    gold: ["docs/contributing.md::Commit and push your changes"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What happens to a pydantic pull request that fixes an existing issue without being assigned first?"
+    answer: "It will be automatically closed."
+    gold: ["docs/contributing.md::Pull Requests"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "Under pydantic's AI policy, what must contributors certify about AI-assisted code?"
+    answer: "That they fully understand the code being submitted."
+    gold: ["docs/contributing.md::AI policy"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "Which contribution behaviors can get someone permanently banned from the pydantic organization?"
+    answer: "Mass-submitting pull requests across repositories (spam) or submitting AI-generated incoherent/nonsensical PR descriptions."
+    gold: ["docs/contributing.md::AI policy"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: medium
+    question: "Does pydantic allow opening a pull request for a non-trivial change without a preceding issue discussion?"
+    answer: "No. Unless the change is trivial (typo, docs tweak), an issue must be created to discuss it first."
+    gold: ["docs/contributing.md::Pull Requests"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What did pydantic v2.14.0 fix about enum constructors?"
+    answer: "Enum constructors are now called in both validation modes."
+    gold: ["HISTORY.md::Fixes@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "Which pydantic release fixed support for callable discriminators with PEP 695 type aliases?"
+    answer: "v2.14.0b2."
+    gold: ["HISTORY.md::Fixes@2"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What does pydantic v2.14.0b1 do with falsy AliasGenerator outputs?"
+    answer: "It validates them."
+    gold: ["HISTORY.md::Fixes@3"]
+  - id: fix-004
+    type: fix
+    difficulty: hard
+    question: "What Mypy plugin workaround did pydantic v2.14.0a1 add?"
+    answer: "A workaround for dynamic models defined in functions."
+    gold: ["HISTORY.md::Fixes@4"]
+  - id: fix-005
+    type: fix
+    difficulty: easy
+    question: "What did pydantic v2.13.4 preserve for RootModel?"
+    answer: "RootModel core metadata."
+    gold: ["HISTORY.md::Fixes@5"]
+  - id: fix-006
+    type: fix
+    difficulty: medium
+    question: "What did pydantic v2.13.3 fix about from_attributes?"
+    answer: "It now handles AttributeError subclasses with from_attributes."
+    gold: ["HISTORY.md::Fixes@6"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: medium
+    question: "Under pydantic's AI policy, can maintainers close a pull request without giving a justification?"
+    answer: "Yes — they reserve the right to close any pull request at their discretion, without further justification."
+    gold: ["docs/contributing.md::AI policy"]

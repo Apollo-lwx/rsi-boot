@@ -1,0 +1,116 @@
+repo: tornado
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "Which code formatter does Tornado use, and which version of it must be installed?"
+    answer: "black, at the version pinned in requirements.txt (not the latest; don't just use uvx)."
+    gold: ["CONTRIBUTING.md::The basics"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "What should you run before committing to Tornado?"
+    answer: "tox -e lint,docs,py3 — verifies formatting, mypy type checking, sphinx docs build, and the main test suite."
+    gold: ["CONTRIBUTING.md::The basics"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "What is the fastest way to run Tornado's tests, bypassing tox?"
+    answer: "python3 -m tornado.test; add a module/class/method name to run a subset, e.g. python3 -m tornado.test.httputil_test."
+    gold: ["CONTRIBUTING.md::Testing"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "Which Tornado modules require the -full tox configurations when working on them?"
+    answer: "curl_httpclient.py, twisted.py, and pycares.py."
+    gold: ["CONTRIBUTING.md::Testing"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "How does Tornado enforce its coverage floor?"
+    answer: "tox -e coverage writes an HTML report to .tox/coverage-data/html; CI fails if total coverage drops below the floor in tox.ini — raise the floor when you raise coverage."
+    gold: ["CONTRIBUTING.md::Testing"]
+  - id: conv-006
+    type: convention
+    difficulty: hard
+    question: "Where do Tornado's hypothesis property-based tests live, and what must you do when one fails?"
+    answer: "tornado/test/property_test.py; also add the failing input as an example-based test so it stays covered."
+    gold: ["CONTRIBUTING.md::Testing"]
+  - id: conv-007
+    type: convention
+    difficulty: hard
+    question: "How does Tornado guard its public API surface against accidental changes?"
+    answer: "tornado/test/api_test.py compares the public API (names and signatures) to the snapshot in tornado/test/api.txt."
+    gold: ["CONTRIBUTING.md::Testing"]
+  - id: conv-008
+    type: convention
+    difficulty: medium
+    question: "How do you build Tornado's docs and where is the output?"
+    answer: "tox -e docs; output at ./.tox/docs/tmp/html/index.html."
+    gold: ["CONTRIBUTING.md::Documentation"]
+  - id: conv-009
+    type: convention
+    difficulty: medium
+    question: "Per Tornado's PR checklist, what extra step is required if you modify curl_httpclient.py?"
+    answer: "Also run tox -e py3-full."
+    gold: ["CONTRIBUTING.md::PR Checklist"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What happens in Tornado CI to commits not properly formatted by black?"
+    answer: "They are rejected."
+    gold: ["CONTRIBUTING.md::The basics"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What socket leak did Tornado 6.6.0 fix in tornado.iostream?"
+    answer: "A leak when a timeout occurs during a TLS handshake."
+    gold: ["docs/releases/v6.6.0.rst::`tornado.iostream`"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What did Tornado 6.5.9 change in StaticFileHandler for security?"
+    answer: "It no longer follows symlinks outside of the static root directory."
+    gold: ["docs/releases/v6.5.9.rst::Security fixes"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What default limit did Tornado 6.5.8 introduce for form-encoded POST bodies?"
+    answer: "A limit of 1000 arguments."
+    gold: ["docs/releases/v6.5.8.rst::Security fixes"]
+  - id: fix-004
+    type: fix
+    difficulty: hard
+    question: "Which headers does Tornado 6.5.6's SimpleAsyncHTTPClient strip from requests (security fix)?"
+    answer: "The Authorization and Cookie headers."
+    gold: ["docs/releases/v6.5.6.rst::Security fixes"]
+  - id: conv-010
+    type: convention
+    difficulty: medium
+    question: "Which extra package should be installed when running mypy on Tornado?"
+    answer: "types-pycurl."
+    gold: ["CONTRIBUTING.md::The basics"]
+  - id: conv-011
+    type: convention
+    difficulty: medium
+    question: "Why should flake8 be run from Tornado's project root directory?"
+    answer: "So it can see the .flake8 config file, preventing spurious warnings."
+    gold: ["CONTRIBUTING.md::The basics"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "Which Tornado versions receive security patch releases?"
+    answer: "In general only the latest version; exceptions depend on severity and backporting feasibility."
+    gold: ["SECURITY.md::Supported Versions"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: hard
+    question: "What must a denial-of-service report demonstrate to qualify as a vulnerability in Tornado?"
+    answer: "An input costing substantially more CPU per byte than the ~9µs/byte baseline, or one that blocks the event loop substantially longer than a few milliseconds."
+    gold: ["SECURITY.md::Denial of service"]
+  - id: conv-012
+    type: convention
+    difficulty: medium
+    question: "Besides unit tests, what test must a Tornado security fix include?"
+    answer: "A test in tornado/test/security_corpus_test.py, which replays past vulnerability triggers against a real server and checks only what a client can see."
+    gold: ["SECURITY.md::Tests for security fixes"]

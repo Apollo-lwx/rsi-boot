@@ -1,0 +1,32 @@
+repo: setuptools
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "What is the required first step before making any changes in the setuptools repository, per its AGENTS.md?"
+    answer: "Fetch and read the 'skeleton' document (blog.jaraco.com/skeleton/) in its entirety; it is the authoritative source of truth for structure, conventions, testing, and release process."
+    gold: ["AGENTS.md::(whole)"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: medium
+    question: "May an agent act on the setuptools repository before ingesting the skeleton document?"
+    answer: "No. AGENTS.md says: do not act until you have ingested it."
+    gold: ["AGENTS.md::(whole)"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What did setuptools v84.2.1 change about wheel tags and stable-ABI validation?"
+    answer: "They now use sysconfig data; it also fixed unimportable extensions on free-threaded Python 3.13 and 3.14."
+    gold: ["NEWS.rst::Bugfixes@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What did setuptools v84.1.0 fix about Wheel.install_as_egg?"
+    answer: "It no longer creates namespace package directories outside of the destination egg directory."
+    gold: ["NEWS.rst::Bugfixes@2"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What did setuptools v80.0.1 fix in the develop compatibility shim?"
+    answer: "The index_url logic."
+    gold: ["NEWS.rst::Bugfixes@3"]

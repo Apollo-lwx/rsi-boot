@@ -1,0 +1,66 @@
+# 纵向自改进实验探针包 v2（benchmark/longitudinal.py 专用）
+# stable-*：第 0 轮种子知识，整个实验期间应保持通过（回归护栏）
+# learn-N：第 N 轮通过合成反馈注入的知识，注入前不应通过、注入后应通过
+version: "2"
+seed_docs: []
+probes:
+  - id: stable-1
+    kind: recall
+    question: "What test framework does this project use?"
+    hit_any: ["pytest"]
+    top_k: 5
+  - id: stable-2
+    kind: recall
+    question: "What is required before merging a pull request to main?"
+    hit_any: ["approval"]
+    top_k: 5
+  - id: learn-1
+    kind: recall
+    question: "What must database migrations always support?"
+    hit_any: ["reversible"]
+    top_k: 5
+  - id: learn-2
+    kind: recall
+    question: "What is the correct command to deploy to staging?"
+    hit_any: ["deploy-staging"]
+    top_k: 5
+  - id: learn-3
+    kind: recall
+    question: "What must never be logged on the payments service?"
+    hit_any: ["request bodies"]
+    top_k: 5
+  - id: learn-4
+    kind: recall
+    question: "Which branch do feature branches merge into?"
+    hit_any: ["develop"]
+    top_k: 5
+  - id: learn-5
+    kind: recall
+    question: "What is the required format for commit messages?"
+    hit_any: ["conventional commits"]
+    top_k: 5
+  - id: learn-6
+    kind: recall
+    question: "Who must review changes to the protobuf definitions?"
+    hit_any: ["platform team"]
+    top_k: 5
+  - id: learn-7
+    kind: recall
+    question: "What timeout should external API calls use?"
+    hit_any: ["30 seconds"]
+    top_k: 5
+  - id: learn-8
+    kind: recall
+    question: "Where must feature flags be registered?"
+    hit_any: ["flags.yaml"]
+    top_k: 5
+  - id: learn-9
+    kind: recall
+    question: "What is the policy on catching broad exceptions?"
+    hit_any: ["never catch bare"]
+    top_k: 5
+  - id: learn-10
+    kind: recall
+    question: "Which Python versions must CI test against?"
+    hit_any: ["3.10", "3.12"]
+    top_k: 5

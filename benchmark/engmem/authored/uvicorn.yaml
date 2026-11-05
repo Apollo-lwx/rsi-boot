@@ -1,0 +1,86 @@
+repo: uvicorn
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "According to uvicorn's contributing guide, how should contributions generally start out?"
+    answer: "From a previous discussion."
+    gold: ["docs/contributing.md::Reporting Bugs, Issues or Feature Requests"]
+  - id: conv-002
+    type: convention
+    difficulty: easy
+    question: "What command runs uvicorn's test suite, and where are additional arguments passed?"
+    answer: "scripts/test; additional arguments are passed to pytest."
+    gold: ["docs/contributing.md::Testing and Linting"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "What must an uvicorn release pull request include, and which changelog format is followed?"
+    answer: "An update to the changelog (keepachangelog format) and a version bump."
+    gold: ["docs/contributing.md::Releasing"]
+  - id: conv-004
+    type: convention
+    difficulty: hard
+    question: "How do you enable uvicorn's experimental HTTP/2 support as of 0.54.0?"
+    answer: "Install zttp>=0.0.34 and run with --http zttp --http2."
+    gold: ["docs/release-notes.md::0.54.0 (September 24, 2026)"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: medium
+    question: "Which two HTTP/2 usages are explicitly not supported by uvicorn's experimental HTTP/2 support (0.53.0)?"
+    answer: "Upgrade-based h2c and WebSockets over HTTP/2."
+    gold: ["docs/release-notes.md::0.53.0 (September 14, 2026)"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "Through which package did uvicorn 0.53.0 add experimental HTTP/2 support?"
+    answer: "zttp."
+    gold: ["docs/release-notes.md::0.53.0 (September 14, 2026)"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What did uvicorn 0.53.0 fix about the Connection: close header?"
+    answer: "It now handles comma-separated, case-insensitive Connection: close tokens across HTTP implementations."
+    gold: ["docs/release-notes.md::Fixed@1"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What duplicate header did uvicorn 0.52.4 remove from accepted WebSocket handshakes with websockets-sansio?"
+    answer: "The Date header."
+    gold: ["docs/release-notes.md::Fixed@2"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "Which zttp version did uvicorn 0.52.2 update to, and what did it fix?"
+    answer: "zttp 0.0.22, fixing bodyless request receives and improving HTTP/1 request parsing performance."
+    gold: ["docs/release-notes.md::Fixed@3"]
+  - id: fix-005
+    type: fix
+    difficulty: hard
+    question: "What did uvicorn 0.52.1 fix about server-initiated WebSocket closes?"
+    answer: "It completes the closing handshake on server-initiated closes in the websockets-sansio and wsproto implementations."
+    gold: ["docs/release-notes.md::Fixed@4"]
+  - id: fix-006
+    type: fix
+    difficulty: hard
+    question: "Uvicorn 0.54.0 added HTTP/2 response trailers through which ASGI extension, and what must clients send to receive them?"
+    answer: "The http.response.trailers extension; clients must send TE: trailers."
+    gold: ["docs/release-notes.md::0.54.0 (September 24, 2026)"]
+  - id: fix-007
+    type: fix
+    difficulty: medium
+    question: "How does uvicorn 0.52.0 handle non-ASCII WebSocket request headers with websockets 17.0?"
+    answer: "It keeps them intact, since websockets 17.0 encodes them with ISO-8859-1."
+    gold: ["docs/release-notes.md::Fixed@5"]
+  - id: fix-008
+    type: fix
+    difficulty: medium
+    question: "Which minimum websockets version did uvicorn 0.50.2 start requiring, and why?"
+    answer: "websockets>=13.0, which the default websockets-sansio implementation needs."
+    gold: ["docs/release-notes.md::Fixed@6"]
+  - id: fix-009
+    type: fix
+    difficulty: hard
+    question: "What startup-failure exit-code behavior did uvicorn 0.50.0 introduce, and what did the multiprocess supervisor stop doing?"
+    answer: "Exit with dedicated code 3 on any startup failure (previously a mix of 0/1/3); the supervisor stops when a worker exits with code 3 instead of restarting it forever."
+    gold: ["docs/release-notes.md::Changed@1"]

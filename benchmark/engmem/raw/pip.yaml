@@ -1,0 +1,546 @@
+convention_candidates:
+- file: AI_POLICY.md
+  line: 37
+  section: Human
+  text: 'Generative AI / LLM Policy
+
+    ## Human
+
+
+    As the makers of software that is used by millions of people worldwide and with a reputation for high-quality maintenance,
+    we take our responsibility to our users very seriously.
+
+    No matter what LLM vendors or boosters on LinkedIn tell you, we have to manually review every change before merging, because
+    it''s our responsibility to keep the project stable.
+
+
+    Please understand that by opening low-quality pull requests you''re not helping anyone.
+
+    Worse, you''re [poisoning the open source ecosystem](https://lwn.net/Articles/1058266/) that was precarious even before
+    the arrival of LLM tools.
+
+    Having to wade through plausible-looking-but-low-quality pull requests and trying to determine which ones are legit is
+    extremely demoralizing and has already burned out many good maintainers.
+
+
+    In particular, note that [code reviews are a social process](https://blog.glyph.im/2026/03/what-is-code-review-for.html)
+    and are *not* intended
+
+    to catch bugs in PRs created by an LLM. If you submit a pull request, we expect you to engage with reviewers and learn
+    from the review, not
+
+    simply update the prompt that generated the PR and regenerate the code.
+
+
+    Put bluntly, we have no time or interest to become part of your vibe coding loop where you drop LLM slop at our door,
+    we spend time and energy to review it, and you just feed it back into the LLM for another iteration.
+
+
+    This dynamic is especially pernicious because it poisons the well for mentoring new contributors which we are committed
+    to.'
+- file: SECURITY.md
+  line: 3
+  section: Reporting a Vulnerability
+  text: 'Security Policy
+
+    ## Reporting a Vulnerability
+
+
+    Please read the guidelines on reporting security issues [on the
+
+    official website](https://www.python.org/dev/security/) for
+
+    instructions on how to report a security-related problem to
+
+    the Python Security Response Team responsibly.
+
+
+    To reach the response team, email `security at python dot org`.
+
+
+    Pip relies on the Python Security Response Team (PSRT) to triage
+
+    and respond to security reports. PSRT members balance security
+
+    work against many other responsibilities, so please be thoughtful
+
+    about the time and attention your report requires. Reports that
+
+    repeatedly disregard this policy may be rejected regardless of
+
+    technical merit.'
+- file: SECURITY.md
+  line: 19
+  section: Wheel installation
+  text: 'Security Policy
+
+    ## Wheel installation
+
+
+    Pip downloads a wheel
+
+    ([binary distribution](https://packaging.python.org/en/latest/specifications/binary-distribution-format/))
+
+    by saving it as a file in the target directory, and installs a
+
+    wheel by unpacking it into the target environment.
+
+
+    Because Python''s import system is dynamic, pip cannot guarantee that
+
+    installing a wheel will not execute third-party code.
+
+
+    Unexpected execution of wheel code or writes outside the target
+
+    directory should still be reported. Whether a report identifies a
+
+    pip vulnerability depends on the cause.'
+- file: .github/CONTRIBUTING.md
+  line: 1
+  section: Contributing to pip
+  text: '# Contributing to pip
+
+
+    Thank you for your interest in contributing to pip! There are many ways to
+
+    contribute, and we appreciate all of them.
+
+
+    As a reminder, all contributors are expected to follow our [Code of Conduct][coc].
+
+
+    Contributors wishing to use LLM tools should be aware of, and follow, our [AI Policy][ai].
+
+
+    [coc]: https://www.pypa.io/en/latest/code-of-conduct/
+
+    [ai]: https://github.com/pypa/pip/blob/main/AI_POLICY.md'
+- file: README.rst
+  line: 1
+  section: pip - The Python Package Installer
+  text: "pip - The Python Package Installer\n==================================\n\n.. |pypi-version| image:: https://img.shields.io/pypi/v/pip.svg\n\
+    \   :target: https://pypi.org/project/pip/\n   :alt: PyPI\n\n.. |python-versions| image:: https://img.shields.io/pypi/pyversions/pip\n\
+    \   :target: https://pypi.org/project/pip\n   :alt: PyPI - Python Version\n\n.. |docs-badge| image:: https://readthedocs.org/projects/pip/badge/?version=latest\n\
+    \   :target: https://pip.pypa.io/en/latest\n   :alt: Documentation\n\n|pypi-version| |python-versions| |docs-badge|\n\n\
+    Pip is the `package installer`_ for Python. You can use pip to install packages from the `Python Package Index`_ and other\
+    \ indexes.\n\nPlease take a look at our documentation for how to install and use pip:\n\n* `Installation`_\n* `Usage`_\n\
+    \nWe release updates regularly, with a new version every 3 months. Find more details in our documentation:\n\n* `Release\
+    \ notes`_\n* `Release process`_\n\nIf you find bugs, need help, or want to talk to the developers, please use our mailing\
+    \ lists or chat rooms:\n\n* `Issue tracking`_\n* `Discourse channel`_\n* `User IRC`_\n\nIf you want to get involved, head\
+    \ over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer\
+    \ mailing lists and chat rooms:\n\n* `GitHub page`_\n* `Development documentation`_\n* `Development IRC`_"
+files_seen:
+- .github/CONTRIBUTING.md
+- AI_POLICY.md
+- NEWS.rst
+- README.rst
+- SECURITY.md
+fix_candidates:
+- file: NEWS.rst
+  line: 41
+  section: Bug Fixes
+  text: "26.3 (2026-11-02)\nBug Fixes\n---------\n\n- Report build-backend import failures as pip errors instead of displaying\
+    \ an\n  uncaught traceback. (`#12248 <https://github.com/pypa/pip/issues/12248>`_)\n- No longer log the \"pip is looking\
+    \ at multiple versions of a package\" message until pip has looked at at least two versions of that package. (`#12928\
+    \ <https://github.com/pypa/pip/issues/12928>`_)\n- Fix ``pip``'s self version check reporting an outdated version from\
+    \ the\n  environment instead of the running pip when run as a zipapp. (`#13084 <https://github.com/pypa/pip/issues/13084>`_)\n\
+    - Fix a fatal error when using the ``PIP_CONFIG_FILE`` environment variable with ``pip config set``. (`#13279 <https://github.com/pypa/pip/issues/13279>`_)\n\
+    - Avoid misleading error messages that include extra markers such as\n  ``; extra == \"...\"`` when installing packages.\
+    \ (`#13618 <https://github.com/pypa/pip/issues/13618>`_)\n- When installing to a custom ``--prefix``, use the ``posix_prefix``\
+    \ scheme\n  when running from a Debian patched Python distribution to avoid a superfluous\n  ``/local/`` subdirectory.\
+    \ (`#13634 <https://github.com/pypa/pip/issues/13634>`_)\n- Refuse to follow an HTTP redirect to a ``file:`` URL. (`#14171\
+    \ <https://github.com/pypa/pip/issues/14171>`_)\n- Prevent wheel cache origin mismatch warnings from exposing URL credentials.\
+    \ (`#14232 <https://github.com/pypa/pip/issues/14232>`_)\n- Report the incomplete-download error on Windows, not a ``PermissionError``.\
+    \ (`#14237 <https://github.com/pypa/pip/issues/14237>`_)\n- Fix the global configuration location on macOS in virtual\
+    \ environments created\n  from Homebrew Python. (`#14303 <https://github.com/pypa/pip/issues/14303>`_)\n- Reject extra\
+    \ arguments to ``pip config edit`` instead of silently ignoring them. (`#14347 <https://github.com/pypa/pip/issues/14347>`_)\n\
+    - Honor supplied hashes when using ``--no-require-hashes``. (`#14355 <https://github.com/pypa/pip/issues/14355>`_)\n-\
+    \ Fix wheel installation with data files when the installation prefix is a\n  filesystem root. (`#14358 <https://github.com/pypa/pip/issues/14358>`_)\n\
+    - Restore support for UTF-8 configuration files when Python's UTF-8 mode is enabled. (`#14367 <https://github.com/pypa/pip/issues/14367>`_)\n\
+    - Restore vendored Requests' PyOpenSSL fallback on non-Windows systems without\n  importing PyOpenSSL on Windows. (`#14402\
+    \ <https://github.com/pypa/pip/issues/14402>`_)\n- Respect configured network settings while checking build constraint\
+    \ files. (`#14403 <https://github.com/pypa/pip/issues/14403>`_)\n- Apply PyPI's direct URL dependency restriction to extras\
+    \ and cached wheels. (`#14341 <https://github.com/pypa/pip/issues/14341>`_)\n- Fix a crash when installing or uninstalling\
+    \ a distribution with an invalid\n  entry point. (`#8573 <https://github.com/pypa/pip/issues/8573>`_)\n- Fail with a clearer\
+    \ error message on invalid configuration values. (`#8671 <https://github.com/pypa/pip/issues/8671>`_)\n- Keep ``--version``\
+    \ available only for pip and prevent its use in subcommands. (`#9456 <https://github.com/pypa/pip/issues/9456>`_)"
+- file: NEWS.rst
+  line: 106
+  section: Bug Fixes
+  text: "26.2.1 (2026-08-04)\nBug Fixes\n---------\n\n- Reallow keyring installed in a (non-activated) virtual environment\
+    \ to be be used\n  via the ``import`` provider method while installing build dependencies. (`#14227 <https://github.com/pypa/pip/issues/14227>`_)"
+- file: NEWS.rst
+  line: 130
+  section: Features
+  text: "26.2 (2026-07-29)\nFeatures\n--------\n\n- Declare support for Python 3.15 (`#14208 <https://github.com/pypa/pip/issues/14208>`_)\n\
+    - Support self-referential extras officially. pip has supported this by accident since version 21.2. (`#11296 <https://github.com/pypa/pip/issues/11296>`_)\n\
+    - Add ``--only-deps`` flag to instruct pip to select only the dependencies\n  of supplied packages. It cannot be used\
+    \ with ``--no-deps``, ``-r``, ``--group``,\n  or ``--requirements-from-script``. (`#11440 <https://github.com/pypa/pip/issues/11440>`_)\n\
+    - Cache simple responses in accordance to their ``Cache-Control`` header\n  instead of always revalidating on every request.\
+    \ To refresh cached package index responses\n  and ensure newly published packages are found, use ``--refresh-package\
+    \ <package>``. (`#13680 <https://github.com/pypa/pip/issues/13680>`_)\n- Add ``--no-require-hashes`` to disable automatic\
+    \ enablement of\n  ``--require-hashes`` when encountering a requirement with hashes. (`#14169 <https://github.com/pypa/pip/issues/14169>`_)\n\
+    - Honor ``--only-final`` when sourcing requirements with ``-r pylock.toml``. (`#13950 <https://github.com/pypa/pip/issues/13950>`_)\n\
+    - Add support for ``pylock.toml`` ``upload-time`` field, so ``--uploaded-prior-to`` works with ``-r pylock.toml``. (`#14168\
+    \ <https://github.com/pypa/pip/issues/14168>`_)\n- Better error messages in case of conflicts with requirements from ``-r\
+    \ pylock.toml``. (`#13963 <https://github.com/pypa/pip/issues/13963>`_)\n- Add experimental support for isolating build\
+    \ subprocesses by creating standard\n  virtual environments. This will fix most (if not all) subtle isolation issues\n\
+    \  that can lead to broken builds exclusive to pip. The feature can be enabled\n  via ``--use-feature=venv-isolation``\
+    \ and will be enabled by default in a future\n  release.\n\n  Note that the feature has limited compatibility with ``--use-feature=inprocess-build-deps``.\n\
+    \  While most builds should work with both features enabled, there are known edge cases.\n  ``inprocess-build-deps`` will\
+    \ not be enabled by default until they are fixed. (`#14070 <https://github.com/pypa/pip/issues/14070>`_)\n- Present more\
+    \ informative diagnostic errors on uncaught network errors. (`#14115 <https://github.com/pypa/pip/issues/14115>`_)\n-\
+    \ Allow opting out of Git partial clones with ``PIP_NO_PARTIAL_CLONE_FOR_BROKEN_GIT_SERVER``. (`#11043 <https://github.com/pypa/pip/issues/11043>`_)\n\
+    - Add a ``--no-proxy-env`` (or ``--proxy \"\"``) option to ignore proxies\n  configured via non-pip environment variables\
+    \ or configuration files.\n  A proxy set with ``--proxy`` is still used. (`#5378 <https://github.com/pypa/pip/issues/5378>`_)\n\
+    - Add support for pulling username from keyring subprocess provider (`#12543 <https://github.com/pypa/pip/issues/12543>`_)\n\
+    - Speedup tab autocompletion by lazy-importing certain modules. (`#4768 <https://github.com/pypa/pip/issues/4768>`_)\n\
+    - Improve cached wheel lookup performance when many cached wheels are checked\n  for compatibility. (`#14122 <https://github.com/pypa/pip/issues/14122>`_)\n\
+    - Speed up path compaction when displaying uninstall changes. (`#14107 <https://github.com/pypa/pip/issues/14107>`_)"
+- file: NEWS.rst
+  line: 166
+  section: Bug Fixes
+  text: "26.2 (2026-07-29)\nBug Fixes\n---------\n\n- Only emit the invalid-metadata warning once per location per run, instead\
+    \ of repeating it during the same command. (`#11436 <https://github.com/pypa/pip/issues/11436>`_)\n- Handle ``BrokenPipeError``\
+    \ when pip output is piped to a command that closes early. (`#11608 <https://github.com/pypa/pip/issues/11608>`_)\n- Follow\
+    \ symlinks while checking if installed scripts are on PATH. (`#11953 <https://github.com/pypa/pip/issues/11953>`_)\n-\
+    \ Stop dropping extras from messages about candidates with inconsistent metadata. (`#12023 <https://github.com/pypa/pip/issues/12023>`_)\n\
+    - Stop animating progress bars and status spinners when running on CI, even\n  if ``FORCE_COLOR`` is set. (`#13354 <https://github.com/pypa/pip/issues/13354>`_)\n\
+    - Ensure truststore feature remains active while initially connecting to\n  a HTTPS proxy. (`#13465 <https://github.com/pypa/pip/issues/13465>`_)\n\
+    - Address encoding warnings emitted when Python's UTF-8 Mode is enabled by\n  continuing to use the configured locale.\
+    \ (`#13922 <https://github.com/pypa/pip/issues/13922>`_)\n- Raise an error when the :pep:`658` ``.metadata`` file used\
+    \ during dependency\n  resolution disagrees with the downloaded wheel's ``METADATA`` on ``Name``,\n  ``Version``, ``Requires-Dist``,\
+    \ ``Requires-Python`` or ``Provides-Extra``. (`#13983 <https://github.com/pypa/pip/issues/13983>`_)\n- Prevent system\
+    \ packages from leaking into isolated build environments on Python 3.15 (`#14033 <https://github.com/pypa/pip/issues/14033>`_)\n\
+    - Never use persistent wheel cache for local directory requirements even if there\n  is a matching entry. (`#14044 <https://github.com/pypa/pip/issues/14044>`_)\n\
+    - Avoid re-fetching a pinned Git commit that is already present locally. (`#14055 <https://github.com/pypa/pip/issues/14055>`_)\n\
+    - Report the correct configuration level for ``cert`` in ``pip debug`` output. (`#14056 <https://github.com/pypa/pip/issues/14056>`_)\n\
+    - Fix ``pip show`` crash when a distribution has no ``Metadata-Version``. (`#14057 <https://github.com/pypa/pip/issues/14057>`_)\n\
+    - Remove empty ``http-v2`` cache directories when running ``pip cache purge``. (`#14058 <https://github.com/pypa/pip/issues/14058>`_)\n\
+    - Report a copy failure in ``pip wheel`` instead of a misleading build failure. (`#14059 <https://github.com/pypa/pip/issues/14059>`_)\n\
+    - Make ``pip install`` conflict checks independent of installed distribution iteration order. (`#14074 <https://github.com/pypa/pip/issues/14074>`_)\n\
+    - Fix ``ProtocolError`` exceptions raised after an incomplete download from bypassing\n  download resume logic and leading\
+    \ to a crash. (`#14079 <https://github.com/pypa/pip/issues/14079>`_)\n- Fix caching bug where local directory requirements\
+    \ would be cached if the\n  directory name contains a dash. (`#14080 <https://github.com/pypa/pip/issues/14080>`_)\n-\
+    \ Avoid reparsing distribution metadata when formatting the default ``pip list``\n  columns output with the importlib\
+    \ backend. (`#14089 <https://github.com/pypa/pip/issues/14089>`_)\n- Fix decoding the URL path twice while determining\
+    \ a link filename (CVE-2026-13346). (`#14110 <https://github.com/pypa/pip/issues/14110>`_)\n- Avoid reading installed\
+    \ file lists in ``pip show`` unless ``--files`` is used. (`#14117 <https://github.com/pypa/pip/issues/14117>`_)\n- Additional\
+    \ rejection of tar archives that write outside the target\n  directory through symlink traversal when extracting on Python\n\
+    \  versions pre-PEP 706. (`#14127 <https://github.com/pypa/pip/issues/14127>`_)\n- Fix ``pip list --not-required`` listing\
+    \ dependencies of packages excluded with ``--exclude``. (`#14129 <https://github.com/pypa/pip/issues/14129>`_)\n- Fail\
+    \ an interrupted download instead of corrupting the saved file when the\n  server resumes a range request from a different\
+    \ offset than was requested. (`#14131 <https://github.com/pypa/pip/issues/14131>`_)\n- Fix option errors printing the\
+    \ usage message with raw Rich markup. (`#14136 <https://github.com/pypa/pip/issues/14136>`_)\n- pl"
+- file: NEWS.rst
+  line: 248
+  section: Bug Fixes
+  text: "26.1.2 (2026-05-31)\nBug Fixes\n---------\n\n- Reject ``console_scripts`` and ``gui_scripts`` entry points whose\
+    \ name would\n  install a script outside the scripts directory. (`#14000 <https://github.com/pypa/pip/issues/14000>`_)\n\
+    - Fix installation incorrectly failing when the target path contains a doubled\n  slash, such as with ``pip install --root\
+    \ //...``. (`#14001 <https://github.com/pypa/pip/issues/14001>`_)\n- Send a consistent ``Accept-Encoding`` header to avoid\
+    \ a spurious ``Cache entry\n  deserialization failed`` warning. (`#14012 <https://github.com/pypa/pip/issues/14012>`_)"
+- file: NEWS.rst
+  line: 261
+  section: Bug Fixes
+  text: "26.1.1 (2026-05-04)\nBug Fixes\n---------\n\n- Fix issue where uninstallation left behind empty directories. Revert\
+    \ the\n  removal of the adjacent ``__pycache__`` directory when a .py file is removed. (`#13973 <https://github.com/pypa/pip/issues/13973>`_)"
+- file: NEWS.rst
+  line: 295
+  section: Bug Fixes
+  text: "26.1 (2026-04-26)\nBug Fixes\n---------\n\n- Fix recovery hint for missing RECORD file to use ``--ignore-installed``\n\
+    \  instead of ``--force-reinstall``. (`#12645 <https://github.com/pypa/pip/issues/12645>`_)\n- Fix misleading error message\
+    \ when a constraint file cannot be opened. (`#13226 <https://github.com/pypa/pip/issues/13226>`_)\n- Show the filename\
+    \ rather than the full URL when downloading files from non-PyPI indexes in non-verbose mode. (`#13494 <https://github.com/pypa/pip/issues/13494>`_)\n\
+    - Remove the adjacent ``__pycache__`` directory when a .py file is removed. (`#13725 <https://github.com/pypa/pip/issues/13725>`_)\n\
+    - Force UTF-8 encoding for :pep:`723` metadata. (`#13861 <https://github.com/pypa/pip/issues/13861>`_)\n- Minor performance\
+    \ improvement when filtering candidates during resolution. (`#13916 <https://github.com/pypa/pip/issues/13916>`_)\n- Fix\
+    \ a hang on Windows when stdout is closed during verbose output. (`#13927 <https://github.com/pypa/pip/issues/13927>`_)\n\
+    - Common path prefixes are determined by path segment, not character by character. (`#13847 <https://github.com/pypa/pip/issues/13847>`_)\n\
+    - Fix installing ``.tar.gz`` source distributions that look like a zip file. (`#13867 <https://github.com/pypa/pip/issues/13867>`_)"
+- file: NEWS.rst
+  line: 329
+  section: Bug Fixes
+  text: "26.0.1 (2026-02-04)\nBug Fixes\n---------\n\n- Fix ``--pre`` not being respected from the command line when a requirement\
+    \ file\n  includes an option e.g. ``-extra-index-url``. (`#13788 <https://github.com/pypa/pip/issues/13788>`_)"
+- file: NEWS.rst
+  line: 363
+  section: Bug Fixes
+  text: "26.0 (2026-01-30)\nBug Fixes\n---------\n\n- Fix selecting pre-release versions when only pre-releases match.\n \
+    \ For example, ``package>1.0`` with versions ``1.0, 2.0rc1`` now installs\n  ``2.0rc1`` instead of failing. (`#13746 <https://github.com/pypa/pip/issues/13746>`_)\n\
+    - Revisions in version control URLs now must be percent-encoded.\n  For example, use ``git+https://example.com/repo.git@issue%231``\
+    \ to specify the branch ``issue#1``.\n  If you previously used a branch name containing a ``%`` character in a version\
+    \ control URL, you now need to replace it with ``%25`` to ensure correct percent-encoding. (`#13407 <https://github.com/pypa/pip/issues/13407>`_)\n\
+    - Preserve original casing when a path is displayed. (`#6823 <https://github.com/pypa/pip/issues/6823>`_)\n- Fix bash\
+    \ completion when the ``$IFS`` variable has been modified from its default. (`#13555 <https://github.com/pypa/pip/issues/13555>`_)\n\
+    - Precompute Python requirements on each candidate, reducing time of long resolutions. (`#13656 <https://github.com/pypa/pip/issues/13656>`_)\n\
+    - Skip redundant work converting version objects to strings when using the\n  ``importlib.metadata`` backend. (`#13660\
+    \ <https://github.com/pypa/pip/issues/13660>`_)\n- Fix ``pip index versions`` to honor only-binary/no-binary options.\
+    \ (`#13682 <https://github.com/pypa/pip/issues/13682>`_)\n- Fix fallthrough logic for options, allowing overriding global\
+    \ options with\n  defaults from user config. (`#13703 <https://github.com/pypa/pip/issues/13703>`_)\n- Use a path-segment\
+    \ prefix comparison, not char-by-char. (`#13777 <https://github.com/pypa/pip/issues/13777>`_)"
+- file: NEWS.rst
+  line: 424
+  section: Bug Fixes
+  text: "25.3 (2025-10-24)\nBug Fixes\n---------\n\n- Handle malformed ``Version`` metadata entries and\n  show a sensible\
+    \ error message instead of crashing. (`#13443 <https://github.com/pypa/pip/issues/13443>`_)\n- Permit spaces between a\
+    \ filepath and extras in an install requirement. (`#13523 <https://github.com/pypa/pip/issues/13523>`_)\n- Ensure the\
+    \ self-check files in the cache have the same permissions as the rest of the cache. (`#13528 <https://github.com/pypa/pip/issues/13528>`_)\n\
+    - Avoid concurrency issues and improve performance when caching locally built wheels,\n  especially when the temporary\
+    \ build directory is on a different filesystem than the cache.\n  The wheel directory passed to the build backend is now\
+    \ a temporary subdirectory inside\n  the cache directory. (`#13540 <https://github.com/pypa/pip/issues/13540>`_)\n- Include\
+    \ relevant user-supplied constraints in logs when reporting dependency conflicts. (`#13545 <https://github.com/pypa/pip/issues/13545>`_)\n\
+    - Fix a regression in configuration parsing that was turning a single value\n  into a list and thus leading to a validation\
+    \ error. (`#13548 <https://github.com/pypa/pip/issues/13548>`_)\n- For Python versions that do not support :pep:`706`,\
+    \ pip will now raise an installation error for a\n  source distribution when it includes a symlink that points outside\
+    \ the source distribution archive. (`#13550 <https://github.com/pypa/pip/issues/13550>`_)\n- Prevent ``--user`` installs\
+    \ if ``site.ENABLE_USER_SITE`` is set to ``False``. (`#8794 <https://github.com/pypa/pip/issues/8794>`_)"
+- file: NEWS.rst
+  line: 470
+  section: Bug Fixes
+  text: "25.2 (2025-07-30)\nBug Fixes\n---------\n\n- ``pip config debug`` now correctly separates options as set by the different\
+    \ files\n  at the same level. (`#12099 <https://github.com/pypa/pip/issues/12099>`_)\n- Ensure truststore feature remains\
+    \ active even when a proxy is also in use. (`#13343 <https://github.com/pypa/pip/issues/13343>`_)\n- Include sub-commands\
+    \ in tab completion. (`#13140 <https://github.com/pypa/pip/issues/13140>`_)\n- ``pip list`` with the ``json`` or ``freeze``\
+    \ format enabled will no longer\n  crash when encountering a package with an invalid version. (`#13345 <https://github.com/pypa/pip/issues/13345>`_)\n\
+    - Provide a hint if a system error is raised involving long filenames or path segments on Windows. (`#13346 <https://github.com/pypa/pip/issues/13346>`_)\n\
+    - Resumed downloads are saved to the HTTP cache like any other normal download. (`#13441 <https://github.com/pypa/pip/issues/13441>`_)\n\
+    - Configured verbosity is consistently forwarded while calling Git during\n  VCS operations. (`#13329 <https://github.com/pypa/pip/issues/13329>`_)\n\
+    - Suppress the progress bar, when running with ``--log`` and ``--quiet``.\n\n  Consequently, a new ``auto`` mode for ``--progress-bar``\
+    \ has been added.\n  ``auto`` will enable progress bars unless suppressed by ``--quiet``,\n  while ``on`` will always\
+    \ enable progress bars. (`#10915 <https://github.com/pypa/pip/issues/10915>`_)\n- Fix normalization of local URLs with\
+    \ non-``file`` schemes. (`#13509 <https://github.com/pypa/pip/issues/13509>`_)\n- Fix normalization of local file URLs\
+    \ on Windows in newer Python versions. (`#13510 <https://github.com/pypa/pip/issues/13510>`_)\n- Fix remaining test failures\
+    \ in Python 3.14 by adjusting ``path_to_url`` and similar functions. (`#13423 <https://github.com/pypa/pip/issues/13423>`_)\n\
+    - Fix missing ``network`` test markings, making the suite pass in offline\n  environments again. (`#13378 <https://github.com/pypa/pip/issues/13378>`_)"
+- file: NEWS.rst
+  line: 518
+  section: Bug Fixes
+  text: "25.1.1 (2025-05-02)\nBug Fixes\n---------\n\n- Fix ``req.source_dir`` AssertionError when using the legacy resolver.\
+    \ (`#13353 <https://github.com/pypa/pip/issues/13353>`_)\n- Fix crash on Python 3.9.6 and lower when pip failed to compile\
+    \ a Python module\n  during installation. (`#13364 <https://github.com/pypa/pip/issues/13364>`_)\n- Names in dependency\
+    \ group includes are now normalized before lookup, which\n  fixes incorrect ``Dependency group '...' not found`` errors.\
+    \ (`#13372 <https://github.com/pypa/pip/issues/13372>`_)"
+- file: NEWS.rst
+  line: 586
+  section: Bug Fixes
+  text: "25.1 (2025-04-26)\nBug Fixes\n---------\n\n- When using the ``importlib.metadata`` backend (the default on Python\
+    \ 3.11+),\n  ``pip list`` does not show installed egg distributions more than once anymore.\n  Additionally, egg distributions\
+    \ whose parent directory was in ``sys.path`` but\n  the egg themselves were not in ``sys.path`` are not detected anymore.\
+    \ (`#12308 <https://github.com/pypa/pip/issues/12308>`_)\n- Disable Git and SSH prompts when ``--no-input`` is passed.\
+    \ (`#12718 <https://github.com/pypa/pip/issues/12718>`_)\n- Gracefully handle Windows registry access errors while guessing\
+    \ the MIME type of a file. (`#12769 <https://github.com/pypa/pip/issues/12769>`_)\n- Support multiple global configuration\
+    \ paths returned by ``platformdirs`` on MacOS. (`#12903 <https://github.com/pypa/pip/issues/12903>`_)\n- Resolvelib 1.1.0\
+    \ fixes a known issue where pip would report a\n  ResolutionImpossible error even though there is a valid solution.\n\
+    \  However, some very complex dependency resolutions that previously\n  resolved may resolve slower or fail with an ResolutionTooDeep\
+    \ error. (`#13001 <https://github.com/pypa/pip/issues/13001>`_)\n- Show the correct path to the interpreter also when\
+    \ it's a symlink in a venv in the pip upgrade prompt. (`#13156 <https://github.com/pypa/pip/issues/13156>`_)\n- Parse\
+    \ wheel filenames according to `binary distribution format specification\n  <https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-format>`_.\n\
+    \  When a filename doesn't match the spec a deprecation warning is emitted and the\n  filename is parsed using the old\
+    \ method. (`#13229 <https://github.com/pypa/pip/issues/13229>`_)\n- While resolving dependencies prefer if any of the\
+    \ known requirements are\n  \"direct\", e.g. points to an explicit URL. (`#13244 <https://github.com/pypa/pip/issues/13244>`_)\n\
+    - When choosing a preferred requirement for resolving dependencies\n  do not consider a specifier with a * in it, e.g.\
+    \ \"==1.*\", to be a\n  pinned specifier. (`#13252 <https://github.com/pypa/pip/issues/13252>`_)\n- Fix a regression that\
+    \ causes dependencies to be checked *before* ``Requires-Python``\n  project metadata is checked, leading to wasted cycles\
+    \ when the Python version is\n  unsupported. (`#13270 <https://github.com/pypa/pip/issues/13270>`_)\n- Don't require the\
+    \ ``wheel`` library to be installed to use ``--no-use-pep517``, any more. (`#13330 <https://github.com/pypa/pip/issues/13330>`_)\n\
+    - Fix regression that suppressed errors indicating which packages were ignored\n  due to incompatible ``requires-python``\
+    \ metadata. (`#13333 <https://github.com/pypa/pip/issues/13333>`_)\n- Fix fish shell completion when commandline contains\
+    \ multiple commands. (`#9727 <https://github.com/pypa/pip/issues/9727>`_)"
+- file: NEWS.rst
+  line: 643
+  section: Bug Fixes
+  text: '25.0.1 (2025-02-09)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Fix an unsupported type annotation on Python 3.10 and earlier. (`#13181 <https://github.com/pypa/pip/issues/13181>`_)
+
+    - Fix a regression where truststore would never be used while installing build dependencies. (`#13186 <https://github.com/pypa/pip/issues/13186>`_)'
+- file: NEWS.rst
+  line: 673
+  section: Bug Fixes
+  text: "25.0 (2025-01-26)\nBug Fixes\n---------\n\n- Reorder the encoding detection when decoding a requirements file, relying\
+    \ on\n  UTF-8 over the locale encoding by default, matching the documented behaviour.\n  (`#12771 <https://github.com/pypa/pip/issues/12771>`_)\n\
+    - The pip version self check is disabled on ``EXTERNALLY-MANAGED`` environments. (`#11820 <https://github.com/pypa/pip/issues/11820>`_)\n\
+    - Fix a security bug allowing a specially crafted wheel to execute code during\n  installation. (`#13079 <https://github.com/pypa/pip/issues/13079>`_)\n\
+    - The inclusion of ``packaging`` 24.2 changes how pre-release specifiers with ``<`` and ``>``\n  behave. Including a pre-release\
+    \ version with these specifiers now implies\n  accepting pre-releases (e.g., ``<2.0dev`` can include ``1.0rc1``). To avoid\n\
+    \  implying pre-releases, avoid specifying them (e.g., use ``<2.0``).\n  The exception is ``!=``, which never implies\
+    \ pre-releases. (`#13163 <https://github.com/pypa/pip/issues/13163>`_)\n- The ``--cert`` and ``--client-cert`` command-line\
+    \ options are now respected while\n  installing build dependencies. Consequently, the private ``_PIP_STANDALONE_CERT``\n\
+    \  environment variable is no longer used. (`#5502 <https://github.com/pypa/pip/issues/5502>`_)\n- The ``--proxy`` command-line\
+    \ option is now respected while installing build dependencies. (`#6018 <https://github.com/pypa/pip/issues/6018>`_)"
+- file: NEWS.rst
+  line: 717
+  section: Bug Fixes
+  text: '24.3.1 (2024-10-27)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Allow multiple nested inclusions of the same requirements file again. (`#13046 <https://github.com/pypa/pip/issues/13046>`_)'
+- file: NEWS.rst
+  line: 737
+  section: Bug Fixes
+  text: '24.3 (2024-10-27)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Display a better error message when an already installed package has an invalid requirement. (`#12953 <https://github.com/pypa/pip/issues/12953>`_)
+
+    - Ignore ``PIP_TARGET`` and ``pip.conf`` ``global.target`` when preparing a build environment. (`#8438 <https://github.com/pypa/pip/issues/8438>`_)
+
+    - Restore support for macOS 10.12 and older (via truststore). (`#12901 <https://github.com/pypa/pip/issues/12901>`_)
+
+    - Allow installing pip in editable mode in a virtual environment on Windows. (`#12666 <https://github.com/pypa/pip/issues/12666>`_)'
+- file: NEWS.rst
+  line: 795
+  section: Bug Fixes
+  text: "24.2 (2024-07-28)\nBug Fixes\n---------\n\n- Set ``no_color`` to global ``rich.Console`` instance. (`#11045 <https://github.com/pypa/pip/issues/11045>`_)\n\
+    - Fix resolution to respect ``--python-version`` when checking ``Requires-Python``. (`#12216 <https://github.com/pypa/pip/issues/12216>`_)\n\
+    - Perform hash comparisons in a case-insensitive manner. (`#12680 <https://github.com/pypa/pip/issues/12680>`_)\n- Avoid\
+    \ ``dlopen`` failure for glibc detection in musl builds (`#12716 <https://github.com/pypa/pip/issues/12716>`_)\n- Avoid\
+    \ keyring logging crashes when pip is run in verbose mode. (`#12751 <https://github.com/pypa/pip/issues/12751>`_)\n- Fix\
+    \ finding hardlink targets in tar files with an ignored top-level directory. (`#12781 <https://github.com/pypa/pip/issues/12781>`_)\n\
+    - Improve pip install performance by only creating required parent\n  directories once, instead of before extracting every\
+    \ file in the wheel. (`#12782 <https://github.com/pypa/pip/issues/12782>`_)\n- Improve pip install performance by calculating\
+    \ installed packages printout\n  in linear time instead of quadratic time. (`#12791 <https://github.com/pypa/pip/issues/12791>`_)"
+- file: NEWS.rst
+  line: 829
+  section: Bug Fixes
+  text: '24.1.2 (2024-07-07)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Fix finding hardlink targets in tar files with an ignored top-level directory. (`#12781 <https://github.com/pypa/pip/issues/12781>`_)'
+- file: NEWS.rst
+  line: 837
+  section: Bug Fixes
+  text: '24.1.1 (2024-06-26)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Actually use system trust stores when the truststore feature is enabled.'
+- file: NEWS.rst
+  line: 865
+  section: Bug Fixes
+  text: '24.1b2 (2024-06-12)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Eagerly import the self version check logic to avoid crashes while upgrading or downgrading pip at the same time. (`#12675
+    <https://github.com/pypa/pip/issues/12675>`_)
+
+    - Accommodate for mismatches between different sources of truth for extra names, for packages generated by ``setuptools``.
+    (`#12688 <https://github.com/pypa/pip/issues/12688>`_)
+
+    - Accommodate for development versions of CPython ending in ``+`` in the version string. (`#12691 <https://github.com/pypa/pip/issues/12691>`_)'
+- file: NEWS.rst
+  line: 911
+  section: Bug Fixes
+  text: "24.1b1 (2024-05-06)\nBug Fixes\n---------\n\n- Ensure ``-vv`` gets passed to any ``pip install`` build environment\
+    \ subprocesses. (`#12577 <https://github.com/pypa/pip/issues/12577>`_)\n- Deduplicate entries in the ``Requires`` field\
+    \ of ``pip show``. (`#12165 <https://github.com/pypa/pip/issues/12165>`_)\n- Fix error on checkout for subversion and\
+    \ bazaar with verbose mode on. (`#11050 <https://github.com/pypa/pip/issues/11050>`_)\n- Fix exception with completions\
+    \ when COMP_CWORD is not set (`#12401 <https://github.com/pypa/pip/issues/12401>`_)\n- Fix intermittent \"cannot locate\
+    \ t64.exe\" errors when upgrading pip. (`#12666 <https://github.com/pypa/pip/issues/12666>`_)\n- Remove duplication in\
+    \ invalid wheel error message (`#12579 <https://github.com/pypa/pip/issues/12579>`_)\n- Remove the incorrect pip3.x console\
+    \ entrypoint from the pip wheel. This console\n  script continues to be generated by pip when it installs itself. (`#12536\
+    \ <https://github.com/pypa/pip/issues/12536>`_)\n- Gracefully skip VCS detection in pip freeze when PATH points to a non-directory\
+    \ path. (`#12567 <https://github.com/pypa/pip/issues/12567>`_)\n- Make the ``--proxy`` parameter take precedence over\
+    \ environment variables. (`#10685 <https://github.com/pypa/pip/issues/10685>`_)"
+- file: NEWS.rst
+  line: 977
+  section: Bug Fixes
+  text: "24.0 (2024-02-03)\nBug Fixes\n---------\n\n- Optimized usage of ``--find-links=<path-to-dir>``, by only scanning\
+    \ the relevant directory once, only considering file names that are valid wheel or sdist names, and only considering files\
+    \ in the directory that are related to the install. (`#12327 <https://github.com/pypa/pip/issues/12327>`_)\n- Removed\
+    \ ``wheel`` from the ``[build-system].requires`` list fallback\n  that is used when ``pyproject.toml`` is absent. (`#12449\
+    \ <https://github.com/pypa/pip/issues/12449>`_)"
+- file: NEWS.rst
+  line: 1007
+  section: Bug Fixes
+  text: '23.3.2 (2023-12-17)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Fix a bug in extras handling for link requirements (`#12372 <https://github.com/pypa/pip/issues/12372>`_)
+
+    - Fix mercurial revision "parse error": use ``--rev={ref}`` instead of ``-r={ref}`` (`#12373 <https://github.com/pypa/pip/issues/12373>`_)'
+- file: NEWS.rst
+  line: 1017
+  section: Bug Fixes
+  text: '23.3.1 (2023-10-21)
+
+    Bug Fixes
+
+    ---------
+
+
+    - Handle a timezone indicator of Z when parsing dates in the self check. (`#12338 <https://github.com/pypa/pip/issues/12338>`_)
+
+    - Fix bug where installing the same package at the same time with multiple pip processes could fail. (`#12361 <https://github.com/pypa/pip/issues/12361>`_)'
+- file: NEWS.rst
+  line: 1045
+  section: Bug Fixes
+  text: "23.3 (2023-10-15)\nBug Fixes\n---------\n\n- Ignore errors in temporary directory cleanup (show a warning instead).\
+    \ (`#11394 <https://github.com/pypa/pip/issues/11394>`_)\n- Normalize extras according to :pep:`685` from package metadata\
+    \ in the resolver\n  for comparison. This ensures extras are correctly compared and merged as long\n  as the package providing\
+    \ the extra(s) is built with values normalized according\n  to the standard. Note, however, that this *does not* solve\
+    \ cases where the\n  package itself contains unnormalized extra values in the metadata. (`#11649 <https://github.com/pypa/pip/issues/11649>`_)\n\
+    - Prevent downloading sdists twice when :pep:`658` metadata is present. (`#11847 <https://github.com/pypa/pip/issues/11847>`_)\n\
+    - Include all requested extras in the install report (``--report``). (`#11924 <https://github.com/pypa/pip/issues/11924>`_)\n\
+    - Removed uses of ``datetime.datetime.utcn"
+prohibition_candidates:
+- file: AI_POLICY.md
+  line: 1
+  section: Generative AI / LLM Policy
+  text: '# Generative AI / LLM Policy
+
+
+    We appreciate that we can''t realistically police how you author your pull requests, which includes whether you employ
+    large-language model (LLM)-based development tools.
+
+    So, we don''t.
+
+
+    However, due to both legal and human reasons, we have to establish boundaries.'
+- file: AI_POLICY.md
+  line: 55
+  section: Summary
+  text: "Generative AI / LLM Policy\n## Summary\n\nIn practice, this means:\n\n- Pull requests that have an LLM product listed\
+    \ as co-author can't be merged and will be closed without further discussion.\n  We cannot risk the copyright status of\
+    \ this project.\n\n  If you used LLM tools during development, you may still submit – but you must remove any LLM co-author\
+    \ tags and take full ownership of every line.\n\n- By submitting a pull request, you take full technical and legal responsibility\
+    \ for the contents of the pull request and promise that you hold the copyright for the changes submitted.\n\n  \"An LLM\
+    \ wrote it\" is *not* an acceptable response to questions or critique.\n  If you cannot explain and defend the changes\
+    \ you submit, do not submit them and open a high-quality bug report or feature request instead.\n\n- Accounts that exercise\
+    \ bot-like behavior – like automated mass pull requests – will be permanently banned, whether they belong to a human or\
+    \ not.\n\n- LLM-generated comments must be concise and accurate, and you must be prepared to stand by them.\n  Do not\
+    \ post summaries unless you are certain that they add value to the discussion.\n  Remember that all LLM output *looks*\
+    \ plausible.\n  When using these tools, it's your responsibility to ensure that the output is correct, and useful.\n\n\
+    - Remember that LLM generated content is generally easier for you to produce, but *harder* for others to read, review\
+    \ or interpret.\n  Prioritising your time over that of others is contrary to the project's code of conduct.\n  Verbose,\
+    \ repetitive, or off topic comments may be marked as spam."

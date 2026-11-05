@@ -1,0 +1,170 @@
+repo: scrapy
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "Which checks must you run before finishing a Scrapy change, per AGENTS.md?"
+    answer: "pre-commit run --all-files, tox -e mypy and tox -e pylint, plus tox -e docs and tox -e docs-tests if docs or docstrings were touched."
+    gold: ["AGENTS.md::Before you finish"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "How do you run just the tests you touched in Scrapy, and what receives the arguments after '--'?"
+    answer: "tox -e py -- tests/test_foo.py; anything after 'tox -e py --' is passed to pytest."
+    gold: ["AGENTS.md::Before you finish"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "What are Scrapy's min-* tox environments for, and what must you keep in mind when asserting under them?"
+    answer: "They pin the oldest supported dependency versions (possibly years older, exposing less), so assert only on what the pinned version has."
+    gold: ["AGENTS.md::Before you finish"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "How must new boolean parameters be declared in Scrapy?"
+    answer: "Keyword-only."
+    gold: ["AGENTS.md::Code"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "What naming rule applies to new modules, classes, functions, constants and attributes in Scrapy?"
+    answer: "Prefix them with _ unless users must call them by name; do not re-export or document private APIs."
+    gold: ["AGENTS.md::Code"]
+  - id: conv-006
+    type: convention
+    difficulty: hard
+    question: "What is Scrapy's policy on code comments and module docstrings?"
+    answer: "Comments explain what lines do and why — never what they replaced or which bug prompted them; most lines need no comment; do not write module docstrings."
+    gold: ["AGENTS.md::Code"]
+  - id: conv-007
+    type: convention
+    difficulty: medium
+    question: "How should tests build components in Scrapy instead of calling constructors?"
+    answer: "With build_from_crawler() from scrapy.utils.misc."
+    gold: ["AGENTS.md::Tests"]
+  - id: conv-008
+    type: convention
+    difficulty: medium
+    question: "How should spiders be tested in Scrapy?"
+    answer: "By crawling them against the mock server, not by calling their private methods."
+    gold: ["AGENTS.md::Tests"]
+  - id: conv-009
+    type: convention
+    difficulty: hard
+    question: "How must parameters be described in Scrapy documentation, and what is banned?"
+    answer: "In prose with parameter names in italics (like the standard library); no :param: lists."
+    gold: ["AGENTS.md::Documentation"]
+  - id: conv-010
+    type: convention
+    difficulty: hard
+    question: "What are Scrapy's documentation formatting rules for paragraph width and title underlines?"
+    answer: "Wrap paragraphs at 79 characters; titles use sentence case and the underline must be exactly as long as the title (verify with awk '{print length, $0}')."
+    gold: ["AGENTS.md::Documentation"]
+  - id: conv-011
+    type: convention
+    difficulty: medium
+    question: "What should a Scrapy pull request description contain?"
+    answer: "One or two sentences on what and why, plus 'Closes #N' for every issue or PR it resolves; do not summarize the diff or list files touched."
+    gold: ["AGENTS.md::Git and GitHub"]
+  - id: conv-012
+    type: convention
+    difficulty: hard
+    question: "After a Scrapy pull request has been reviewed, how do you update it and catch up with master?"
+    answer: "Only add commits on top; merge master in. Never rebase, amend, or force-push, because PRs are squash-merged."
+    gold: ["AGENTS.md::Git and GitHub"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "Which domains may be used in Scrapy tests and examples?"
+    answer: "example.com or any .example domain — never a real one, even in URLs that are never fetched."
+    gold: ["AGENTS.md::Tests"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: easy
+    question: "Can contributors edit docs/news.rst in Scrapy?"
+    answer: "No. Release notes are written at release time from the merged pull requests."
+    gold: ["AGENTS.md::Documentation"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "What is Scrapy's rule about the deprecated directive and documenting deprecated features?"
+    answer: "Never use the deprecated directive; do not document deprecated features, known bugs, or internal implementation details."
+    gold: ["AGENTS.md::Documentation"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: medium
+    question: "Should you open an issue before a pull request in Scrapy?"
+    answer: "No. The pull request is enough."
+    gold: ["AGENTS.md::Git and GitHub"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: easy
+    question: "Where must Scrapy security issues be reported?"
+    answer: "Only to scrapy-security@googlegroups.com, a private list for trusted Scrapy developers."
+    gold: ["docs/contributing.rst::Reporting bugs"]
+  - id: prohib-006
+    type: prohibition
+    difficulty: medium
+    question: "What does Scrapy's CONTRIBUTING.md warn about using the issue tracker for?"
+    answer: "Do not abuse the issue tracker for support questions."
+    gold: ["CONTRIBUTING.md::(whole)"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What did Scrapy 2.19.0 deprecate RANDOMIZE_DOWNLOAD_DELAY in favor of?"
+    answer: "The new DOWNLOAD_DELAY_JITTER setting."
+    gold: ["docs/news.rst::Deprecations@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "In Scrapy 2.19.0, what changed about HTTP connection pool keys in HTTP11DownloadHandler and H2DownloadHandler?"
+    answer: "They now include the request bind address (DOWNLOAD_BIND_ADDRESS), so requests bound to different addresses no longer reuse each other's pooled connections."
+    gold: ["docs/news.rst::Bug fixes@1"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "How does Scrapy 2.18.0's HttpCacheMiddleware handle a corrupted cache entry?"
+    answer: "It logs a warning, handles the request as a cache miss instead of propagating the exception, and counts it in the httpcache/retrieve_error stat."
+    gold: ["docs/news.rst::Bug fixes@2"]
+  - id: fix-004
+    type: fix
+    difficulty: hard
+    question: "What did Scrapy 2.18.0 change about percent expansion in feed URIs?"
+    answer: "Feed URIs now only expand %(...)s parameters; other percent characters (e.g. %20, percent-encoded FTP credentials) are kept as is."
+    gold: ["docs/news.rst::Bug fixes@2"]
+  - id: conv-013
+    type: convention
+    difficulty: medium
+    question: "What is Scrapy's rule for commit message bodies?"
+    answer: "A commit message is a title; add a body only when the why does not fit in it."
+    gold: ["AGENTS.md::Git and GitHub"]
+  - id: conv-014
+    type: convention
+    difficulty: medium
+    question: "Why does Scrapy require pytest.mark.parametrize instead of looping over inputs inside one test?"
+    answer: "So that one bad input fails on its own."
+    gold: ["AGENTS.md::Tests"]
+  - id: conv-015
+    type: convention
+    difficulty: hard
+    question: "What must new Scrapy test modules pass besides the tests themselves?"
+    answer: "They must type-check under tox -e mypy."
+    gold: ["AGENTS.md::Tests"]
+  - id: prohib-007
+    type: prohibition
+    difficulty: medium
+    question: "What does Scrapy say about adding settings, parameters, or abstractions for hypothetical future needs?"
+    answer: "Don't — make the smallest change that solves the issue."
+    gold: ["AGENTS.md::Code"]
+  - id: prohib-008
+    type: prohibition
+    difficulty: medium
+    question: "Name two examples of unacceptable behavior under Scrapy's Code of Conduct."
+    answer: "E.g. sexualized language/imagery or sexual attention; trolling, insulting or derogatory comments; public or private harassment; publishing others' private information without permission."
+    gold: ["CODE_OF_CONDUCT.md::Our Standards"]
+  - id: prohib-009
+    type: prohibition
+    difficulty: medium
+    question: "Where does Scrapy's Code of Conduct apply?"
+    answer: "Within all community spaces, and also when an individual officially represents the community in public spaces."
+    gold: ["CODE_OF_CONDUCT.md::Scope"]

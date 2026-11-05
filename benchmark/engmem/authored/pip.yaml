@@ -1,0 +1,92 @@
+repo: pip
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "What are all pip contributors expected to follow?"
+    answer: "The Code of Conduct."
+    gold: [".github/CONTRIBUTING.md::Contributing to pip"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "If you used LLM tools while developing a pip contribution, what must you do before submitting?"
+    answer: "Remove any LLM co-author tags and take full ownership of every line."
+    gold: ["AI_POLICY.md::Summary"]
+  - id: conv-003
+    type: convention
+    difficulty: hard
+    question: "Why does pip forbid LLM co-authorship on copyright grounds?"
+    answer: "There is ongoing legal uncertainty about the copyright status and provenance of LLM-generated works, which would make the project's copyright status unpredictable."
+    gold: ["AI_POLICY.md::Legal"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "What happens to pip pull requests that list an LLM product as co-author?"
+    answer: "They cannot be merged and will be closed without further discussion."
+    gold: ["AI_POLICY.md::Summary"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "What is pip's stance on unsupervised agentic tools like OpenClaw?"
+    answer: "Absolutely no unsupervised agentic tools."
+    gold: ["AI_POLICY.md::Overview"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "In pip, is 'An LLM wrote it' an acceptable response to review questions?"
+    answer: "No. If you cannot explain and defend the changes, do not submit them; open a high-quality bug report or feature request instead."
+    gold: ["AI_POLICY.md::Summary"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: medium
+    question: "What happens to accounts showing bot-like behavior such as automated mass pull requests in pip?"
+    answer: "They will be permanently banned, whether they belong to a human or not."
+    gold: ["AI_POLICY.md::Summary"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: medium
+    question: "How does pip treat repeated low-quality ('slop') contributions?"
+    answer: "They are unacceptable, closed without review, and repeat submitters may be excluded."
+    gold: ["AI_POLICY.md::Overview"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What did pip 26.3 change about build-backend import failures?"
+    answer: "They are reported as pip errors instead of displaying an uncaught traceback."
+    gold: ["NEWS.rst::Bug Fixes@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What did pip 26.2.1 reallow regarding keyring?"
+    answer: "Keyring installed in a (non-activated) virtual environment can again be used via the import provider method."
+    gold: ["NEWS.rst::Bug Fixes@2"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "Which Python version did pip 26.2 declare support for, and what extras feature did it support officially?"
+    answer: "Python 3.15; self-referential extras."
+    gold: ["NEWS.rst::Features@2"]
+  - id: conv-004
+    type: convention
+    difficulty: hard
+    question: "What four things do you certify when submitting a pull request to pip?"
+    answer: "That you are the author or have the legal right to submit it; you hold the copyright or have explicit authorization; you understand the code; you accept full responsibility for it."
+    gold: ["AI_POLICY.md::Overview"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "What does pip 26.2's --only-deps flag do, and what restriction applies?"
+    answer: "It instructs pip to select only the dependencies of supplied packages."
+    gold: ["NEWS.rst::Features@2"]
+  - id: fix-005
+    type: fix
+    difficulty: medium
+    question: "What did pip 26.2 fix about the invalid-metadata warning and BrokenPipeError?"
+    answer: "The warning is emitted only once per location per run, and BrokenPipeError is handled when pip output is piped to a command that closes early."
+    gold: ["NEWS.rst::Bug Fixes@3"]
+  - id: fix-006
+    type: fix
+    difficulty: hard
+    question: "What did pip 26.1.2 do about console_scripts/gui_scripts entry points with unsafe names?"
+    answer: "It rejects entry points whose name would install a script outside the scripts directory."
+    gold: ["NEWS.rst::Bug Fixes@4"]

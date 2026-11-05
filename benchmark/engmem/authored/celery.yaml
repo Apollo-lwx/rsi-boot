@@ -1,0 +1,104 @@
+repo: celery
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "Which versioning semantics does celery use, and since which version?"
+    answer: "SemVer, since version 2.1.0."
+    gold: ["CONTRIBUTING.rst::Versions"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "What is celery's active development branch called, and what does git call it?"
+    answer: "The dev branch, which git calls 'main'."
+    gold: ["CONTRIBUTING.rst::Branches"]
+  - id: conv-003
+    type: convention
+    difficulty: medium
+    question: "Where should bugs for kombu (the celery ecosystem messaging package) be reported?"
+    answer: "To the kombu issue tracker at github.com/celery/kombu/issues — each ecosystem package has its own tracker."
+    gold: ["CONTRIBUTING.rst::Issue Trackers"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "Which module must be installed to calculate test coverage in celery?"
+    answer: "pytest-cov."
+    gold: ["CONTRIBUTING.rst::Calculating test coverage"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "Why does celery recommend Docker and docker-compose for development?"
+    answer: "Because celery has many components, such as a broker and a backend."
+    gold: ["CONTRIBUTING.rst::Developing and Testing with Docker"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "Where must security-related issues in celery never be reported, and what is the correct channel?"
+    answer: "Never to the public bug tracker or elsewhere in public; sensitive bugs must be sent by email to the security contact."
+    gold: ["CONTRIBUTING.rst::Security"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "What is the purpose of celery's archived branches?"
+    answer: "They are kept for preserving history only (patches are only theoretical for unsupported series)."
+    gold: ["CONTRIBUTING.rst::Archived branches"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "Which style guide must all Python code in celery follow?"
+    answer: "PEP 8."
+    gold: ["CONTRIBUTING.rst::Coding Style"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "What chord-related fixes landed in celery 5.7.0b1?"
+    answer: "Propagate chained task failures to the chord body, and fix chord hang when a member is revoked."
+    gold: ["CHANGELOG.rst::Bug Fixes@1"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What did celery 5.7.0b1 revert about RabbitMQ 4.3.0, and what replaced it?"
+    answer: "Reverted the 'exclusive queues' default fix (#10289), later replaced with a transient-queue-specific fix (#10290)."
+    gold: ["CHANGELOG.rst::Reverts@1"]
+  - id: fix-003
+    type: fix
+    difficulty: hard
+    question: "Which is the last celery version series that supports Python 3.9?"
+    answer: "Celery 5.6.x."
+    gold: ["README.rst::What do I need?"]
+  - id: conv-006
+    type: convention
+    difficulty: easy
+    question: "What does celery's Community Code of Conduct say about how members treat one another?"
+    answer: "With respect; disagreement is no excuse for poor behavior."
+    gold: ["CONTRIBUTING.rst::Be respectful"]
+  - id: conv-007
+    type: convention
+    difficulty: medium
+    question: "What does celery's Code of Conduct say to do when you're unsure about something?"
+    answer: "Ask for help — asking questions avoids many problems down the road."
+    gold: ["CONTRIBUTING.rst::When you're unsure, ask for help"]
+  - id: conv-008
+    type: convention
+    difficulty: medium
+    question: "What does celery ask of developers who leave or disengage from the project?"
+    answer: "To step down considerately."
+    gold: ["CONTRIBUTING.rst::Step down considerately"]
+  - id: fix-004
+    type: fix
+    difficulty: medium
+    question: "What RabbitMQ 4.3.0 compatibility saga appears in celery 5.7.0a1's changelog?"
+    answer: "A default to exclusive queues (#10287), a revert of that default (#10289), and a transient-queue-specific fix (#10290); also socket.timeout was removed from reconnection conditions (#10285)."
+    gold: ["CHANGELOG.rst::What's Changed@1"]
+  - id: fix-005
+    type: fix
+    difficulty: medium
+    question: "What did celery 5.6.2 fix about revoked tasks?"
+    answer: "Revoked tasks now immediately update backend status to REVOKED."
+    gold: ["CHANGELOG.rst::What's Changed@2"]
+  - id: fix-006
+    type: fix
+    difficulty: hard
+    question: "Which documentation clarifications around canvas and acks landed in celery 5.7.0a1?"
+    answer: "Clarified chord errback signatures, canvas calling behavior, acks-late vs retry semantics, rate-limit/prefetch interactions, and SQS FIFO message properties."
+    gold: ["CHANGELOG.rst::Documentation@2"]

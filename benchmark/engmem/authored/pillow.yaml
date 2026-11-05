@@ -1,0 +1,116 @@
+repo: pillow
+questions:
+  - id: conv-001
+    type: convention
+    difficulty: easy
+    question: "How do you install Pillow in editable mode with its test dependencies?"
+    answer: "python3 -m pip install -e \".[tests]\""
+    gold: ["AGENTS.md::Install"]
+  - id: conv-002
+    type: convention
+    difficulty: medium
+    question: "Which native libraries must already be present on the system when installing Pillow from source?"
+    answer: "libjpeg, libpng, libtiff, libwebp, freetype2, littlecms2, etc."
+    gold: ["AGENTS.md::Install"]
+  - id: conv-003
+    type: convention
+    difficulty: easy
+    question: "Which command must always be run first before Pillow's pytest suite?"
+    answer: "python3 selftest.py (a quick sanity check)."
+    gold: ["AGENTS.md::Test"]
+  - id: conv-004
+    type: convention
+    difficulty: medium
+    question: "How do you run Pillow's test suite in parallel, and what does it require?"
+    answer: "python3 -m pytest Tests/ -n auto; requires pytest-xdist."
+    gold: ["AGENTS.md::Test"]
+  - id: conv-005
+    type: convention
+    difficulty: medium
+    question: "What does make lint run in Pillow?"
+    answer: "tox -e lint → pre-commit (black, ruff, clang-format, bandit, sphinx-lint, pyproject-fmt, and more)."
+    gold: ["AGENTS.md::Lint and format"]
+  - id: conv-006
+    type: convention
+    difficulty: medium
+    question: "How do you run type checking in Pillow?"
+    answer: "python3 -m tox -e mypy."
+    gold: ["AGENTS.md::Type checking"]
+  - id: conv-007
+    type: convention
+    difficulty: hard
+    question: "Where do Pillow release notes go, with what section structure, and how are CVEs referenced?"
+    answer: "docs/releasenotes/<version>.rst with sections Security, Backwards incompatible changes, Deprecations, API changes, API additions, Other changes; CVEs use the :cve: RST role."
+    gold: ["AGENTS.md::Documentation"]
+  - id: conv-008
+    type: convention
+    difficulty: hard
+    question: "Which argument of Image.open() allowlists formats in Pillow, and which similarly-named parameter does NOT exist?"
+    answer: "formats= (list/tuple of format IDs); there is no format= parameter."
+    gold: ["AGENTS.md::Pillow-specific guidance"]
+  - id: prohib-001
+    type: prohibition
+    difficulty: easy
+    question: "Which Python/pip invocations are forbidden in Pillow's agent guidance?"
+    answer: "Never `python` or bare `pip` — always `python3` and `python3 -m pip install`."
+    gold: ["AGENTS.md::Pillow-specific guidance"]
+  - id: prohib-002
+    type: prohibition
+    difficulty: medium
+    question: "What does Pillow's AGENTS.md say about mutating Image.OPEN?"
+    answer: "Do not recommend users mutate it; it is an internal format registry, not a security or configuration mechanism."
+    gold: ["AGENTS.md::Pillow-specific guidance"]
+  - id: prohib-003
+    type: prohibition
+    difficulty: medium
+    question: "How must DecompressionBomb exceptions be named in Pillow code/docs?"
+    answer: "Fully qualified: Image.DecompressionBombError and Image.DecompressionBombWarning, not bare class names."
+    gold: ["AGENTS.md::Pillow-specific guidance"]
+  - id: prohib-004
+    type: prohibition
+    difficulty: medium
+    question: "Why must you not embed specific numeric values for thresholds like MAX_IMAGE_PIXELS in Pillow?"
+    answer: "They may be changed by the user at runtime; reference the named constant instead."
+    gold: ["AGENTS.md::Pillow-specific guidance"]
+  - id: prohib-005
+    type: prohibition
+    difficulty: medium
+    question: "What commit-separation rule does Pillow have for reformatting vs functional changes?"
+    answer: "Separate reformatting commits from functional commits."
+    gold: ["AGENTS.md::Lint and format", ".github/CONTRIBUTING.md::Guidelines"]
+  - id: fix-001
+    type: fix
+    difficulty: easy
+    question: "Which CVE did Pillow 10.3.0 fix, and how?"
+    answer: "CVE-2024-28219: use strncpy to avoid a buffer overflow."
+    gold: ["CHANGES.rst::10.3.0 (2024-04-01)"]
+  - id: fix-002
+    type: fix
+    difficulty: medium
+    question: "What does Pillow 10.4.0 raise if the path passed to show_file() does not exist?"
+    answer: "FileNotFoundError."
+    gold: ["CHANGES.rst::10.4.0 (2024-07-01)"]
+  - id: fix-003
+    type: fix
+    difficulty: medium
+    question: "What licence change did Pillow 11.0.0 make?"
+    answer: "Updated the licence to MIT-CMU."
+    gold: ["CHANGES.rst::11.0.0 (2024-10-15)"]
+  - id: fix-004
+    type: fix
+    difficulty: hard
+    question: "What does the keep_rgb option added in Pillow 10.2.0 do when saving JPEG?"
+    answer: "Prevents conversion of the RGB colorspace."
+    gold: ["CHANGES.rst::10.2.0 (2024-01-02)"]
+  - id: conv-009
+    type: convention
+    difficulty: medium
+    question: "What naming pattern do Pillow test files follow, and what must new features and bug fixes include?"
+    answer: "Tests/test_*.py; new features and bug fixes must include tests."
+    gold: ["AGENTS.md::Test"]
+  - id: prohib-006
+    type: prohibition
+    difficulty: medium
+    question: "What is the merge precondition for pre-commit hooks in Pillow?"
+    answer: "All hooks must pass before a PR can be merged."
+    gold: ["AGENTS.md::Lint and format"]
