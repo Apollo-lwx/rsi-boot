@@ -39,3 +39,31 @@ output/
 
 #wiki
 wiki/
+
+# 本地密钥与端点配置（benchmark 对照线用），永不提交
+.env.local
+*.env.local
+benchmark/.cache/
+
+# benchmark/results 默认不入库（本地保留复用），只白名单放行论文/README/测试引用的正式榜
+benchmark/results/*
+!benchmark/results/recall-20261028/
+!benchmark/results/recall-20261104/
+!benchmark/results/baselines-20261103/
+!benchmark/results/baselines-20261104/
+!benchmark/results/baselines-emb-20261104/
+!benchmark/results/engmem-20261105/
+!benchmark/results/engmem-emb-20261105/
+!benchmark/results/engmem-annotation/
+!benchmark/results/longitudinal-20261103/
+!benchmark/results/longitudinal-20261104/
+!benchmark/results/adversarial-20261103/
+!benchmark/results/scalability-20261103/
+!benchmark/results/ablation-20261104/
+!benchmark/results/contextfix-20261104/
+!benchmark/results/token-20261029/
+!benchmark/results/token-20261104/
+!benchmark/results/token-llm-20261105/
+!benchmark/results/token-llm-claude-20261105/
+!benchmark/results/cross-host/
+.kimi-code/
