@@ -129,6 +129,10 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 
 同一份 `.rsi` 种子，RSI 两次自读、Cursor CLI、Claude Code CLI 各自通过自己的 MCP 链路读同一组查询：六组宿主对平均 Jaccard@5 = 1.000、首位一致率 100%——召回是确定性的，换宿主不掉链子。见 [benchmark/results/cross-host/SUMMARY.md](benchmark/results/cross-host/SUMMARY.md)。
 
+### 答题准确率（LLM 双判）
+
+检索命中不等于答对，所以补了漏斗末端：LoCoMo 同批 80 题三臂（full / rsi / rag）× 两台生成器（Kimi K3、Claude Haiku），每份答案由两家模型交叉互判（一致率 87.5%，双判全对才算对）。结果：**rsi 与向量基线答题无显著差异**（McNemar p=0.70 / 1.00），全量上下文仍最强（这是 98.8% 上下文削减的代价，如实报告），**不可答题拒答 rsi 最可靠**（64% vs full 50% vs rag 39%）。multi-hop 是 rsi 的真短板（5% vs rag 32%）。见 [benchmark/results/answer-acc-20261105/SUMMARY.md](benchmark/results/answer-acc-20261105/SUMMARY.md)。
+
 ## 安装
 
 需要 Python 3.10+：

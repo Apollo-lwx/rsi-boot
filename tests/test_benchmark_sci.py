@@ -94,6 +94,7 @@ def test_engmem_repo_count_and_license():
     "engmem-annotation",
     "token-llm-20261105",
     "token-llm-claude-20261105",
+    "answer-acc-20261105",
     "cross-host",
 ])
 def test_result_boards_exist(name: str):
@@ -350,3 +351,34 @@ def test_cross_host_cursor_perfect_agreement():
                 assert row["ids"] == base[row["qid"]], (
                     f"{base_name} 在 {row['qid']} 上与 {host} 不一致"
                 )
+
+
+def test_answer_acc_board_coverage_and_abstention():
+    """答题准确率榜：480 生成 × 双 judge 全覆盖；rsi 拒答可靠性必须最高。"""
+    import json as _json
+    from collections import defaultdict as _dd
+
+    board = ROOT / "benchmark/results/answer-acc-20261105"
+    gens = [_json.loads(l) for l in
+            (board / "generations.jsonl").read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+    assert len(gens) == 480, f"生成应为 480 份: {len(gens)}"
+    juds = [_json.loads(l) for l in
+            (board / "judgments.jsonl").read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+    assert len(juds) == 960, f"判定应为 960 份: {len(juds)}"
+    # 双 judge 保守合并
+    by_key = _dd(dict)
+    for r in juds:
+        by_key[(r["qid"], r["arm"], r["gen_provider"])][r["judge"]] = r["verdict"]
+    assert all(len(v) == 2 for v in by_key.values()), "存在缺判的生成"
+    merged = {k: ("correct" if all(x == "correct" for x in v.values())
+                  else "incorrect") for k, v in by_key.items()}
+    # 对抗题（不可答）三臂对比：rsi 拒答最可靠
+    qtype = {r["qid"]: r["qtype"] for r in juds}
+    adv = [k for k in merged if qtype.get(k[0]) == "adversarial"]
+    acc = {arm: sum(1 for k in adv if k[1] == arm and merged[k] == "correct")
+           / max(1, sum(1 for k in adv if k[1] == arm))
+           for arm in ("full", "rsi", "rag")}
+    assert acc["rsi"] > acc["rag"], f"rsi 拒答应优于 rag: {acc}"
+    assert acc["rsi"] > acc["full"], f"rsi 拒答应优于 full: {acc}"
