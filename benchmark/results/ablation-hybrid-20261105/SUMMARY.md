@@ -37,3 +37,7 @@ open-domain +10/−0、single-hop +40/−2、temporal +21/−1。
 - 向量通道默认关闭（产品默认零依赖、零下载）；开启方式：
   `rsi-boot.yaml` 的 `enable: [vector]` 或环境变量 `RSI_ENABLE=vector`，
   模型用 `RSI_VECTOR_MODEL` 覆盖（默认 bge-small-en-v1.5）。
+- **LME 不跑向量臂的实测理由**（2026-11-06）：16 核 CPU 无 GPU 主机上
+  fastembed/ONNX bge-large 真实文本吞吐 ≈1 向量/秒，LME 23,867 片全量
+  嵌入需 20+ CPU 小时（4 窗均值池化已计入）；而词面通道在 LME 已达
+  96.6% Hit@5，剩余空间 ≤3.4pt。默认词面在长会话语料上是经济理性选择。

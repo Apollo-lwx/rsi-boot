@@ -142,18 +142,48 @@ class VectorIndex:
 
     @staticmethod
     def _doc_text(doc: "MemoryDoc") -> str:
-        return f"{doc.title}\n{doc.content}"[:8000]
+        # bge 系列上限 512 token（≈2000 英文字符），超出部分模型内部也会截掉，
+        # 提前截断省 tokenize 时间（LME 单片 18k 字符，提速约 4 倍）
+        return f"{doc.title}\n{doc.content}"[:2000]
+
+    # 长文档分窗：注意力随序列长度平方增长，512 token 整段嵌入的算力足够跑
+    # 4 个 500 字符窗口（线性代价），均值池化后覆盖相同文本量但快约 4 倍。
+    # ≤2000 字符的文档保持单向量（LoCoMo 已发布数字逐位不变）。
+    _WIN_CHARS = 500
+    _WIN_COUNT = 4
+    _WIN_THRESHOLD = 2000
+
+    @classmethod
+    def _doc_chunks(cls, text: str) -> List[str]:
+        """长文档（>2000 字符）均匀采 4 个 500 字符窗口；否则整段截断单窗。
+        入参为未截断的 title+content 全文。"""
+        if len(text) <= cls._WIN_THRESHOLD:
+            return [text[:2000]]
+        span = len(text) - cls._WIN_CHARS
+        return [
+            text[int(i * span / (cls._WIN_COUNT - 1)):][: cls._WIN_CHARS]
+            for i in range(cls._WIN_COUNT)
+        ]
 
     def _doc_matrix(self, docs: List["MemoryDoc"]) -> np.ndarray:
-        """单位化文档向量矩阵；按 (doc_id, 文本 sha) 指纹缓存，文档集不变则零重算"""
-        texts = [self._doc_text(d) for d in docs]
+        """单位化文档向量矩阵；按 (doc_id, 文本长度, 前 2000 字符 sha) 指纹缓存，
+        文档集不变则零重算。长文档走分窗嵌入 + 均值池化（见 _doc_chunks）"""
+        texts = [f"{d.title}\n{d.content}" for d in docs]
         key = hashlib.sha256(
-            "\0".join(f"{d.id}:{self._key(t)}" for d, t in zip(docs, texts)).encode("utf-8")
+            "\0".join(
+                f"{d.id}:{len(t)}:{self._key(t[:2000])}" for d, t in zip(docs, texts)
+            ).encode("utf-8")
         ).hexdigest()
         if self._matrix is not None and self._matrix_key == key:
             return self._matrix
-        vecs = self._embed(texts)
-        matrix = np.array([vecs[t] for t in texts], dtype=np.float32)
+        chunk_lists = [self._doc_chunks(t) for t in texts]
+        flat = [c for chunks in chunk_lists for c in chunks]
+        vecs = self._embed(flat)
+        dim = len(vecs[flat[0]]) if flat else 0
+        matrix = np.zeros((len(docs), dim), dtype=np.float32)
+        for i, chunks in enumerate(chunk_lists):
+            stacked = np.array([vecs[c] for c in chunks], dtype=np.float32)
+            matrix[i] = stacked.mean(axis=0)
         norms = np.linalg.norm(matrix, axis=1, keepdims=True)
         matrix = matrix / np.where(norms == 0, 1e-12, norms)
         self._matrix = matrix

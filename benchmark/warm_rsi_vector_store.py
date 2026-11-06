@@ -30,27 +30,36 @@ os.environ.setdefault(
 
 
 def main() -> None:
-    from benchmark.recall_board import _locomo_samples
+    from benchmark.recall_board import _locomo_samples, _longmemeval_samples
     from rsi_boot.rag.query import expand_query
     from rsi_boot.rag.vector import VectorIndex
 
-    shard = None
-    if len(sys.argv) >= 3:
-        shard = (int(sys.argv[1]), int(sys.argv[2]))
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    dataset = "locomo"
+    pos: list[int] = []
+    for a in args:
+        if a in ("locomo", "lme"):
+            dataset = a
+        else:
+            pos.append(int(a))
+    shard = (pos[0], pos[1]) if len(pos) >= 2 else None
 
     store_path = Path(os.environ["RSI_VECTOR_STORE"])
     store_path.parent.mkdir(parents=True, exist_ok=True)
     vi = VectorIndex.create(Path(tempfile.mkdtemp()))
     assert vi is not None, "向量通道不可用"
 
-    samples = _locomo_samples()
+    samples = _locomo_samples() if dataset == "locomo" else _longmemeval_samples()
     if shard is not None:
         i, n = shard
         samples = [s for idx, s in enumerate(samples) if idx % n == i]
 
     started = time.monotonic()
     for index, sample in enumerate(samples, start=1):
-        texts = [f"{t}\n{c}"[:8000] for _gold, t, c in sample["rows"]]
+        # 与 VectorIndex._doc_matrix 同构：长文档预热的是分窗文本而非整段
+        texts = []
+        for _gold, t, c in sample["rows"]:
+            texts.extend(VectorIndex._doc_chunks(f"{t}\n{c}"))
         with tempfile.TemporaryDirectory() as td:
             texts.extend(
                 expand_query(q["question"], rsi_dir=Path(td))[0]

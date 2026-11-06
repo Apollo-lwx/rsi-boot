@@ -118,6 +118,33 @@ class TestMergeHop:
         assert out == []
 
 
+class TestDocChunks:
+    """长文档分窗（LME 18k 字符片）：≤2000 字符保持单窗（LoCoMo 缓存兼容）"""
+
+    def test_short_doc_single_chunk(self):
+        from rsi_boot.rag.vector import VectorIndex
+
+        text = "short doc"
+        assert VectorIndex._doc_chunks(text) == [text]
+
+    def test_threshold_boundary(self):
+        from rsi_boot.rag.vector import VectorIndex
+
+        assert len(VectorIndex._doc_chunks("x" * 2000)) == 1
+        assert len(VectorIndex._doc_chunks("x" * 2001)) == 4
+
+    def test_long_doc_windows_cover_head_and_tail(self):
+        from rsi_boot.rag.vector import VectorIndex
+
+        text = "h" * 1000 + "m" * 16000 + "t" * 1000
+        chunks = VectorIndex._doc_chunks(text)
+        assert len(chunks) == 4
+        assert all(len(c) == 500 for c in chunks)
+        assert chunks[0].startswith("h")   # 首窗覆盖头部
+        assert chunks[-1].endswith("t")    # 尾窗覆盖尾部
+        assert set(chunks[1]) == {"m"}     # 中间窗落在正文
+
+
 class TestBridgeTerms:
     D1 = "d1" * 16
     D2 = "d2".replace("d2", "e3") * 16  # 32 位 hex
