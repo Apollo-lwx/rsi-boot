@@ -75,6 +75,7 @@ def build_snapshot(rsi_dir: Path) -> dict[str, Any]:
                 mem_index[doc_id] = (cat, domain or "unknown")
             if status == "pending_review":
                 pending_items.append({
+                    "id": doc_id if isinstance(doc_id, str) else "",
                     "title": str(doc.get("title") or "(无标题)"),
                     "type": str(doc.get("type") or cat),
                     "domain": domain or "未知",

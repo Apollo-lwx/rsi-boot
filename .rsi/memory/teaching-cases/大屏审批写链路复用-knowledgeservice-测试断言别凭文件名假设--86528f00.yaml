@@ -1,0 +1,46 @@
+id: 86528f006e9f406283a142adcb316450
+type: teaching_case
+title: 大屏审批写链路复用 KnowledgeService，测试断言别凭文件名假设
+content: 搬家后文件名按标题 slug 化（memory_filename(title,id)），断言改用 memory_detail 回读的 path 前缀（memory/conventions/
+  或 memory/archive/）；fixture 字段没写就是没有，断言打到真有该字段的条目上。另：大屏写链路（POST /api/review）不要自己造搬家逻辑，复用
+  KnowledgeService.review_batch——approve→official、reject→archive 的落位规则只有一份，另补一条 kind=review、via=web_ui
+  的事件日志与 rsi_knowledge_review 同口径。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-09T07:39:56Z'
+updated_at: '2026-11-09T07:39:56Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: assert any("no-print" in p.name for p in archived) / assert doc["source"]
+      == "bootstrap"
+    failure_type: ''
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 搬家后文件名按标题 slug 化（memory_filename(title,id)），断言改用 memory_detail 回读的
+      path 前缀（memory/conventions/ 或 memory/archive/）；fixture 字段没写就是没有，断言打到真有该字段的条目上。另：大屏写链路（POST
+      /api/review）不要自己造搬家逻辑，复用 KnowledgeService.review_batch——approve→official、reject→archive
+      的落位规则只有一份，另补一条 kind=review、via=web_ui 的事件日志与 rsi_knowledge_review 同口径。
+    reason: ''
+    applies_to: []
+    tags:
+    - dashboard
+    - review
+    - testing
+    open_questions: []
+    wrong_action: 给测试写断言时假设两处事实：①审批搬家后文件名保持原样；②fixture 里没传的 source 字段能读出来。首轮 3 条测试因此失败。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-11-09T07:39:56Z'
+path: memory/teaching-cases/大屏审批写链路复用-knowledgeservice-测试断言别凭文件名假设--86528f00.yaml

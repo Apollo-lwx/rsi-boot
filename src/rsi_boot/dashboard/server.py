@@ -7,8 +7,9 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
+from .api import memory_detail, memory_list, recall_events, review
 from .snapshot import build_snapshot
 
 DEFAULT_PORT = 18765
@@ -33,17 +34,72 @@ def _handler(rsi_dir: Path, page: bytes) -> type[BaseHTTPRequestHandler]:
             return
 
         def do_GET(self) -> None:  # noqa: N802
-            path = urlparse(self.path).path
+            parsed = urlparse(self.path)
+            path = parsed.path
             if path in {"/", "/dashboard", "/dashboard/"}:
                 self._send(200, "text/html; charset=utf-8", page)
                 return
             if path == "/api/snapshot":
-                body = json.dumps(
-                    build_snapshot(rsi_dir), ensure_ascii=False,
-                ).encode("utf-8")
-                self._send(200, "application/json; charset=utf-8", body)
+                self._json(200, build_snapshot(rsi_dir))
+                return
+            if path == "/api/memories":
+                query = parse_qs(parsed.query)
+                items = memory_list(
+                    rsi_dir,
+                    category=query.get("category", [""])[0],
+                    status=query.get("status", [""])[0],
+                )
+                self._json(200, {"items": items})
+                return
+            if path == "/api/recalls":
+                self._json(200, {"events": recall_events(rsi_dir)})
+                return
+            if path.startswith("/api/memory/"):
+                detail = memory_detail(rsi_dir, path.rsplit("/", 1)[-1])
+                if detail is None:
+                    self._json(404, {"error": "not found"})
+                    return
+                self._json(200, detail)
                 return
             self._send(404, "text/plain; charset=utf-8", b"not found")
+
+        def do_POST(self) -> None:  # noqa: N802
+            path = urlparse(self.path).path
+            if path != "/api/review":
+                self._send(404, "text/plain; charset=utf-8", b"not found")
+                return
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            if length <= 0 or length > 65536:
+                self._json(400, {"error": "bad body"})
+                return
+            try:
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                self._json(400, {"error": "bad json"})
+                return
+            ids = body.get("ids") if isinstance(body, dict) else None
+            action = str(body.get("action") or "") if isinstance(body, dict) else ""
+            if (
+                not isinstance(ids, list)
+                or not ids
+                or not all(isinstance(item, str) for item in ids)
+                or action not in ("approve", "reject")
+            ):
+                self._json(400, {"error": "需要 ids 数组与 action=approve|reject"})
+                return
+            try:
+                result = review(rsi_dir, ids, action)
+            except Exception as exc:  # 审批异常不拖垮大屏服务
+                self._json(500, {"error": f"review failed: {exc.__class__.__name__}"})
+                return
+            self._json(200, {"status": "success", **result})
+
+        def _json(self, code: int, payload: Any) -> None:
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self._send(code, "application/json; charset=utf-8", body)
 
         def _send(self, code: int, content_type: str, body: bytes) -> None:
             self.send_response(code)

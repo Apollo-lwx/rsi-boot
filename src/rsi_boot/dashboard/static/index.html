@@ -119,6 +119,32 @@
   .sec { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
   .note { color: var(--dim); font-size: 12px; margin-top: 16px; line-height: 1.6; }
   .pend { display: flex; align-items: center; gap: 12px; background: var(--tile); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+  .pend input[type="checkbox"] { accent-color: #21D3EE; width: 14px; height: 14px; cursor: pointer; flex: none; margin: 0; }
+  .link { cursor: pointer; }
+  .link:hover { color: var(--cyan); }
+  .chip, .hit {
+    border: 1px solid rgba(33,211,238,0.25); background: var(--tile); color: var(--muted);
+    border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 12px;
+    margin: 0 6px 6px 0; display: inline-block; text-align: left;
+  }
+  .chip:hover, .hit:hover { color: var(--text); border-color: rgba(33,211,238,0.55); }
+  .hit.missing { opacity: 0.5; cursor: default; border-style: dashed; }
+  .batchbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .act { border: 0; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .act.ok { background: rgba(52,211,153,0.9); color: #06101F; }
+  .act.no { background: rgba(251,113,133,0.9); color: #06101F; }
+  .act:disabled { opacity: 0.35; cursor: not-allowed; }
+  .notice {
+    background: rgba(33,211,238,0.1); border: 1px solid rgba(33,211,238,0.3);
+    color: var(--cyan); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px;
+  }
+  .content {
+    background: var(--tile); border-radius: 8px; padding: 12px; margin: 0;
+    font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+    max-height: 40vh; overflow: auto; font-family: inherit;
+  }
+  .ev { margin-bottom: 12px; }
+  .ev-head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 6px; }
   .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
   .err { padding: 48px 24px; text-align: center; color: var(--muted); }
   @media (max-width: 1100px) {
@@ -148,7 +174,7 @@ const FB_ORDER = [
   ["ignored", "ignored 忽略", "#FBBF24"],
   ["rejected", "rejected 拒绝", "#FB7185"]
 ];
-const state = { raw: null, range: "12m", selected: null };
+const state = { raw: null, range: "12m", stack: [], checked: {}, notice: "" };
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -309,7 +335,35 @@ function tile(label, value, color) {
   return `<div class="tile"><b class="mono" style="color:${paint(color)}">${esc(value)}</b><span>${esc(label)}</span></div>`;
 }
 
-function modal(kpi, raw, data) {
+function statusColor(status) {
+  if (status === "active") return "#34D399";
+  if (status === "archived") return "#21D3EE";
+  return "#FBBF24";
+}
+function modalFrame(head, body, note) {
+  const deep = state.stack.length > 1;
+  return `<div class="mask" id="mask">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          ${deep ? `<button class="x" id="back" type="button">‹ 返回</button>` : ""}
+          <div>${head}</div>
+        </div>
+        <button class="x" id="close" type="button">✕ 关闭</button>
+      </div>
+      ${state.notice ? `<div class="notice">${esc(state.notice)}</div>` : ""}
+      ${body}
+      ${note ? `<div class="note">${esc(note)}</div>` : ""}
+    </div>
+  </div>`;
+}
+function kpiHead(kpi) {
+  const deltaColor = kpi.tone === "amber" ? "#FBBF24" : "#34D399";
+  return `<div class="muted" style="font-size:14px">${esc(kpi.label)}</div>
+    <div class="mono big">${esc(kpi.value)}</div>
+    <div style="color:${deltaColor};font-size:12px;margin-top:4px">${esc(kpi.delta)}</div>`;
+}
+function kpiModal(kpi, raw, data) {
   const rs = raw.recallStats || {};
   const fb = raw.feedback || { breakdown: {}, total: 0, adopted: 0, adoptionPct: 0 };
   const st = raw.memory.status || [];
@@ -329,7 +383,8 @@ function modal(kpi, raw, data) {
       ${catRows.map((row) => progress(row.label, row.value, row.color, hits ? (row.value / hits * 100).toFixed(1) : 0)).join("")}
     </div><div><div class="sec">命中按记忆模块 Top ${(rs.byDomain || []).length}</div>
       ${(rs.byDomain || []).map((row) => progress(row.label === "unknown" ? "未标注 domain" : row.label, row.value, "#9A66F2", (row.value / domSum * 100).toFixed(1))).join("") || `<p class="empty">还没有可映射的命中。</p>`}
-    </div></div>`;
+    </div></div>
+    <div style="margin-top:16px"><button class="x" id="drill-recalls" type="button">查看召回事件明细 →</button></div>`;
     const unmappedPct = hits ? ((rs.unmappedHits || 0) / hits * 100).toFixed(1) : "0.0";
     note = `口径说明：命中 = 每次 recall 检索到的候选记忆条数（单次 ${rs.minPerEvent || 0}~${rs.maxPerEvent || 0} 条），${rs.events || 0} 次召回合计 ${num(hits)} 条；其中 ${unmappedPct}% 的候选 ID 已不在当前记忆库。类型 / 模块分布按全部事件统计。`;
   } else if (kpi.key === "adoption") {
@@ -360,37 +415,169 @@ function modal(kpi, raw, data) {
     </div></div>`;
     note = "口径说明：状态按文件所在目录计算，memory/pending 为待审，memory/archive 为已归档，其余为 active。";
   } else if (kpi.key === "pending") {
-    body = `<div class="sec">待审条目清单（pending_review）</div>` + (pending.length ? pending.map((item) => `<div class="pend">
+    const chosen = Object.keys(state.checked).length;
+    const rows = pending.map((item) => `<div class="pend">
+      <input type="checkbox" data-pend="${esc(item.id)}" ${state.checked[item.id] ? "checked" : ""} ${item.id ? "" : "disabled"} />
       <span class="dot" style="background:${item.type === "prohibition" ? "#FB7185" : "#FBBF24"}"></span>
-      <span class="grow">${esc(item.title)}</span>
+      <span class="grow ${item.id ? "link" : ""}" ${item.id ? `data-doc="${esc(item.id)}"` : ""}>${esc(item.title)}</span>
       <span class="dim" style="font-size:11px">${esc(item.type)}</span>
       <span class="dim" style="font-size:11px">${esc(item.domain)}</span>
       <span class="mono dim" style="font-size:11px">${esc(item.updated)}</span>
-    </div>`).join("") : `<p class="empty">当前没有待审条目。</p>`);
-    note = `口径说明：待审条目来自 memory/pending 下的记忆，共 ${pending.length} 条，需人工审核后转为 active 或 archived。`;
+    </div>`).join("");
+    body = (pending.length ? `<div class="batchbar">
+      <button class="x" id="sel-all" type="button">全选</button>
+      <button class="x" id="sel-none" type="button">清空</button>
+      <span class="dim" id="sel-count" style="font-size:12px">已选 ${chosen} 条</span>
+      <span style="flex:1"></span>
+      <button class="act ok" id="batch-approve" type="button" ${chosen ? "" : "disabled"}>✓ 批准所选</button>
+      <button class="act no" id="batch-reject" type="button" ${chosen ? "" : "disabled"}>✕ 拒绝所选</button>
+    </div>` : "")
+      + `<div class="sec">待审条目清单（pending_review）· 点标题看全文</div>`
+      + (rows || `<p class="empty">当前没有待审条目。</p>`);
+    note = `口径说明：待审条目来自 memory/pending 下的记忆，共 ${data.pending} 条${data.pending > pending.length ? `，此处列出最近更新的 ${pending.length} 条` : ""}；批准 → active（转入正式目录），拒绝 → archived（归档）。`;
   } else {
+    const chips = (raw.memory.categories || []).map((row) => {
+      const cat = row.label === "other 其他" ? "other" : row.label;
+      return `<button class="chip" data-cat="${esc(cat)}" type="button">${esc(row.label)} · ${esc(row.value)} 条 →</button>`;
+    }).join("");
     body = `<div class="split"><div><div class="sec">按记忆类型分布</div>
       ${data.donut.map((row) => progress(row.label, row.count, row.color, row.value)).join("") || `<p class="empty">还没有记忆。</p>`}
     </div><div><div class="sec">记忆模块 Top ${data.domains.length}</div>
       ${data.domains.map((row) => progress(row.label, row.value, "#21D3EE", data.total ? (row.value / data.total * 100).toFixed(1) : 0)).join("") || `<p class="empty">记忆还没有 domain。</p>`}
-    </div></div>`;
+    </div></div>
+    <div class="sec" style="margin-top:16px">点类型看记忆清单</div>
+    <div>${chips || `<p class="empty">还没有记忆。</p>`}</div>`;
     note = `口径说明：按当前记忆库的构成统计，加总 = ${num(data.total)} 条记忆。`;
   }
-  const deltaColor = kpi.tone === "amber" ? "#FBBF24" : "#34D399";
-  return `<div class="mask" id="mask">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modal-head">
-        <div>
-          <div class="muted" style="font-size:14px">${esc(kpi.label)}</div>
-          <div class="mono big">${esc(kpi.value)}</div>
-          <div style="color:${deltaColor};font-size:12px;margin-top:4px">${esc(kpi.delta)}</div>
-        </div>
-        <button class="x" id="close" type="button">✕ 关闭</button>
+  return modalFrame(kpiHead(kpi), body, note);
+}
+function catView(top) {
+  const head = `<div class="muted" style="font-size:14px">记忆清单 · ${esc(top.cat)}</div>
+    <div class="mono big">${top.items ? esc(num(top.items.length)) : "…"}</div>`;
+  if (!top.items) return modalFrame(head, `<p class="empty">正在读取清单…</p>`, "");
+  const rows = top.items.map((item) => `<div class="pend">
+    <span class="dot" style="background:${statusColor(item.status)}"></span>
+    <span class="grow link" data-doc="${esc(item.id)}" title="${esc(item.snippet)}">${esc(item.title)}</span>
+    <span class="dim" style="font-size:11px">${esc(item.type)}</span>
+    <span class="dim" style="font-size:11px">${esc(item.status)}</span>
+    <span class="mono dim" style="font-size:11px">${esc(item.updated)}</span>
+  </div>`).join("");
+  return modalFrame(head, rows || `<p class="empty">这个类型下没有记忆。</p>`, "点标题看全文与出处；最多列最近更新的 200 条。");
+}
+function recallsView(top) {
+  const head = `<div class="muted" style="font-size:14px">召回事件明细</div>
+    <div class="mono big">${top.events ? esc(num(top.events.length)) : "…"}</div>`;
+  if (!top.events) return modalFrame(head, `<p class="empty">正在读取事件…</p>`, "");
+  const rows = top.events.map((ev) => {
+    const hits = ev.hits.length ? ev.hits.map((hit) => hit.missing
+      ? `<span class="hit missing">${esc(hit.title)}</span>`
+      : `<button class="hit" data-doc="${esc(hit.id)}" type="button">${esc(hit.title)}<span class="dim" style="font-size:11px"> · ${esc(hit.type)}</span></button>`
+    ).join("") : `<span class="dim" style="font-size:12px">本次没有命中</span>`;
+    return `<div class="ev">
+      <div class="ev-head">
+        <span class="mono dim" style="font-size:11px">${esc(ev.ts.slice(0, 16).replace("T", " "))}</span>
+        <span class="grow" style="font-size:13px">${esc(ev.task || "（未记录任务）")}</span>
+        <span class="dim" style="font-size:11px">命中 ${ev.hits.length} 条</span>
       </div>
-      ${body}
-      <div class="note">${esc(note)}</div>
-    </div>
-  </div>`;
+      <div>${hits}</div>
+    </div>`;
+  }).join("");
+  return modalFrame(head, rows || `<p class="empty">还没有召回事件。</p>`, "点命中的记忆标题看全文与出处；最多列最近 30 次召回。");
+}
+function docView(top) {
+  const doc = top.doc;
+  const head = `<div class="muted" style="font-size:14px">记忆详情</div>
+    <div style="font-size:20px;font-weight:600;margin-top:4px;line-height:1.4">${esc(doc ? doc.title : "…")}</div>`;
+  if (!doc) return modalFrame(head, `<p class="empty">正在读取详情…</p>`, "");
+  const meta = [
+    ["ID", doc.id], ["类型", doc.type + " / " + doc.category], ["状态", doc.status],
+    ["domain", doc.domain || "—"], ["来源", doc.source || "—"],
+    ["标签", (doc.tags || []).join(", ") || "—"], ["角色", (doc.roles || []).join(", ") || "—"],
+    ["创建", doc.created || "—"], ["更新", doc.updated_full || "—"], ["路径", doc.path || "—"],
+  ].map(([k, v]) => `<div class="meta-row"><span class="muted">${esc(k)}</span><span class="mono right grow" style="font-size:11px">${esc(v)}</span></div>`).join("");
+  const actions = doc.status === "pending_review" ? `<div class="batchbar">
+    <button class="act ok" data-doc-act="approve" type="button">✓ 批准转 active</button>
+    <button class="act no" data-doc-act="reject" type="button">✕ 拒绝归档</button>
+  </div>` : "";
+  const extra = [
+    ["描述", doc.description], ["前提条件", doc.trigger], ["失效条件", doc.expiry],
+  ].filter(([, v]) => v).map(([k, v]) => `<div class="sec" style="margin-top:16px">${esc(k)}</div><pre class="content">${esc(v)}</pre>`).join("");
+  const body = `${actions}<div class="meta">${meta}</div>
+    <div class="sec" style="margin-top:16px">正文</div><pre class="content">${esc(doc.content || "（空）")}</pre>${extra}`;
+  return modalFrame(head, body, "");
+}
+function modalView(raw, data, kpis) {
+  const top = state.stack[state.stack.length - 1];
+  if (top.kind === "doc") return docView(top);
+  if (top.kind === "category") return catView(top);
+  if (top.kind === "recalls") return recallsView(top);
+  return kpiModal(kpis[top.index], raw, data);
+}
+
+async function api(path, options) {
+  const resp = await fetch(path, Object.assign({ cache: "no-store" }, options || {}));
+  if (!resp.ok) throw new Error(path + " → " + resp.status);
+  return resp.json();
+}
+async function refresh() {
+  state.raw = await api("/api/snapshot");
+  const pendingIds = new Set((state.raw.pendingItems || []).map((item) => item.id));
+  Object.keys(state.checked).forEach((id) => { if (!pendingIds.has(id)) delete state.checked[id]; });
+  const top = state.stack[state.stack.length - 1];
+  if (top && top.kind === "doc") {
+    try { top.doc = await api("/api/memory/" + top.id); } catch (err) { top.doc = null; }
+  }
+  render();
+}
+async function drillDoc(id) {
+  if (!id) return;
+  state.stack.push({ kind: "doc", id, doc: null });
+  render();
+  const top = state.stack[state.stack.length - 1];
+  try { top.doc = await api("/api/memory/" + id); }
+  catch (err) { state.notice = "读取详情失败：" + (err.message || err); state.stack.pop(); }
+  render();
+}
+async function drillCategory(cat) {
+  state.stack.push({ kind: "category", cat, items: null });
+  render();
+  const top = state.stack[state.stack.length - 1];
+  try { top.items = (await api("/api/memories?category=" + encodeURIComponent(cat))).items; }
+  catch (err) { state.notice = "读取清单失败：" + (err.message || err); state.stack.pop(); }
+  render();
+}
+async function drillRecalls() {
+  state.stack.push({ kind: "recalls", events: null });
+  render();
+  const top = state.stack[state.stack.length - 1];
+  try { top.events = (await api("/api/recalls")).events; }
+  catch (err) { state.notice = "读取召回事件失败：" + (err.message || err); state.stack.pop(); }
+  render();
+}
+async function doReview(ids, action) {
+  if (!ids.length) return;
+  try {
+    const res = await api("/api/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, action })
+    });
+    state.notice = (action === "approve" ? "批准" : "拒绝") + "完成：" + (res.processed || 0) + " / " + ids.length + " 条已处理";
+    ids.forEach((id) => { delete state.checked[id]; });
+    await refresh();
+  } catch (err) {
+    state.notice = "审批失败：" + (err.message || err);
+    render();
+  }
+}
+function updateBatchBar() {
+  const count = Object.keys(state.checked).length;
+  const label = document.getElementById("sel-count");
+  if (label) label.textContent = "已选 " + count + " 条";
+  ["batch-approve", "batch-reject"].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = !count;
+  });
 }
 
 function render() {
@@ -463,7 +650,7 @@ function render() {
         ${panel("近期活动（真实事件流）", data.recent.length ? `<ul class="feed">${data.recent.map((row) => `<li><span style="color:${kindColor[row.kind] || "#FBBF24"}">›</span><span>${esc(row.text)}</span></li>`).join("")}</ul>` : `<p class="empty">还没有 recall / feedback 事件。</p>`)}
       </div>
     </div>
-    ${state.selected ? modal(state.selected, raw, data) : ""}
+    ${state.stack.length ? modalView(raw, data, kpis) : ""}
   `;
   document.getElementById("app").innerHTML = html;
   document.querySelectorAll("[data-range]").forEach((node) => {
@@ -474,16 +661,68 @@ function render() {
   });
   document.querySelectorAll("[data-kpi]").forEach((node) => {
     node.addEventListener("click", () => {
-      state.selected = kpis[Number(node.getAttribute("data-kpi"))];
+      state.stack = [{ kind: "kpi", index: Number(node.getAttribute("data-kpi")) }];
+      state.notice = "";
       render();
     });
   });
   const close = document.getElementById("close");
   const mask = document.getElementById("mask");
-  if (close) close.addEventListener("click", () => { state.selected = null; render(); });
+  const back = document.getElementById("back");
+  const closeAll = () => { state.stack = []; state.checked = {}; state.notice = ""; render(); };
+  if (close) close.addEventListener("click", closeAll);
   if (mask) mask.addEventListener("click", (event) => {
-    if (event.target === mask) { state.selected = null; render(); }
+    if (event.target === mask) closeAll();
   });
+  if (back) back.addEventListener("click", () => {
+    state.stack.pop();
+    state.notice = "";
+    render();
+  });
+  document.querySelectorAll("[data-doc]").forEach((node) => {
+    node.addEventListener("click", (event) => {
+      event.stopPropagation();
+      drillDoc(node.getAttribute("data-doc"));
+    });
+  });
+  document.querySelectorAll("[data-cat]").forEach((node) => {
+    node.addEventListener("click", () => drillCategory(node.getAttribute("data-cat")));
+  });
+  document.querySelectorAll("[data-doc-act]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const top = state.stack[state.stack.length - 1];
+      if (top && top.kind === "doc") doReview([top.id], node.getAttribute("data-doc-act"));
+    });
+  });
+  const drill = document.getElementById("drill-recalls");
+  if (drill) drill.addEventListener("click", drillRecalls);
+  document.querySelectorAll("[data-pend]").forEach((node) => {
+    node.addEventListener("change", () => {
+      const id = node.getAttribute("data-pend");
+      if (node.checked) state.checked[id] = 1;
+      else delete state.checked[id];
+      updateBatchBar();
+    });
+  });
+  const selAll = document.getElementById("sel-all");
+  const selNone = document.getElementById("sel-none");
+  if (selAll) selAll.addEventListener("click", () => {
+    document.querySelectorAll("[data-pend]").forEach((node) => {
+      if (node.disabled) return;
+      node.checked = true;
+      state.checked[node.getAttribute("data-pend")] = 1;
+    });
+    updateBatchBar();
+  });
+  if (selNone) selNone.addEventListener("click", () => {
+    document.querySelectorAll("[data-pend]").forEach((node) => { node.checked = false; });
+    state.checked = {};
+    updateBatchBar();
+  });
+  const batchApprove = document.getElementById("batch-approve");
+  const batchReject = document.getElementById("batch-reject");
+  if (batchApprove) batchApprove.addEventListener("click", () => doReview(Object.keys(state.checked), "approve"));
+  if (batchReject) batchReject.addEventListener("click", () => doReview(Object.keys(state.checked), "reject"));
 }
 
 async function boot() {
@@ -501,8 +740,9 @@ async function boot() {
   }
 }
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && state.selected) {
-    state.selected = null;
+  if (event.key === "Escape" && state.stack.length) {
+    state.stack.pop();
+    state.notice = "";
     render();
   }
 });
