@@ -106,6 +106,19 @@ def test_memory_list_filters(rsi):
     pending = memory_list(rsi, status="pending_review")
     assert {row["id"] for row in pending} == {"b" * 32, "c" * 32}
     assert all(row["status"] == "pending_review" for row in pending)
+    by_domain = memory_list(rsi, domain="sql")
+    assert [row["id"] for row in by_domain] == ["c" * 32]
+
+
+def test_event_list_filters_by_kind(rsi):
+    from rsi_boot.dashboard.api import event_list
+
+    feedback = event_list(rsi, "feedback")
+    assert len(feedback) == 1
+    assert feedback[0]["action"] == "accepted"
+    assert all(ev["kind"] == "feedback" for ev in feedback)
+    everything = event_list(rsi)
+    assert {ev["kind"] for ev in everything} == {"recall", "feedback"}
 
 
 def test_recall_events_resolve_titles(rsi):
@@ -131,6 +144,11 @@ def test_http_get_endpoints(rsi):
     status, recalls = _get(base + "/api/recalls")
     assert status == 200
     assert recalls["events"][0]["task"] == "命名规范"
+    status, events = _get(base + "/api/events?kind=feedback")
+    assert status == 200
+    assert [ev["action"] for ev in events["events"]] == ["accepted"]
+    status, by_domain = _get(base + "/api/memories?domain=sql")
+    assert [row["title"] for row in by_domain["items"]] == ["不要 SELECT *"]
 
 
 def test_post_review_approve_moves_files(rsi):

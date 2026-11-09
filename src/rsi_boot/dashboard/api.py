@@ -23,6 +23,7 @@ from .snapshot import _category, _clip, _iter_event_logs
 _ID_RE = re.compile(r"^[0-9a-f]{32}$")
 _LIST_CAP = 200
 _RECALL_CAP = 30
+_EVENT_CAP = 50
 
 
 def _doc_status(doc: MemoryDoc) -> str:
@@ -67,8 +68,10 @@ def memory_detail(rsi_dir: Path, doc_id: str) -> dict[str, Any] | None:
     return brief
 
 
-def memory_list(rsi_dir: Path, *, category: str = "", status: str = "") -> list[dict[str, Any]]:
-    """按类型/状态列记忆（列表页用，不含全文）。"""
+def memory_list(
+    rsi_dir: Path, *, category: str = "", status: str = "", domain: str = "",
+) -> list[dict[str, Any]]:
+    """按类型/状态/模块列记忆（列表页用，不含全文）。domain=unknown 匹配未标注。"""
     store = MemoryStore(rsi_dir)
     rows: list[dict[str, Any]] = []
     for doc in store.list_all():
@@ -79,11 +82,29 @@ def memory_list(rsi_dir: Path, *, category: str = "", status: str = "") -> list[
             continue
         if status and stat != status:
             continue
+        if domain and (doc.domain or "unknown") != domain:
+            continue
         row = _doc_brief(doc)
         row["category"] = cat
         rows.append(row)
     rows.sort(key=lambda row: row["updated"], reverse=True)
     return rows[:_LIST_CAP]
+
+
+def event_list(rsi_dir: Path, kind: str = "") -> list[dict[str, Any]]:
+    """近期事件流（反馈构成等下钻用），只带展示需要的字段。"""
+    out: list[dict[str, Any]] = []
+    for event in _iter_event_logs(Path(rsi_dir)):
+        if kind and event.get("kind") != kind:
+            continue
+        row = {
+            key: event.get(key)
+            for key in ("ts", "kind", "action", "rating", "task", "processed")
+            if event.get(key) is not None
+        }
+        out.append(row)
+    out.sort(key=lambda row: str(row.get("ts") or ""), reverse=True)
+    return out[:_EVENT_CAP]
 
 
 def recall_events(rsi_dir: Path) -> list[dict[str, Any]]:

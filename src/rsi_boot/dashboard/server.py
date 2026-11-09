@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from .api import memory_detail, memory_list, recall_events, review
+from .api import event_list, memory_detail, memory_list, recall_events, review
 from .snapshot import build_snapshot
 
 DEFAULT_PORT = 18765
@@ -48,11 +48,16 @@ def _handler(rsi_dir: Path, page: bytes) -> type[BaseHTTPRequestHandler]:
                     rsi_dir,
                     category=query.get("category", [""])[0],
                     status=query.get("status", [""])[0],
+                    domain=query.get("domain", [""])[0],
                 )
                 self._json(200, {"items": items})
                 return
             if path == "/api/recalls":
                 self._json(200, {"events": recall_events(rsi_dir)})
+                return
+            if path == "/api/events":
+                query = parse_qs(parsed.query)
+                self._json(200, {"events": event_list(rsi_dir, query.get("kind", [""])[0])})
                 return
             if path.startswith("/api/memory/"):
                 detail = memory_detail(rsi_dir, path.rsplit("/", 1)[-1])

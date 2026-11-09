@@ -16,7 +16,11 @@
     --cyan: #21D3EE;
     --track: #16243D;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: rgba(33,211,238,0.3) var(--track); }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--track); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(33,211,238,0.28); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(33,211,238,0.5); }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
   body {
     font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -268,9 +272,10 @@ function donut(segments, total) {
     <text x="50%" y="64%" text-anchor="middle" fill="#8FA3C7" font-size="11">条记忆</text>
   </svg>`;
 }
-function progress(label, value, color, pct) {
+function progress(label, value, color, pct, attrs) {
   const width = Math.max(0, Math.min(100, Number(pct) || 0));
-  return `<div class="prog">
+  const clickable = attrs ? " link" : "";
+  return `<div class="prog${clickable}" ${attrs || ""}>
     <div class="prog-top"><span class="muted">${esc(label)}</span><span class="mono">${esc(Math.round(Number(value) || 0))} · ${esc(width)}%</span></div>
     <div class="track"><i style="width:${width}%;background:${paint(color)}"></i></div>
   </div>`;
@@ -379,10 +384,14 @@ function kpiModal(kpi, raw, data) {
       ${tile("命中（候选）条数", num(rs.hits), "#34D399")}
       ${tile("均次命中", rs.avgPerEvent || 0, "#9A66F2")}
       ${tile("单次范围", (rs.minPerEvent || 0) + "~" + (rs.maxPerEvent || 0), "#FBBF24")}
-    </div><div class="split"><div><div class="sec">命中按记忆类型分布</div>
-      ${catRows.map((row) => progress(row.label, row.value, row.color, hits ? (row.value / hits * 100).toFixed(1) : 0)).join("")}
-    </div><div><div class="sec">命中按记忆模块 Top ${(rs.byDomain || []).length}</div>
-      ${(rs.byDomain || []).map((row) => progress(row.label === "unknown" ? "未标注 domain" : row.label, row.value, "#9A66F2", (row.value / domSum * 100).toFixed(1))).join("") || `<p class="empty">还没有可映射的命中。</p>`}
+    </div><div class="split"><div><div class="sec">命中按记忆类型分布 · 点行看清单</div>
+      ${catRows.map((row, i) => {
+        const cat = row.label === "other 其他" ? "other" : row.label;
+        const attrs = i < catRows.length - 1 ? `data-cat="${esc(cat)}"` : "";
+        return progress(row.label, row.value, row.color, hits ? (row.value / hits * 100).toFixed(1) : 0, attrs);
+      }).join("")}
+    </div><div><div class="sec">命中按记忆模块 Top ${(rs.byDomain || []).length} · 点行看清单</div>
+      ${(rs.byDomain || []).map((row) => progress(row.label === "unknown" ? "未标注 domain" : row.label, row.value, "#9A66F2", (row.value / domSum * 100).toFixed(1), `data-domain="${esc(row.label)}"`)).join("") || `<p class="empty">还没有可映射的命中。</p>`}
     </div></div>
     <div style="margin-top:16px"><button class="x" id="drill-recalls" type="button">查看召回事件明细 →</button></div>`;
     const unmappedPct = hits ? ((rs.unmappedHits || 0) / hits * 100).toFixed(1) : "0.0";
@@ -395,8 +404,8 @@ function kpiModal(kpi, raw, data) {
       ${tile("已采纳", num(fb.adopted), "#34D399")}
       ${tile("采纳率", (fb.adoptionPct || 0) + "%", "#9A66F2")}
       ${tile("未采纳", num((fb.total || 0) - (fb.adopted || 0)), "#FBBF24")}
-    </div><div class="split"><div><div class="sec">反馈动作构成</div>
-      ${rows.map((name) => progress(name, fb.breakdown[name], colors[name] || "#5E7196", fb.total ? (fb.breakdown[name] / fb.total * 100).toFixed(1) : 0)).join("") || `<p class="empty">还没有反馈。</p>`}
+    </div><div class="split"><div><div class="sec">反馈动作构成 · 点行看事件</div>
+      ${rows.map((name) => progress(name, fb.breakdown[name], colors[name] || "#5E7196", fb.total ? (fb.breakdown[name] / fb.total * 100).toFixed(1) : 0, `data-fb="${esc(name)}"`)).join("") || `<p class="empty">还没有反馈。</p>`}
     </div><div><div class="sec">采纳口径</div>
       <p class="muted" style="font-size:13px;line-height:1.7">采纳 = applied（直接应用） + accepted（接受） + referenced（引用） + modified（修改后应用）；ignored（忽略）与 rejected（拒绝）不计入采纳。当前 ${fb.adopted || 0} / ${fb.total || 0} = ${fb.adoptionPct || 0}%。</p>
     </div></div>`;
@@ -408,8 +417,8 @@ function kpiModal(kpi, raw, data) {
       ${tile("active", num(find("active")), "#34D399")}
       ${tile("pending_review", num(find("pending_review")), "#FBBF24")}
       ${tile("archived", num(find("archived")), "#9A66F2")}
-    </div><div class="split"><div><div class="sec">记忆状态分布</div>
-      ${st.map((row) => progress(row.label, row.value, row.color, data.total ? (row.value / data.total * 100).toFixed(1) : 0)).join("") || `<p class="empty">还没有记忆。</p>`}
+    </div><div class="split"><div><div class="sec">记忆状态分布 · 点行看清单</div>
+      ${st.map((row) => progress(row.label, row.value, row.color, data.total ? (row.value / data.total * 100).toFixed(1) : 0, `data-status="${esc(row.label)}"`)).join("") || `<p class="empty">还没有记忆。</p>`}
     </div><div><div class="sec">健康度口径</div>
       <p class="muted" style="font-size:13px;line-height:1.7">知识健康度 = active 记忆 / 全部记忆。当前 ${num(find("active"))} / ${num(data.total)} = ${data.health}%；pending_review 为待人工审核条目，archived 为已归档条目。</p>
     </div></div>`;
@@ -436,23 +445,20 @@ function kpiModal(kpi, raw, data) {
       + (rows || `<p class="empty">当前没有待审条目。</p>`);
     note = `口径说明：待审条目来自 memory/pending 下的记忆，共 ${data.pending} 条${data.pending > pending.length ? `，此处列出最近更新的 ${pending.length} 条` : ""}；批准 → active（转入正式目录），拒绝 → archived（归档）。`;
   } else {
-    const chips = (raw.memory.categories || []).map((row) => {
-      const cat = row.label === "other 其他" ? "other" : row.label;
-      return `<button class="chip" data-cat="${esc(cat)}" type="button">${esc(row.label)} · ${esc(row.value)} 条 →</button>`;
-    }).join("");
-    body = `<div class="split"><div><div class="sec">按记忆类型分布</div>
-      ${data.donut.map((row) => progress(row.label, row.count, row.color, row.value)).join("") || `<p class="empty">还没有记忆。</p>`}
-    </div><div><div class="sec">记忆模块 Top ${data.domains.length}</div>
-      ${data.domains.map((row) => progress(row.label, row.value, "#21D3EE", data.total ? (row.value / data.total * 100).toFixed(1) : 0)).join("") || `<p class="empty">记忆还没有 domain。</p>`}
-    </div></div>
-    <div class="sec" style="margin-top:16px">点类型看记忆清单</div>
-    <div>${chips || `<p class="empty">还没有记忆。</p>`}</div>`;
+    body = `<div class="split"><div><div class="sec">按记忆类型分布 · 点行看清单</div>
+      ${data.donut.map((row) => {
+        const cat = row.label === "other 其他" ? "other" : row.label;
+        return progress(row.label, row.count, row.color, row.value, `data-cat="${esc(cat)}"`);
+      }).join("") || `<p class="empty">还没有记忆。</p>`}
+    </div><div><div class="sec">记忆模块 Top ${data.domains.length} · 点行看清单</div>
+      ${data.domains.map((row) => progress(row.label, row.value, "#21D3EE", data.total ? (row.value / data.total * 100).toFixed(1) : 0, `data-domain="${esc(row.label)}"`)).join("") || `<p class="empty">记忆还没有 domain。</p>`}
+    </div></div>`;
     note = `口径说明：按当前记忆库的构成统计，加总 = ${num(data.total)} 条记忆。`;
   }
   return modalFrame(kpiHead(kpi), body, note);
 }
-function catView(top) {
-  const head = `<div class="muted" style="font-size:14px">记忆清单 · ${esc(top.cat)}</div>
+function listView(top) {
+  const head = `<div class="muted" style="font-size:14px">记忆清单 · ${esc(top.title)}</div>
     <div class="mono big">${top.items ? esc(num(top.items.length)) : "…"}</div>`;
   if (!top.items) return modalFrame(head, `<p class="empty">正在读取清单…</p>`, "");
   const rows = top.items.map((item) => `<div class="pend">
@@ -462,7 +468,19 @@ function catView(top) {
     <span class="dim" style="font-size:11px">${esc(item.status)}</span>
     <span class="mono dim" style="font-size:11px">${esc(item.updated)}</span>
   </div>`).join("");
-  return modalFrame(head, rows || `<p class="empty">这个类型下没有记忆。</p>`, "点标题看全文与出处；最多列最近更新的 200 条。");
+  return modalFrame(head, rows || `<p class="empty">这个条件下没有记忆。</p>`, "点标题看全文与出处；最多列最近更新的 200 条。");
+}
+function fbView(top) {
+  const head = `<div class="muted" style="font-size:14px">反馈事件 · ${esc(top.action)}</div>
+    <div class="mono big">${top.events ? esc(num(top.events.length)) : "…"}</div>`;
+  if (!top.events) return modalFrame(head, `<p class="empty">正在读取事件…</p>`, "");
+  const rows = top.events.map((ev) => `<div class="pend">
+    <span class="dot" style="background:#34D399"></span>
+    <span class="mono dim" style="font-size:11px">${esc(String(ev.ts || "").slice(0, 16).replace("T", " "))}</span>
+    <span class="grow">${esc(ev.task || "（未记录任务）")}</span>
+    ${ev.rating != null ? `<span class="dim" style="font-size:11px">评分 ${esc(ev.rating)}</span>` : ""}
+  </div>`).join("");
+  return modalFrame(head, rows || `<p class="empty">这个动作下没有事件。</p>`, "反馈事件按时间倒序，最多列最近 50 条。");
 }
 function recallsView(top) {
   const head = `<div class="muted" style="font-size:14px">召回事件明细</div>
@@ -509,8 +527,9 @@ function docView(top) {
 function modalView(raw, data, kpis) {
   const top = state.stack[state.stack.length - 1];
   if (top.kind === "doc") return docView(top);
-  if (top.kind === "category") return catView(top);
+  if (top.kind === "list") return listView(top);
   if (top.kind === "recalls") return recallsView(top);
+  if (top.kind === "fb") return fbView(top);
   return kpiModal(kpis[top.index], raw, data);
 }
 
@@ -538,12 +557,22 @@ async function drillDoc(id) {
   catch (err) { state.notice = "读取详情失败：" + (err.message || err); state.stack.pop(); }
   render();
 }
-async function drillCategory(cat) {
-  state.stack.push({ kind: "category", cat, items: null });
+async function drillList(params, title) {
+  state.stack.push({ kind: "list", title, items: null });
   render();
   const top = state.stack[state.stack.length - 1];
-  try { top.items = (await api("/api/memories?category=" + encodeURIComponent(cat))).items; }
+  try { top.items = (await api("/api/memories?" + params)).items; }
   catch (err) { state.notice = "读取清单失败：" + (err.message || err); state.stack.pop(); }
+  render();
+}
+async function drillFb(action) {
+  state.stack.push({ kind: "fb", action, events: null });
+  render();
+  const top = state.stack[state.stack.length - 1];
+  try {
+    const events = (await api("/api/events?kind=feedback")).events;
+    top.events = events.filter((ev) => ev.action === action);
+  } catch (err) { state.notice = "读取反馈事件失败：" + (err.message || err); state.stack.pop(); }
   render();
 }
 async function drillRecalls() {
@@ -617,8 +646,11 @@ function render() {
     </button>`).join("")}</div>
     <div class="board">
       <div class="col">
-        ${panel("记忆类型分布", `<div class="donut-wrap">${donut(data.donut, data.total)}<div style="width:100%">${data.donut.map((row) => `<div class="legend-row"><span class="swatch" style="background:${paint(row.color)}"></span><span class="muted grow">${esc(row.label)}</span><span class="mono">${esc(row.count)} 条 · ${esc(row.value)}%</span></div>`).join("") || `<p class="empty">还没有记忆文件。</p>`}</div></div>`)}
-        ${panel("记忆状态分布", (data.status.map((row) => progress(row.label, row.value, row.color, data.total ? (row.value / data.total * 100).toFixed(1) : 0)).join("")) || `<p class="empty">还没有记忆文件。</p>`)}
+        ${panel("记忆类型分布 · 点行下钻", `<div class="donut-wrap">${donut(data.donut, data.total)}<div style="width:100%">${data.donut.map((row) => {
+          const cat = row.label === "other 其他" ? "other" : row.label;
+          return `<div class="legend-row link" data-cat="${esc(cat)}"><span class="swatch" style="background:${paint(row.color)}"></span><span class="muted grow">${esc(row.label)}</span><span class="mono">${esc(row.count)} 条 · ${esc(row.value)}%</span></div>`;
+        }).join("") || `<p class="empty">还没有记忆文件。</p>`}</div></div>`)}
+        ${panel("记忆状态分布 · 点行下钻", (data.status.map((row) => progress(row.label, row.value, row.color, data.total ? (row.value / data.total * 100).toFixed(1) : 0, `data-status="${esc(row.label)}"`)).join("")) || `<p class="empty">还没有记忆文件。</p>`)}
         ${panel("召回效率", `<div class="tiles g3">
           ${tile("累计命中", num(raw.meta.recallTotalHits), "#21D3EE")}
           ${tile("召回事件", num(recallAll), "#9A66F2")}
@@ -639,7 +671,7 @@ function render() {
           ${tile("反馈总数", num(data.feedback.total), "#21D3EE")}
           ${tile("已采纳", num(data.feedback.adopted), "#9A66F2")}
         </div>`)}
-        ${panel("记忆模块 Top（按 domain）", data.domains.length ? `<div class="split">${data.domains.map((row) => `<div class="prog"><div class="prog-top"><span class="muted grow">${esc(row.label)}</span><span class="mono">${esc(row.value)}</span></div><div class="track thin"><i style="width:${row.value / domainMax * 100}%;background:#21D3EE"></i></div></div>`).join("")}</div>` : `<p class="empty">记忆还没有标注 domain。</p>`)}
+        ${panel("记忆模块 Top（按 domain）· 点行下钻", data.domains.length ? `<div class="split">${data.domains.map((row) => `<div class="prog link" data-domain="${esc(row.label)}"><div class="prog-top"><span class="muted grow">${esc(row.label)}</span><span class="mono">${esc(row.value)}</span></div><div class="track thin"><i style="width:${row.value / domainMax * 100}%;background:#21D3EE"></i></div></div>`).join("")}</div>` : `<p class="empty">记忆还没有标注 domain。</p>`)}
       </div>
       <div class="col">
         ${panel("知识健康度", `<div style="display:flex;flex-direction:column;align-items:center">${gauge(data.health)}<div class="tiles g3" style="width:100%;margin-top:8px">
@@ -647,7 +679,7 @@ function render() {
           ${tile("active", num(activeCount(raw)), "#21D3EE")}
           ${tile("待审", num(data.pending), "#9A66F2")}
         </div></div>`)}
-        ${panel("近期活动（真实事件流）", data.recent.length ? `<ul class="feed">${data.recent.map((row) => `<li><span style="color:${kindColor[row.kind] || "#FBBF24"}">›</span><span>${esc(row.text)}</span></li>`).join("")}</ul>` : `<p class="empty">还没有 recall / feedback 事件。</p>`)}
+        ${panel("近期活动（真实事件流）", data.recent.length ? `<ul class="feed">${data.recent.map((row) => `<li${row.kind === "recall" ? ' class="link" data-feed-recalls="1" title="点我看召回命中明细"' : ""}><span style="color:${kindColor[row.kind] || "#FBBF24"}">›</span><span>${esc(row.text)}</span></li>`).join("")}</ul>` : `<p class="empty">还没有 recall / feedback 事件。</p>`)}
       </div>
     </div>
     ${state.stack.length ? modalView(raw, data, kpis) : ""}
@@ -686,7 +718,26 @@ function render() {
     });
   });
   document.querySelectorAll("[data-cat]").forEach((node) => {
-    node.addEventListener("click", () => drillCategory(node.getAttribute("data-cat")));
+    node.addEventListener("click", () => {
+      const cat = node.getAttribute("data-cat");
+      drillList("category=" + encodeURIComponent(cat), "类型 " + cat);
+    });
+  });
+  document.querySelectorAll("[data-status]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const status = node.getAttribute("data-status");
+      drillList("status=" + encodeURIComponent(status), "状态 " + status);
+    });
+  });
+  document.querySelectorAll("[data-domain]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const domain = node.getAttribute("data-domain");
+      const shown = domain === "unknown" ? "未标注 domain" : domain;
+      drillList("domain=" + encodeURIComponent(domain), "模块 " + shown);
+    });
+  });
+  document.querySelectorAll("[data-fb]").forEach((node) => {
+    node.addEventListener("click", () => drillFb(node.getAttribute("data-fb")));
   });
   document.querySelectorAll("[data-doc-act]").forEach((node) => {
     node.addEventListener("click", () => {
@@ -696,6 +747,9 @@ function render() {
   });
   const drill = document.getElementById("drill-recalls");
   if (drill) drill.addEventListener("click", drillRecalls);
+  document.querySelectorAll("[data-feed-recalls]").forEach((node) => {
+    node.addEventListener("click", drillRecalls);
+  });
   document.querySelectorAll("[data-pend]").forEach((node) => {
     node.addEventListener("change", () => {
       const id = node.getAttribute("data-pend");

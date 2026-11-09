@@ -1,0 +1,31 @@
+id: 6d9dc1e7ced8469ab6a56701b5c4b629
+type: gene_case
+title: 大屏聚合数字必须可下钻，滚动条跟主题同色系
+content: 大屏任何出现数字的聚合行（类型/状态/domain 分布、反馈构成）都必须能点进清单、再到单条详情；主页面板与 KPI 弹窗同待遇。滚动条用 ::-webkit-scrollbar
+  + scrollbar-color 统一成主题色（track 用 --track、thumb 用半透明 --cyan）。聚合行加下钻用 progress() 的
+  attrs 参数注 data-*，事件绑定统一走 drillList/drillFb。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-09T08:13:36Z'
+updated_at: '2026-11-09T08:13:36Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: 用户：这个点击点不进去，不知道每个几百条分别是什么；滚动条搭配奇怪
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 大屏任何出现数字的聚合行（类型/状态/domain 分布、反馈构成）都必须能点进清单、再到单条详情；主页面板与 KPI 弹窗同待遇。滚动条用
+    ::-webkit-scrollbar + scrollbar-color 统一成主题色（track 用 --track、thumb 用半透明 --cyan）。聚合行加下钻用
+    progress() 的 attrs 参数注 data-*，事件绑定统一走 drillList/drillFb。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-09T08:13:36Z'
+path: memory/gene-map/manual/大屏聚合数字必须可下钻-滚动条跟主题同色系--6d9dc1e7.yaml
