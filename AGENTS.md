@@ -4,8 +4,13 @@
 
 ## 记忆目录（详情用 rsi_recall 召回）
 - 2026-09-10-rsi-boot-spec.md# 10.9.10 去重与增量更新
-- fastembed 离线缓存：HF_HUB_OFFLINE 是导入期常量，且要喂对缓存布局
+- 弹窗按钮禁止断行，键值元数据用固定标签列布局
 - Review host-distill-knowledge implementation against plan tasks 1-13 and spec §4/§7/§11: bootstrap reading packs, Jaccar
+- 大屏聚合数字必须可下钻，滚动条跟主题同色系
+- 大屏审批写链路复用 KnowledgeService，测试断言别凭文件名假设
+- LLM 分解缓存预热三坑：温度不兼容、并发截断、瞬态故障被缓存
+- 迁移记忆断层：.rsi/ 整目录进 gitignore 导致 memory 不随 git 走
+- fastembed 离线缓存：HF_HUB_OFFLINE 是导入期常量，且要喂对缓存布局
 - 时间题引用降权：查询类型条件化的 provenance 折权解决复制挤位
 - 消融定位到组件≠定位到机制：假设先行实测殿后
 - 跑榜脚本禁止模块级 monkeypatch 全局函数
@@ -34,14 +39,10 @@
 - 按板块并行本轮蒸完，报告给人看不要下一步
 - 解释 user-skill-audit 是什么：RSI skill 还是其它组件，以及为何 audit_finish 跳过它
 - RSI 收工只走 rsi_learn 的 audit_start/audit_probes/audit_report/audit_finish。Cursor 命名空间 user-skill-audit 来自用户级 mcp.json 的 sk
-- 继续 Task 8 knowledge_add 1500 硬顶与蒸馏标签：超长拒绝、四采集标题拒绝、distilled 必带 bootstrap_run_id、MCP/CLI error 原样传出
-- 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current 的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
-- 帮我审查这段代码
-- 列出列名
 
 ## 知识树（板块计数；下钻用 rsi_explore，召回用 rsi_recall）
 - bootstrap (89)  ·  rsi_explore "bootstrap"
-- general (75)  ·  rsi_explore "general"
+- general (85)  ·  rsi_explore "general"
 
 ## 收工纪律
 
