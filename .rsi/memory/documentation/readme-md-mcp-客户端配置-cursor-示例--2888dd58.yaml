@@ -1,0 +1,18 @@
+id: 2888dd58135f4c5d9afa87a59ef9c520
+type: documentation
+title: README.md# MCP 客户端配置（Cursor 示例）
+content: "## MCP 客户端配置（Cursor 示例）\n\n```json\n{\n  \"mcpServers\": {\n    \"rsi-boot\"\
+  : {\n      \"command\": \"rsi\",\n      \"args\": [\"serve\"]\n    }\n  }\n}\n```\n\
+  \n暴露工具：`rsi_query`（核心查询）、`rsi_feedback`（显式反馈：accepted/modified/ignored）。"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: README.md
+created_at: '2026-09-10T11:46:29.243156+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/readme-md-mcp-客户端配置-cursor-示例--2888dd58.yaml

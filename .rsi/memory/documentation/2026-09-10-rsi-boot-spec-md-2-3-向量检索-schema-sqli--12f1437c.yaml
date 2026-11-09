@@ -1,0 +1,38 @@
+id: 12f1437ce7ed4c4893d10eb2a5281fd7
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 2.3 向量检索 Schema (sqlite-vec + FTS5)
+content: "### 2.3 向量检索 Schema (sqlite-vec + FTS5)\n\nPhase 2 引入向量检索，使用 **sqlite-vec**\
+  \ 扩展（与主库同文件，零额外服务），配合 SQLite 内置 FTS5 做关键词检索，RRF 融合（§3.2）。\n\n```sql\n-- 向量虚拟表（需加载\
+  \ sqlite-vec 扩展，维度与嵌入模型一致）\nCREATE VIRTUAL TABLE IF NOT EXISTS knowledge_vectors\
+  \ USING vec0(\n    item_id TEXT PRIMARY KEY,        -- 关联 knowledge_items.id\n \
+  \   embedding FLOAT[1536]            -- text-embedding-3-small，Cosine 距离\n);\n\n\
+  -- 全文检索表（contentless 模式，内容仍存 knowledge_items，避免双份存储）\nCREATE VIRTUAL TABLE IF NOT\
+  \ EXISTS knowledge_fts USING fts5(\n    title, content, tags,\n    content='knowledge_items',\
+  \ content_rowid='rowid'\n);\n```\n\n**检索过滤字段**（向量/全文召回后在 SQL 层 JOIN `knowledge_items`\
+  \ 过滤）\n\n| 字段 | 用途 |\n|------|------|\n| `project_id` | 项目隔离过滤 |\n| `content_type`\
+  \ | 文档类型过滤 |\n| `roles` | 业务角色过滤（JSON 数组，空数组表示通用；用 `json_each` 匹配） |\n| `domain`\
+  \ | 领域标签过滤（test_framework/code_style/prd_template 等） |\n| `tags` | 标签过滤 |\n| `status`\
+  \ | 仅检索 active（pending_review 不入向量/FTS 索引） |\n\n**维护要点**\n- 写入路径：`knowledge_items`\
+  \ 插入/更新（含 `embedding` BLOB）→ 同步更新 `knowledge_vectors` 与 `knowledge_fts`（同一事务）\n\
+  - 嵌入生成失败时条目降级为仅 FTS 可检索（记 warning 日志，不阻塞写入）\n- sqlite-vec 扩展缺失（未安装）时按下方回退链降级，功能可用（§5.4\
+  \ 降级链）\n\n**向量后端抽象与回退（防 sqlite-vec 成熟度风险）**\n\nsqlite-vec 是较新的社区扩展（平台 wheel 覆盖、大规模性能基准有限），因此向量检索通过\
+  \ `data/vec.py` 的 `VectorBackend` 协议抽象，不硬绑 vec0：\n\n| 后端 | 实现 | 适用 |\n|------|------|------|\n\
+  | `sqlite-vec`（首选） | vec0 虚拟表 cosine 搜索 | 扩展可用的环境 |\n| `brute`（内置回退） | 从 `knowledge_items.embedding`\
+  \ BLOB 读全量，numpy 暴力余弦排序 | 个人规模（单项目 ≤ 1 万条）下 < 50ms，零额外依赖 |\n\n设计要点：\n\n- **embedding\
+  \ 的事实来源是 `knowledge_items.embedding` BLOB**，vec0 表仅为可重建的加速索引——回退/切换后端零数据迁移，`knowledge_vectors`\
+  \ 可随时从 BLOB 重建\n- 配置 `vector.backend: auto | sqlite-vec | brute`（默认 `auto`：启动时探测扩展，缺失自动切\
+  \ brute 并记 warning 日志；探测结果写入启动日志）\n- 降级链完整形态：sqlite-vec → brute（语义排序保留）→ embedding\
+  \ 生成也失败时纯 FTS5（语义能力降级）\n- **FAISS 为可选未来后端**：条目数超 brute 舒适区（> 1 万）或需要 ANN 时再引入，不作为默认依赖（避免重二进制依赖破坏「安装即用」）\n\
+  - 两后端结果一致性有测试基线（相同查询 TopK 重合度 ≥ 80%，见测试计划 KNO-10）"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.659359+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-2-3-向量检索-schema-sqli--12f1437c.yaml

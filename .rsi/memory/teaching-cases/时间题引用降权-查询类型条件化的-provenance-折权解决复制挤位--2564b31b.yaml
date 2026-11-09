@@ -1,0 +1,44 @@
+id: 2564b31bc9754aebb60fde42a28a0430
+type: teaching_case
+title: 时间题引用降权：查询类型条件化的 provenance 折权解决复制挤位
+content: build_index 把显式标记的引用行（context:/> /引用/上下文）单独记进 quote_postings，但 postings 保持合并计数——默认
+  quote_weight=1.0 时得分与旧管线逐位一致（有测试钉死）；仅当查询带 temporal 信号时按 (γ−1)×quoted_gain 回补折减。实测
+  temporal 56.1→64.5（略超关增强的 64.2 上限）、single-hop 72.2 保住、聚合 60.4→62.0、MRR 0.368→0.422。关键设计：折权必须按查询类型条件化——无差别降权会把
+  single-hop 打回去（gold 的关键词就住在引用行里），只有时间题里引用方才是“假朋友”。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-04T06:15:09Z'
+updated_at: '2026-11-04T06:15:09Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: 上下文增强把证据文本复制进相邻记忆，时间题的 gold 原件被词面相同的邻居挤出 top-5（消融：−context 时
+      temporal +8.1）
+    failure_type: ''
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: build_index 把显式标记的引用行（context:/> /引用/上下文）单独记进 quote_postings，但 postings
+      保持合并计数——默认 quote_weight=1.0 时得分与旧管线逐位一致（有测试钉死）；仅当查询带 temporal 信号时按 (γ−1)×quoted_gain
+      回补折减。实测 temporal 56.1→64.5（略超关增强的 64.2 上限）、single-hop 72.2 保住、聚合 60.4→62.0、MRR
+      0.368→0.422。关键设计：折权必须按查询类型条件化——无差别降权会把 single-hop 打回去（gold 的关键词就住在引用行里），只有时间题里引用方才是“假朋友”。
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 写入侧上下文增强（附带前一 turn）使证据文本同时出现在原记忆和邻居记忆里；词面检索下两者同权，邻居自带正文偶尔反超原件——时间题要找的是事件发生的原始
+      turn（日期锚点在它头上），被挤出即答错。之前的 v1 修复（剥离 context 行日期前缀）对此零效果。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-11-04T06:15:09Z'
+path: memory/teaching-cases/时间题引用降权-查询类型条件化的-provenance-折权解决复制挤位--2564b31b.yaml

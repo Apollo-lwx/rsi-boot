@@ -1,0 +1,39 @@
+id: dd359a09efa44f2cb432eff8a73f5920
+type: episode
+title: 'Review host-distill-knowledge implementation against plan tasks 1-13 and spec
+  §4/§7/§11: bootstrap reading packs, Jaccar'
+content: '2026-09-10-rsi-boot-spec.md# 可写槽位模型（6 槽）
+
+  2026-09-10-rsi-boot-plan.md# 修订记录
+
+  2026-09-10-rsi-boot-plan.md# P1.17 rsi bootstrap 项目自学习——核心扫描层（5.5天）
+
+  2026-09-10-rsi-boot-plan.md# 总体路线图
+
+  2026-09-10-rsi-boot-spec.md# 修订记录
+
+  2026-09-10-implicit-assumptions-analysis.md# 六、修复状态追踪（v1.1 文档集）
+
+  2026-09-10-implicit-assumptions-analysis.md# 四、问题汇总与评级
+
+  2026-09-10-rsi-boot-spec.md# 3.1 意图识别
+
+  RSI 收工只走 rsi_learn 的 audit_start/audit_probes/audit_report/audit_finish。Cursor 命名空间
+  user-skill-audit 来自用户级 mcp.json 的 sk
+
+  RSI 代码只做进度、耗时预估和流程串联（skill/MCP/阅读包）；深入分析与知识蒸馏必须留在宿主 agent。禁止用分词/Jaccard 等代替理解，也禁止把零
+  Key 读成 bootstrap 不能用模型。
+
+  规格里废弃的实现必须删除：代码、测试、报告字段、注入句一并清掉。禁止断开调用留函数、禁止兼容空字段、禁止另开P1复活旧门。'
+status: active
+tags: []
+roles: []
+created_at: '2026-09-17T02:24:40Z'
+updated_at: '2026-09-17T02:24:40Z'
+refs: []
+extra: {}
+payload:
+  fingerprint: '1-13 against and bootstrap deletion, filters, host-distill-knowledge
+    implementation intent:code_review jaccard knowledge.add, packs, plan reading recall
+    review rsi-relearn skill spec tasks teaching weights, §4/§7/§11:'
+path: memory/episodes/review-host-distill-knowledge-implementation-aga--dd359a09.yaml

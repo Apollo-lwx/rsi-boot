@@ -1,0 +1,27 @@
+id: dcde1437231b48129eb1cda6d2c99967
+type: episode
+title: 帮我审查这段代码
+content: '2026-09-10-rsi-boot-test-perspective-v2.md# 1.2 上午：测试代码审查（test_review）
+
+  2026-09-10-rsi-boot-prd.md# 场景 A：工作产出辅助（核心场景）
+
+  2026-09-10-rsi-boot-spec.md# 先预览信号发现结果，确认范围后再执行
+
+  2026-09-10-rsi-boot-spec.md# 10.9.2 自学习数据来源矩阵
+
+  2026-09-10-rsi-boot-spec.md# 10.9.8 跨信号源关联推理
+
+  RSI 代码只做进度、耗时预估和流程串联（skill/MCP/阅读包）；深入分析与知识蒸馏必须留在宿主 agent。禁止用分词/Jaccard 等代替理解，也禁止把零
+  Key 读成 bootstrap 不能用模型。
+
+  规格里废弃的实现必须删除：代码、测试、报告字段、注入句一并清掉。禁止断开调用留函数、禁止兼容空字段、禁止另开P1复活旧门。'
+status: active
+tags: []
+roles: []
+created_at: '2026-09-15T01:53:38Z'
+updated_at: '2026-09-15T01:53:38Z'
+refs: []
+extra: {}
+payload:
+  fingerprint: 代码 审查 帮我 我审 查这 段代 这段
+path: memory/episodes/帮我审查这段代码--dcde1437.yaml

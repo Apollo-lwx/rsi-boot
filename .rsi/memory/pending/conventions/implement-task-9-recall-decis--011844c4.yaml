@@ -1,0 +1,30 @@
+id: 011844c465a540a185512fc3d79589a6
+type: convention
+title: 'Implement Task 9: recall.decis'
+content: 'Q: Implement Task 9: recall.decisions + DecisionQueue sticky + CursorRuleTarget
+  rsi-decisions.mdc injection. TDD first. Runtime.decisions singleton, RecallService,
+  conflicts resolve close, knowledge revi
+
+  A: 2026-09-10-rsi-boot-spec.md# 9.3 集成测试
+
+  2026-09-10-rsi-boot-spec.md# 内置三套意图模板
+
+  2026-09-10-rsi-boot-spec.md# 3.1 意图识别
+
+  2026-09-10-rsi-boot-plan.md# Phase 3 交付物（7 个模块，21.5 人天）
+
+  2026-09-10-rsi-boot-plan.md# 内置角色意图映射
+
+  2026-09-10-rsi-boot-spec.md# 4.2 反馈处理流程（异步任务）
+
+  2026-09-10-rsi-boot-test-plan.md# 5. 数据一致性测试'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-13T03:45:33.036149+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/implement-task-9-recall-decis--011844c4.yaml

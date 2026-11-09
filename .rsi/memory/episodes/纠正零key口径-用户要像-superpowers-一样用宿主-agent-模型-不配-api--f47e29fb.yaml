@@ -1,0 +1,15 @@
+id: f47e29fb39da4dacb2c3bbc8c2ee9c51
+type: episode
+title: 纠正零Key口径：用户要像 Superpowers 一样用宿主 agent 模型，不配 API Key，不是禁止模型参与蒸馏。
+content: 纠正零Key口径：用户要像 Superpowers 一样用宿主 agent 模型，不配 API Key，不是禁止模型参与蒸馏。
+status: active
+tags: []
+roles: []
+created_at: '2026-09-14T11:06:12Z'
+updated_at: '2026-09-14T11:06:12Z'
+refs: []
+extra: {}
+payload:
+  fingerprint: agent api key superpowers 一样 不是 不配 与蒸 参与 口径 型参 型， 宿主 径： 户要 是禁 样用 模型
+    止模 正零 用宿 用户 禁止 纠正 蒸馏 要像 馏。 ，不 ：用
+path: memory/episodes/纠正零key口径-用户要像-superpowers-一样用宿主-agent-模型-不配-api--f47e29fb.yaml

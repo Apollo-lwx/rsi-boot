@@ -1,0 +1,39 @@
+id: ad804d862a2a48e0b202d906ecc4907b
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 8.3 数据生命周期
+content: '### 8.3 数据生命周期
+
+
+  | 阶段 | 策略 |
+
+  |------|------|
+
+  | 创建 | 数据进入系统时记录时间戳 created_at |
+
+  | 存储 | 全部存本地 `.rsi/rsi.db`；日志保留 90 天 |
+
+  | 访问 | 本机用户直接可查（`rsi_stats` / `rsi_knowledge_search` / 直接打开 DB）；敏感字段脱敏后进入日志 |
+
+  | 归档 | 超过 90 天的日志导出为 `.rsi/archive/YYYYMM.jsonl` 后从库中删除（§4.3 离线任务） |
+
+  | 删除 | `rsi_knowledge_delete` 删知识条目；卸载即删除整个 `.rsi/` 目录，覆盖全部日志/画像/反馈/归档 |
+
+  | 导出 | `rsi_stats` 支持 JSON/CSV 导出用量与日志摘要 |
+
+
+  **可选字段级加密（AES-256-GCM）**：默认关闭。用户处理高敏感代码时可开启——环境变量 `RSI_DATA_KEY`（base64 编码 32 字节）注入后主密钥对
+  `interaction_logs.raw_input` 加密落库；Python `cryptography` 库 `AESGCM`，每次加密 12 字节随机
+  nonce（`secrets.token_bytes(12)`，GCM 下 nonce 复用是灾难性的，禁止固定 nonce）；密文格式 `enc:v1:{base64(nonce
+  ‖ ciphertext ‖ tag)}`。密钥丢失则历史 raw_input 不可读，其余字段不受影响。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.740580+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-8-3-数据生命周期--ad804d86.yaml

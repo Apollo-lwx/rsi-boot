@@ -1,0 +1,30 @@
+id: c3201e247b51470c86cfc3c01fb8a85b
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 12.4 Harness 提案质量与门禁有效性
+content: '### 12.4 Harness 提案质量与门禁有效性
+
+
+  | 项 | 基线 |
+
+  |----|------|
+
+  | 「最小化」客观标准 | 单槽位 + 单目标 + diff ≤ 50 行 + 绑定 ≥ 1 个失败桶 ID + payload 含 before/after——五项缺一即非最小化，直接
+  rejected |
+
+  | 门禁有效性 | 注入 ≥ 10 个已知坏改动（种子退化集），回归门禁拦截率必须 100% |
+
+  | 提案生成质量 | 首批 ≥ 20 个提案的人工接受率 ≥ 50%；低于则判定挖掘/生成质量不达标，调优提案 prompt 后重测 |
+
+  | 运行监测 | 观察期回滚率 > 30% 触发提案策略人工审查（§3.9 安全边界之外的质量信号） |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.499006+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-12-4-harness-提案--c3201e24.yaml

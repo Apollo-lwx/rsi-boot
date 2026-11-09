@@ -1,0 +1,29 @@
+id: 3ce52cb6e47140b096aa61cfd883dbf7
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 3.1 最适合有 SDET 的团队
+content: '### 3.1 最适合有 SDET 的团队
+
+
+  RSI Gateway 的定位和设计决定了它最适合有以下特征的团队：
+
+
+  - **已有 SDET（测试开发工程师）**：SDET 可以配置路由策略、编写提示词模板、维护知识库，让 RSI Gateway 真正适应测试场景。他们也能评估
+  LLM 输出的质量并调整参数。
+
+  - **有自动化测试基础设施**：团队需要已有 pytest/CI 集成，RSI Gateway 生成的用例可以快速接入现有框架。
+
+  - **项目文档完善**：知识库的质量直接影响 LLM 输出的相关性。有良好文档习惯的团队能更快度过冷启动期。
+
+  - **对 AI 输出有批判性接受能力的团队**：团队成员需要理解 LLM 的局限性，不盲目信任生成内容。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.330420+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-3-1--3ce52cb6.yaml

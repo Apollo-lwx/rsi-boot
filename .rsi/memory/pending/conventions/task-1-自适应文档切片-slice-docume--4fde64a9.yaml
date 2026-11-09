@@ -1,0 +1,19 @@
+id: 4fde64a97ed5405bb0ce70ba6f05b11a
+type: convention
+title: 'Task 1: 自适应文档切片 - slice_docume'
+content: 'Q: Task 1: 自适应文档切片 - slice_document with DocChunk, SliceResult, merge tiny
+  sections, split large bodies, LICENSE digest
+
+  A: 2026-09-10-rsi-boot-plan.md# 修订记录
+
+  2026-09-10-rsi-boot-spec.md# 10.9.9 错误处理与部分恢复'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-13T03:47:21.608849+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/task-1-自适应文档切片-slice-docume--4fde64a9.yaml

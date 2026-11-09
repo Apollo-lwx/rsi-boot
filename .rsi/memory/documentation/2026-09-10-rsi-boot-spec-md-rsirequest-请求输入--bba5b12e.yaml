@@ -1,0 +1,37 @@
+id: bba5b12e350b45e2a638e65859c5a407
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# RSIRequest（请求输入）
+content: "#### RSIRequest（请求输入）\n\n```python\nfrom pydantic import BaseModel, Field\n\
+  from typing import Optional, Dict, Any, List\nfrom uuid import UUID, uuid4\nfrom\
+  \ datetime import datetime, timezone\n\ndef utcnow() -> datetime:\n    \"\"\"datetime.utcnow\
+  \ 已在 Python 3.12+ 弃用，统一使用带时区的当前时间\"\"\"\n    return datetime.now(timezone.utc)\n\
+  \nclass ContextInfo(BaseModel):\n    \"\"\"上下文信息，TypedDict 风格约束\"\"\"\n    language:\
+  \ Optional[str] = None\n    file_path: Optional[str] = None\n    selection: Optional[str]\
+  \ = None\n    project_root: Optional[str] = None\n    chat_history: Optional[List[Dict[str,\
+  \ str]]] = None\n\nclass UserPreferences(BaseModel):\n    detail_level: str = \"\
+  normal\"\n    code_style: str = \"default\"\n    response_lang: str = \"zh\"\n \
+  \   # 角色特定偏好的扩展命名空间（如 test_framework / doc_template / report_format），\n    # 键值由角色配置（config/roles/*.yaml）定义，核心模型不硬编码角色字段\n\
+  \    role_specific: Dict[str, Any] = Field(default_factory=dict)\n\nclass RequestMetadata(BaseModel):\n\
+  \    client_type: Optional[str] = None\n    client_version: Optional[str] = None\n\
+  \    timestamp: Optional[datetime] = None\n\nclass RSIRequest(BaseModel):\n    request_id:\
+  \ UUID = Field(default_factory=uuid4)\n    user_id: str = Field(..., pattern=r\"\
+  ^[a-zA-Z0-9_@.-]{1,128}$\")\n    project_id: Optional[str] = Field(None, pattern=r\"\
+  ^[a-zA-Z0-9_-]{1,64}$\")\n    session_id: Optional[str] = None\n    role: Optional[str]\
+  \ = Field(None, pattern=r\"^[a-z][a-z0-9_-]{0,49}$\")\n    # role: 业务角色标识（如 developer/test/pm），仅影响意图路由/知识检索/响应格式化，\n\
+  \    # 不含任何权限语义（本地单用户工具无权限体系）。\n    # 信任客户端传入；为 None 时走通用模式，系统不预设用户类型。\n    raw_input:\
+  \ str = Field(..., min_length=1, max_length=32768)\n    intent: Optional[str] =\
+  \ None\n    context: ContextInfo = Field(default_factory=ContextInfo)\n    preferences:\
+  \ UserPreferences = Field(default_factory=UserPreferences)\n    metadata: RequestMetadata\
+  \ = Field(default_factory=RequestMetadata)\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.633613+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-rsirequest-请求输入--bba5b12e.yaml

@@ -1,0 +1,36 @@
+id: 7426f01f6df04d2e8dc68f024c40755c
+type: teaching_case
+title: 市场上架文案用大白话说明产品
+content: 介绍先说清是让 AI 记住这个仓库的写法、不能做的事和以前怎么改的 bug。示例写成程序员会说的话，不用内部词。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-22T11:22:59Z'
+updated_at: '2026-10-22T11:22:59Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: marketplace-copy-uses-internal-jargon
+    failure_type: copy
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 介绍先说清是让 AI 记住这个仓库的写法、不能做的事和以前怎么改的 bug。示例写成程序员会说的话，不用内部词。
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 连接器介绍和示例写成召回、蒸馏、批准进召回
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-22T11:22:59Z'
+path: memory/teaching-cases/市场上架文案用大白话说明产品--7426f01f.yaml

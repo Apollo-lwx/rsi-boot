@@ -1,0 +1,27 @@
+id: 77d48a8a127e40d6a4eeb15038839f05
+type: gene_case
+title: 回放门禁用合并后的增强配置
+content: 把门禁配置改成 _enhance_view 合并后的 view，使 enhance.model 与 enhance.quality 进入回放门禁。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T07:12:41Z'
+updated_at: '2026-10-28T07:12:41Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: wiring
+  error_signature: regression-gate-reads-unmerged-config
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 把门禁配置改成 _enhance_view 合并后的 view，使 enhance.model 与 enhance.quality 进入回放门禁。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-10-28T07:12:41Z'
+path: memory/gene-map/manual/回放门禁用合并后的增强配置--77d48a8a.yaml

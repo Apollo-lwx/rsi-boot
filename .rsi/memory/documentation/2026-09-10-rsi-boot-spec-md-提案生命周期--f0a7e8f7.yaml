@@ -1,0 +1,18 @@
+id: f0a7e8f73a1b44c2885405e00aab5237
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 提案生命周期
+content: "#### 提案生命周期\n\n```\nproposed → validating → approved ──→ active ──(7 天观察期恶化)──→\
+  \ rolled_back\n               │            │\n               ▼            ▼\n  \
+  \         rejected     rejected（人工否决）\n```\n\n全程落库 `harness_proposals` 表（§2.2），每步可审计、可回滚。"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.710887+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-提案生命周期--f0a7e8f7.yaml

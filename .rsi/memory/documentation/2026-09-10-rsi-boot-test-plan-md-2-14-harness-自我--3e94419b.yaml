@@ -1,0 +1,71 @@
+id: 3e94419b2926431a9efd5f62e4160f7d
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.14 Harness 自我改进 Harness-RSI (Phase 3)
+content: '### 2.14 Harness 自我改进 Harness-RSI (Phase 3)
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | HRSI-01 | 失败模式挖掘分桶 | 近 7 天有负信号（rejected/rating≤2/quality<0.5/fallback） | 1. 执行挖掘任务
+  | 按 intent×strategy 正确分桶；样本 < 5 的桶被忽略（§3.9） | P2 |
+
+  | HRSI-02 | 提案最小化约束 | 某失败桶样本充足 | 1. 生成提案 | 每桶 ≤ 3 个提案；每个提案仅触及单一槽位且绑定具体失败机制 | P2
+  |
+
+  | HRSI-03 | 回归门禁：通过 | 候选改动在回放集上指标提升且无退化 | 1. 执行回归验证 | 提案状态 → approved，regression_report
+  落库 | P2 |
+
+  | HRSI-04 | 回归门禁：否决 | 候选改动致某维度下降 > 5% | 1. 执行回归验证 | 提案状态 → rejected，不进入人工确认 | P2
+  |
+
+  | HRSI-05 | 人工确认晋升 | approved 提案 | 1. rsi_review approve | 状态 → active，槽位内容生效，payload
+  含 before/after 快照 | P2 |
+
+  | HRSI-06 | 观察期自动回滚 | active 提案在 7 天观察期内采纳率下降 > 5% | 1. 执行每日巡检 | 自动回滚到 before 快照，状态
+  → rolled_back | P2 |
+
+  | HRSI-07 | 手动回滚 | 任意已晋升提案 | 1. rsi_review rollback | 槽位内容恢复到指定版本 | P2 |
+
+  | HRSI-08 | 速率硬上限 | 单轮已生成 5 个提案 | 1. 继续生成 | 超出部分被截断；单槽位周变更 > 3 次被拒绝（§3.9 安全边界） |
+  P1 |
+
+  | HRSI-09 | 元级修改禁止 | 提案内容涉及评估代码/门禁参数/提案机制自身 | 1. 提交此类提案 | 直接拒绝并记 warning（元级修改只能人工）
+  | P1 |
+
+  | HRSI-10 | 事实日志不可改写 | 改进机制运行中 | 1. 检查 interaction_logs | 日志只被读取，无任何 UPDATE/DELETE（append-only）
+  | P1 |
+
+  | HRSI-11 | 晋升即配置快照 | 提案被确认晋升 | 1. rsi_review approve 2. 查 config_snapshots | 生成新版本快照（version
+  单调递增），slots 含 6 槽位整体内容，trigger_proposal 指向该提案 | P2 |
+
+  | HRSI-12 | 回滚 = 切换快照 | 存在多个历史快照 | 1. rsi_review rollback 到指定 version | 目标快照标记 rolled_back_to
+  并以其内容重建槽位；原快照转 superseded；槽位内容与目标版本完全一致 | P2 |
+
+  | HRSI-13 | 快照合并语义 | 上一版本快照存在 | 1. 构造含缺省/null/有值字段的提案并晋升 | 缺省字段继承上一版本；null 字段重置回默认；有值字段覆盖（对象递归合并、数组整体替换）
+  | P2 |
+
+  | HRSI-14 | 按需生成提案 | 近 7 天有负信号 | 1. rsi_review generate | 立即执行挖掘与提案生成，结果落库；单轮仍受
+  ≤ 5 个提案上限约束 | P2 |
+
+  | HRSI-15 | 快照导出 bundle | 存在 active 快照 | 1. rsi_review snapshot_export | 导出目录型 bundle（genome.json
+  清单 + 各槽位文件），可导入其他项目库 | P3 |
+
+  | HRSI-16 | 技能槽提案生效 | 提案新增技能（SKILL.md + trigger）并晋升 | 1. 触发匹配该 trigger 的查询 | 技能指令体注入提示词，来源标注
+  skill:<name>；技能文件进当次配置快照 | P2 |
+
+  | HRSI-17 | 技能热加载与停用 | 技能已在 config/skills/ | 1. 修改/删除技能文件（经提案流程）2. 再次查询 | 热加载生效无需重启；停用后不再注入
+  | P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.462670+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-14-harness-自我--3e94419b.yaml

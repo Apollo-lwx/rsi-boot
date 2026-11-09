@@ -1,0 +1,27 @@
+id: b33e2948d6264a7488e98ebe52e10a0b
+type: gene_case
+title: 拆行反馈要按 token 拼回召回
+content: 用 latest_feedback_by_token 与 event_action 按 token 取动作。采纳排序、晋升计数、画像重算、召回采纳分、记忆健康和教学命中改为读取全部滚动文件。本行已有动作时仍以本行为准。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T06:35:25Z'
+updated_at: '2026-10-28T06:35:25Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: wiring
+  error_signature: split-feedback-row-not-joined-to-recall
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 用 latest_feedback_by_token 与 event_action 按 token 取动作。采纳排序、晋升计数、画像重算、召回采纳分、记忆健康和教学命中改为读取全部滚动文件。本行已有动作时仍以本行为准。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-10-28T06:35:25Z'
+path: memory/gene-map/manual/拆行反馈要按-token-拼回召回--b33e2948.yaml

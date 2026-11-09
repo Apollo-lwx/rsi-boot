@@ -1,0 +1,39 @@
+id: a849842d219947cdac45712a44dd7108
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.7 设计取舍说明
+content: '### 10.7 设计取舍说明
+
+
+  **为什么只有本地模式**：RSI Boot 的定位是个人开发工具（与 Superpowers 同类），核心价值是「安装即用、零运维」。团队共享模式（HTTP
+  服务 + 认证 + 多租户 + 集中存储）会引入部署与运维成本，违背工具定位，刻意不做。若未来出现真实的团队共享需求（多人知识库共建），再作为独立项目评估，不在本工具范围内。
+
+
+  由此移除的能力及替代方案：
+
+
+  | 移除项 | 替代方案 |
+
+  |--------|----------|
+
+  | 认证/权限体系 | 本地进程信任边界（§7.2） |
+
+  | 限流 | 个人使用无滥用场景；成本意识由 §6.2 每日上限承担 |
+
+  | 多租户隔离 | 每项目独立 `.rsi/` 目录物理隔离（§10.4） |
+
+  | 集中部署/运维 | pip 安装 + IDE 拉起，零运维 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.766540+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-7-设计取舍说明--a849842d.yaml

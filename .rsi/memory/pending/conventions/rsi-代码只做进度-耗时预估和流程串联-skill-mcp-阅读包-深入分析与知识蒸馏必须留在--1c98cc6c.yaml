@@ -1,0 +1,20 @@
+id: 1c98cc6c9a88464c8f0cda2bb4e344a9
+type: convention
+title: RSI 代码只做进度、耗时预估和流程串联（skill/MCP/阅读包）；深入分析与知识蒸馏必须留在宿主 agent。禁止用分词/Jaccard 等代替理解，也禁止把零
+  Key 读成 bootstrap 不能用模型。
+content: RSI 代码只做进度、耗时预估和流程串联（skill/MCP/阅读包）；深入分析与知识蒸馏必须留在宿主 agent。禁止用分词/Jaccard 等代替理解，也禁止把零
+  Key 读成 bootstrap 不能用模型。
+status: pending_review
+tags: []
+roles: []
+source: promote
+created_at: '2026-09-15T02:49:57Z'
+updated_at: '2026-09-15T02:49:57Z'
+refs:
+- a776a7832c704d928b6d6c0110727cde
+extra: {}
+payload:
+  error_signature: code-must-not-replace-host-model
+  failure_type: process
+  source_id: a776a7832c704d928b6d6c0110727cde
+path: memory/pending/conventions/rsi-代码只做进度-耗时预估和流程串联-skill-mcp-阅读包-深入分析与知识蒸馏必须留在--1c98cc6c.yaml

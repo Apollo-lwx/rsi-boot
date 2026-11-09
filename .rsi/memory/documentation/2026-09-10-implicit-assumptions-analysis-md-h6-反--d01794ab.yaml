@@ -1,0 +1,20 @@
+id: d01794abb1094f27a4c0473346c8ddda
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H6：反馈模型只支持「采纳/修改/拒绝」
+content: "### H6：反馈模型只支持「采纳/修改/拒绝」\n\n| 位置 | Spec Section 2.1 - FeedbackAction |\n\
+  |------|-----------------------------------|\n| **原文** | ACCEPTED, MODIFIED, IGNORED,\
+  \ REJECTED, COPIED, APPLIED |\n| **隐含假设** | 用户的交互模式是「接受建议 → 按 Tab 采纳」| \n| **影响**\
+  \ | 产品经理参考 AI 的分析来完善自己的文档（参考而非采纳），测试人员参考用例思路后自己重写，都产生弱反馈信号 |\n| **修正方向** | 增加「REFERENCED」动作，表示用户参考了但未直接使用\
+  \ |"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.256921+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h6-反--d01794ab.yaml

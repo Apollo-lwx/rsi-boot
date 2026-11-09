@@ -1,0 +1,35 @@
+id: 8cc5dba34f464577b8c24896f369d485
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.4 策略引擎（3天）
+content: '### P1.4 策略引擎（3天）
+
+
+  **实现依据**：Spec §3.3 策略选择、§3.4 提示词渲染（模板目录 config/templates/、chat_history 10 轮截断）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | StrategyConfig Pydantic 模型 | strategy/engine.py | 0.5d |
+
+  | 策略选择器（基于 intent + role） | strategy/engine.py | 1d |
+
+  | Jinja2 提示词渲染器 | strategy/prompt_renderer.py | 1d |
+
+  | 单元测试：test_strategy_engine.py | 测试用例 | 0.5d |
+
+
+  **验收**：不同意图 + 角色能选择不同策略并正确渲染提示词'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.375375+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-4-策略引擎-3天--8cc5dba3.yaml

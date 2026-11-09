@@ -1,0 +1,20 @@
+id: 46bc805c06414b57b204b45f537783c2
+type: convention
+title: 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current
+  的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
+content: 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current
+  的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
+status: pending_review
+tags: []
+roles: []
+source: promote
+created_at: '2026-09-15T02:49:57Z'
+updated_at: '2026-09-15T02:49:57Z'
+refs:
+- ac772e8345644b3c9ac908d9fab2c98d
+extra: {}
+payload:
+  error_signature: chat-hang-foreground-full-pytest
+  failure_type: execution-style
+  source_id: ac772e8345644b3c9ac908d9fab2c98d
+path: memory/pending/conventions/中间-task-只跑计划点名的聚焦测试-全量套件放到波结束或后台-不要堵住对话-看-passed--46bc805c.yaml

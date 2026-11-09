@@ -1,0 +1,27 @@
+id: 60476bf1314241c0be00ae5b107675a6
+type: gene_case
+title: 分词去掉贴在词上的标点
+content: 非 CJK 段把标点改成空白再切词，词内的 - 与 _ 保留；intent:名称整段保留，避免裸词撞上 EXPLAIN 文档
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-22T15:46:27Z'
+updated_at: '2026-10-22T15:46:27Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: retrieval
+  error_signature: tokenize-glued-punctuation
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 非 CJK 段把标点改成空白再切词，词内的 - 与 _ 保留；intent:名称整段保留，避免裸词撞上 EXPLAIN 文档
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-10-22T15:46:27Z'
+path: memory/gene-map/manual/分词去掉贴在词上的标点--60476bf1.yaml

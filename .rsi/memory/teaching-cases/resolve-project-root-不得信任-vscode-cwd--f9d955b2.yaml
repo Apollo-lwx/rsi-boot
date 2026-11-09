@@ -1,0 +1,42 @@
+id: f9d955b215b149469fa394d57c50b5b6
+type: teaching_case
+title: resolve_project_root 不得信任 VSCODE_CWD
+content: 把 VSCODE_CWD 移出 _IDE_WORKSPACE_ENV（保留 WORKSPACE_FOLDER_PATHS / CURSOR_WORKSPACE
+  等真正携带工作区路径的变量），并在 IDE 注入命中时打 info 日志便于排查；新增回归测试 test_vscode_cwd_not_trusted_as_workspace
+  锁定「cwd 向上认领 .rsi / 无 .rsi 落 cwd」两种行为
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-17T02:50:52Z'
+updated_at: '2026-09-17T02:50:52Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: rsi CLI binds project root to VSCODE_CWD editor dir (e.g. D:\tools\cursor)
+    failure_type: env/project-root-resolution
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 把 VSCODE_CWD 移出 _IDE_WORKSPACE_ENV（保留 WORKSPACE_FOLDER_PATHS / CURSOR_WORKSPACE
+      等真正携带工作区路径的变量），并在 IDE 注入命中时打 info 日志便于排查；新增回归测试 test_vscode_cwd_not_trusted_as_workspace
+      锁定「cwd 向上认领 .rsi / 无 .rsi 落 cwd」两种行为
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: _IDE_WORKSPACE_ENV 信任列表包含 VSCODE_CWD；它是编辑器进程自身 cwd 而非工作区路径，agent
+      终端继承后优先级 2（IDE 注入）直接命中，导致不带 --project-root 的 rsi 命令全部误绑到编辑器安装目录（D:\tools\cursor\.rsi
+      9/13 起即有误绑痕迹）
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-09-17T02:50:52Z'
+path: memory/teaching-cases/resolve-project-root-不得信任-vscode-cwd--f9d955b2.yaml

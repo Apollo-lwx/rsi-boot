@@ -1,0 +1,30 @@
+id: 46b8919af87546d98ab4e12f444e62fc
+type: gene_case
+title: 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开 incorrect，来源哈希变且标题短语不在文件中才开
+  stale_source；扫描只写发现
+content: 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开
+  incorrect，来源哈希变且标题短语不在文件中才开 stale_source；扫描只写发现，resolve 后才归档；极性一致的拒绝仍走提案禁止项
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-22T06:30:34Z'
+updated_at: '2026-10-22T06:30:34Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: memory-governance
+  error_signature: memory-health-retire-via-harness
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开
+    incorrect，来源哈希变且标题短语不在文件中才开 stale_source；扫描只写发现，resolve 后才归档；极性一致的拒绝仍走提案禁止项
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-10-22T06:30:34Z'
+path: memory/gene-map/manual/单独开记忆健康车道-整表归因到每个-retrieved-id-词表极性三分类复用-conflic--46b8919a.yaml

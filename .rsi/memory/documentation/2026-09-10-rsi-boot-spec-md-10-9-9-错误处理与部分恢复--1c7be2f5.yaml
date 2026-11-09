@@ -1,0 +1,50 @@
+id: 1c7be2f5253b48978c148ab6d3f2421b
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9.9 错误处理与部分恢复
+content: '#### 10.9.9 错误处理与部分恢复
+
+
+  自学习过程中可能遇到多种错误，处理策略如下：
+
+
+  **阶段一：信号发现错误**
+
+  - 权限不足的目录 → 跳过并记录警告
+
+  - 不是 Git 仓库 → 跳过 Git 维度，其他正常执行
+
+  - 编码无法识别 → 尝试 UTF-8 → GBK → Latin-1，全部失败则跳过
+
+
+  **阶段二：采集错误**
+
+  - 文档切片失败 → 跳过该文件，继续下一个
+
+  - AST 解析失败（语法错误文件） → 跳过该文件，记录文件路径
+
+  - 向量化服务不可用 → 降级为纯文本存储，待恢复后异步重试
+
+  - Git 拉取中断 → 自动重试 3 次（指数退避）
+
+  - Worker 异常退出 → 主进程捕获，重启 Worker 继续
+
+
+  **阶段三：写入错误**
+
+  - 数据库写入失败 → 批量回退，2s 后重试，最多 3 次
+
+  - 部分写入成功 → 记录已写入条目 ID，失败写入 `bootstrap_error.log`
+
+  - 断点续学：每处理 50 个条目写入一次 checkpoint，中断后可恢复'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.786618+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-9-错误处理与部分恢复--1c7be2f5.yaml

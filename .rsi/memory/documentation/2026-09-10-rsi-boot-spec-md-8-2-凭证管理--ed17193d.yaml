@@ -1,0 +1,24 @@
+id: ed17193dfa2b47b89f14e217b30e3ab2
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 8.2 凭证管理
+content: '### 8.2 凭证管理
+
+
+  - LLM API Key 通过环境变量（`OPENAI_API_KEY` 等）或 `~/.rsi/config.yaml` 引用环境变量名配置；**禁止写在项目
+  `rsi-boot.yaml` 中**（该文件可能入库），加载器发现明文 Key 形态（如 `sk-...`）时拒绝启动并提示
+
+  - 配置文件建议权限 0600；日志中 Key 一律按 §8.1 脱敏
+
+  - `.rsi/` 目录加入项目 `.gitignore` 模板（bootstrap 时自动写入，§10.9）'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.740017+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-8-2-凭证管理--ed17193d.yaml

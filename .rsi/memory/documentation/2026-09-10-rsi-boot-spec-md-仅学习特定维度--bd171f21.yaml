@@ -1,0 +1,20 @@
+id: bd171f21959441d48ec2f7aaec9bee77
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 仅学习特定维度
+content: "# 仅学习特定维度\nrsi bootstrap --scope=docs          # 只扫描文档\nrsi bootstrap --scope=code\
+  \          # 只分析代码结构\nrsi bootstrap --scope=git           # 只分析 Git 历史\nrsi bootstrap\
+  \ --scope=conversation  # 只学习对话上下文（如 .cursor/conversations/）\n                 \
+  \                   # 注意：对话上下文涉及个人隐私，需显式同意（见下）\nrsi bootstrap --scope=config   \
+  \     # 只检测配置和规范"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.772557+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-仅学习特定维度--bd171f21.yaml

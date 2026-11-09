@@ -1,0 +1,32 @@
+id: 2b9be5c022fb49f88b0399e966c3d605
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 4：优化扩展 (Optimization & Extension)
+content: '## Phase 4：优化扩展 (Optimization & Extension)
+
+
+  | 任务 | 说明 | 工时 | 实现依据 (Spec) |
+
+  |------|------|------|----------------|
+
+  | P4.1 多模型适配 | Anthropic/DeepSeek Adapter | 5d | §1.1 模型适配层 |
+
+  | P4.2 Fallback + 成本路由 | 基于成本的自动模型选择（跨厂商） | 4d | §6.1 成本核算、§5.1 熔断器 |
+
+  | P4.3 用量统计增强 | rsi_stats 报表（趋势、意图/模型分组、JSON/CSV 导出） | 2d | §6.3 用量查询 |
+
+  | P4.4 性能优化 + 进程内缓存 | TTLCache 热点请求和检索结果调优 | 3d | §2.4 进程内运行时结构 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.401170+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-4-优化扩展-optimiz--2b9be5c0.yaml

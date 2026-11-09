@@ -1,0 +1,21 @@
+id: a0a6d5834f5549f79131688457818106
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# .github/workflows/rsi-ci.yml 示例
+content: "# .github/workflows/rsi-ci.yml 示例\njobs:\n  rsi-code-review:\n    runs-on:\
+  \ ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Install\
+  \ RSI Boot\n        run: pip install rsi-boot\n      - name: Run code review on\
+  \ PR diff\n        run: git diff main...HEAD | rsi query \"请审查以下代码变更\" --input=-\n\
+  \        env:\n          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n```\n\n\
+  CI 环境无 `.rsi/` 历史数据，自动走冷启动路径（仅本次 diff 上下文），不依赖任何外部服务。\n\n---"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.764746+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-github-workflows-rsi--a0a6d583.yaml

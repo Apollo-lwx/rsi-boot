@@ -1,0 +1,26 @@
+id: be920997925746d497ca62dba9c2447e
+type: convention
+title: Final whole-branch review of h
+content: 'Q: Final whole-branch review of host-judge conflict implementation: bootstrap
+  --host-judge/--local-judge flags, peer conflict queue, rsi_conflicts list/resolve,
+  local heuristic adjudication, report field
+
+  A: 2026-09-10-rsi-boot-spec.md# 10.9.12 学习报告
+
+  2026-09-10-rsi-boot-spec.md# 先预览信号发现结果，确认范围后再执行
+
+  2026-09-10-rsi-boot-spec.md# 仅学习特定维度
+
+  2026-09-10-rsi-boot-plan.md# 内置角色意图映射
+
+  2026-09-10-rsi-boot-spec.md# 内置三套意图模板'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-14T02:14:53.555491+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/final-whole-branch-review-of-h--be920997.yaml

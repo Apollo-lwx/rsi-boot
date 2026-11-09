@@ -1,0 +1,37 @@
+id: 3ef62cab25ee4493a22e3cdc480d1788
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 7. 约束与假设
+content: '## 7. 约束与假设
+
+
+  - **不训练模型**：所有改进均通过外部手段（提示词优化、检索增强、路由策略）实现
+
+  - **协议标准**：所有外部接口遵循 MCP 协议（JSON-RPC 2.0）
+
+  - **向后兼容**：工具接口一旦发布，变更通过新增版本而非修改旧版
+
+  - **数据主权**：全部数据存本机 `.rsi/` 与 `~/.rsi/`，不上传任何远端。注意：请求内容（含代码片段）会发送至所配置的 LLM 提供商，其数据使用政策由提供商约束；对代码外发有顾虑时可仅接入私有部署模型端点（Phase
+  4 多模型适配后）
+
+  - **单用户**：本人使用，无协同、无权限体系；user_id 取 `git config user.email` 仅用于画像归属
+
+  - **流式响应**：模型调用支持 SSE 流式输出
+
+  - **知识库可信度**：检索结果显式标注来源文档；低置信度（向量 cosine 相似度 < 0.6，见 Spec §3.2）不注入上下文
+
+  - **MCP 传输**：仅 stdio（本地进程管道），无网络监听
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.583283+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-7-约束与假设--3ef62cab.yaml

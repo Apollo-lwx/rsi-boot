@@ -1,0 +1,23 @@
+id: 9de745c68424487fa187ac2cd4399fc5
+type: convention
+title: 修复已核实的 7 个实现 bug：LLM 提取丢失 cont
+content: 'Q: 修复已核实的 7 个实现 bug：LLM 提取丢失 content_type、--then-start 不挂调度器、modified diff
+  基线错误、remap 失败被吞、legacy 认领 journal 不记目标库路径、禁止项 LIMIT 200 无排序、rsi_query 文案残留
+
+  A: 2026-09-10-rsi-boot-spec.md# 修订记录
+
+  2026-09-10-rsi-boot-traceability-matrix.md# 修订记录
+
+  2026-09-10-rsi-boot-plan.md# P1.18 M1 轻量价值闭环（3.5天）
+
+  2026-09-10-rsi-boot-plan.md# P1.7 编排器（3天）'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-14T02:19:14.284678+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/修复已核实的-7-个实现-bug-llm-提取丢失-cont--9de745c6.yaml

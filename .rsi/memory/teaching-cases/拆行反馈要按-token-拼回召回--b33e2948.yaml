@@ -1,0 +1,39 @@
+id: b33e2948d6264a7488e98ebe52e10a0b
+type: teaching_case
+title: 拆行反馈要按 token 拼回召回
+content: 用 latest_feedback_by_token 与 event_action 按 token 取动作。采纳排序、晋升计数、画像重算、召回采纳分、记忆健康和教学命中改为读取全部滚动文件。本行已有动作时仍以本行为准。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T06:35:25Z'
+updated_at: '2026-10-28T06:35:25Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: split-feedback-row-not-joined-to-recall
+    failure_type: wiring
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 用 latest_feedback_by_token 与 event_action 按 token 取动作。采纳排序、晋升计数、画像重算、召回采纳分、记忆健康和教学命中改为读取全部滚动文件。本行已有动作时仍以本行为准。
+    reason: 文件运行时的召回和反馈是两行。统计和回放已经拼接，注入裁剪、晋升和画像还没有。
+    applies_to: []
+    tags:
+    - file-runtime
+    - feedback
+    open_questions: []
+    wrong_action: 禁止项采纳时间、晋升次数和画像偏好模型在同一条事件上同时读 action 与 retrieved。文件日志把动作写在独立 feedback
+      行。召回采纳分和记忆健康的窗口扫描只用热日志。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-28T06:35:25Z'
+path: memory/teaching-cases/拆行反馈要按-token-拼回召回--b33e2948.yaml

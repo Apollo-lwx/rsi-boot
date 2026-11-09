@@ -1,0 +1,39 @@
+id: e4c63e752c784672982ffdbfae53939a
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 2 交付物（8 个模块，25 人天）
+content: '### Phase 2 交付物（8 个模块，25 人天）
+
+  | 模块 | 交付物文件 | 关联 PRD 需求 | 关联 Specs 章节 |
+
+  |------|-----------|-------------|----------------|
+
+  | 向量检索集成 | data/vec.py（VectorBackend 抽象 + sqlite-vec/brute 双后端）, knowledge/embedding.py
+  | §4.2 知识增强 | §2.3 向量检索 Schema 与后端回退 |
+
+  | bootstrap 深度信号层 | scanner/code_scanner.py, git_analyzer.py, conversation_scanner.py,
+  correlation_engine.py, incremental.py | §9.3 存量项目自学习 | §10.9 项目自学习与初始化 |
+
+  | 意图升级 | preprocessor/intent_classifier.py | §4.2 知识增强 | §3.1 意图识别 |
+
+  | 知识检索注入 | knowledge/retriever.py | §4.2 知识增强 | §3.2 知识检索（混合检索） |
+
+  | 用户画像 | services/profile_service.py | §4.2 知识增强 | §2.1 UserProfile 模型 |
+
+  | 隐式反馈 | feedback/implicit_tracker.py（含客户端上报协议对接） | §4.3 学习闭环 | §4.2 反馈处理流程 |
+
+  | 算法评测基线 | tests/eval/（harness + datasets + baselines.json） | 工程质量基建 | §9 测试策略、测试计划
+  §12 |
+
+  | 角色扩展 | config/roles/ 扩展 | §2 目标用户 | §3.6 意图系统 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.412478+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-2-交付物-8-个模块-25--e4c63e75.yaml

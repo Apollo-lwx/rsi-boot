@@ -1,0 +1,30 @@
+id: dcffc92bbb0f43a28a0aa46f36683d1a
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 技术指标
+content: '### 技术指标
+
+
+  | 指标 | M1 目标 | M2 目标 | Phase 2 目标 | Phase 3 目标 | Phase 4 目标 |
+
+  |------|--------|--------|------------|------------|------------|
+
+  | P99 延迟（不含模型调用） | < 1s | < 1s | < 1.5s（含检索） | < 2s（含学习） | < 1s（缓存优化后） |
+
+  | 知识检索命中率 | N/A | N/A | > 80% | > 85% | > 90% |
+
+  | 冷启动耗时 | < 3s | < 3s | < 3s | < 3s | < 3s |
+
+
+  > 本地单进程 stdio 工具，无服务端吞吐量/可用性指标；稳定性以「单次请求不因内部故障失败（降级链兜底）」衡量，见 Spec §5.4。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.569868+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-技术指标--dcffc92b.yaml

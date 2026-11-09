@@ -1,0 +1,48 @@
+id: 8aaa8c576d5b462ead5f29fede2546d4
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 6.1 成本核算
+content: '### 6.1 成本核算
+
+
+  每次请求完成后根据模型单价 + Token 用量计算 USD 成本。
+
+
+  | 模型 | Prompt 单价 (/1M tokens) | Completion 单价 (/1M tokens) |
+
+  |------|------------------------|-----------------------------|
+
+  | gpt-4o | $2.50 | $10.00 |
+
+  | gpt-4o-mini | $0.15 | $0.60 |
+
+  | gpt-4-turbo | $10.00 | $30.00 |
+
+
+  > Phase 1 仅接入 OpenAI，单价表随模型注册中心配置可扩展；Phase 4 接入 Anthropic / DeepSeek 后补充对应单价。
+
+
+  **计量与计算公式**：
+
+
+  - **Token 来源**：优先取 API 响应的 `usage` 字段（`prompt_tokens` / `completion_tokens`，精确值）；流式响应若末帧无
+  usage，则用 `tiktoken`（cl100k_base 编码）对 prompt 与拼接后的响应文本估算，并在日志 `context.token_estimated=true`
+  标记
+
+  - **公式**：`cost_usd = prompt_tokens / 1e6 × prompt_price + completion_tokens / 1e6
+  × completion_price`，结果写入 `interaction_logs.cost_usd`（REAL，未定价为 NULL）
+
+  - **未定价模型**：单价表查不到时 `cost_usd = NULL`，token 用量照常记录，并输出告警日志（防止新接入模型漏计价）
+
+  - **单价配置**：`config/models.yaml` 按模型名维护，热加载生效（§2.5），改价不影响历史记录'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.730244+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-6-1-成本核算--8aaa8c57.yaml

@@ -1,0 +1,38 @@
+id: 9240c2569ed04786b0a440b6f04d313f
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 4.2 反馈处理流程（异步任务）
+content: "### 4.2 反馈处理流程（异步任务）\n\n**分阶段可用性（v2.6）**：M1 交付 `rsi_feedback` 基础版（P1.18）——显式评分/评论同步落库，无异步处理；异步队列消费、隐式事件、画像/策略更新在\
+  \ Phase 2/3 逐步接入（P2.5/P3.1/P3.2）。数据自 M1 起积累，为 Phase 3 挖掘与回归门禁预攒回放集。\n\n反馈处理投递到进程内\
+  \ `asyncio.Queue`（§2.4），由后台 task 消费，不阻塞主推理链路。进程退出时队列中未消费的反馈丢失——反馈是增量信号，丢失少量可接受；显式反馈（rating/rejected）在\
+  \ MCP 响应返回前同步落库日志，仅画像/策略更新走异步队列。\n\n```\n+----------+    +--------------+    +-------------+\
+  \    +------------+\n| MCP      |--->| asyncio.Queue |--->|  Feedback   |--->| \
+  \ SQLite    |\n| rsi_     |    | (进程内)      |    |  Task       |    |  Update  \
+  \  |\n| feedback |    |              |    | Valid Token  |    | Log update |\n+----------+\
+  \    +--------------+    | Strategy    |    | Profile    |\n                   \
+  \                 | Update      |    | update     |\n                          \
+  \          +-------------+    +------------+\n```\n\n**知识提取触发**：`modified` 类反馈中，修改后内容与原文的\
+  \ diff 比例 > 20% 时，自动生成知识提取候选进入人工确认队列（Phase 3，见 §4.3）。\n\n**反馈字段级更新规则**：Feedback\
+  \ Worker 校验 token 后，按 action 执行以下映射（reward 数值喂给 §3.3 Thompson 更新；画像字段更新规则详见 §3.8）：\n\
+  \n| action | 策略 reward（§3.3） | 画像更新（§3.8） | 日志更新 | 其他 |\n|--------|--------------------|------------------|----------|------|\n\
+  | accepted | +2 | intent 计数 +1；模型采纳 +1 | feedback_action=accepted | — |\n| applied\
+  \ | +2 | 同 accepted | feedback_action=applied | — |\n| modified | +1 | intent 计数\
+  \ +1；模型采纳 +0.5；记录 diff 比例 | feedback_action=modified | diff > 20% → 知识提取候选 |\n|\
+  \ copied | +1 | knowledge_interests 命中标签 +1 | feedback_action=copied | — |\n| referenced\
+  \ | +0.5 | knowledge_interests 命中标签 +1 | feedback_action=referenced | — |\n| rejected\
+  \ | -1 | 模型拒绝 +1 | feedback_action=rejected | rating ≤ 2 时触发 accuracy 必查（§3.5） |\n\
+  | ignored | 0 | 模型曝光 +1 | feedback_action=ignored | — |\n| rating（1-5 分） | 4-5 分\
+  \ +1；1-2 分 -1；3 分 0 | — | feedback_rating 写入 | 与 action 可叠加（同一反馈同时携带时分别生效） |\n\n\
+  **隐式行为上报协议**：采纳/修改/复制/应用等 IDE 侧行为由客户端通过 `rsi_feedback` 上报（action 为对应隐式动作，携带 feedback_token）。MCP\
+  \ 协议本身不感知用户行为，由 IDE 集成层（MCP 客户端配置、CLI hook 等）负责捕获并上报；无客户端集成时隐式指标不适用，仅统计显式反馈。"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.719494+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-4-2-反馈处理流程-异步任务--9240c256.yaml

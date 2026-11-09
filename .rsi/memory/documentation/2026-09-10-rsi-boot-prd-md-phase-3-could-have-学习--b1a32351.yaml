@@ -1,0 +1,38 @@
+id: b1a32351d45c4005997e944181f2c257
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# Phase 3 — Could Have (学习闭环)
+content: '### Phase 3 — Could Have (学习闭环)
+
+
+  | 功能 | 说明 | 优先级 |
+
+  |------|------|--------|
+
+  | rsi_feedback 工具完善 | M1 交付基础版（显式评分落库，数据自 M1 积累）；本项为完整实现：+ 隐式事件上报与完整 FeedbackAction
+  | P2 |
+
+  | 反馈处理引擎 | 进程内异步消费 Feedback 事件，更新日志和画像 | P2 |
+
+  | 知识提取 | 从高质量交互中提取候选知识条目，人工确认入库 | P2 |
+
+  | 策略 A/B 测试 | Thompson Sampling 在候选策略间探索/利用 | P2 |
+
+  | 画像自动更新 | 根据行为数据自动调整用户偏好 | P2 |
+
+  | 质量评估 | 三维度自动评分（相关性/完整性/格式合规） | P2 |
+
+  | Harness 自我改进提案 | 失败模式挖掘 → 最小化改进提案（模板/技能/策略/规则/知识六槽位，技能为文件型 SKILL.md）→ 回放集回归门禁
+  → 人工确认晋升 → 7 天观察期自动回滚；Genome 式配置版本快照（晋升即快照、切换即回滚、可导出 bundle）；rsi_review 支持按需触发生成（Spec
+  §3.9） | P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.558049+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-phase-3-could-have-学习--b1a32351.yaml

@@ -1,0 +1,24 @@
+id: fd74045a3783418d8fc06cff91c2460b
+type: teaching_case
+title: Cursor agent 终端跑 rsi CLI 必须显式 --project-root
+content: 现象：在 Cursor agent 终端（无 --project-root）执行 rsi learn audit_start 等命令，产物落到 D:\tools\cursor\.rsi
+  而非当前仓库。原因：resolve_project_root 优先级 2「IDE 注入环境变量」命中 VSCODE_CWD（值为编辑器自身 cwd，非工作区），直接返回，不再走到
+  cwd 探测。影响：所有无 --project-root 的 rsi CLI 调用在 agent 终端都会绑错项目；D:\tools\cursor\.rsi 已有
+  9/13 的 identity.json 与 9/15 的日志，说明此前已发生误绑。规避：CLI 一律显式 --project-root <repo>；根治需把
+  VSCODE_CWD 移出 _IDE_WORKSPACE_ENV 或校验其确为工作区（待用户决策）。
+status: active
+tags: []
+roles: []
+source: extract
+created_at: '2026-09-17T02:34:53Z'
+updated_at: '2026-09-17T02:34:53Z'
+refs: []
+extra: {}
+payload:
+  error_signature: rsi CLI in agent terminal resolves project root to VSCODE_CWD editor
+    dir
+  failure_type: env/project-root-resolution
+  wrong_action: 在 Cursor agent 终端直接跑 rsi learn（依赖 cwd 解析项目根）
+  correct_fix: rsi CLI 显式传 --project-root 指向当前仓库；长期应修 resolve_project_root 对 VSCODE_CWD
+    的信任
+path: memory/teaching-cases/cursor-agent-终端跑-rsi-cli-必须显式-project-root--fd74045a.yaml

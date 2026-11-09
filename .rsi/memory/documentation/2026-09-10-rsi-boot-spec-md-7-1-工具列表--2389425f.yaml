@@ -1,0 +1,70 @@
+id: 2389425ff09c4f3182760c3d6ee8cb88
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 7.1 工具列表
+content: '### 7.1 工具列表
+
+
+  | 工具名 | 阶段 | 说明 |
+
+  |--------|------|------|
+
+  | rsi_query | P0 (M1) | 统一查询入口 |
+
+  | rsi_feedback | P0 (M1) | 统一反馈入口：显式评分 + 客户端隐式行为事件上报（见 §4.2 隐式行为上报协议） |
+
+  | rsi_knowledge_add | P2 | 添加知识条目 |
+
+  | rsi_knowledge_search | P2 | 搜索知识库 |
+
+  | rsi_knowledge_delete | P2 | 删除知识条目 |
+
+  | rsi_review | P2 | Harness 改进提案的列表/确认/拒绝/回滚/按需生成，及配置快照的列表/切换/导出（§3.9） |
+
+  | rsi_stats | P3 | 用量与成本统计查询（§6.3） |
+
+
+  > 命名约定：工具名统一为 `rsi_` 前缀 + 动词原形（`rsi_query` / `rsi_feedback`），文档与实现保持一致。
+
+
+  **工具 Schema 契约**：`tools/list` 返回的每个工具包含 `name` / `description` / `inputSchema`（JSON
+  Schema）。inputSchema 由 §2.1 的 Pydantic 模型自动生成（P1.2 产出 `schemas/*.json`），保证接口契约与数据模型单一事实来源：
+
+
+  | 工具 | inputSchema 来源模型 | 关键入参 |
+
+  |------|---------------------|---------|
+
+  | rsi_query | `RSIRequest`（§2.1） | raw_input 必填；user_id/project_id/role/context
+  可选 |
+
+  | rsi_feedback | `Feedback`（§2.1） | feedback_token + action 必填；rating/comment/modified_content
+  可选 |
+
+  | rsi_knowledge_add | `KnowledgeItem`（§2.1） | title + content 必填；roles/domain/tags
+  可选 |
+
+  | rsi_knowledge_search | 查询模型（query, top_k ≤ 20, domain/roles 过滤） | query 必填 |
+
+  | rsi_knowledge_delete | 删除模型（id 或 title 精确匹配） | id 必填 |
+
+  | rsi_review | 提案操作模型（action: list/approve/reject/rollback/generate/snapshot_list/snapshot_switch/snapshot_export）
+  | action + proposal_id 或 version（list/generate 除外） |
+
+  | rsi_stats | 统计查询模型（period: day/week/month，group_by: intent/model） | period 必填
+  |
+
+
+  响应侧：`rsi_query` 返回 `RSIResponse`（§2.1）；其余工具返回 `{"status": "success|error", "data":
+  ..., "error": {...}}` 统一信封。契约测试（测试计划 §9）校验 tools/list 输出与 schemas/*.json 一致。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.733607+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-7-1-工具列表--2389425f.yaml

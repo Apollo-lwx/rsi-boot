@@ -1,0 +1,31 @@
+id: a3a3b58a703e475f95ceaff9d6efdda4
+type: gene_case
+title: 文件运行时回放、零采纳和差评补评按真实事件接线
+content: 缺省 status 的召回可回放并解析 evidence.bucket.intent；零采纳必须已有反馈且非正向；短语未命中的配对用剩余 8 次预算做语义判定；目录行
+  injected 且 surface=catalog；每周都 validate_pending；反馈在 extract_llm 下先问模型再回落规则；quality_judge
+  无 embedding 仍做 accuracy，缓存未命中时用召回摘录补评；观察窗口用 all_rolls，默认热路径仍只读最近滚动文件。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T06:21:44Z'
+updated_at: '2026-10-28T06:21:44Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: wiring
+  error_signature: file-runtime-replay-statusless-unjudged-adoption-quality-cache
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 缺省 status 的召回可回放并解析 evidence.bucket.intent；零采纳必须已有反馈且非正向；短语未命中的配对用剩余 8
+    次预算做语义判定；目录行 injected 且 surface=catalog；每周都 validate_pending；反馈在 extract_llm 下先问模型再回落规则；quality_judge
+    无 embedding 仍做 accuracy，缓存未命中时用召回摘录补评；观察窗口用 all_rolls，默认热路径仍只读最近滚动文件。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-10-28T06:21:44Z'
+path: memory/gene-map/manual/文件运行时回放-零采纳和差评补评按真实事件接线--a3a3b58a.yaml

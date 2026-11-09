@@ -1,0 +1,29 @@
+id: 2a3bf9f14df64f07a0e3d00beb94d8d1
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# 角色基础设施（横向任务，嵌入各阶段）
+content: '### 角色基础设施（横向任务，嵌入各阶段）
+
+
+  | P1 阶段 | 任务 | 工时加成 |
+
+  |---------|------|---------|
+
+  | M1 | RSIRequest.role 字段定义 + Developer 基础 | 0.5d（内嵌 P1.2） |
+
+  | M2 | config/roles/test.yaml + config/roles/pm.yaml；config/role_templates/ 模板 |
+  2d |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.395514+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-角色基础设施-横向任务-嵌入各阶段--2a3bf9f1.yaml

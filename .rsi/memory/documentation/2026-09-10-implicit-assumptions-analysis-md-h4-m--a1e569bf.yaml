@@ -1,0 +1,30 @@
+id: a1e569bfbe41411eb840a37d658942a6
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H4：MoSCoW 未包含角色基础设施
+content: '### H4：MoSCoW 未包含角色基础设施
+
+
+  | 位置 | PRD Section 4「功能优先级」 |
+
+  |------|---------------------------|
+
+  | **隐含假设** | 用户角色是固定的（开发者），不需要在系统中管理角色 |
+
+  | **影响** | 多角色切换、角色偏好隔离、角色插件等基础设施功能缺失 |
+
+  | **修正方向** | 增加「多角色支持」为 P1 基础设施需求 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.254396+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h4-m--a1e569bf.yaml

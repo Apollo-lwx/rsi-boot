@@ -1,0 +1,37 @@
+id: 9a4d57ec0241450fa958f2e1d7b41f91
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 11. 测试通过标准
+content: '## 11. 测试通过标准
+
+
+  | 维度 | 标准 |
+
+  |------|------|
+
+  | 功能测试 | 所有 P0 用例 100% 通过，P1 > 90% |
+
+  | 代码覆盖率 | 核心模块单元测试行覆盖率 ≥ 85%；PR 门禁整体行覆盖率 > 80%；分支覆盖率 > 75%（口径说明：85% 为核心模块目标，80%
+  为全仓门禁线） |
+
+  | 性能测试 | P99 < 1s（不含模型调用）；冷启动 < 3s |
+
+  | 混沌测试 | 单项故障 5min 内自愈或降级正常 |
+
+  | 安全测试 | 无高危漏洞，中危 < 3 个 |
+
+  | 升级测试 | 迁移幂等可重入，数据不丢失 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.481772+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-11-测试通过标准--9a4d57ec.yaml

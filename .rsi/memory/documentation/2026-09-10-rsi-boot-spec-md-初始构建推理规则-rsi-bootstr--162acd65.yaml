@@ -1,0 +1,51 @@
+id: 162acd65b345442baf692df3d1eac3f2
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 初始构建推理规则（rsi bootstrap，Phase 1 M2）
+content: '#### 初始构建推理规则（rsi bootstrap，Phase 1 M2）
+
+
+  bootstrap 扫描信号源后按以下规则推断画像字段，**所有推断均带置信度，低于阈值宁可留空也不猜测**：
+
+
+  | 画像字段 | 信号源 | 推理规则 | 阈值/参数 |
+
+  |---------|--------|---------|----------|
+
+  | `expertise` | Git 文件归属 + AST import 统计 | git blame 行数占比 ≥ 20% 的模块 → 模块技术栈标签；import
+  计数 ≥ 10 的框架/库 → 技术标签 | 占比阈值 20%；import 计数阈值 10；单用户标签上限 20 个 |
+
+  | `preferences.code_style` | .editorconfig > 代码扫描 > Git log | 标识符命名风格统计（snake_case
+  / camelCase 占比），取多数派 | 多数派占比 ≥ 60% 才判定，否则留空 |
+
+  | `preferences.role_specific.language / framework` | 文件扩展名分布 + 构建配置 | 源文件行数占比最高的语言；framework
+  取自 pyproject.toml / package.json 依赖清单 | 语言占比 ≥ 40% 判定为主语言 |
+
+  | `preferences.role_specific.commit_style` | Git log commit message | conventional
+  commits 正则匹配率 | 匹配率 ≥ 70% 判定为 conventional |
+
+  | `preferences.role_specific.test_framework` | 测试目录 + 依赖 | tests/ 目录存在性 + pytest/jest
+  等依赖声明 | 依赖声明优先于目录推断 |
+
+  | `project_insights.test_culture` | 测试文件占比 + commit 中 test 比例 | 测试文件数 / 源文件数 | ≥
+  30% = strong；10%~30% = moderate；< 10% = weak |
+
+  | `project_insights.doc_quality` | docs/ 覆盖率 + README 章节完整度 | README 必备章节（安装/使用/配置）齐备度
+  + docs/ 文档数 | 齐备度 ≥ 80% 且 docs ≥ 3 篇 = good |
+
+  | `history_summary` | LLM 摘要 | 输入：commit subject Top 50 + 目录树（深度 2）+ README 全文；输出
+  ≤ 500 字 | gpt-4o-mini，temperature=0.3，max_tokens=800 |
+
+  | `role` | rsi-boot.yaml > 文件归属推断 | 配置文件显式声明优先；否则按 expertise 标签映射（test 标签占比最高 →
+  test 等） | 推断置信度 < 0.6 时置 None（通用模式） |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.692494+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-初始构建推理规则-rsi-bootstr--162acd65.yaml

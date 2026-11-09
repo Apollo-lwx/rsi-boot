@@ -1,0 +1,31 @@
+id: 38c15b39c08f4869ba99e09640c5da7d
+type: gene_case
+title: 消融定位到组件≠定位到机制：假设先行实测殿后
+content: 先用便宜变体实测再下结论。v2 实测：temporal 纹丝不动 56.1，聚合 60.0→60.4、single-hop 71.8→72.7——日期污染通道对
+  temporal 零贡献，真正机制是证据文本被复制进相邻记忆造成词面挤位（邻居与 gold 各含一份证据文本，BM25 下邻居偶尔反超）。v2 仍值得留（语义干净+聚合小升），残余
+  temporal 缺口只能走查询时 structure-aware scoring（对复制块降权），列入 Future Work 第一条。教训：消融指到组件≠指到机制；拆机制要对每个假设通道单独出榜。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-04T04:45:30Z'
+updated_at: '2026-11-04T04:45:30Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: 消融 −context temporal +8.1，但剥离日期的 context 版本 temporal 逐位不变
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 先用便宜变体实测再下结论。v2 实测：temporal 纹丝不动 56.1，聚合 60.0→60.4、single-hop 71.8→72.7——日期污染通道对
+    temporal 零贡献，真正机制是证据文本被复制进相邻记忆造成词面挤位（邻居与 gold 各含一份证据文本，BM25 下邻居偶尔反超）。v2 仍值得留（语义干净+聚合小升），残余
+    temporal 缺口只能走查询时 structure-aware scoring（对复制块降权），列入 Future Work 第一条。教训：消融指到组件≠指到机制；拆机制要对每个假设通道单独出榜。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-04T04:45:30Z'
+path: memory/gene-map/manual/消融定位到组件-定位到机制-假设先行实测殿后--38c15b39.yaml

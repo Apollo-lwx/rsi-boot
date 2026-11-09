@@ -1,0 +1,45 @@
+id: 920b16e9efb742708a736f3dab9b22b8
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9.5 智能扫描策略
+content: '#### 10.9.5 智能扫描策略
+
+
+  系统根据项目特征自动选择最优扫描策略：
+
+
+  | 策略 | 触发条件 | 行为 |
+
+  |------|---------|------|
+
+  | **全量学习** | 首次 `rsi bootstrap`、`--force` | 全面扫描所有信号源，写入完整知识库 |
+
+  | **增量学习** | 已存在 `.rsi/manifest.json` | 对比文件哈希 + mtime，仅处理新增/变更的信号 |
+
+  | **快速学习** | 项目 > 5000 文件 | 仅扫描根目录和常见路径，不深入 `vendor/` 等第三方目录 |
+
+  | **渐进学习** | 指定 `--scope` | 只学习特定维度，不干扰已有知识 |
+
+  | **静默学习** | `rsi start --watch` 启动的文件监听模式 | 在进程运行期间监听文件变化，后台自动增量学习 |
+
+
+  **增量学习的实现原理**：
+
+  1. 在 `.rsi/manifest.json` 中维护每个信号源的「学习指纹」（文件哈希 + 时间戳 + 信号类型）
+
+  2. 增量扫描时，只处理指纹变化的信号
+
+  3. 删除的信号从知识库中标记为 `archived`
+
+  4. 对话上下文类信号（如聊天记录）每次增量扫描追加新内容，不做全量重扫'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.777571+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-5-智能扫描策略--920b16e9.yaml

@@ -1,0 +1,35 @@
+id: ca6c800733f4495a9d7b116d1ee32a56
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.2 核心数据模型（2天）
+content: '### P1.2 核心数据模型（2天）
+
+
+  **实现依据**：Spec §2.1 核心 Pydantic 模型（字段定义、role 正则、utcnow() 约定）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | RSIRequest + RSIResponse Pydantic 模型 | core/models.py | 0.5d |
+
+  | ContextSchema(BaseModel) + TypedDict 约束 | core/models.py | 0.5d |
+
+  | Feedback + KnowledgeItem + UserProfile 模型 | core/models.py | 0.5d |
+
+  | JSON Schema 自动生成 | schemas/ 目录下 .json 文件 | 0.5d |
+
+
+  **验收**：所有模型已定义，JSON Schema 文件已生成'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.372643+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-2-核心数据模型-2天--ca6c8007.yaml

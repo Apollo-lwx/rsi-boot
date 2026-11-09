@@ -1,0 +1,35 @@
+id: 036ec0690a994007b9c841c3bb4f81f1
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.8 后处理 + 日志（2天）
+content: '### P1.8 后处理 + 日志（2天）
+
+
+  **实现依据**：Spec §4.1 两段式日志写入（pending INSERT 先于模型调用）、§2.2 数据库表设计（SQLite DDL）、§3.7 响应格式化
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | 响应解析器（text/code/markdown 格式化） | orchestrator/handlers/postprocess.py | 0.5d |
+
+  | RSIResponse 构建 | orchestrator/handlers/postprocess.py | 0.5d |
+
+  | 交互日志记录（LogService） | services/log_service.py | 0.5d |
+
+  | 单元测试：test_postprocessor.py | 测试用例 | 0.5d |
+
+
+  **验收**：模型输出被正确解析为 RSIResponse，日志写入 SQLite'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.380278+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-8-后处理-日志-2天--036ec069.yaml

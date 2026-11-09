@@ -1,0 +1,39 @@
+id: 46b8919af87546d98ab4e12f444e62fc
+type: teaching_case
+title: 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开 incorrect，来源哈希变且标题短语不在文件中才开
+  stale_source；扫描只写发现
+content: 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开
+  incorrect，来源哈希变且标题短语不在文件中才开 stale_source；扫描只写发现，resolve 后才归档；极性一致的拒绝仍走提案禁止项
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-22T06:30:34Z'
+updated_at: '2026-10-22T06:30:34Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: memory-health-retire-via-harness
+    failure_type: memory-governance
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开
+      incorrect，来源哈希变且标题短语不在文件中才开 stale_source；扫描只写发现，resolve 后才归档；极性一致的拒绝仍走提案禁止项
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 把错误或过时记忆交给 harness 提案引擎，或只把负反馈记到 retrieved[0]，扫描后直接归档
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-22T06:30:34Z'
+path: memory/teaching-cases/单独开记忆健康车道-整表归因到每个-retrieved-id-词表极性三分类复用-conflic--46b8919a.yaml

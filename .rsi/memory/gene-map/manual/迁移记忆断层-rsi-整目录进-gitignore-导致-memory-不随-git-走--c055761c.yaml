@@ -1,0 +1,31 @@
+id: c055761c83a94f76b5eeb752f8d37034
+type: gene_case
+title: 迁移记忆断层：.rsi/ 整目录进 gitignore 导致 memory 不随 git 走
+content: 默认只忽略 .rsi/ 下的日志/缓存/索引（.rsi/* + !.rsi/memory/），memory 默认随 git 追踪；提供 rsi doctor
+  自检+一键修复和 rsi bundle 兜底迁移；用 clone 一致性测试验收（origin 与 clone 的 .rsi/memory 文件树 SHA256
+  逐位相同，且 cache 等本地产物不跟库）。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-09T03:33:44Z'
+updated_at: '2026-11-09T03:33:44Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: gitignore-blanket-rsi-dir:memory-not-tracked-on-clone
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 默认只忽略 .rsi/ 下的日志/缓存/索引（.rsi/* + !.rsi/memory/），memory 默认随 git 追踪；提供 rsi
+    doctor 自检+一键修复和 rsi bundle 兜底迁移；用 clone 一致性测试验收（origin 与 clone 的 .rsi/memory 文件树
+    SHA256 逐位相同，且 cache 等本地产物不跟库）。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-09T03:33:44Z'
+path: memory/gene-map/manual/迁移记忆断层-rsi-整目录进-gitignore-导致-memory-不随-git-走--c055761c.yaml

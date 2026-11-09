@@ -1,0 +1,23 @@
+id: aba52c7981c44692b0ea52b0b1a18437
+type: convention
+title: 项目配置与规范摘要
+content: '# 项目配置与规范摘要
+
+  - 主语言: python
+
+  - 框架: pydantic
+
+  - 构建系统: hatchling
+
+  - 测试框架: pytest'
+status: active
+domain: bootstrap
+tags:
+- signal:config
+roles: []
+created_at: '2026-09-10T11:46:29.820750+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/conventions/项目配置与规范摘要--aba52c79.yaml

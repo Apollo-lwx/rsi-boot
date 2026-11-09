@@ -1,0 +1,83 @@
+id: 488f76f3807444f898d890f0d8086b47
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 11. 目录结构
+content: "## 11. 目录结构\n\n```\nrsi-boot/\n+-- pyproject.toml              # 项目依赖与构建配置（pip\
+  \ 安装入口）\n+-- README.md                   # 项目说明\n+-- config/                   \
+  \  # 包内配置文件\n|   +-- default.yaml            # 默认配置（基线）\n|   +-- models.yaml   \
+  \          # 模型单价表（§6.1）\n|   +-- roles/                  # 角色意图注册（developer.yaml\
+  \ / test.yaml / pm.yaml）\n|   +-- role_templates/         # 角色提示词模板（test_gen.jinja2\
+  \ / prd_gen.jinja2 等）\n|   +-- quality_rubric.yaml     # 角色质量权重（见 §3.5）\n|   +--\
+  \ response_format.yaml    # 角色格式化规则（见 §3.7）\n|   +-- skills/                 # 文件型技能槽（§3.9，每技能一个目录，内含\
+  \ SKILL.md + 可选脚本/资源）\n|   +-- templates/              # 提示词模板\n|       +-- base.jinja2\n\
+  |       +-- code_review.jinja2\n|       +-- code_gen.jinja2\n|       +-- debug.jinja2\n\
+  |       +-- explain.jinja2\n|       +-- general_assist.jinja2\n+-- migrations/ \
+  \                # SQLite 迁移脚本（PRAGMA user_version 顺序执行，§2.2）\n|   +-- 001_init.sql\n\
+  +-- src/                        # 核心源码\n|   +-- __init__.py\n|   +-- __main__.py\
+  \             # CLI 入口（rsi）\n|   +-- core/                   # 核心模块\n|   |   +--\
+  \ models.py           # Pydantic 数据模型\n|   |   +-- config_merger.py    # 配置合并\n\
+  |   |   +-- masking.py          # 数据脱敏\n|   |   +-- exceptions.py       # 自定义异常\n\
+  |   +-- config/                 # 配置管理\n|   |   +-- loader.py           # YAML +\
+  \ 环境变量加载\n|   |   +-- settings.py         # Pydantic Settings\n|   +-- preprocessor/\
+  \           # 预处理\n|   |   +-- handler.py          # Pipeline Handler\n|   |   +--\
+  \ intent_classifier.py # 意图识别\n|   +-- strategy/               # 策略引擎\n|   |   +--\
+  \ engine.py           # 策略选择\n|   |   +-- thompson_sampler.py # Thompson Sampling\n\
+  |   |   +-- prompt_renderer.py  # 提示词渲染器\n|   +-- model/                  # 模型适配\n\
+  |   |   +-- adapter.py          # 统一调用接口\n|   |   +-- registry.py         # 模型注册中心\n\
+  |   |   +-- providers/          # 各厂商适配\n|   |       +-- base.py\n|   |       +--\
+  \ openai.py\n|   +-- orchestrator/           # 编排器\n|   |   +-- pipeline.py    \
+  \     # Pipeline 定义\n|   |   +-- handlers/           # 各阶段 Handler\n|   |      \
+  \ +-- preprocess.py\n|   |       +-- strategy.py\n|   |       +-- model.py\n|  \
+  \ |       +-- postprocess.py\n|   |       +-- log.py\n|   +-- feedback/        \
+  \       # 反馈处理\n|   |   +-- task.py             # 进程内异步任务（asyncio.Queue 消费，§4.2）\n\
+  |   |   +-- token_generator.py  # feedback_token 生成\n|   +-- learning/         \
+  \      # 学习闭环 (Phase 3)\n|   |   +-- knowledge_extractor.py # 知识提取（§4.3）\n|   |\
+  \   +-- feedback_analyzer.py  # 反馈统计\n|   |   +-- failure_miner.py    # 失败模式挖掘（§3.9）\n\
+  |   |   +-- proposal_engine.py  # Harness 提案生成/回归验证/版本化（§3.9）\n|   +-- knowledge/\
+  \              # 知识管理 (Phase 2)\n|   |   +-- retriever.py        # 混合检索（FTS5 + sqlite-vec\
+  \ + RRF）\n|   |   +-- embedding.py        # 向量化\n|   +-- services/             \
+  \  # 业务服务层\n|   |   +-- log_service.py\n|   |   +-- profile_service.py\n|   |  \
+  \ +-- knowledge_service.py\n|   +-- data/                   # 数据访问层\n|   |   +--\
+  \ proxy.py            # DataServiceProxy\n|   |   +-- sqlite.py           # SQLite\
+  \ 客户端（aiosqlite，WAL）\n|   |   +-- vec.py              # sqlite-vec 扩展加载与向量操作\n|\
+  \   |   +-- migrate.py          # PRAGMA user_version 迁移执行器\n|   +-- api/      \
+  \              # MCP 层\n|   |   +-- mcp_server.py       # MCP Server 实现（stdio）\n\
+  |   |   +-- tools/              # MCP 工具实现\n|   |       +-- query_tool.py   # rsi_query\n\
+  |   |       +-- feedback_tool.py # rsi_feedback\n|   |       +-- knowledge_tool.py\
+  \ # rsi_knowledge_* (Phase 2)\n|   |       +-- stats_tool.py   # rsi_stats（用量统计，P3）\n\
+  |   +-- scheduler/              # 进程内定时任务（§4.3）\n|   |   +-- tasks.py          \
+  \  # 离线任务定义\n|   |   +-- manager.py          # asyncio 调度器\n|   +-- scanner/   \
+  \             # 项目自学习 rsi bootstrap（M2，见 §10.9）\n|   |   +-- signal_discovery.py\
+  \ # 信号发现引擎\n|   |   +-- document_scanner.py # 文档扫描\n|   |   +-- code_scanner.py\
+  \     # 代码骨架 AST 分析\n|   |   +-- conversation_scanner.py # 对话上下文（需用户同意）\n|   | \
+  \  +-- git_analyzer.py     # Git 历史分析\n|   |   +-- config_scanner.py   # 配置/规范解析\n\
+  |   |   +-- correlation_engine.py # 跨信号源关联推理\n|   |   +-- profile_generator.py \
+  \ # 初始画像生成\n|   |   +-- incremental.py      # 增量学习与文件监听\n|   |   +-- validator.py\
+  \        # 数据验证\n|   |   +-- error_handler.py    # 错误处理与断点续学\n|   |   +-- report.py\
+  \           # 学习报告\n|   +-- cli/                    # CLI 命令\n|   |   +-- bootstrap_command.py\
+  \ # rsi bootstrap\n|   +-- common/                 # 工具函数\n|       +-- circuit_breaker.py\
+  \  # 熔断器（进程内，§5.1）\n|       +-- retry.py            # 重试工具\n|       +-- logger.py\
+  \           # 日志配置\n+-- tests/                      # 测试\n|   +-- conftest.py  \
+  \           # 共享 fixtures（tmp_path SQLite 等）\n|   +-- unit/                   #\
+  \ 单元测试\n|   |   +-- test_preprocessor.py\n|   |   +-- test_strategy_engine.py\n\
+  |   |   +-- test_model_adapter.py\n|   |   +-- test_orchestrator.py\n|   |   +--\
+  \ test_config_merger.py\n|   |   +-- test_circuit_breaker.py\n|   |   +-- test_masking.py\n\
+  |   |   +-- test_migrate.py\n|   +-- integration/            # 集成测试\n|   |   +--\
+  \ test_log_service.py\n|   |   +-- test_feedback_task.py\n|   |   +-- test_retriever.py\n\
+  |   +-- e2e/                    # 端到端测试（stdio 子进程）\n|       +-- test_pipeline.py\n\
+  +-- schemas/                    # JSON Schema\n|   +-- rsi_query.schema.json\n|\
+  \   +-- rsi_feedback.schema.json\n+-- docs/                       # 文档\n|   +--\
+  \ prd/\n|   +-- specs/\n|   +-- plans/\n+-- scripts/                    # 工具脚本\n\
+  \    +-- seed_knowledge.py\n    +-- export_data.py\n```\n\n> **文档信息**\n> - 版本：v2.6\n\
+  > - 最后更新：2026-09-10\n> - 下一阶段：Phase 1-M1 实现"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.803738+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-11-目录结构--488f76f3.yaml

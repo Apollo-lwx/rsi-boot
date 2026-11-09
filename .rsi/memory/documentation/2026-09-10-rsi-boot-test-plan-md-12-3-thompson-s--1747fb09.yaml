@@ -1,0 +1,29 @@
+id: 1747fb091325421dbe461338bcb696af
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 12.3 Thompson Sampling 收敛
+content: '### 12.3 Thompson Sampling 收敛
+
+
+  | 项 | 基线 |
+
+  |----|------|
+
+  | 方法 | 统计仿真（非确定性断言）：合成 Bernoulli 臂环境，1000 轮 × 100 次独立重复 |
+
+  | 验收指标 | 1000 轮时最优臂选择概率 ≥ 90%；累积 regret 较均匀随机基线低 ≥ 40% |
+
+  | 正确性 | Beta 后验参数更新规则用确定性单测覆盖（alpha/beta 精确断言） |
+
+  | 真实环境 | 影子模式（shadow）观测采样分布，不做硬断言；异常漂移（单臂占比 > 95% 且非最优）告警 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.497489+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-12-3-thompson-s--1747fb09.yaml

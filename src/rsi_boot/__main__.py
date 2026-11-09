@@ -50,6 +50,73 @@ async def cmd_init(args: argparse.Namespace) -> int:
         )
 
     print(f"初始化完成：{home}（用户配置）。项目记忆在各工作目录 .rsi/，首次 serve/bootstrap 时创建")
+    if getattr(args, "vector", False):
+        return _setup_vector(Path(getattr(args, "project_root", ".") or ".").resolve())
+    return 0
+
+
+def _setup_vector(project_root: Path) -> int:
+    """rsi init --vector：一键启用向量检索臂（P2 产品化）。
+
+    步骤：装依赖检查 → 下载/加载模型 → 项目 rsi-boot.yaml 写入 enable: [vector]
+    → 建索引自检。任何一步失败打印确切修复命令，不半配置。
+    """
+    from .rag import vector as vector_mod
+
+    try:
+        import fastembed  # noqa: F401
+    except ImportError:
+        print("缺少向量后端依赖，先装：pip install \"rsi-boot[vector]\"", file=sys.stderr)
+        return 2
+
+    model = os.environ.get(vector_mod.ENV_MODEL, vector_mod.DEFAULT_MODEL)
+    print(f"加载向量模型 {model}（首次需下载模型文件，之后离线可用）…")
+    try:
+        vector_mod._load_model(model, vector_mod._default_cache_dir())
+    except Exception as exc:
+        print(f"模型加载失败: {exc}", file=sys.stderr)
+        print("可换托管嵌入（无需下载）：RSI_VECTOR_MODEL=text-embedding-3-small "
+              "+ OPENAI_API_KEY/OPENAI_BASE_URL", file=sys.stderr)
+        return 1
+
+    yaml_path = project_root / "rsi-boot.yaml"
+    data: dict = {}
+    if yaml_path.is_file():
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                data = loaded
+        except Exception as exc:
+            print(f"读取 {yaml_path} 失败: {exc}", file=sys.stderr)
+            return 1
+    enable = data.get("enable") or []
+    if not isinstance(enable, list):
+        enable = []
+    changed = False
+    if "vector" not in {str(x) for x in enable}:
+        enable.append("vector")
+        data["enable"] = enable
+        changed = True
+    if changed:
+        import yaml
+
+        yaml_path.write_text(
+            yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+        print(f"已写入 {yaml_path}：enable: {enable}")
+    else:
+        print(f"{yaml_path} 已启用 vector，无需改动")
+
+    rsi_dir = project_root / ".rsi"
+    probe = vector_mod.VectorIndex.create(rsi_dir)
+    if probe is None:
+        print("向量索引自检失败（召回会静默退回纯词面），请查看日志", file=sys.stderr)
+        return 1
+    probe.close()
+    print("向量检索臂已就绪：下次召回自动走 词面+向量 双通道，首次召回后台自动预热")
     return 0
 
 
@@ -281,6 +348,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_init = sub.add_parser("init", help="初始化 ~/.rsi 用户配置目录")
+    p_init.add_argument(
+        "--vector", action="store_true",
+        help="一键启用向量检索臂：检查依赖、下载模型、写 rsi-boot.yaml enable",
+    )
+    p_init.add_argument("--project-root", default=".", help="--vector 时的项目根，默认当前目录")
     _add_verbose(p_init)
     p_serve = sub.add_parser("serve", help="启动 MCP stdio server")
     p_serve.add_argument(
@@ -362,6 +434,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_verbose(p_wipe)
 
+    p_doc = sub.add_parser("doctor", help="迁移/协作健康检查：记忆是否随 git 走")
+    p_doc.add_argument("--project-root", default=".", help="项目根，默认当前目录")
+    p_doc.add_argument(
+        "--fix", action="store_true",
+        help="一键改写 .gitignore 为细粒度规则（memory 随 git 走）",
+    )
+    _add_verbose(p_doc)
+
+    p_bun = sub.add_parser("bundle", help="memory 全量导出/导入（无 git 时的迁移兜底）")
+    _add_verbose(p_bun)
+    bun_sub = p_bun.add_subparsers(dest="bundle_action", required=True)
+    p_bexp = bun_sub.add_parser("export", help="导出 .rsi/memory 全量到目录")
+    p_bexp.add_argument("--out", required=True, help="bundle 输出目录")
+    p_bexp.add_argument("--project-root", default=".", help="项目根，默认当前目录")
+    p_bimp = bun_sub.add_parser("import", help="从 bundle 目录导入 memory（默认合并）")
+    p_bimp.add_argument("--from", dest="source", required=True, help="bundle 目录")
+    p_bimp.add_argument(
+        "--replace", action="store_true",
+        help="先备份并清空现有 memory 再导入",
+    )
+    p_bimp.add_argument("--project-root", default=".", help="项目根，默认当前目录")
+
     p_mig = sub.add_parser("migrate", help="从旧版 ~/.rsi/rsi.db 认领命名空间到当前项目")
     _add_verbose(p_mig)
     mig_sub = p_mig.add_subparsers(dest="migrate_action", required=True)
@@ -440,6 +534,24 @@ def main() -> None:
         setup_cli_logging(getattr(args, "verbose", False))
         try:
             sys.exit(run_wipe(args))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "doctor":
+        from .cli.doctor_command import run_doctor
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_doctor(args))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "bundle":
+        from .cli.bundle_command import run_bundle
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_bundle(args))
         except KeyboardInterrupt:
             sys.exit(130)
 

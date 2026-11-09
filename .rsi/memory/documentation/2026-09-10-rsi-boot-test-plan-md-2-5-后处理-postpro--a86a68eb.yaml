@@ -1,0 +1,43 @@
+id: a86a68eb155243cd93fe241e5ec87fb2
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.5 后处理 Postprocessor
+content: '### 2.5 后处理 Postprocessor
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | POS-01 | 解析纯文本输出 | 模型返回纯文本 | 1. parse_output() | ContentItem[0].type=text | P0
+  |
+
+  | POS-02 | 解析代码块输出 | 模型返回含 markdown 代码块 | 1. parse_output() | ContentItem 含 type=code，language
+  正确识别 | P0 |
+
+  | POS-03 | 解析混合输出 | 模型返回文本+代码+JSON | 1. parse_output() | 多个 ContentItem，顺序正确 | P0
+  |
+
+  | POS-04 | 解析失败回退 | 模型返回不可解析内容 | 1. parse_output() | 宽松解析，纯文本兜底，不抛异常 | P1 |
+
+  | POS-05 | 质量评估：高分场景 | response 高度相关+完整+合规 | 1. evaluate_quality() | quality_score
+  >= 0.8 | P2 |
+
+  | POS-06 | 质量评估：低分场景 | response 不相关+不完整 | 1. evaluate_quality() | quality_score
+  <= 0.4 | P2 |
+
+  | POS-07 | feedback_token 生成 | 正常流程 | 1. 生成 token | token 为唯一字符串，可关联请求 | P0 |
+
+  | POS-08 | 上下文裁剪：超限 | messages > context_window | 1. truncate_context() | 按 Spec
+  §3.4：保留 system prompt + 最近 10 轮历史，更早的截断 | P1 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.439615+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-5-后处理-postpro--a86a68eb.yaml

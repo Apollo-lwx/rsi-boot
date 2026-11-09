@@ -1,0 +1,30 @@
+id: ba7ee3dc31de4e0cb8a0fc2195af0eca
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H5：意图识别硬编码为开发意图
+content: '### H5：意图识别硬编码为开发意图
+
+
+  | 位置 | Spec Section 3.6（角色意图映射；v0.2 注：初稿误标为 §3.1，9 意图实际定义于 §3.6） |
+
+  |------|------------------|
+
+  | **原文** | 角色意图映射中的 9 种开发者意图：explain, debug, refactor, testing, code_gen, documentation,
+  code_review, devops, howto |
+
+  | **隐含假设** | 所有用户的请求都可以归入这 9 类开发者意图 |
+
+  | **影响** | 测试人员的"生成用例"需求归入 general/product_manager 的"写 PRD"归入 general，精度下降 |
+
+  | **修正方向** | 意图识别改为插件化注册，预置 dev/test/pm 三套基础分类，支持自定义 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.255907+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h5-意--ba7ee3dc.yaml

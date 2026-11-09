@@ -1,0 +1,33 @@
+id: 4799c159024641f1ad46931da9147805
+type: documentation
+title: 2026-09-10-rsi-boot-traceability-matrix.md# 按 Phase 统计（人天与 Plans v2.0 同步）
+content: '### 按 Phase 统计（人天与 Plans v2.0 同步）
+
+
+  | Phase | Plans 任务数 | 工期范围（纯开发人天） | 日历（2-3 人 × 1.5 缓冲） | 状态 |
+
+  |-------|------------|---------|------|------|
+
+  | P1-M1 | 9 (P1.1~P1.8 + P1.18) | 26.5-29.5 人天 | 2-3 周 | ✅ Plans 已分解 |
+
+  | P1-M2 | 8 (P1.10, P1.12~P1.17 + 角色横向) | 18-19 人天 | 2-4 周 | ✅ Plans 已分解 |
+
+  | P2 | 8 (P2.1~P2.7 + 角色横向) | 25 人天 | 2-3 周 | ✅ Plans 已分解 |
+
+  | P3 | 7 (P3.1~P3.6 + 角色横向) | 21.5 人天 | 2-3 周 | ✅ Plans 已分解 |
+
+  | P4 | 4 (P4.1~P4.4) | 14 人天 | 2-3 周 | ✅ Plans 已分解 |
+
+  | **合计** | **36** | **105-109 人天** | **10-16 周** | |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-traceability-matrix.md
+created_at: '2026-09-10T11:46:29.312931+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-traceability-matrix-md-按-pha--4799c159.yaml

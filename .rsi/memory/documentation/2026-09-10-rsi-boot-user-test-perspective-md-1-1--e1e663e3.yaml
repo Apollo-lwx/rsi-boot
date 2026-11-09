@@ -1,0 +1,27 @@
+id: e1e663e301474aab88725e766ab22c08
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 1.1 测试用例生成的「部分可用但需甄别」
+content: '### 1.1 测试用例生成的「部分可用但需甄别」
+
+
+  RSI Gateway 的 `rsi_query` 工具在意图为 `code_gen` 或 `general_assist` 时可以生成测试用例代码。作为 QA，我尝试过用它来生成接口测试用例和边界条件测试，效果呈现明显的两极分化：
+
+
+  - **常规场景可用**：对于 CRUD 接口的正向流程、标准参数组合，LLM 生成的用例模板基本正确，节省了 30%-40% 的模板代码编写时间。配合 `debug`
+  意图还能辅助分析测试失败原因。
+
+  - **业务逻辑需要重写**：一旦涉及复杂的业务状态机、多步骤操作组合，LLM 生成的测试逻辑往往不符合实际业务流程，需要人工重写大部分内容。
+
+  - **边界条件必然遗漏**：这是最致命的问题。多个测试场景验证表明，LLM 生成的测试用例在数值边界（如 int64 溢出、空集合遍历）、并发竞态条件、网络异常等方面的覆盖率远低于有经验的测试工程师。我的结论是：可以作为「初稿辅助」，但绝不可作为「最终交付」。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.321255+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-1-1--e1e663e3.yaml

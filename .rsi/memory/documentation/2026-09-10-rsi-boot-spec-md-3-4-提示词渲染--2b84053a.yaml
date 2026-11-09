@@ -1,0 +1,52 @@
+id: 2b84053af1064e76b1bbf8ab015bffd3
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 3.4 提示词渲染
+content: '### 3.4 提示词渲染
+
+
+  使用 Jinja2 模板引擎渲染提示词，支持模板继承和变量注入。
+
+
+  **模板目录结构**（与 §11 目录结构一致）
+
+
+  ```
+
+  config/templates/
+
+  +-- base.jinja2
+
+  +-- code_review.jinja2
+
+  +-- code_gen.jinja2
+
+  +-- debug.jinja2
+
+  +-- explain.jinja2
+
+  +-- general_assist.jinja2
+
+  ```
+
+
+  **变量注入**：project_name、project_context、user_expertise、user_style、knowledge_items、code_content、language
+  等。
+
+
+  **上下文截断**：`chat_history` 最多保留最近 10 轮，超出部分截断；渲染后总 prompt 超出模型上下文窗口时，保留 system 消息
+  + 最近 2 轮历史，其余裁剪。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.672867+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-3-4-提示词渲染--2b84053a.yaml

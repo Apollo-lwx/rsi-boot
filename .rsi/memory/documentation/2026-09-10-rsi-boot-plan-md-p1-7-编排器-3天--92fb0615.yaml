@@ -1,0 +1,37 @@
+id: 92fb0615913941ee9a9f26892be738b7
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.7 编排器（3天）
+content: '### P1.7 编排器（3天）
+
+
+  **实现依据**：Spec §4.1 主请求处理流程、§5.1-§5.4 错误处理与熔断（各依赖熔断阈值、进程内内存状态、单调时钟、指数退避参数）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | Pipeline 模式定义 | pipeline.py | 0.5d |
+
+  | Handler 基类 + 各阶段 Handler | orchestrator/handlers/ | 1d |
+
+  | 错误处理 + 重试 + 熔断器集成（进程内） | pipeline.py | 1d |
+
+  | 超时控制 + 成本核算 | pipeline.py | 0.5d |
+
+  | E2E 测试：test_pipeline.py | 测试用例 | 0.5d |
+
+
+  **验收**：完整请求流程走通'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.378895+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-7-编排器-3天--92fb0615.yaml

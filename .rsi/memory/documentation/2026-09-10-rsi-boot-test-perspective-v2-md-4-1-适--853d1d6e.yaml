@@ -1,0 +1,29 @@
+id: 853d1d6e71094c748bae6b0b0d2062f3
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 4.1 适合的团队画像
+content: '### 4.1 适合的团队画像
+
+
+  | 团队类型 | 适配度 | 说明 |
+
+  |----------|--------|------|
+
+  | 有 SDET 的团队 | 高 | SDET 可以自定义测试意图和模板，最大化价值 |
+
+  | 自动化测试团队 | 中高 | 测试用例生成和 review 价值高，需要有人初始化知识库 |
+
+  | 手工测试团队 | 低 | ROI 较低，核心价值来自知识库而非模板生成 |
+
+  | 小团队（< 5 人） | 中 | 轻量模式 SQLite + 文件索引快速启动，但冷启动成本相对高 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.290803+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-4-1-适--853d1d6e.yaml

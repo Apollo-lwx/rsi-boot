@@ -1,0 +1,29 @@
+id: 4a5fe9267a4d4a6c9590cbd4639ef0bd
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 3.4 团队推广路线图建议
+content: '### 3.4 团队推广路线图建议
+
+
+  如果决定在测试团队推广，建议分三步走：
+
+
+  1. **第 1-2 周：「探路者」**——1 名 SDET 试用，聚焦代码审查辅助和测试数据分析，记录 ROI 数据
+
+  2. **第 3-4 周：「试点组」**——3-5 名测试工程师，配置专用路由策略和知识库，建立测试专用意图
+
+  3. **第 5-8 周：「规模推广」**——知识库成熟度达标后，全团队接入，制定测试用例生成规范和质量门禁
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.337302+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-3-4--4a5fe926.yaml

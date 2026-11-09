@@ -1,0 +1,19 @@
+id: 333aa565cf3042da89103543a514e6c7
+type: convention
+title: 'Task 7: RecallService store= o'
+content: 'Q: Task 7: RecallService store= optional path, recall from YAML files via
+  expand_query + invert, events.jsonl retrieved as document ids, keep db branch
+
+  A: 2026-09-10-rsi-boot-spec.md# RSIRequest（请求输入）
+
+  2026-09-10-rsi-boot-spec.md# RSIResponse（响应输出）'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-14T02:11:04.303575+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/task-7-recallservice-store-o--333aa565.yaml

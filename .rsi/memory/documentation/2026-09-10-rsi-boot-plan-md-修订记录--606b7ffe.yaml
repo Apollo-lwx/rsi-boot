@@ -1,0 +1,76 @@
+id: 606b7ffe3fb34d088dbc81337cf237a2
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# 修订记录
+content: '## 修订记录
+
+
+  | 版本 | 日期 | 作者 | 变更内容 |
+
+  |------|------|------|---------|
+
+  | v2.6 | 2026-09-10 | PO (评审修复) | 响应外部评审 #1/#2：新增 P1.18 M1 轻量价值闭环（3.5d：FTS5 知识注入
+  + rsi_feedback 基础版 + 知识种子 CLI）——数据自 M1 起积累，消除 P3.6 落地后空等数据的空窗；P2.3 改在原路径升级（3d→2d）、P3.1
+  改升级完善（2d→1.5d）；M1 交付物 8→9 模块 23-26→26.5-29.5 人天；总任务 35→36 项，总工期 103-107→105-109
+  人天（日历 10-16 周不变） |
+
+  | v2.5 | 2026-09-10 | PO (评审修复) | 响应外部评审 #5：新增 P2.7 算法评测基线框架（2.5d，tests/eval/ +
+  标注数据集 + baselines.json + CI 分级）；P3.3 增收敛仿真验证（4d→4.5d）、P3.6 增门禁注入验证（6d→6.5d）；总任务
+  34→35 项，总工期 100-104→103-107 人天（日历 10-16 周不变） |
+
+  | v2.4 | 2026-09-10 | PO (评审修复) | 响应外部评审 #3/#4：P1.17 拆分为核心扫描层（5.5d，M2）+ 新增 P2.6
+  深度信号层（6.5d，Phase 2：AST/Git/对话/关联推理/增量），scanner 总工时 6-7d→12d；P2.1 扩展 VectorBackend
+  抽象 + brute 回退（3d→4d）；风险表新增 sqlite-vec 成熟度、scanner 复杂度、P3.6 信号依赖链三项；总任务 33→34 项，总工期
+  93-97→100-104 人天，日历 9-13→10-16 周 |
+
+  | v2.3 | 2026-09-10 | PO (Skill 槽补全) | 跟随 Spec v2.3：P3.6 新增技能槽运行时（config/skills/
+  发现 + trigger 匹配注入），工时 5d→6d；Phase 3 交付物 20→21 人天，总工期 92-96→93-97 人天 |
+
+  | v2.2 | 2026-09-10 | PO (Genome 借鉴) | 跟随 Spec v2.2：P3.6 扩展 Genome 式配置快照（晋升快照/切换回滚/bundle
+  导出）与 rsi_review generate/snapshot 操作，工时 4d→5d；Phase 3 交付物 19→20 人天，总工期 91-95→92-96
+  人天 |
+
+  | v2.1 | 2026-09-10 | PO (Harness-RSI) | 跟随 Spec v2.1：Phase 3 新增 P3.6 Harness 自我改进提案任务（4d，learning/failure_miner.py
+  + proposal_engine.py + review_tool.py）；覆盖统计同步为 36 条（P2 6→7），总任务 32→33 项，总工期 87-91→91-95
+  人天 |
+
+  | v2.0 | 2026-09-10 | PO (定位重构) | 跟随 Spec v2.0 定位转向（个人本地 MCP 工具）：**删除 P1.9 认证鉴权、P1.11
+  限流算法两项任务**（编号保留空缺，不重排，保证追溯矩阵引用稳定）；P1.13 Alembic 迁移改为 SQLite PRAGMA user_version
+  迁移；P1.1 项目骨架去除 FastAPI/docker-compose/init_db，改为 CLI 入口 + .rsi 目录初始化 + 自动建库；P1.15
+  去除 HTTP SSE 传输与认证握手；P1.16 配置链改四层；P1.17 存量项目专项去除团队成员子画像；P2.1 向量库改 sqlite-vec、P2.4
+  缓存改进程内 TTLCache；P3.2 反馈处理器改进程内异步任务；Phase 4 去除管理 UI/Grafana/Redis 缓存，改为用量统计增强与进程内缓存优化；开工前置条件去除
+  Docker/PostgreSQL/Redis；覆盖统计同步为 35 条（P0:14 / P1:10 / P2:6 / P3:5），总工期重算为 87-91 人天
+  |
+
+  | v1.2 | 2026-09-10 | PO (二次审阅修复) | 覆盖统计与 PRD §4 v1.2 统一为 37 条（P0:16 / P1:10 / P2:6
+  / P3:5，修正 v1.1 的 39 条误算）；工程基建任务口径与追溯矩阵同步为 1 项；P1.17 验收标准补充存量项目（场景 E）专项条件；新增非功能横切需求验证方式小节；新增「实现工作约定」（Spec
+  为唯一实现依据）并为全部 35 项任务标注「实现依据」Spec 章节；P1.9 权限角色残留 developer 修正为 member |
+
+  | v1.1 | 2026-09-10 | PO (审阅修复) | 修复审阅发现的问题：交付物路径与 Spec §11 目录结构全面对齐（preprocessor/、strategy/、model/providers/、api/tools/、core/
+  等）；工期数字自洽化（M2 交付物 21-24 人天与明细一致；总计 90-106 人天，明确人天为纯开发工时、日历含 1.5 倍缓冲，总日历修正为 10-16
+  周）；角色意图清单与 Spec §3.6 统一（bug_analyze/test_data/stakeholder_comm）；反馈工具统一命名 rsi_feedback；watchdog
+  统一为 watchfiles；P4.2 明确为跨厂商 Fallback + 成本路由 |
+
+  | v1.0 | 2026-09-10 | PO (版本对齐) | 统一版本号为 v1.0；PRD/Specs/Plans 文档版本对齐；新增可追溯矩阵；修复编码
+  |
+
+  | v0.4 | 2026-09-10 | PO (终审) | 新增角色基础设施工作量详解；目录结构增加 config/roles/ 和 role_templates/；角色配置任务整合至
+  P1 M2 |
+
+  | v0.3 | 2026-09-10 | PO (评审汇总) | Phase 1 拆分为 M1(核心链路)/M2(网关完善)；P1.6 MCP 工时从 3d
+  调整为 4-5d；修复 P1.8/P1.9 编号冲突；新增 M2 认证鉴权/数据脱敏/限流/数据生命周期/Alembic 任务；新增 config_merger
+  配置合并模块任务；新增风险项 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.365260+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-修订记录--606b7ffe.yaml

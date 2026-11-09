@@ -1,0 +1,38 @@
+id: 31411b69290d4ad3b6cb6776a89c84f3
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.11 Thompson Sampling 策略优化 (Phase 3)
+content: '### 2.11 Thompson Sampling 策略优化 (Phase 3)
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | THO-01 | 冷启动：所有臂平等 | 新策略，alpha=beta=1（均匀先验） | 1. 调用 thompson_sample() 多次 | 各臂被选概率接近均等（大方差自然探索，Spec
+  §3.3） | P2 |
+
+  | THO-02 | 积累后利用 | 臂A: 8/10采纳, 臂B: 2/10采纳 | 1. 多次调用 2. 统计分布 | 臂A被选中概率显著高于臂B | P2
+  |
+
+  | THO-03 | 探索自然发生（无 epsilon 机制） | 臂A 样本充足高采纳，臂B 样本稀少 | 1. 统计 1000 次选择 | 臂B 因 Beta
+  分布方差大仍有一定被选概率（纯 Thompson 特性，不依赖 epsilon） | P2 |
+
+  | THO-04 | Beta 分布更新 | 臂A: 10 次采纳(reward=+2), 1 次差评(reward=-1) | 1. 检查 alpha/beta
+  | alpha=1+10×2=21, beta=1+1=2（Spec §3.3 更新规则） | P2 |
+
+  | THO-05 | 奖励衰减 | 随时间推移调整权重 | 1. 跨时间窗口统计 | 近期反馈权重高于远期 | P3 |
+
+  | THO-06 | 离线任务调度 | 进程内调度器（§4.3） | 1. 检查定时任务执行 2. 验证结果 | 策略参数正确更新；进程未运行则下次启动补跑 |
+  P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.456488+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-11-thompson-s--31411b69.yaml

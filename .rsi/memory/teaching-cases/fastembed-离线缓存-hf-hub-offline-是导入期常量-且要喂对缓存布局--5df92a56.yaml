@@ -1,0 +1,48 @@
+id: 5df92a56a08d47abb447ff87a89e6a18
+type: teaching_case
+title: fastembed 离线缓存：HF_HUB_OFFLINE 是导入期常量，且要喂对缓存布局
+content: 1) huggingface_hub 的 HF_HUB_OFFLINE 常量在 import 时冻结，必须在 import fastembed 之前设置；2)
+  fastembed 下载模型走两条路：HF snapshot 布局（models--org--name/snapshots/<rev>，refs/main 指向完整
+  rev）和 GCS 拷贝布局（cache_dir/<模型短名>/ 直接放文件，仅 local_files_only 时兜底），手工布置任一条都要完整（含 refs/main
+  指针对齐）；3) 国内网络下大文件直链走 ModelScope（4.6MB/s）替代 HF 官方与 hf-mirror（均约 55KB/s）；4) 环境探测失败要在适配器里如实
+  fallback 并在 notes 标注，榜单注记按数据集分别说明 embedding 档位。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-04T12:22:49Z'
+updated_at: '2026-11-04T12:22:49Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: fastembed-offline-cache-miss
+    failure_type: ''
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 1) huggingface_hub 的 HF_HUB_OFFLINE 常量在 import 时冻结，必须在 import fastembed
+      之前设置；2) fastembed 下载模型走两条路：HF snapshot 布局（models--org--name/snapshots/<rev>，refs/main
+      指向完整 rev）和 GCS 拷贝布局（cache_dir/<模型短名>/ 直接放文件，仅 local_files_only 时兜底），手工布置任一条都要完整（含
+      refs/main 指针对齐）；3) 国内网络下大文件直链走 ModelScope（4.6MB/s）替代 HF 官方与 hf-mirror（均约 55KB/s）；4)
+      环境探测失败要在适配器里如实 fallback 并在 notes 标注，榜单注记按数据集分别说明 embedding 档位。
+    reason: ''
+    applies_to: []
+    tags:
+    - fastembed
+    - huggingface
+    - offline
+    - benchmark
+    open_questions: []
+    wrong_action: 在 import fastembed 之后才设 HF_HUB_OFFLINE=1，并按 HF 标准布局手工放模型文件，结果每次仍走网络慢速下载（55KB/s），三次超时没定位到根因。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-11-04T12:22:49Z'
+path: memory/teaching-cases/fastembed-离线缓存-hf-hub-offline-是导入期常量-且要喂对缓存布局--5df92a56.yaml

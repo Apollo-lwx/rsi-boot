@@ -1,0 +1,47 @@
+id: 94c654c141a34cbab7775d9a97868d1b
+type: teaching_case
+title: 文件运行时补齐归档、臂淘汰和增强开关
+content: 每日任务把超过 90 天的事件先写入 archive/YYYYMM.jsonl 再从活动日志删除。每周 decay_arms 之后按曝光不少于 100
+  且采纳率低于 20% 停用臂，并至少保留一条活跃召回臂。generate 在 proposal_llm 打开时走 _llm_propose，并单独扫描零采纳领域提出
+  knowledge remove。validate 在 auto_apply 时通过门禁后直接 approve。run_daily 在 extract_llm
+  打开时先走 extract_draft，失败再回落规则式。gate_replay 在同时有模型和 embedding 时用 events.jsonl 装配 RegressionGate，否则明确警告并回落静态门禁。conflict_llm
+  打开时，启发式未定性的命中最多再问模型 8 次。current_rules 返回当前注入的禁止项、技能和目录，rsi_memory rules 可读。sqlite
+  Pipeline 仍不装进 serve。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T06:07:45Z'
+updated_at: '2026-10-28T06:07:45Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: file-runtime-unwired-archive-arms-switches
+    failure_type: stub
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 每日任务把超过 90 天的事件先写入 archive/YYYYMM.jsonl 再从活动日志删除。每周 decay_arms 之后按曝光不少于
+      100 且采纳率低于 20% 停用臂，并至少保留一条活跃召回臂。generate 在 proposal_llm 打开时走 _llm_propose，并单独扫描零采纳领域提出
+      knowledge remove。validate 在 auto_apply 时通过门禁后直接 approve。run_daily 在 extract_llm
+      打开时先走 extract_draft，失败再回落规则式。gate_replay 在同时有模型和 embedding 时用 events.jsonl 装配
+      RegressionGate，否则明确警告并回落静态门禁。conflict_llm 打开时，启发式未定性的命中最多再问模型 8 次。current_rules
+      返回当前注入的禁止项、技能和目录，rsi_memory rules 可读。sqlite Pipeline 仍不装进 serve。
+    reason: 这些路径要么只认旧 sqlite，要么开关打开后行为不变。
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 调度器不归档 events.jsonl，也不淘汰低采纳召回臂。extract_llm、proposal_llm、gate_replay、conflict_llm、auto_apply
+      和领域零采纳下线写了开关或注释，主流程不读。current_rules 固定返回空列表。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-28T06:07:45Z'
+path: memory/teaching-cases/文件运行时补齐归档-臂淘汰和增强开关--94c654c1.yaml

@@ -1,0 +1,41 @@
+id: c865d1b2f01144ad826078e2d7ba64d5
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 3：学习闭环 (Learning Loop)
+content: '## Phase 3：学习闭环 (Learning Loop)
+
+
+  | 任务 | 说明 | 工时 | 实现依据 (Spec) |
+
+  |------|------|------|----------------|
+
+  | P3.1 Feedback 工具完善 | 在 M1 基础版（P1.18）上升级：完整 FeedbackAction + 隐式事件对接 | 1.5d | §7.1
+  工具列表、§2.1 FeedbackAction |
+
+  | P3.2 反馈处理器 | 进程内异步任务消费反馈事件（asyncio.Queue） | 3d | §4.2 反馈处理流程 |
+
+  | P3.3 策略优化 | Thompson Sampling A/B 测试框架 + 收敛性仿真验证（1000 轮 × 100 重复基线） | 4.5d | §3.3
+  策略选择（纯采样无 epsilon、alpha/beta 更新规则）、测试计划 §12.3 |
+
+  | P3.4 知识提取 | 高质量交互 -> 知识条目（含人工确认） | 3d | §4.2 知识提取触发（diff>20%）、§4.3 离线任务 |
+
+  | P3.5 质量评估 | 基于规则 + 小模型的响应评分 | 2d | §3.5 质量评估（relevance/accuracy/actionability
+  + 角色权重） |
+
+  | P3.6 Harness 自我改进提案 | 失败模式挖掘 + 提案生成 + 回放集回归门禁 + 技能槽运行时（config/skills/ 发现、trigger
+  匹配注入）+ Genome 式配置快照（晋升快照/切换回滚/bundle 导出）+ 观察期回滚 + rsi_review 工具（含 generate 按需生成与
+  snapshot 操作）+ 门禁注入验证（种子退化集拦截率 100%） | 6.5d | §3.9 Harness 自我改进（六槽位模型/提案生命周期/版本化快照/安全边界）、§2.2
+  harness_proposals 与 config_snapshots 表 |
+
+  | 角色横向：各角色独立反馈统计 | feedback 按 role 聚合分析 | 1d | §4.2 反馈处理流程 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.398524+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-3-学习闭环-learnin--c865d1b2.yaml

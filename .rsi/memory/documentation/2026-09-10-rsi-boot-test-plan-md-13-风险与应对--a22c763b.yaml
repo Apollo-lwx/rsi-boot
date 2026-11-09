@@ -1,0 +1,30 @@
+id: a22c763b072141279b2ebe4c0096cdf5
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 13. 风险与应对
+content: '## 13. 风险与应对
+
+
+  | 风险 | 概率 | 影响 | 应对 |
+
+  |------|------|------|------|
+
+  | sqlite-vec 平台兼容性（Windows/macOS/Linux  wheel） | 中 | 中 | CI 三平台矩阵测试；缺失时 brute 后端回退（KNO-09~11），FAISS
+  为可选未来后端 |
+
+  | OpenAI API 费用失控 | 中 | 高 | E2E 测试使用 mock 模型，不调用真实 API |
+
+  | Thompson Sampling 难以测试 | 中 | 中 | 用统计仿真验证，非确定性断言 |
+
+  | 日志表数据膨胀影响测试速度 | 高 | 低 | 每个测试独立临时库文件，测试后清理 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.509277+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-13-风险与应对--a22c763b.yaml

@@ -1,0 +1,47 @@
+id: c2d7ef26566f4395bc5438510286973b
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 8. 竞品分析
+content: '## 8. 竞品分析
+
+
+  | 维度 | RSI Boot | Superpowers | GitHub Copilot | Sourcegraph Cody | Continue.dev
+  |
+
+  |------|----------|-------------|----------------|-----------------|-------------|
+
+  | 定位 | 个人本地 MCP 智能助手（带学习闭环） | Cursor 技能/流程插件框架 | 代码补全 IDE 插件 | 代码搜索 + AI 助手 | 开源
+  AI 编码助手 |
+
+  | 核心能力 | 多模型路由 + 知识增强 + 学习闭环 | 技能编排与工作流规范 | 行内补全 + 聊天 | 代码搜索 + 聊天 | 灵活模型选择 + 自定义
+  |
+
+  | 知识管理 | 项目知识库 + 混合检索 + 来源标注 + bootstrap 自学习 | 规则/技能文件 | Git 上下文感知 | 代码图谱 + 搜索索引
+  | 用户自定义上下文 |
+
+  | 学习闭环 | 隐式/显式反馈 → 策略优化 → 画像更新 | 无 | 无 | 无 | 无 |
+
+  | 多模型支持 | 统一路由 + 成本意识 | 依赖宿主模型 | 仅 OpenAI | 多模型（BYOK） | 多模型（BYOK） |
+
+  | 反馈机制 | 采纳跟踪 + 显式评分 + Thompson Sampling | 无 | 无 | 无 | 无 |
+
+  | 部署模式 | 纯本地（pip 安装，零外部服务） | IDE 插件 | 云端（不可私有化） | 云端 + 私有化 | 本地/云端 |
+
+  | 协议 | MCP（开放标准） | IDE 插件机制 | 专有协议 | 专有 API | 专有扩展 |
+
+
+  **差异化优势：** 学习闭环（反馈→优化→画像）、项目自学习冷启动（bootstrap）、统一多模型路由与成本意识、纯本地零运维、MCP 开放协议标准
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.586793+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-8-竞品分析--c2d7ef26.yaml

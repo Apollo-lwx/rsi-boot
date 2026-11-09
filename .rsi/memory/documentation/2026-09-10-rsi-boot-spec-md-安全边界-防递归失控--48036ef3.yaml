@@ -1,0 +1,27 @@
+id: 48036ef37d9943699498322a397fcbc3
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 安全边界（防递归失控）
+content: '#### 安全边界（防递归失控）
+
+
+  - `interaction_logs` 为 append-only 事实日志，改进机制只读、永不改写（canonical event log 原则）
+
+  - 提案只能改 6 个槽位的内容，**不能改**：评估代码、回归门禁参数、提案机制自身——元级修改只能人工进行
+
+  - 改进速率硬上限：单轮提案 ≤ 5 个、单槽位周变更 ≤ 3 次（防振荡）
+
+
+  **与 MetaRSI-v1 的刻意取舍**：MetaRSI 的 RSI² Agent 支持纵向优化（改写算子自身的提案策略）与 Model-RSI（训练内化权重）。本系统**刻意不做**：纵向元级优化对个人工具风险收益比过低，保持人工独占元级修改权；Model-RSI
+  因消费 LLM API 而非自训模型天然不适用。但吸收其「内化后做减法」的推论——知识去重与归档（§4.3）即本系统的减法对应物。若未来引入纵向优化，应以只读建议形式呈现「提案策略的提案」，仍走人工确认门禁。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.713432+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-安全边界-防递归失控--48036ef3.yaml

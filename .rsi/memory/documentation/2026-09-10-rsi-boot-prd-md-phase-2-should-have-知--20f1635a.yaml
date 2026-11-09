@@ -1,0 +1,39 @@
+id: 20f1635ae83d4da18f1e3ebde3136bd7
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# Phase 2 — Should Have (知识增强)
+content: '### Phase 2 — Should Have (知识增强)
+
+
+  | 功能 | 说明 | 优先级 |
+
+  |------|------|--------|
+
+  | 向量检索集成 | sqlite-vec 接入（与主库同文件），知识条目 CRUD | P1 |
+
+  | 意图识别升级 | 基于分类模型（如 few-shot）提升准确率 | P1 |
+
+  | 知识检索与注入 | 检索相关文档并注入提示词上下文；M1 交付 FTS5-only 子集（手动种子），Phase 2 升级 FTS5 + 向量混合检索（RRF）
+  | P1 |
+
+  | 用户画像基础 | 画像存储与读取，支持项目级配置 | P1 |
+
+  | 上下文增强 | 读取项目配置、用户偏好补充到请求 | P1 |
+
+  | 隐式反馈捕获 | 记录用户采纳/修改/复制行为（依赖客户端事件上报，经 rsi_feedback 统一入口） | P1 |
+
+  | 模型 fallback | 主模型失败自动切换备选型号（Phase 2 限同厂商多型号，如 gpt-4o → gpt-4o-mini；跨厂商 fallback
+  在 Phase 4 随多模型适配实现） | P1 |
+
+  | 配置热加载 | watchfiles 实现配置变更实时生效 | P1 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.553393+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-phase-2-should-have-知--20f1635a.yaml

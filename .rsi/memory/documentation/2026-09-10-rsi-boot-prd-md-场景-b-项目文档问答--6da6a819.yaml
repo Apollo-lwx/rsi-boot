@@ -1,0 +1,32 @@
+id: 6da6a819ef2042b1b9a7c0fdb9f70af1
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 场景 B：项目文档问答
+content: '### 场景 B：项目文档问答
+
+
+  > 用户向 RSI Boot 提问项目架构、部署流程、测试规范或产品文档，工具结合项目知识库回答。
+
+
+  **示例-开发者**：「这个项目的数据库迁移流程是什么?」，检索项目 README 和 ADR 记录回答。
+
+  **示例-测试工程师**：「这个接口的测试环境怎么搭建?」，检索测试环境配置文档回答。
+
+  **示例-产品经理**：「当前版本发布了哪些功能?」，检索 Changelog 和 Release Notes 回答。
+
+
+  **期望**：回答准确引用项目文档，可溯源，幻觉率 < 5%。角色感知：不同角色提问时，优先检索对应领域（devops/docs/test/product）的知识条目。
+
+
+  **成功标准**：知识检索命中率 > 85%，回答准确率 > 90%（各角色独立统计）。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.535656+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-场景-b-项目文档问答--6da6a819.yaml

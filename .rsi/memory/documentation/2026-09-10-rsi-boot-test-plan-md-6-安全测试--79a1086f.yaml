@@ -1,0 +1,39 @@
+id: 79a1086fbb3b47a38dffc11e5927a200
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 6. 安全测试
+content: '## 6. 安全测试
+
+
+  | ID | 场景 | 测试方法 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|--------|
+
+  | SEC-01 | SQL 注入 | raw_input 含 SQL 注入代码 | 参数化查询，SQL 注入不生效 | P0 |
+
+  | SEC-02 | XSS 注入 | response 含 <script> 标签 | 响应中 HTML 转义 | P1 |
+
+  | SEC-03 | feedback_token 伪造 | 尝试构造/猜测 token | 校验失败，返回 token 无效错误 | P1 |
+
+  | SEC-04 | 敏感信息日志泄露 | 检查日志与 rsi.db | API Key、密码等已脱敏（§8.1） | P0 |
+
+  | SEC-05 | 知识条目注入 | 批量提交大量/超大条目 | 大小限制生效，单条内容长度校验拒绝 | P2 |
+
+  | SEC-06 | 项目配置明文 Key | rsi-boot.yaml 中写入 `sk-...` 明文 | 配置加载器拒绝启动并提示走环境变量（§8.2）
+  | P0 |
+
+  | SEC-07 | 外发 LLM 内容扫描 | prompt 中含密钥/内网地址 | 外发前已脱敏（§8.1 双时机） | P0 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.474760+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-6-安全测试--79a1086f.yaml

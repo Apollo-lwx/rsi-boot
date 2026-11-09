@@ -1,0 +1,31 @@
+id: 9a86015d0cc6461b85ce9cc5774752a0
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 5.2 DataServiceProxy
+content: '### 5.2 DataServiceProxy
+
+
+  封装所有外部依赖调用（SQLite、LLM API、Embedding API），统一处理连接失败、超时和降级。每个依赖有独立的熔断器实例。
+
+
+  | 依赖 | 熔断阈值 | 恢复超时 | 降级策略 |
+
+  |------|----------|----------|----------|
+
+  | sqlite | 3 | 30s | 日志/画像读写失败时跳过持久化，本次请求仅走内存（响应照常返回，记 error 日志） |
+
+  | embedding | 3 | 30s | 跳过向量检索，仅用 FTS5 关键词检索（§3.2） |
+
+  | llm_primary | 5 | 60s | 尝试 fallback 模型（Phase 2：同厂商低价型号，如 gpt-4o → gpt-4o-mini；Phase
+  4：跨厂商） |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.726086+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-5-2-dataserviceproxy--9a86015d.yaml

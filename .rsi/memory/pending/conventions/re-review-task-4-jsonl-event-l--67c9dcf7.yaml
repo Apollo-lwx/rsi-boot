@@ -1,0 +1,31 @@
+id: 67c9dcf7eec045e38f91cd9113ad6c25
+type: convention
+title: Re-review Task 4 JSONL event l
+content: 'Q: Re-review Task 4 JSONL event log after same-month re-roll append-copy
+  fix; verify dest is not truncated and marker test exists
+
+  A: 2026-09-10-rsi-boot-spec.md# 安全边界（防递归失控）
+
+  2026-09-10-rsi-boot-spec.md# 时间衰减
+
+  2026-09-10-rsi-boot-spec.md# 4.2 反馈处理流程（异步任务）
+
+  2026-09-10-rsi-boot-test-plan.md# 12. 算法质量评估与验收基线（RSI 特有）
+
+  2026-09-10-rsi-boot-test-plan.md# 12.4 Harness 提案质量与门禁有效性
+
+  2026-09-10-rsi-boot-spec.md# 10.5 数据目录约定
+
+  2026-09-10-rsi-boot-plan.md# P1.12 数据生命周期（2天）
+
+  2026-09-10-rsi-boot-spec.md# 9.3 集成测试'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-14T02:12:59.006408+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/re-review-task-4-jsonl-event-l--67c9dcf7.yaml

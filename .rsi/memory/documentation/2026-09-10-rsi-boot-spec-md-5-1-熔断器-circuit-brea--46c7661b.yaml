@@ -1,0 +1,27 @@
+id: 46c7661bc21f458e8196485f092d4ff3
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 5.1 熔断器（Circuit Breaker）
+content: "### 5.1 熔断器（Circuit Breaker）\n\n三态熔断器，纯进程内内存状态（§2.4），无持久化、无跨进程共享——本地单进程工具不需要。进程重启后所有熔断器从\
+  \ CLOSED 冷启动，可接受。\n\n**失败计数口径**：\n\n- **计入失败**：连接错误、读/写超时、HTTP 5xx、未捕获异常\n- **不计入失败**：HTTP\
+  \ 4xx（请求本身有问题，非服务故障）、业务校验失败、熔断器 OPEN 期间被拒绝的请求\n- 计数方式为**连续失败计数**——任何一次成功立即清零；不使用滑动窗口（实现简单、语义明确，阈值语义\
+  \ = 「连续 N 次失败」）\n\n**状态机**：\n\n```\nCLOSED ──连续失败 ≥ threshold──▶ OPEN ──距 opened_at\
+  \ ≥ recovery_timeout──▶ HALF_OPEN\n  ▲                                         \
+  \                       │\n  │◀──────────── 探测成功（计数清零）──────────────┤\n  │     \
+  \                                                           ▼\n  │◀────────────\
+  \ 探测失败（重新计时 recovery_timeout）──── OPEN ◀──┘\n```\n\n- **CLOSED**：正常放行，同步记录成功/失败\n\
+  - **OPEN**：fail-fast，请求不实际发起，直接抛 `CircuitOpenError` 交由 §5.4 降级链处理\n- **HALF_OPEN**：放行\
+  \ **1 个**探测请求（并发请求中仅第一个放行，其余 fail-fast）；探测成功 → CLOSED 并清零计数；失败 → 回到 OPEN 并重新计时\n\
+  - 状态计时使用单调时钟（`time.monotonic()`），不受系统时间跳跃影响\n- 状态存储：内存对象属性 `{\"state\", \"failure_count\"\
+  , \"opened_at_ms\"}`——状态必须显式转换，不得因过期丢失"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.724821+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-5-1-熔断器-circuit-brea--46c7661b.yaml

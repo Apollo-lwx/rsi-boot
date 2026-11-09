@@ -1,0 +1,43 @@
+id: e0a19b71e08d4fe8ab23158940aad8d9
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# 覆盖统计摘要
+content: '### 覆盖统计摘要
+
+
+  | 维度 | 统计 |
+
+  |------|------|
+
+  | PRD 需求总数 | 36 条（P0: 14, P1: 10, P2: 7, P3: 5，优先级以 PRD §4 v2.1 为准；详见追溯矩阵） |
+
+  | Plans 已覆盖 | **36/36（100%）** |
+
+  | P0 覆盖率 | **14/14（100%）** - 全部 Core Pipeline + Data & Protocol Hardening |
+
+  | P1 覆盖率 | **10/10（100%）** - 角色基础设施 + Knowledge Enhancement + rsi bootstrap |
+
+  | P2 覆盖率 | **7/7（100%）** - 全部 Learning Loop（含 Harness 自我改进提案） |
+
+  | P3 覆盖率 | **5/5（100%）** - 全部 Optimization & Extension（含「团队共享模式（刻意不做）」决策记录） |
+
+  | 工程基建任务（非 PRD 需求） | 1 项（项目骨架 P1.1；SQLite 迁移/配置热加载/config_merger 已归入 PRD 需求，见追溯矩阵）
+  |
+
+  | Plans 总任务数 | 36 项（含角色基础设施横向任务 + rsi bootstrap 两层；P1.9/P1.11 已于 v2.0 移除） |
+
+  | 总工期估算 | 105-109 人天（纯开发工时）；按 2-3 人核心团队、含 1.5 倍联调/评审/测试缓冲，总日历约 10-16 周 |
+
+
+  > 人天明细：M1 26.5-29.5 + M2 18-19 + P2 25 + P3 21.5 + P4 14。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.421939+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-覆盖统计摘要--e0a19b71.yaml

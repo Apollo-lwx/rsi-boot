@@ -1,0 +1,25 @@
+id: a0e433120d074782a01b3f177ae938d4
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# rsi-boot.yaml - 项目根目录下的 RSI 配置文件（全部可选）
+content: "# rsi-boot.yaml - 项目根目录下的 RSI 配置文件（全部可选）\nproject:\n  id: \"my-web-app\"\
+  \n  name: \"My Web Application\"\n  language: \"python\"\n  framework: \"django\"\
+  \n\nknowledge:\n  sources:\n    - path: \"./docs/*.md\"\n    - path: \"./docs/adr/**/*.md\"\
+  \n    - path: \"./CONTRIBUTING.md\"\n  auto_index: true\n\nrole:\n  default: \"\
+  developer\"        # 本人在此项目的主要角色；单次请求可覆盖\n\nstrategy:\n  code_review:\n    model:\
+  \ \"gpt-4o\"\n    template: \"code_review\"\n  test_gen:\n    model: \"gpt-4o-mini\"\
+  \        # Phase 4 接入多厂商后可改为 deepseek-coder 等\n    template: \"test_gen\"\n  prd_gen:\n\
+  \    model: \"gpt-4o\"             # Phase 4 接入多厂商后可改为 claude-sonnet 等\n    template:\
+  \ \"prd_gen\"\n\nbudget:\n  daily_token_cap: 500000       # 可选，默认不开启（§6.2）\n```\n\
+  \n> LLM API Key 禁止写入此文件（可能入库），一律走环境变量（§8.2）。"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.754057+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-rsi-boot-yaml-项目根目录下--a0e43312.yaml

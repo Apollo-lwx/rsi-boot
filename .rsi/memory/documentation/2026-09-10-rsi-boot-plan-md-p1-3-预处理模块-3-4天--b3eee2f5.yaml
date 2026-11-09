@@ -1,0 +1,39 @@
+id: b3eee2f5d5dc4bcca612cd4e737cd3a3
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.3 预处理模块（3-4天）
+content: '### P1.3 预处理模块（3-4天）
+
+
+  **实现依据**：Spec §3.1 意图识别（INTENT_RULES 规则、置信度 0.80/0.85/0.5、顺序敏感）、§4.1 数据流程（feedback_token
+  在 Preprocess 生成）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | 规则版意图识别（关键词 + 正则） | preprocessor/intent_classifier.py + config/intent_rules.yaml
+  | 1d |
+
+  | 上下文组装（项目配置、环境信息） | preprocessor/handler.py | 1d |
+
+  | 用户画像加载（无缓存） | preprocessor/handler.py | 0.5d |
+
+  | ProcessedRequest 构建 | preprocessor/handler.py | 0.5d |
+
+  | 单元测试：test_preprocessor.py | 测试用例 | 0.5d |
+
+
+  **验收**：预处理模块能正确识别意图、组装上下文'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.374282+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-3-预处理模块-3-4天--b3eee2f5.yaml

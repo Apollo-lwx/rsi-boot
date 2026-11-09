@@ -1,0 +1,46 @@
+id: 9a188b53e7e24da3b4a0b9a0a8f4a31a
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9.7 数据验证规则
+content: '#### 10.9.7 数据验证规则
+
+
+  每条学习到的数据写入前经过以下验证：
+
+
+  | 检查项 | 规则 | 处理方式 |
+
+  |--------|------|---------|
+
+  | **信息量** | 切片 < 50 token → 跳过（噪声） | 记录日志，跳过 |
+
+  | **上限** | 切片 > 4000 token → 自动拆分 | 按语义边界拆分为多条 |
+
+  | **语言检测** | `langdetect` 识别文档语言 | 标注 metadata.lang，供检索排序 |
+
+  | **去重** | SHA256(content) 与现有知识库比对 | 命中则跳过 |
+
+  | **敏感信息** | 正则匹配 API Key / Token / Password / 内网 IP / 密钥文件（模式表见 §8.1，同源复用） | 匹配命中
+  → 条目标记 `risk: true`，默认不写入（需 `--allow-sensitive` 豁免） |
+
+  | **隐私同意** | 对话上下文类信号需用户显式同意（交互确认或 `--consent`） | 未同意 → 跳过 conversation 维度 |
+
+  | **编码检测** | UTF-8 / GBK / Latin-1 | 自动转码尝试，失败则跳过 |
+
+  | **格式完整性** | YAML/JSON/XML/Toml 解析验证 | 解析失败 → 记录错误，跳过 |
+
+  | **Git 可用性** | 验证 `git log` 可执行和仓库有效 | Git 不可用 → 跳过该维度，不影响其他 |
+
+
+  **严格模式**：`rsi bootstrap --strict` 下，任何验证失败中断流程并输出详细报告。默认模式下行，单条失败不影响其他。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.782081+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-7-数据验证规则--9a188b53.yaml

@@ -1,0 +1,37 @@
+id: 733cd1f83b04438f990ae6e0c17f9c60
+type: documentation
+title: 2026-09-10-rsi-boot-traceability-matrix.md# 非功能横切需求（隐式覆盖，无独立 Plans 任务）
+content: '### 非功能横切需求（隐式覆盖，无独立 Plans 任务）
+
+
+  以下需求为架构/横切属性，由既有任务承载，不单独设立任务，但需通过对应验证方式确认：
+
+
+  | 非功能需求 | PRD 章节 | 承载任务 | 验证方式 |
+
+  |-----------|----------|---------|---------|
+
+  | SSE 流式响应 | §6 可观测性, §7 约束 | P1.5（模型流式调用）+ P1.15（stdio 流式输出） | 测试计划 ADA-06 |
+
+  | 本地零依赖部署 | §6 部署轻量化 | 架构原生（SQLite 内嵌，无外部服务） | 全新机器 pip 安装验证 |
+
+  | 可观测性（结构化日志） | §6 可观测性 | P1.1（日志系统） | 日志格式检查 |
+
+  | 可测试性（核心模块契约可 mock） | §6 可测试性 | 架构设计 + 测试计划 | 单元测试覆盖率门禁 |
+
+  | 向后兼容（工具接口版本化） | §7 约束 | §7.1 命名约定 + RSIResponse.api_version | 契约测试 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-traceability-matrix.md
+created_at: '2026-09-10T11:46:29.310895+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-traceability-matrix-md-非功能横切--733cd1f8.yaml

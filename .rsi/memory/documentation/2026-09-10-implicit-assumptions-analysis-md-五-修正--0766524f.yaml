@@ -1,0 +1,30 @@
+id: 0766524f15464d00ad177e6482f3c42f
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# 五、修正原则
+content: '## 五、修正原则
+
+
+  1. **不改定位**：RSI 是通用网关，不专为某一角色设计
+
+  2. **角色是数据不是代码**：角色信息作为请求上下文传入，不硬编码到系统逻辑中
+
+  3. **预置 3 套模板**：内置 Developer / Test / PM 三套意图 + 偏好 + 模板配置，开箱即用
+
+  4. **可扩展**：第四角色通过配置而非代码实现，无需修改核心
+
+  5. **角色感知 = 可选增强**：系统在不感知角色时正常工作（兜底通用模式），感知角色后表现更好
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.265496+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-五-修正--0766524f.yaml

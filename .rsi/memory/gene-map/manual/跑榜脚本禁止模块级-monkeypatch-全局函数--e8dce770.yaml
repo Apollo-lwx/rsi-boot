@@ -1,0 +1,30 @@
+id: e8dce77058944c06b865bb86454b82e8
+type: gene_case
+title: 跑榜脚本禁止模块级 monkeypatch 全局函数
+content: 改为 suppress_event_log() 上下文管理器（保存原函数、yield、finally 恢复），只在各跑榜入口（recall_board.main、run_baselines._run_system、engmem/run._run_system、token_study._measure_context）的包测循环内抑制。修复后联跑
+  24 passed、全量回归回到 1046 passed + 4 预存失败。教训：库里要被测试 import 的模块，性能补丁一律用上下文管理器，禁止模块级 monkeypatch。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-03T16:10:55Z'
+updated_at: '2026-11-03T16:10:55Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: module-level-monkeypatch:benchmark/recall_board.py logstore.append_event
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 改为 suppress_event_log() 上下文管理器（保存原函数、yield、finally 恢复），只在各跑榜入口（recall_board.main、run_baselines._run_system、engmem/run._run_system、token_study._measure_context）的包测循环内抑制。修复后联跑
+    24 passed、全量回归回到 1046 passed + 4 预存失败。教训：库里要被测试 import 的模块，性能补丁一律用上下文管理器，禁止模块级
+    monkeypatch。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-03T16:10:55Z'
+path: memory/gene-map/manual/跑榜脚本禁止模块级-monkeypatch-全局函数--e8dce770.yaml

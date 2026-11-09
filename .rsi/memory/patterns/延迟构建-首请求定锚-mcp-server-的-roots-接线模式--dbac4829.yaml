@@ -1,0 +1,26 @@
+id: dbac4829ee7d446a9d459af4d35633a7
+type: pattern
+title: 延迟构建 + 首请求定锚：MCP server 的 roots 接线模式
+content: '模式：MCP Server 对象本身不持有业务 runtime，只持有 session 持有器；
+
+  list_tools 与 call_tool 入口先 await session.ensure_started(server)。
+
+  握手后客户端立刻拉工具清单，借此时机完成 roots 查询与 runtime 构建，
+
+  注入产物仍在 agent 读 AGENTS.md 前落盘。list_tools 里构建失败只记日志
+
+  不阻塞工具清单返回，call_tool 里失败走既有 error payload 兜底。
+
+  幂等用 asyncio.Lock + started 标志，防止并发首请求重复构建。'
+status: active
+tags: []
+roles: []
+source: extract
+created_at: '2026-09-17T03:52:38Z'
+updated_at: '2026-09-17T03:52:38Z'
+refs: []
+extra: {}
+payload:
+  error_signature: ''
+  failure_type: ''
+path: memory/patterns/延迟构建-首请求定锚-mcp-server-的-roots-接线模式--dbac4829.yaml

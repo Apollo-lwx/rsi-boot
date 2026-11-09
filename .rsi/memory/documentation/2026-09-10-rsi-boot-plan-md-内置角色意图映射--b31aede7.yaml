@@ -1,0 +1,35 @@
+id: b31aede7db09432a98824555b23d4bd4
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# 内置角色意图映射
+content: '### 内置角色意图映射
+
+
+  | 角色 | 内置意图 | 提示词模板 | 额外配置 |
+
+  |------|---------|-----------|---------|
+
+  | Developer | explain, debug, refactor, testing, implement, review, devops, howto,
+  documentation | code_review.jinja2, code_gen.jinja2 等 | language, framework, code_style
+  |
+
+  | Test Engineer | test_gen, test_review, bug_analyze, test_data, coverage_check
+  | test_gen.jinja2, bug_analysis.jinja2 | test_framework, report_format |
+
+  | Product Manager | req_analyze, prd_gen, doc_review, data_analysis, stakeholder_comm
+  | prd_gen.jinja2, doc_review.jinja2 | doc_template, output_format |
+
+
+  > 意图清单以 Spec §3.6 为唯一权威来源；M1 规则版通用意图（code_review/code_gen/debug/explain/general_assist）与角色意图的映射关系见
+  Spec §3.1。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.402883+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-内置角色意图映射--b31aede7.yaml

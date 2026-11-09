@@ -1,0 +1,71 @@
+id: 06a2dc7aba6e48c2b6581555a91f2000
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9.8 跨信号源关联推理
+content: '#### 10.9.8 跨信号源关联推理
+
+
+  这是自学习区别于简单导入的核心能力——系统会交叉关联不同信号源，形成深层理解：
+
+
+  ```
+
+  ┌─────────────────────────────────────────────────────┐
+
+  │  关联推理引擎 (Cross-Signal Correlation Engine)     │
+
+  │                                                     │
+
+  │  文档 ↔ 代码：  README 中提到的功能 <-> 代码模块名  │
+
+  │                → 理解「这个文档讲的是哪个模块」      │
+
+  │                                                     │
+
+  │  测试 ↔ 代码：  test_user.py <-> user/models.py     │
+
+  │                → 知道「这个测试覆盖哪块逻辑」        │
+
+  │                                                     │
+
+  │  Commit ↔ 文件： "feat: add user auth" <-> auth.py  │
+
+  │                → 理解「修改说明对应哪些文件」        │
+
+  │                                                     │
+
+  │  对话 ↔ 决策：  Chat 记录 "我们为什么选 DRF" <-> ADR │
+
+  │                → 提取架构决策上下文                  │
+
+  │                                                     │
+
+  │  CI ↔ 测试：    test 步骤 <-> 测试文件               │
+
+  │                → 知道「CI 中怎么跑测试」             │
+
+  └─────────────────────────────────────────────────────┘
+
+  ```
+
+
+  **关联方式**：
+
+  - 命名关联：文件名 + 路径层次匹配（`test_user.py` ↔ `user.py`）
+
+  - 文本关联：文档中出现的关键词与代码模块名的 Jaccard 相似度
+
+  - 时间关联：相近时间戳的 commit message 和文件变更关联
+
+  - 结构关联：API 路由定义文档与代码中的路由装饰器/注册器关联'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.783098+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-8-跨信号源关联推理--06a2dc7a.yaml

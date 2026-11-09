@@ -1,0 +1,39 @@
+id: 82fa030d3b0a4851bcc62464f1ed3710
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 9.2 单元测试重点
+content: '### 9.2 单元测试重点
+
+
+  | 模块 | 测试重点 |
+
+  |------|----------|
+
+  | preprocessor.py | 意图识别规则覆盖、上下文组装 |
+
+  | strategy_engine.py | 策略路由逻辑、Thompson Sampling 分布验证 |
+
+  | model_adapter.py | LLM 调用、超时、错误处理 |
+
+  | orchestrator.py | Pipeline 编排、错误传播 |
+
+  | config_merger.py | 层级合并、受保护键、类型校验 |
+
+  | circuit_breaker.py | 状态转换（CLOSED/OPEN/HALF_OPEN）、单调时钟计时 |
+
+  | data_service_proxy.py | 降级逻辑、fallback 调用 |
+
+  | masking.py | 各类脱敏规则 |
+
+  | migrations | PRAGMA user_version 迁移幂等性、中断重入 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.743614+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-9-2-单元测试重点--82fa030d.yaml

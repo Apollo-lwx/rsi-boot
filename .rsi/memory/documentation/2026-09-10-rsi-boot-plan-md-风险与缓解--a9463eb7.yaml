@@ -1,0 +1,46 @@
+id: a9463eb76b384e52851264b610af0927
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# 风险与缓解
+content: '## 风险与缓解
+
+
+  | 风险 | 概率 | 影响 | 缓解策略 |
+
+  |------|------|------|----------|
+
+  | OpenAI API 不稳定/限流（单点故障） | 中 | 高 | 熔断器 + 重试；Phase 2 实现同厂商型号 fallback（gpt-4o → gpt-4o-mini），Phase
+  4 扩展跨厂商 |
+
+  | 知识检索效果不如预期 | 中 | 中 | Phase 2 预留调优时间；FTS5/向量混合检索参数可调 |
+
+  | 反馈率过低影响学习效果 | 高 | 中 | M1 起即采集显式反馈与交互日志（P1.18），为 Phase 3 预攒数据；优先完善隐式反馈（目标 80%）；Phase
+  3 用模拟数据验证 |
+
+  | SQLite 可靠性（并发写/文件损坏） | 低 | 中 | WAL 模式 + 写锁重试；启动 `PRAGMA integrity_check` 自检；损坏时自动备份重建
+  |
+
+  | 知识库冷启动 | 中 | 中 | 提供种子脚本；rsi bootstrap 一键扫描学习项目 |
+
+  | sqlite-vec 成熟度（社区小、平台 wheel 覆盖与大规模基准有限） | 中 | 中 | VectorBackend 抽象 + brute 内置回退（零迁移，§2.3）；CI
+  三平台矩阵；FAISS 为可选未来后端 |
+
+  | bootstrap scanner 复杂度低估（AST/关联推理等重组件） | 高 | 中 | v2.4 已分层：核心扫描层（M2）+ 深度信号层（P2.6），深度层延期不阻塞
+  M2 交付与冷启动主流程 |
+
+  | P3.6 依赖前序信号质量（P3.1-P3.5 反馈/知识/评估数据不足则挖掘与回归无法运行） | 中 | 高 | Phase 3 前半段用模拟数据验证挖掘管线；回归门禁回放集不足
+  50 条时提案暂缓并提示积累量 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.406187+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-风险与缓解--a9463eb7.yaml

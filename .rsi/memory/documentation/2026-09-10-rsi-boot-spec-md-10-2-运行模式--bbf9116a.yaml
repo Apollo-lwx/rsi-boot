@@ -1,0 +1,23 @@
+id: bbf9116a1f304342b99a1e9356f76310
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.2 运行模式
+content: "### 10.2 运行模式\n\n| 项目 | 说明 |\n|------|------|\n| 适用场景 | 个人开发全流程（编码/测试/文档/评审）\
+  \ |\n| 传输协议 | MCP stdio（本地进程间管道，无网络端口） |\n| 认证 | 无（信任本地进程边界，§7.2） |\n| 存储后端 | SQLite\
+  \ 单文件（`.rsi/rsi.db`）+ sqlite-vec，零外部服务 |\n| 启动方式 | 通常由 IDE MCP 配置自动拉起；手动调试用 `rsi\
+  \ start` |\n| 生命周期 | 随 IDE 项目窗口启停，用完即弃 |\n| 数据位置 | 项目目录下 `.rsi/` 文件夹 |\n\n**IDE\
+  \ 配置示例**（VS Code `.vscode/mcp.json`）：\n\n```json\n{\n  \"servers\": {\n    \"rsi-boot\"\
+  : {\n      \"type\": \"stdio\",\n      \"command\": \"rsi\",\n      \"args\": [\"\
+  start\", \"--stdio\"]\n    }\n  }\n}\n```\n\n> 安装即用的关键：`pip install rsi-boot` 后在\
+  \ IDE 注册一次 MCP Server 即可；每个项目窗口自动获得独立实例与独立数据目录，无需任何服务端部署。\n\n---"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.751052+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-2-运行模式--bbf9116a.yaml

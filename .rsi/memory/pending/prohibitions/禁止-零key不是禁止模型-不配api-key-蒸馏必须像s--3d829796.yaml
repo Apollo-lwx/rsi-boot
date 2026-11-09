@@ -1,0 +1,17 @@
+id: 3d829796fd004697ad34fe86e9406aef
+type: prohibition
+title: 禁止：零Key不是禁止模型。不配API Key，蒸馏必须像S
+content: 零Key不是禁止模型。不配API Key，蒸馏必须像Superpowers一样走宿主agent，不能把rsi进程不调LLM理解成bootstrap只能分词。
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-14T11:02:28Z'
+updated_at: '2026-09-14T11:02:28Z'
+refs:
+- ecfb7c205f824d7abce5c54e44c5c50c
+- bc7bc893fe53413abfa6a554b02b2d7c
+extra:
+  candidate_type: rejected
+payload: {}
+path: memory/pending/prohibitions/禁止-零key不是禁止模型-不配api-key-蒸馏必须像s--3d829796.yaml

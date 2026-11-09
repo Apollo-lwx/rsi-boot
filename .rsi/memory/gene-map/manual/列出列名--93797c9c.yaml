@@ -1,0 +1,24 @@
+id: 93797c9c2d1d412dae0f0df91d13b0c2
+type: gene_case
+title: 列出列名
+content: 列出列名
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T01:50:55Z'
+updated_at: '2026-09-15T01:50:55Z'
+refs: []
+extra: {}
+payload:
+  weight: 8
+  source: manual
+  scenario_type: repair
+  failure_type: sql
+  error_signature: select-star
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 列出列名
+  validation: skipped
+  scope: project
+path: memory/gene-map/manual/列出列名--93797c9c.yaml

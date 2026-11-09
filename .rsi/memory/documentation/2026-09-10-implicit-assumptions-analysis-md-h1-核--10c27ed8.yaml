@@ -1,0 +1,29 @@
+id: 10c27ed8913843a9ac06a45bb6e61e7b
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H1：核心场景只覆盖开发链路
+content: '### H1：核心场景只覆盖开发链路
+
+
+  | 位置 | PRD Section 3「核心场景」 |
+
+  |------|--------------------------|
+
+  | **原文** | 场景 A：代码开发辅助（核心场景）- 场景 B：项目文档问答 - 场景 C：团队统一 AI 接入 |
+
+  | **隐含假设** | 用户的日常工作产出是代码，核心价值在"写代码时给建议" |
+
+  | **影响** | 测试人员（编写用例/分析 Bug）、产品经理（写 PRD/分析需求）找不到自己的场景入口 |
+
+  | **修正方向** | 场景描述保持抽象（"工作产出辅助"而非"代码辅助"），每个场景补充多角色示例 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.249155+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h1-核--10c27ed8.yaml

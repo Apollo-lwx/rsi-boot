@@ -1,0 +1,28 @@
+id: ccbc80da2db64f20bc464cfd52a0c4f3
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 5.4 测试专用的知识库模板
+content: '### 5.4 测试专用的知识库模板
+
+
+  知识库（Phase 2）除了通用的项目文档外，应预置测试场景的模板：
+
+
+  - **Bug 知识库模板**：历史 Bug → 根因 → 影响范围 → 复现步骤
+
+  - **接口契约模板**：API 定义 → 参数约束 → 响应格式 → 错误码
+
+  - **测试规范模板**：项目特有的测试约定、命名规范、覆盖率要求
+
+  - **环境配置模板**：测试环境拓扑、数据库初始化脚本、Mock 服务配置'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.350311+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-5-4--ccbc80da.yaml

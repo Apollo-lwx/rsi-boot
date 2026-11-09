@@ -1,0 +1,37 @@
+id: ac772e8345644b3c9ac908d9fab2c98d
+type: teaching_case
+title: 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current
+  的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
+content: 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current
+  的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T02:03:44Z'
+updated_at: '2026-09-15T02:03:44Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: chat-hang-foreground-full-pytest
+    failure_type: execution-style
+    fingerprint: host-distill-continue-blocked-on-full-suite
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current
+      的 WinError 5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
+    reason: 用户指正执行方式：对话总是卡住。根因是前台等全量测试与子代理，不是产品死锁。
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 中间 task 聚焦测试已绿后，仍在同一对话前台同步跑全量 pytest，或空等 SDD 子代理；Windows 上 session
+      teardown PermissionError 被当成失败就重跑。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 8
+    promote_to_pattern: false
+path: memory/teaching-cases/中间-task-只跑计划点名的聚焦测试-全量套件放到波结束或后台-不要堵住对话-看-passed--ac772e83.yaml

@@ -1,0 +1,29 @@
+id: 5c7901d0f6bc43fb872e226aaca836df
+type: gene_case
+title: LLM 分解缓存预热三坑：温度不兼容、并发截断、瞬态故障被缓存
+content: 1) OpenAI 兼容调用不传 temperature；2) 原子写用唯一 tmp 名 + os.replace + 损坏文件备份；3) 异常返回不缓存，仅缓存真实应答（含合法空分解）；4)
+  缓存键 = sha(提示词版本 + 模型 + 问题)。预热脚本幂等可续传，跑片后核对缓存条数再跑榜。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-09T05:34:42Z'
+updated_at: '2026-11-09T05:34:42Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: decompose-cache:concurrent-tmp-truncation+transient-error-cached+temperature-incompat
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 1) OpenAI 兼容调用不传 temperature；2) 原子写用唯一 tmp 名 + os.replace + 损坏文件备份；3)
+    异常返回不缓存，仅缓存真实应答（含合法空分解）；4) 缓存键 = sha(提示词版本 + 模型 + 问题)。预热脚本幂等可续传，跑片后核对缓存条数再跑榜。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-09T05:34:42Z'
+path: memory/gene-map/manual/llm-分解缓存预热三坑-温度不兼容-并发截断-瞬态故障被缓存--5c7901d0.yaml

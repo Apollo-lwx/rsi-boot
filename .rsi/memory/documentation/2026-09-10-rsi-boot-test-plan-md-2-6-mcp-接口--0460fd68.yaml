@@ -1,0 +1,44 @@
+id: 0460fd6804de48b7b7ad11759ce9dc71
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.6 MCP 接口
+content: '### 2.6 MCP 接口
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | MCP-01 | initialize 握手 | 客户端连接 | 1. 发送 initialize 请求 | 返回 ServerCapabilities，含协议版本
+  | P0 |
+
+  | MCP-02 | tools/list | 初始化完成 | 1. 发送 tools/list | 返回工具列表，至少包含 rsi_query；inputSchema
+  与 schemas/*.json 一致 | P0 |
+
+  | MCP-03 | tools/call rsi_query | 工具已注册 | 1. 发送 tools/call rsi_query | 返回 RSIResponse
+  | P0 |
+
+  | MCP-04 | 协议版本不匹配 | 客户端版本 < 服务端 | 1. 发送 initialize | 返回错误提示，建议升级 | P0 |
+
+  | MCP-05 | 非法 method | 发送不存在的 method | 1. 发送 {"method": "invalid"} | 返回 MethodNotFound
+  错误 | P0 |
+
+  | MCP-06 | 未初始化直接调用工具 | 连接后直接 tools/call | 1. 发送 tools/call | 返回 ServerNotInitialized
+  错误 | P0 |
+
+  | MCP-07 | stdio 传输 | 子进程启动 | 1. stdin 写入 JSON-RPC | stdout 输出 JSON-RPC 响应 | P0
+  |
+
+  | MCP-08 | stdio 健壮性 | 大消息/异常断连 | 1. 发送超大消息 2. 中途 kill 客户端 | 大消息正确处理；断连后进程干净退出，无资源泄漏
+  | P1 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.443956+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-6-mcp-接口--0460fd68.yaml

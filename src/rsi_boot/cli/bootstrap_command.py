@@ -108,15 +108,48 @@ def _parse_size(text: str) -> int:
     return int(text)
 
 
-def _ensure_gitignore(project_root: Path) -> None:
+# memory 随 git 走（协作/迁移不丢记忆），其余子目录（缓存/日志/状态）留在本机
+_GITIGNORE_RULES = (".rsi/*", "!.rsi/memory/")
+_GITIGNORE_HEADER = "# RSI Boot 本地数据（memory 随 git 走，协作/迁移不丢记忆）"
+
+
+def ensure_gitignore(project_root: Path) -> bool:
+    """确保 .gitignore 只忽略 .rsi/ 下的本地产物，memory/ 默认被 git 追踪。
+
+    迁移语义：旧的整目录忽略（.rsi/ 或 .rsi 独占一行）改写为细粒度规则；
+    用户自定义的其它 .rsi 相关规则保留不动。返回是否有写入。
+    """
     gitignore = project_root / ".gitignore"
     try:
         existing = gitignore.read_text(encoding="utf-8") if gitignore.is_file() else ""
+        if "!.rsi/memory" in existing:
+            return False
+        lines = existing.splitlines(keepends=True)
+        changed = False
+        out: List[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped in (".rsi/", ".rsi"):
+                if not changed:
+                    out.append(".rsi/*\n")
+                    out.append("!.rsi/memory/\n")
+                    changed = True
+                # 重复的整目录忽略行直接丢弃，避免覆盖否定规则
+            else:
+                out.append(line)
+        if changed:
+            gitignore.write_text("".join(out), encoding="utf-8")
+            return True
         if ".rsi" not in existing:
             with gitignore.open("a", encoding="utf-8") as fh:
-                fh.write("\n# RSI Boot 本地数据\n.rsi/\n")
+                fh.write(f"\n{_GITIGNORE_HEADER}\n" + "\n".join(_GITIGNORE_RULES) + "\n")
+            return True
+        # 有其它 .rsi 相关规则但没有整目录忽略：尊重用户配置，只提示
+        logger.warning(".gitignore 已有自定义 .rsi 规则，请确认 !.rsi/memory/ 生效")
+        return False
     except OSError as exc:
         logger.warning("写入 .gitignore 失败: %s", exc)
+        return False
 
 
 def _first_h1(path: Path) -> str:
@@ -390,7 +423,7 @@ async def run_bootstrap(args: argparse.Namespace) -> int:
             )
         report.code_modules = len(skeletons)
 
-        _ensure_gitignore(project_root)
+        ensure_gitignore(project_root)
         report.errors = collector.errors
         index_packs = [
             item

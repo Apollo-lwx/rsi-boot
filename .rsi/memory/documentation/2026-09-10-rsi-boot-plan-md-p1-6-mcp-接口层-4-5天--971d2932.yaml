@@ -1,0 +1,37 @@
+id: 971d2932d2c344dca171584389fc71c3
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.6 MCP 接口层（4-5天）
+content: '### P1.6 MCP 接口层（4-5天）
+
+
+  **实现依据**：Spec §7 MCP 工具接口契约（JSON-RPC 方法、工具命名约定）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | JSON-RPC 2.0 基础实现 + stdio 传输 | api/mcp_server.py | 1.5d |
+
+  | rsi_query 工具实现 | api/tools/query_tool.py | 1d |
+
+  | rsi_feedback 工具实现（桩，接收并持久化反馈） | api/tools/feedback_tool.py | 0.5d |
+
+  | tools/list + initialize 协议支持 | api/mcp_server.py | 0.5d |
+
+  | 单元测试 + 协议测试 | test_mcp_protocol.py | 0.5d |
+
+
+  **验收**：MCP 客户端可通过 stdio 连接并调用 rsi_query'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.377385+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-6-mcp-接口层-4-5天--971d2932.yaml

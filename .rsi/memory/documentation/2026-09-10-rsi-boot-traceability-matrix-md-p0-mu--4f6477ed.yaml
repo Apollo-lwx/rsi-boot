@@ -1,0 +1,56 @@
+id: 4f6477ed62d645acb6805add66fdf597
+type: documentation
+title: 2026-09-10-rsi-boot-traceability-matrix.md# P0 — Must Have（Phase 1，14 项）
+content: '### P0 — Must Have（Phase 1，14 项）
+
+
+  | # | PRD 需求 | PRD 章节 | Specs 章节 | Plans 任务 | 备注 |
+
+  |---|----------|----------|-----------|-----------|------|
+
+  | 1 | MCP 协议接入（stdio） | §4.1-M1 | §1.1 架构, §7 MCP 接口契约 | P1.6, P1.15 | P1.6 实现基础，P1.15
+  完善 |
+
+  | 2 | rsi_query 统一查询入口（含标准化请求/响应格式） | §4.1-M1 | §7.1 工具列表, §2.1 核心模型 | P1.6, P1.2
+  | RSIRequest/RSIResponse |
+
+  | 3 | 请求预处理（意图识别 + 上下文组装） | §4.1-M1 | §3.1 意图识别, §4.1 数据流程 | P1.3 | 规则版意图识别 |
+
+  | 4 | 策略引擎（路由 + 模型选择） | §4.1-M1 | §3.3 策略选择, §3.4 提示词渲染 | P1.4 | 含 prompt_renderer
+  |
+
+  | 5 | 模型适配层（OpenAI） | §4.1-M1 | §1.1 模型适配层 | P1.5 | 同步 + SSE 流式 |
+
+  | 6 | 响应后处理（标准 RSIResponse） | §4.1-M1 | §2.1 核心模型, §3.7 格式化 | P1.8 | |
+
+  | 7 | 编排器（Pipeline 流程编排） | §4.1-M1 | §4.1 主请求处理流程 | P1.7 | |
+
+  | 8 | 交互日志（SQLite `.rsi/rsi.db`） | §4.1-M1 | §2.2 数据库表设计, §4.1 两段式写入 | P1.8 | 含
+  feedback_token 时序 |
+
+  | 9 | 配置管理（Pydantic Settings + YAML） | §4.1-M1 | §2.5 配置继承链 | P1.1, P1.16 | config_merger
+  为本需求的实现细化 |
+
+  | 10 | 错误处理（熔断器、指数退避重试、降级策略） | §4.1-M1 | §5.1-§5.4 | P1.7 | 进程内熔断器（v1.1 起由隐式改为显式映射）
+  |
+
+  | 11 | 数据脱敏 | §4.1-M2 | §8.1 数据脱敏 | P1.10 | 落库与外发 LLM 双时机密钥扫描 |
+
+  | 12 | 数据生命周期管理 | §4.1-M2 | §8.3 数据生命周期 | P1.12 | 90 天保留 + 归档导出 + 卸载即删 |
+
+  | 13 | 数据库迁移（PRAGMA user_version） | §4.1-M2 | §2.2 Schema 迁移策略 | P1.13 | migrations/
+  顺序脚本，幂等可重入 |
+
+  | 14 | MCP 协议完善（initialize / tools/list） | §4.1-M2 | §7 MCP 接口契约 | P1.15 | |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-traceability-matrix.md
+created_at: '2026-09-10T11:46:29.305213+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-traceability-matrix-md-p0-mu--4f6477ed.yaml

@@ -1,0 +1,44 @@
+id: 428f42115b0043eabd5eb496d6d2f9f7
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# 四、问题汇总与评级
+content: '## 四、问题汇总与评级
+
+
+  | # | 假设 | 位置 | 严重程度 | 影响范围 | 修复合入 Phase |
+
+  |---|------|------|----------|----------|----------------|
+
+  | H1 | 核心场景只覆盖开发 | PRD §3 | 高 | 产品定位 | 立即 |
+
+  | H2 | 画像偏好只有技术 | PRD §4 / Spec §2 | 中 | 数据模型 | Phase 2 |
+
+  | H3 | 成功指标偏向代码 | PRD §5 | 中 | 度量体系 | 立即 |
+
+  | H4 | MoSCoW 缺角色基础设施 | PRD §4 | 高 | 功能规划 | Phase 1 M2 |
+
+  | H5 | 意图硬编码 9 类 | Spec §3.1 | 高 | 核心算法 | Phase 1 M2 |
+
+  | H6 | 反馈只支持采纳/拒绝 | Spec §2.1 | 中 | 学习闭环 | Phase 3 |
+
+  | H7 | 知识无角色/领域字段 | Spec §2.2 | 中 | 知识检索 | Phase 2 |
+
+  | H8 | 质量评估偏向代码 | Spec §3.5 | 低 | 学习闭环 | Phase 3 |
+
+  | H9 | 响应无角色感知 | Spec §2.1 | 低 | 用户体验 | Phase 4 |
+
+  | H10 | Phase 1 只验开发场景 | Plans Phase 1 | 中 | 交付质量 | Phase 1 M1 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.264503+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-四-问题--428f4211.yaml

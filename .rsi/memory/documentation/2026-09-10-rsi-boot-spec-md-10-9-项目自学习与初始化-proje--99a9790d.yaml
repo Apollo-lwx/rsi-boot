@@ -1,0 +1,25 @@
+id: 99a9790d5d5c44e99dd4f0a2510d589b
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9 项目自学习与初始化（Project Bootstrap & Auto-Learn）
+content: '### 10.9 项目自学习与初始化（Project Bootstrap & Auto-Learn）
+
+
+  > **场景**：用户的项目可能有多年积累的代码、文档、对话记录、Git 历史、配置文件等多维信号源。
+
+  > 系统不是等着用户「导入」数据，而是主动扫描项目全貌，自动从中学习：代码结构、文档体系、
+
+  > 团队规范、沟通模式、技术栈偏好——让 AI 在第一次启动时就对项目有「第一印象」。
+
+  > 对于已有存量项目，**强烈建议执行此步骤**，它能让工具在第一天就具备项目认知。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.768566+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-项目自学习与初始化-proje--99a9790d.yaml

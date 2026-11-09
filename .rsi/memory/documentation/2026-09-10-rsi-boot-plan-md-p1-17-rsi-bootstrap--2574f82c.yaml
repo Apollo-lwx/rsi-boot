@@ -1,0 +1,54 @@
+id: 2574f82c9de941d59f55d194fd36f08c
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.17 rsi bootstrap 项目自学习——核心扫描层（5.5天）
+content: '### P1.17 rsi bootstrap 项目自学习——核心扫描层（5.5天）
+
+
+  > v2.4 评审修复：原 12 组件 6-7 天的估算被评审认定为显著低估（仅 AST 代码分析一项即是可观工程）。拆分为**核心扫描层（本任务，M2）**与**深度信号层（P2.6，Phase
+  2）**两期，重估后合计 12 人天。
+
+
+  **实现依据**：Spec §10.9 项目自学习与初始化（9 类信号源、consent 同意机制、§10.9.11 分成熟度场景）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | 信号发现引擎：自动检测 9 类信号源是否存在并生成扫描计划 | scanner/signal_discovery.py | 1d |
+
+  | 文档扫描器：docs/*.md / README / ADR -> 切片 -> 向量化 | scanner/document_scanner.py | 1d
+  |
+
+  | 配置/规范解析器：自动识别技术栈、构建工具、测试框架、规范规则 | scanner/config_scanner.py | 0.5d |
+
+  | 初始画像生成：综合多源信号写入 UserProfile + ProjectInsights | scanner/profile_generator.py |
+  0.5d |
+
+  | 引导命令 CLI：rsi bootstrap --scope --dry-run --then-start | cli/bootstrap_command.py
+  | 1d |
+
+  | 学习报告输出（终端 + JSON） | scanner/report.py | 0.5d |
+
+  | 数据验证 + 错误处理：校验/去重/敏感信息检测/断点续学 | scanner/validator.py, scanner/error_handler.py
+  | 1d |
+
+
+  **验收（核心层）**：对有文档 + 配置的存量项目运行 rsi bootstrap，知识库中包含文档摘要与配置规范；画像中包含技术栈/测试习惯等基础认知；`--dry-run`
+  可预览扫描计划；断点续学可用。深度信号（代码骨架/Git 历史/对话上下文/跨源关联/增量监听）在 P2.6 补齐后验收
+
+
+  **存量项目专项（Spec §10.9.11 场景 E）**：对 3+ 年历史的存量项目——`--dry-run` 可预览信号发现结果再正式执行；废弃代码与过时文档被自动识别并降低检索权重，不污染知识库；从多年代码变迁中识别稳定架构模式与
+  API 演变轨迹；生成全局画像 + 项目画像双层摘要；大文件受 `--max-file-size` 限制不阻塞扫描'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.392975+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-17-rsi-bootstrap--2574f82c.yaml

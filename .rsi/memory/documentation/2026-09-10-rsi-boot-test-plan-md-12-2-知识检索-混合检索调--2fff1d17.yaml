@@ -1,0 +1,30 @@
+id: 2fff1d172f1f4f2ca63e93ef3f4a9002
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 12.2 知识检索（混合检索调优）
+content: '### 12.2 知识检索（混合检索调优）
+
+
+  | 项 | 基线 |
+
+  |----|------|
+
+  | 评测集 | 每项目类型 ≥ 30 条 query→相关条目标注对，覆盖 ≥ 3 类项目（Web 后端 / 前端 / 脚本工具） |
+
+  | 验收指标 | Recall@5 ≥ 80%（最差项目类型 ≥ 70%）；MRR ≥ 0.65 |
+
+  | 参数调优 | BM25 k1/b、RRF k、TopK 经网格搜索在评测集上选定，选定值与得分记录归档；阈值 cosine 0.6 的 precision/recall
+  权衡表归档 |
+
+  | 回归门槛 | 参数或检索逻辑变更必须重跑全量评测集，任何项目类型退化 > 2pp 即否决 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.495979+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-12-2-知识检索-混合检索调--2fff1d17.yaml

@@ -1,0 +1,32 @@
+id: 4871fcb3aa6b4610a1c81e3bc76de93c
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 3.1 场景定义
+content: '### 3.1 场景定义
+
+
+  > 个人本地工具量级：并发上限按 IDE 实际使用场景（同时数个请求）设计，不追求服务端 QPS 指标。
+
+
+  | 场景 | 并发数 | 持续时间 | 目标 | 通过标准 |
+
+  |------|--------|----------|------|----------|
+
+  | 基准测试 | 5 | 5min | 建立基线 | 成功率 100%（mock LLM） |
+
+  | 负载测试 | 20 | 10min | 验证本地并发处理 | P99 < 1s（不含模型调用） |
+
+  | 耐久测试 | 5 | 4h | 验证内存泄漏/句柄泄漏 | 内存增长 < 20%，无 OOM，SQLite 句柄无泄漏 |
+
+  | 模型 API 慢响应测试 | 10 | 10min | 高延迟模型下的并发管理 | asyncio 信号量限流生效，合理排队，不雪崩 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.463794+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-3-1-场景定义--4871fcb3.yaml

@@ -1,0 +1,47 @@
+id: 6e9d537b4a3c4e1287a3c684cb51ce32
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.3 策略引擎 StrategyEngine
+content: '### 2.3 策略引擎 StrategyEngine
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | STR-01 | 单策略匹配 | 该 intent 有 1 个活跃策略 | 1. select_strategy(intent) | 返回该策略配置 | P0
+  |
+
+  | STR-02 | 无匹配策略 | 该 intent 无活跃策略 | 1. select_strategy(intent) | 返回 default_strategy(intent)
+  | P0 |
+
+  | STR-03 | A/B 测试多策略 | 该 intent 有 2 个活跃策略 | 1. 调用 100 次 | 两个策略均被选中，分布接近配置权重 | P1
+  |
+
+  | STR-04 | 模板渲染：完整变量 | 所有模板变量均有值 | 1. render_prompt() | 模板中所有 {{ var }} 被替换 | P0
+  |
+
+  | STR-05 | 模板渲染：缺失变量 | 某模板变量未提供 | 1. render_prompt() | 缺失变量保留原样或替换为空字符串 | P1 |
+
+  | STR-06 | 模板渲染：知识超长 | retrieved_docs 总 token 超上限 | 1. render_prompt() | 按 Spec
+  §3.4：知识注入上限 2000 token，低分条目被裁剪 | P0 |
+
+  | STR-07 | 模板渲染：历史超 10 轮 | chat_history > 10 轮 | 1. render_prompt() | 按 Spec §3.4：保留最近
+  10 轮，超出部分截断 | P1 |
+
+  | STR-08 | Thompson Sampling：低样本自然探索 | 某策略样本稀少（alpha/beta 接近先验） | 1. 调用 thompson_sample()
+  多次 | 该策略因 Beta 分布方差大仍有可观被选概率（纯采样，无强制探索机制，Spec §3.3） | P2 |
+
+  | STR-09 | Thompson Sampling：利用阶段 | 各策略样本充足 | 1. 调用 thompson_sample() 多次 | 高 accept_rate
+  策略被选中的概率显著更高 | P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.432780+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-3-策略引擎-strate--6e9d537b.yaml

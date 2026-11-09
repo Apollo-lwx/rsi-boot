@@ -1,0 +1,35 @@
+id: 61d7ea98d8b64ad6bb4da2ae986ecfa1
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 参数速查表
+content: '#### 参数速查表
+
+
+  | 参数 | 值 | 位置 |
+
+  |------|-----|------|
+
+  | 画像缓存 TTL | 600s | §2.4 |
+
+  | 行为半衰期 | 30 天 | 本节 |
+
+  | 离线聚合窗口 | 90 天 | 本节 |
+
+  | 模型采纳率最小曝光 | 20 次 | 本节 |
+
+  | 知识兴趣上限 | Top 20 | 本节 |
+
+  | expertise 归属阈值 | 20% / import ≥ 10 | 本节 |
+
+  | 画像更新周期 | 每日 | §4.3 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.699369+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-参数速查表--61d7ea98.yaml

@@ -1,0 +1,42 @@
+id: 181a1d5c0c784d95a8755e6adca2b60a
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 4. 验证——此时工具已经对项目有全面认知
+content: '# 4. 验证——此时工具已经对项目有全面认知
+
+  rsi query "这个项目的架构是什么？测试框架？代码风格？"
+
+  ```
+
+
+  **`rsi bootstrap` 会做什么？**
+
+  - 自动发现项目中的信号源（无需用户指定）
+
+  - 文档扫描：`docs/**/*.md`、README、ADR → 向量化 → 知识库
+
+  - 代码骨架提取：AST 分析提取模块/类/函数/API 定义
+
+  - Git 历史分析：编码风格、贡献领域、开发习惯
+
+  - 对话上下文扫描：从 IDE 聊天记录中提取常见问题模式（需用户显式同意）
+
+  - 配置/规范解析：识别技术栈、构建工具、代码规范
+
+  - 跨信号源关联推理：理解「文档讲哪个模块」「测试覆盖哪块代码」
+
+  - 生成初始用户画像（包含技术栈/架构/测试习惯等多维度）
+
+
+  > 📎 详细自学习设计见 [Specs §10.9 项目自学习与初始化](../specs/2026-09-10-rsi-boot-spec.md#109-项目自学习与初始化project-bootstrap--auto-learn)'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.609047+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-4-验证-此时工具已经对项目有全面认知--181a1d5c.yaml

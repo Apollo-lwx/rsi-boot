@@ -1,5 +1,6 @@
 # RSI Boot 本地数据
-.rsi/
+.rsi/*
+!.rsi/memory/
 .workbuddy/
 
 # Python
@@ -70,3 +71,4 @@ benchmark/results/*
 !benchmark/results/cross-host/
 .kimi-code/
 !benchmark/results/answer-acc-20261105/
+!benchmark/results/ablation-decompose-20261109/

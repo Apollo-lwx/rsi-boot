@@ -1,0 +1,35 @@
+id: f827dcfc8eae4f3c8c50a7497eb1080b
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 2.3 缺少测试专用意图
+content: '### 2.3 缺少测试专用意图
+
+
+  当前系统定义的意图包括：`code_review`、`code_gen`、`debug`、`explain`、`general_assist`。作为测试工程师，我强烈需要以下专用意图：
+
+
+  | 缺少的意图 | 用途 | 优先级 |
+
+  |-----------|------|--------|
+
+  | `test_gen` | 根据接口定义/代码生成测试用例 | P0 |
+
+  | `test_review` | 审查已有的测试代码质量与覆盖率 | P0 |
+
+  | `bug_analyze` | 分析 Bug 根因、定位影响范围 | P1 |
+
+  | `test_data` | 生成测试数据（含边界值、异常值） | P1 |
+
+
+  没有这些专用意图，QA 只能通过 `general_assist` 或 `code_gen` 来凑合使用，路由策略无法针对测试场景优化，上下文组装也无法注入测试相关的知识。这是一个「开发者第一公民」的典型设计选择。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.328387+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-2-3--f827dcfc.yaml

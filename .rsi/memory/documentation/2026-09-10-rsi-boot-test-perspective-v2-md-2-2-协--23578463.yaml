@@ -1,0 +1,25 @@
+id: 235784635ead4661966b95bd6287dcaa
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 2.2 协作价值（团队使用）
+content: '### 2.2 协作价值（团队使用）
+
+
+  - **同一网关，不同视角**：开发查代码、测试写用例、产品写文档——共享项目级上下文，但各自获得角色定制输出
+
+  - **知识库共建**：我导入的历史 bug 记录，开发 review 代码时也能参考
+
+  - **统一成本管控**：团队共用 API Key，按角色独立审计 token 消耗
+
+  - **学习闭环共享**：我的反馈（如频繁修改测试命名风格）会被系统学习，新生成的用例自动适配'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.281021+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-2-2-协--23578463.yaml

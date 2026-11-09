@@ -1,0 +1,40 @@
+id: 877135e4785c447a8eeb3048f543ed3e
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# CI/CD 模式（自动化）
+content: '#### CI/CD 模式（自动化）
+
+
+  ```
+
+  CI Pipeline
+
+  ┌──────────────┐     rsi query (stdio)      ┌────────────────┐
+
+  │  pytest      │ ◄─────────────────────────►│  RSI Boot      │
+
+  │  lint        │    用完即销毁               │  (临时进程)     │
+
+  │  code review │                            │  零持久化       │
+
+  └──────────────┘                            └────────────────┘
+
+  ```
+
+
+  - 安装：`pip install rsi-boot`
+
+  - 调用：CI 脚本通过 `rsi query` 直接调用（冷启动，无历史数据依赖）
+
+  - 销毁：进程退出即清理'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.606167+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-ci-cd-模式-自动化--877135e4.yaml

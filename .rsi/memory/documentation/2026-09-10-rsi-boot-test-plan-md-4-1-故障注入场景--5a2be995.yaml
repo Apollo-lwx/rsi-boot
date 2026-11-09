@@ -1,0 +1,43 @@
+id: 5a2be995b893410abb731a6b22ec8853
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 4.1 故障注入场景
+content: '### 4.1 故障注入场景
+
+
+  | ID | 故障 | 注入方式 | 预期行为 | 验证点 |
+
+  |----|------|----------|----------|--------|
+
+  | CHA-01 | SQLite 不可用 | 数据目录设为只读 | sqlite 熔断器 OPEN，日志/画像读写跳过（内存态），请求仍可处理 | 主流程不受影响，记
+  error 日志（§5.4 Level 2） |
+
+  | CHA-02 | Embedding 服务不可用 | mock embedding 连续失败 | embedding 熔断器 OPEN，检索降级为纯 FTS5
+  | 知识检索仍可用，语义排序降级（§5.4 Level 1） |
+
+  | CHA-03 | OpenAI API 全部不可用 | 模拟所有模型返回 5xx | llm 熔断器 OPEN，fallback 无可用模型 | 返回友好静态降级消息，不崩溃（§5.4
+  Level 4） |
+
+  | CHA-04 | 网络延迟 2s | 注入 2s 延迟到 API 调用 | 超时控制触发，熔断器计数增加 | 不阻塞其他并发请求 |
+
+  | CHA-05 | 磁盘空间满 | 填充磁盘到 95% | 日志写入失败，请求处理不受影响 | 响应正常返回，记 error 日志 |
+
+  | CHA-06 | 反馈队列积压 | 生产 1 万条反馈消息 | asyncio.Queue 达 maxsize 后新反馈丢弃并记 warning，不 OOM
+  | 消费速率平稳，内存可控 |
+
+  | CHA-07 | 时钟漂移 | 系统时间跳跃 5min | 熔断器计时使用单调时钟（`time.monotonic()`，Spec §5.1） | 熔断器状态不异常
+  |
+
+  | CHA-08 | SQLite 文件损坏 | 写入损坏字节后重启 | 启动 `PRAGMA integrity_check` 自检发现损坏，自动备份损坏文件并重建空库
+  | 进程可启动，知识可经 bootstrap 重建 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.466206+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-4-1-故障注入场景--5a2be995.yaml

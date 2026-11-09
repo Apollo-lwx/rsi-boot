@@ -1,0 +1,32 @@
+id: 6d7c6b3b18fc4066ab4de91887e784b1
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 3.1 意图识别
+content: '### 3.1 意图识别
+
+
+  **Phase 1 (M1): 规则版**
+
+
+  基于关键词匹配 + 正则表达式，轻量无依赖，覆盖 80% 常见场景。
+
+  M1 规则版输出的是**角色无关的通用意图**（code_review / code_gen / debug / explain / general_assist）。
+
+  M2 起由 §3.6 的插件化意图注册接管，通用意图作为所有角色的兜底（fallback）；
+
+  通用意图与角色意图的对应关系：code_review → review，code_gen → implement，debug / explain 同名，general_assist
+  → general。
+
+
+  ```python'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.662980+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-3-1-意图识别--6d7c6b3b.yaml

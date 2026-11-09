@@ -1,0 +1,33 @@
+id: 7bbdb9d2718b42988bace6b53d09f75f
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# preprocessor/intent_classifier.py
+content: "# preprocessor/intent_classifier.py\nimport re\nfrom typing import Literal\n\
+  \nIntent = Literal[\"code_review\", \"code_gen\", \"debug\", \"explain\", \"general_assist\"\
+  ]\n\nINTENT_RULES: list[tuple[str, str, Intent, float]] = [\n    (\"keyword\", \"\
+  review|code review|审阅|审查\", \"code_review\", 0.85),\n    (\"keyword\", \"implement|generate|write|create|实现|生成|创建\"\
+  , \"code_gen\", 0.80),\n    (\"keyword\", \"debug|fix|bug|error|wrong|调试|修复|错误|问题\"\
+  , \"debug\", 0.85),\n    (\"keyword\", \"explain|what is|how does|解释|说明|什么是\", \"\
+  explain\", 0.80),\n]\n\ndef detect_intent(raw_input: str) -> tuple[Intent, float]:\n\
+  \    for pattern_type, pattern, intent, confidence in INTENT_RULES:\n        if\
+  \ re.search(pattern, raw_input, re.IGNORECASE):\n            return intent, confidence\n\
+  \    return \"general_assist\", 0.5\n```\n\n**Phase 2: LLM few-shot 升级**\n\n使用 LLM（gpt-4o-mini）进行意图分类，通过\
+  \ few-shot 示例提升准确率。LLM 调用失败时降级到规则版。\n\n**实现细节**：\n\n| 项 | 设计 |\n|----|------|\n\
+  | 提示词结构 | system（意图清单 + 各意图定义 + 输出格式约束）→ few-shot 示例（每个意图 2 条，从 `config/intent_examples.yaml`\
+  \ 加载，随角色配置可覆盖）→ user（raw_input，截断至 2000 字符） |\n| 输出契约 | 强制 JSON：`{\"intent\": \"\
+  <intent>\", \"confidence\": 0.0~1.0}`；解析失败视为调用失败走降级 |\n| 模型参数 | gpt-4o-mini，temperature=0，max_tokens=50，超时\
+  \ 3s |\n| 置信度门槛 | LLM 返回 confidence < 0.6 时丢弃结果，回退为 `general_assist`（0.5） |\n| 降级链\
+  \ | LLM 超时/失败/JSON 解析失败 → 规则版 detect_intent()；规则版兜底永远可用 |\n| 结果缓存 | `rsi:cache:intent:{md5(raw_input[:512])}`，TTL\
+  \ 300s，命中直接返回（相同输入意图不变） |\n| 角色感知 | M2 起请求携带 role 时，意图清单替换为该角色的注册意图集（§3.6），few-shot\
+  \ 示例同步切换 |\n\n---"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.664719+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-preprocessor-intent--7bbdb9d2.yaml

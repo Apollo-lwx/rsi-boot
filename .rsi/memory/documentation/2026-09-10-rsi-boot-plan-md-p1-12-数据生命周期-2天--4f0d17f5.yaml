@@ -1,0 +1,32 @@
+id: 4f0d17f5f1b84e82a5712e1a61461020
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.12 数据生命周期（2天）
+content: '### P1.12 数据生命周期（2天）
+
+
+  **实现依据**：Spec §8.3 数据生命周期（90 天保留/归档到 `.rsi/archive/`、卸载即删 `.rsi/`）、§4.3 离线任务
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | 日志数据过期归档清理任务（90天，导出 JSONL 后删除） | scheduler/tasks.py | 0.5d |
+
+  | 数据导出命令（JSON/CSV） | scripts/export_data.py | 0.5d |
+
+  | 知识条目删除工具（rsi_knowledge_delete） | api/tools/knowledge_tool.py | 0.5d |
+
+  | 进程内任务调度集成（asyncio 定时） | scheduler/manager.py | 0.5d |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.386340+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-12-数据生命周期-2天--4f0d17f5.yaml

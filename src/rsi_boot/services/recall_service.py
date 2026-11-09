@@ -51,6 +51,9 @@ _VECT_MIN_COS = 0.55
 _MULTIHOP_BRIDGE_TERMS = 6
 _MULTIHOP_SEED_DOCS = 3
 _MULTIHOP_DISCOUNT = 0.5
+# 子查询分解（RSI_ENABLE=decompose）：LLM 拆出的子查询直接相关，
+# 折扣低于桥接词（0.7 > 0.5），但仍不压过词面强证据
+_DECOMPOSE_DISCOUNT = 0.7
 
 
 def _vote(action: object, rating: object) -> int:
@@ -225,6 +228,7 @@ def _merge_hop(
     floor: float,
     best: float,
     limit: int,
+    discount: float = _MULTIHOP_DISCOUNT,
 ) -> list[tuple[str, float]]:
     """第二跳证据入场：hop 分归一化后映射到 [floor, floor + span·折扣] 区间。
 
@@ -245,7 +249,7 @@ def _merge_hop(
         if doc_type.get(doc_id) not in types:
             continue
         ratio = hscore / max_hop
-        merged.append((doc_id, floor + span * _MULTIHOP_DISCOUNT * ratio))
+        merged.append((doc_id, floor + span * discount * ratio))
         present.add(doc_id)
     merged.sort(key=lambda item: item[1], reverse=True)
     return merged[:limit]
@@ -449,6 +453,42 @@ class RecallService:
                         gene_ranked, hop_ranked, doc_type, {"gene_case"},
                         floor, best_body, limit,
                     )
+        if is_enabled("decompose", project_root) and best_body != float("-inf"):
+            # LLM 子查询分解（opt-in）：每条子查询独立检索，证据折扣入场
+            from ..rag.decompose import decompose_async
+
+            sub_queries: list = []
+            try:
+                sub_queries = await decompose_async(task, store.rsi_dir)
+            except Exception as exc:  # fail-open：分解异常不得阻塞召回
+                logger.warning("查询分解异常（按原问题召回）: %s", exc)
+            if sub_queries:
+                doc_type = index.get("doc_type") or {}
+                hop_types = _ITEM_TYPES | {"teaching_case", "gene_case"}
+                for sub in sub_queries:
+                    sub_expanded, _sub_intent, _sub_conf = expand_query(
+                        sub, role=role, rsi_dir=store.rsi_dir,
+                    )
+                    hop_ranked = search(
+                        index, sub_expanded,
+                        types=hop_types,
+                        top_n=limit * 2, drop_weak=True,
+                        title_weight=title_weight, quote_weight=quote_weight,
+                    )
+                    if not hop_ranked:
+                        continue
+                    item_ranked = _merge_hop(
+                        item_ranked, hop_ranked, doc_type, _ITEM_TYPES,
+                        floor, best_body, limit, discount=_DECOMPOSE_DISCOUNT,
+                    )
+                    teach_ranked = _merge_hop(
+                        teach_ranked, hop_ranked, doc_type, {"teaching_case"},
+                        floor, best_body, limit, discount=_DECOMPOSE_DISCOUNT,
+                    )
+                    gene_ranked = _merge_hop(
+                        gene_ranked, hop_ranked, doc_type, {"gene_case"},
+                        floor, best_body, limit, discount=_DECOMPOSE_DISCOUNT,
+                    )
         if is_enabled("vector", project_root):
             vec_cos = self._vector_cosines(store, docs, expanded)
             if vec_cos:
@@ -583,12 +623,22 @@ class RecallService:
         self, store: MemoryStore, docs: List[MemoryDoc], query: str
     ) -> Dict[str, float]:
         """向量通道（实验特性）：懒加载 VectorIndex，只试一次；
-        未装 fastembed / 模型不可用 / 打分失败均返回空（fail-open，退回纯词面）"""
+        未装 fastembed / 模型不可用 / 打分失败均返回空（fail-open，退回纯词面）。
+        首次启用时后台预热文档矩阵，后续召回零等待（替代手动 warm 脚本）。"""
         if not self._vector_tried:
             self._vector_tried = True
             from ..rag.vector import VectorIndex
 
             self._vector_index = VectorIndex.create(store.rsi_dir)
+            if self._vector_index is not None and docs:
+                import threading as _threading
+
+                _threading.Thread(
+                    target=self._vector_index.warm,
+                    args=(list(docs),),
+                    daemon=True,
+                    name="rsi-vector-warm",
+                ).start()
         if self._vector_index is None:
             return {}
         return self._vector_index.query(docs, query, top_k=_RECALL_SCAN_LIMIT)

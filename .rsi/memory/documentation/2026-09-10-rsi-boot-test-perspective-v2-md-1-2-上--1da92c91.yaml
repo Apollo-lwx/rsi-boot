@@ -1,0 +1,32 @@
+id: 1da92c91efb0410ea0bed6d523af5f44
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 1.2 上午：测试代码审查（test_review）
+content: '### 1.2 上午：测试代码审查（test_review）
+
+
+  场景：同事提交了测试 PR，需要审查测试代码质量
+
+  操作：选中测试代码段，调用 rsi_query，role=test, intent=test_review
+
+
+  网关输出：
+
+  - 覆盖率分析：哪些路径未覆盖、哪些断言薄弱
+
+  - 规范检查：命名是否符合项目约定、是否有冗余代码
+
+  - 改进建议：具体的修改方案
+
+  - 质量评分：按 test 权重计算（accuracy 占 0.4）'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.277099+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-1-2-上--1da92c91.yaml

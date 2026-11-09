@@ -1,0 +1,55 @@
+id: 3cf9dca273194c0fbfb4bc9d8077fb09
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.9 知识检索 KnowledgeRetrieval (M1 FTS5 子集 /
+  Phase 2 混合)
+content: '### 2.9 知识检索 KnowledgeRetrieval (M1 FTS5 子集 / Phase 2 混合)
+
+
+  > M1（P1.18）交付 FTS5-only 子集：KNO-01~03 中向量相关步骤以 FTS5 结果为准，KNO-09~11 自 Phase 2 起适用。
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | KNO-01 | 混合检索：正常场景 | 知识库有 100 条条目 | 1. 搜索 "Python 函数" | 返回 top-5，FTS5+向量 RRF 融合排序
+  | P1 |
+
+  | KNO-02 | 空知识库 | 知识库为空 | 1. 搜索任何关键词 | 返回空列表 | P1 |
+
+  | KNO-03 | Embedding 服务超时 | embedding 熔断 OPEN | 1. 搜索 | 降级为纯 FTS5 检索返回结果，不抛异常（§5.4
+  Level 1） | P1 |
+
+  | KNO-04 | 项目隔离 | projectA 和 projectB 各有知识 | 1. 指定 project_id 搜索 | 只返回该项目的条目 | P1
+  |
+
+  | KNO-05 | 较大数据量 | 1 万条条目 | 1. 搜索 2. 测量延迟 | P99 检索 < 500ms | P1 |
+
+  | KNO-06 | 标签过滤 | 条目含多标签 | 1. 按标签过滤搜索 | 只返回匹配标签的条目 | P2 |
+
+  | KNO-07 | 知识条目 CRUD | 新增条目 | 1. 创建知识条目 2. 读取 3. 更新 4. 删除 | 所有操作正确，向量与 FTS 同事务同步更新（§2.3）
+  | P1 |
+
+  | KNO-08 | 嵌入缓存命中 | 相同 query 两次 | 1. 搜索 query A 2. 再次搜索 query A | 第二次命中缓存，延迟更低 |
+  P2 |
+
+  | KNO-09 | sqlite-vec 缺失回退 | 扩展未安装 | 1. 启动并搜索 | auto 探测切 brute 后端（BLOB 暴力余弦），语义排序保留、零数据迁移；brute
+  亦不可用时才降级纯 FTS5（§2.3 回退链） | P1 |
+
+  | KNO-10 | 双后端结果一致性 | sqlite-vec 可用 | 1. 同一查询分别走 vec0 与 brute | TopK 结果重合度 ≥ 80%（浮点误差容忍），排序质量等价
+  | P2 |
+
+  | KNO-11 | 后端配置强制 | vector.backend=brute | 1. 启动并搜索 | 跳过 vec0 直接使用 brute；启动日志记录激活后端
+  | P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.449225+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-9-知识检索-knowle--3cf9dca2.yaml

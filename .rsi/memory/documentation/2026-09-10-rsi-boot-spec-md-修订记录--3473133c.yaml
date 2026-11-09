@@ -1,0 +1,97 @@
+id: 3473133c12164f5aa5cfce4d56f9efa9
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 修订记录
+content: '## 修订记录
+
+
+  | 版本 | 日期 | 修订人 | 变更内容 |
+
+  |------|------|--------|----------|
+
+  | v2.6 | 2026-09-10 | PO (评审修复) | 响应外部评审 #1/#2：M1 新增轻量价值闭环（Plans P1.18）——§3.2/§4.2
+  新增分阶段可用性说明（M1 FTS5-only 检索 + rsi_feedback 基础版，Phase 2/3 在原路径深化）；数据自 M1 起积累，消除 P3.6
+  的数据空窗 |
+
+  | v2.5 | 2026-09-10 | PO (评审修复) | 响应外部评审 #5：§9.1 新增算法验收基线原则——RSI 特有算法组件（意图分类/混合检索/Thompson/提案门禁/画像推断）须通过量化基线回归门槛（权威数值在测试计划
+  §12），覆盖率门禁不代表算法有效性 |
+
+  | v2.4 | 2026-09-10 | PO (评审修复) | 响应外部评审 #3/#4：§2.3 新增「向量后端抽象与回退」——VectorBackend
+  协议（sqlite-vec 首选 / brute numpy 暴力余弦内置回退 / FAISS 可选未来），embedding BLOB 落 knowledge_items
+  作为事实来源、vec0 降为可重建加速索引（回退零迁移），配置 vector.backend auto 探测，降级链 sqlite-vec→brute→纯 FTS5；§2.2
+  knowledge_items 新增 embedding BLOB 列；bootstrap scanner 分层为核心/深度两期（工作量重估见 Plans P1.17/P2.6）
+  |
+
+  | v2.3 | 2026-09-10 | PO (Skill 槽补全) | 修正 v2.2「Skill/Tools/MCP 三槽不适用」的论断（Superpowers
+  证明 MCP 形态可有数据驱动技能层）：可写面 5→6 槽，新增 skill 槽（`config/skills/<name>/SKILL.md` 文件型技能，frontmatter
+  声明 trigger，策略引擎匹配注入，与知识注入共用预算与标注）；§3.9 新增三槽修正说明（Skill 纳入、声明式 Tools 记为未来路径、MCP 槽为范围取舍而非形态必然）；§2.2
+  提案 slot 枚举与快照 slots 注释同步；§11 新增 config/skills/ 目录 |
+
+  | v2.2 | 2026-09-10 | PO (Genome 借鉴) | 对照 MetaRSI-v1 / RSI-Harness 开源实现做架构对齐：§3.9
+  新增与 MetaRSI 五槽位的映射表及 Skill/Tools/MCP 不适用的说明；版本化与回滚升级为 Genome 式整体快照（§2.2 新增 config_snapshots
+  表，晋升即快照、回滚 = 切换快照、缺省继承/null 重置/有值覆盖的合并语义、快照可导出为目录型 bundle）；rsi_review 新增 generate
+  按需提案生成与 snapshot_list/switch/export 操作（§7.1）；安全边界新增「与 MetaRSI-v1 的刻意取舍」段（RSI² 纵向优化与
+  Model-RSI 刻意不做及未来路径） |
+
+  | v2.1 | 2026-09-10 | PO (Harness-RSI) | 引入 Harness-RSI 自我改进机制（溯源 MetaRSI-v1 / Self-Harness
+  / AHE，2026）：新增 §3.9（5 槽位可写面模型、提案生命周期状态机、失败模式挖掘 → 最小化提案 → 回放集回归门禁 → 人工确认 → 7 天观察期自动回滚、防递归失控安全边界）；§2.2
+  新增 harness_proposals 表；§4.3 新增失败模式挖掘/提案生成验证/观察期巡检三个离线任务；§7.1 新增 rsi_review（P2）与
+  rsi_stats（P3）工具登记；§11 新增 learning/ 模块目录 |
+
+  | v2.0 | 2026-09-10 | PO (定位重构) | **产品定位转向：从「团队 AI 网关」重构为「个人本地 MCP 工具」（Superpowers
+  同类，安装即用、零运维）**。移除：HTTP/WS 共享模式、认证鉴权（API Key/JWT/锁定）、权限角色体系、限流（令牌桶）、多租户隔离、PostgreSQL/Qdrant/Redis/Alembic/docker
+  部署面、/admin 与 /auth 端点。替换：存储栈改为 SQLite 单文件（WAL）+ sqlite-vec 向量 + FTS5 全文（§2.2/§2.3）；Redis
+  数据结构改为进程内 TTLCache/asyncio.Queue/内存熔断器（§2.4）；配置链简化为 默认→~/.rsi→项目 yaml→请求参数（§2.5）；熔断/重试/降级全面改写为
+  SQLite+LLM 依赖面（§5）；多租户章改为成本控制章，预算简化为可选每日 token 上限（§6）；§7.2 改为身份与信任模型（git user.email）；安全章收敛为脱敏/凭证管理/数据生命周期/HTTPS
+  外发（§8）；集成方案仅 stdio 本地模式，多项目=每项目独立 .rsi/ + ~/.rsi/global.db 双层（§10）；目录结构同步（§11）。保留：Pipeline
+  编排、意图/策略/Thompson、画像学习、bootstrap 自学习、脱敏、成本统计等核心智能能力 |
+
+  | v1.4 | 2026-09-10 | PO (实现细节深化) | 认证鉴权落到算法级：API Key 生成/校验完整流程（256 bit 随机主体 + 前缀索引
+  + SHA-256 + 常量时间比对）、JWT claims/签名密钥/吊销列表、失败锁定 Redis 实现；新增 api_keys 表；限流明确为令牌桶（否决滑动窗口）并给出参数表与
+  Redis Lua 原子脚本、429 Retry-After 公式、进程内降级语义；脱敏补 10 条正则模式表（§10.9.7 复用同源）；AES-256-GCM
+  加密细节（nonce 管理/密文格式/密钥轮换流程）；熔断器补失败计入口径与状态机精确定义（HALF_OPEN 单探测、fail-fast 异常类型、状态存储格式）；重试补
+  full jitter 公式与可重试/不可重试错误分类、流式幂等约束；降级链补各级触发条件与自动恢复；成本核算补 token 计量来源（usage 字段/tiktoken
+  估算）与公式、未定价模型处理；预算控制补 Redis 计数与预估检查时机；§7.1 补工具 inputSchema 契约 |
+
+  | v1.3 | 2026-09-10 | PO (实现细节补全) | 新增 §3.8 用户画像构建与更新（存储/缓存映射、初始构建推理规则与阈值、运行时增量更新、30
+  天半衰期衰减、离线聚合算法、参数速查表）；§3.1 补 Phase 2 few-shot 实现细节（提示词结构/输出契约/置信度门槛/降级链/缓存）；§3.2
+  补检索参数表（BM25 k1/b、TopK=20、TOP_N=5、归一化方法、过滤隔离、索引维护）；§3.3 补 Thompson 状态持久化与离线衰减/淘汰规则；§3.5
+  补三维度具体计算方法与采样策略；§4.2 补反馈字段级更新规则映射表（7 种 action 全覆盖）；§4.3 展开画像更新/策略调优/BM25 重建/知识提取任务细节；strategy_configs
+  表新增 alpha/beta/exposure_count 列（修复 Thompson 状态无持久化载体的缺口） |
+
+  | v1.2 | 2026-09-10 | PO (二次审阅修复) | §10.9 项目自学习整块移至 §11 目录结构之前（修复 v1.1 插入位置错误导致的章节错位）；§10.9.13
+  显式反馈学习命名统一为 rsi_feedback |
+
+  | v1.1 | 2026-09-10 | PO (审阅修复) | 修复审阅发现的阻塞级问题：RRF 注入门槛改为原始分数（cosine >= 0.6）；分区表主键/唯一约束包含分区键并补分区预建；熔断器
+  Redis 断连改为仅 Redis 自身 OPEN、其余降级进程内状态；统一配置继承链（§2.5 = §10.3.3）；strategy_configs 增加
+  role 列、Qdrant payload 增加 roles/domain；权限角色（admin/member/viewer）与业务角色正交化；role 共享模式下服务端解析防伪造；日志两段式写入与
+  token 时序前置；API Key 改 SHA-256+前缀索引、补 JWT 签发端点与失败锁定；代码片段落库前密钥扫描；加密字段清单与密钥轮换；日志归档统一
+  90 天；补限流桶容量、上下文截断、diff>20% 知识提取阈值；ContentItem/UserProfile/UserPreferences 模型补全；§11
+  补 scanner/cli/tools/roles 目录；修复 datetime.utcnow 弃用、Let''s Encrypt 引号等 |
+
+  | v1.0 | 2026-09-10 | PO (版本对齐) | 统一版本号为 v1.0；修复重复标题；PRD/Specs/Plans 文档版本对齐；新增可追溯矩阵
+  |
+
+  | v0.5 | 2026-09-10 | PO (终审) | 新增角色权重质量评分（3.5）；新增响应格式化角色感知渲染（3.7）；ContentItem 新增
+  applicable_roles 字段；角色质量权重可配置；格式化规则可配置
+
+  | v0.4 | 2026-09-10 | PO (评审汇总) | 编排器改为 Pipeline 模式；新增 DataServiceProxy；Feedback
+  Token 时序修复；独立 Worker 架构桩；Redis 断连默认 OPEN；引入 Alembic；ContextSchema 约束；MCP initialize/tools/list
+  支持；stdio 传输优先；Thompson Sampling 详细设计标记；DDL 补全；TypedDict 替代 Dict[str,Any]；config_merger
+  模块；认证鉴权；数据脱敏；限流算法；数据生命周期；流式响应 SSE |
+
+  | v0.2 | 2026-09-10 | 初始 | 初稿 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.627033+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-修订记录--3473133c.yaml

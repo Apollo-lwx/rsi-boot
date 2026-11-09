@@ -1,0 +1,21 @@
+id: 2671977ab582415d9aaec6c56e12bd6a
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# config/roles/test.yaml
+content: "# config/roles/test.yaml\nrole: test\nintents:\n  - name: test_gen\n   \
+  \ patterns:\n      - \"(?i)generate test|write test|create test case|test scenario\"\
+  \n    fallback: general\n    prompt_template: test_generation.jinja2\n  - name:\
+  \ bug_analyze\n    patterns:\n      - \"(?i)analyze bug|bug analysis|root cause|why\
+  \ did this fail\"\n    fallback: debug\n    prompt_template: bug_analysis.jinja2\n\
+  ```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.682077+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-config-roles-test-ya--2671977a.yaml

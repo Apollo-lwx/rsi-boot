@@ -1,0 +1,40 @@
+id: 34c3a8b963804b5eadd4629b0af9b4ed
+type: teaching_case
+title: 蒸馏中途授权是宿主调了 mcp_auth
+content: signal:distilled 的 add 不触发 injector.rewrite，批准后再注入。count_distilled 只扫文本。rsi-relearn
+  禁止蒸馏时 mcp_auth；工具失败重试 rsi_learn，不要授权。每批 knowledge_add/pack_done 不超过 3 个。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T14:30:23Z'
+updated_at: '2026-09-15T14:30:23Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: mcp-auth-popup-mid-host-distill
+    failure_type: process
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: signal:distilled 的 add 不触发 injector.rewrite，批准后再注入。count_distilled
+      只扫文本。rsi-relearn 禁止蒸馏时 mcp_auth；工具失败重试 rsi_learn，不要授权。每批 knowledge_add/pack_done
+      不超过 3 个。
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 每条 pending 蒸馏条都 injector.rewrite 重写 .cursor/rules，stdio 被拖死后宿主对
+      rsi-boot 调 mcp_auth，用户看到授权框
+  fix_and_learn:
+    applied: true
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 2
+    recall_hits: 0
+    recorded_at: '2026-09-15T14:30:23Z'
+path: memory/teaching-cases/蒸馏中途授权弹窗不是-rsi-登录--34c3a8b9.yaml

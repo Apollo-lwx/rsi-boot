@@ -1,0 +1,35 @@
+id: 192838f66cc44bbab770336cb89e8ca3
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 3 交付物（7 个模块，21.5 人天）
+content: '### Phase 3 交付物（7 个模块，21.5 人天）
+
+  | 模块 | 交付物文件 | 关联 PRD 需求 | 关联 Specs 章节 |
+
+  |------|-----------|-------------|----------------|
+
+  | Feedback 工具 | api/tools/feedback_tool.py | §4.3 学习闭环 | §7.1 工具列表 |
+
+  | 反馈处理器 | feedback/task.py | §4.3 学习闭环 | §4.2 反馈处理流程 |
+
+  | 策略优化 | strategy/thompson_sampler.py | §4.3 学习闭环 | §3.3 策略选择 |
+
+  | 知识提取 | learning/knowledge_extractor.py | §4.3 学习闭环 | §4.3 离线分析任务 |
+
+  | 质量评估 | core/quality_evaluator.py | §5 成功指标 | §3.5 质量评估 |
+
+  | Harness 自我改进 | learning/failure_miner.py, learning/proposal_engine.py, api/tools/review_tool.py
+  | §4.3 学习闭环 | §3.9 Harness 自我改进 |
+
+  | 反馈统计 | learning/feedback_analyzer.py | §4.3 学习闭环 | §4.2 反馈处理流程 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.414697+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-3-交付物-7-个模块-21--192838f6.yaml

@@ -1,0 +1,18 @@
+id: 11941e46a08446dea3dd265a3288655b
+type: convention
+title: 列出列名
+content: 列出列名
+status: pending_review
+tags: []
+roles: []
+source: promote
+created_at: '2026-09-15T02:49:57Z'
+updated_at: '2026-09-15T02:49:57Z'
+refs:
+- 93797c9c2d1d412dae0f0df91d13b0c2
+extra: {}
+payload:
+  error_signature: select-star
+  failure_type: sql
+  source_id: 93797c9c2d1d412dae0f0df91d13b0c2
+path: memory/pending/conventions/列出列名--11941e46.yaml

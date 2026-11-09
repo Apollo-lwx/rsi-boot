@@ -1,0 +1,35 @@
+id: 88c635a05e524e10a4904228cae22bd2
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 5.7 测试专属的 Feedback Token
+content: '### 5.7 测试专属的 Feedback Token
+
+
+  当前的 Feedback Token（P3.1）是通用的采纳跟踪。测试场景需要更丰富的反馈信号：
+
+
+  - `accept_as_is`：直接使用，质量达标
+
+  - `accept_with_mod`：修改后使用，记录修改差异
+
+  - `reject_quality`：因质量不达标拒绝
+
+  - `reject_relevance`：因内容不相关拒绝
+
+  - `quality_score`：1-5 分的质量评分
+
+  - `coverage_gap`：标记遗漏的测试覆盖方向
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.356594+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-5-7--88c635a0.yaml

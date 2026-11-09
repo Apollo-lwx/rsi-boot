@@ -1,0 +1,29 @@
+id: 19e9216c431748a8ac2b28e4ec40ba69
+type: gene_case
+title: 按板块并行本轮蒸完，报告给人看不要下一步
+content: pack_list 按 lanes 并行（代码 / skills+rules / git / docs / 其余）。本轮必须蒸完 pending。报告给人看：信号、板块、域、蒸馏进度，不要下一步菜单。gateway
+  的 MCP 在 gateway 项目里，本仓库对话调不到，读盘核对。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T05:51:22Z'
+updated_at: '2026-09-15T05:51:22Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ux
+  error_signature: serial-distill-and-stop-plus-agent-menu-report
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: pack_list 按 lanes 并行（代码 / skills+rules / git / docs / 其余）。本轮必须蒸完 pending。报告给人看：信号、板块、域、蒸馏进度，不要下一步菜单。gateway
+    的 MCP 在 gateway 项目里，本仓库对话调不到，读盘核对。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-09-15T05:51:22Z'
+path: memory/gene-map/manual/按板块并行本轮蒸完-报告给人看不要下一步--19e9216c.yaml

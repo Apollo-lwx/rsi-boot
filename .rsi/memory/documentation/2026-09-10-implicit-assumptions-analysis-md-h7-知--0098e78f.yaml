@@ -1,0 +1,29 @@
+id: 0098e78fdb9d4e81872a437248773a09
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H7：知识条目没有领域/角色字段
+content: '### H7：知识条目没有领域/角色字段
+
+
+  | 位置 | Spec Section 2.2 - knowledge_items 表 |
+
+  |------|---------------------------------------|
+
+  | **原文** | content, content_type, language, tags, source |
+
+  | **隐含假设** | 知识是通用的文本/代码，不需要区分属于哪个角色或领域 |
+
+  | **影响** | 测试规范（如 Mock 策略）、产品规范（如需求模板）混在一起，检索精度下降 |
+
+  | **修正方向** | 增加 role/domain 字段，支持自定义 metadata schema |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.258433+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h7-知--0098e78f.yaml

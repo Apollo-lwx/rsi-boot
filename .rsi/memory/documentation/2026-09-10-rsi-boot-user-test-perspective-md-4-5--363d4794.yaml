@@ -1,0 +1,29 @@
+id: 363d4794f64544d493d6afde38313cad
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 4.5 可观测性对测试场景的缺失
+content: '### 4.5 可观测性对测试场景的缺失
+
+
+  虽然 PRD 提到了可观测性需求（结构化日志、OpenTelemetry），但这些设计面向的是 Ops/Dev 的运维视角，而非 QA 的测试视角。我需要的是：
+
+
+  - **生成质量报告**：每次测试用例生成后，自动化评估用例的覆盖率、断言强度、边界覆盖度
+
+  - **版本对比**：同一输入在系统升级前后的输出差异对比
+
+  - **失败模式聚类**：对 LLM 生成的「坏用例」进行分类统计，定位系统薄弱环节
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.345983+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-4-5--363d4794.yaml

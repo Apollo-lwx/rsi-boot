@@ -1,0 +1,24 @@
+id: 4abcec4fe0574a85b5d0eb4c78c86ecf
+type: gene_case
+title: 修bug首次teach_record必须立刻能被召回，但weight=2只作建议。同一error_signature在召回命中后再修，weight+2封顶10，不新建条。从未命中不加分。用户纠正仍直接10。hit_count>=3或weig
+content: 修bug首次teach_record必须立刻能被召回，但weight=2只作建议。同一error_signature在召回命中后再修，weight+2封顶10，不新建条。从未命中不加分。用户纠正仍直接10。hit_count>=3或weight>=8才进promote候选，不自动进mdc。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-14T11:26:03Z'
+updated_at: '2026-09-14T11:26:03Z'
+refs: []
+extra: {}
+payload:
+  weight: 8
+  source: manual
+  scenario_type: repair
+  failure_type: process
+  error_signature: bugfix-low-weight-then-ramp
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 修bug首次teach_record必须立刻能被召回，但weight=2只作建议。同一error_signature在召回命中后再修，weight+2封顶10，不新建条。从未命中不加分。用户纠正仍直接10。hit_count>=3或weight>=8才进promote候选，不自动进mdc。
+  validation: skipped
+  scope: project
+path: memory/gene-map/manual/修bug首次teach-record必须立刻能被召回-但weight-2只作建议-同一error--4abcec4f.yaml

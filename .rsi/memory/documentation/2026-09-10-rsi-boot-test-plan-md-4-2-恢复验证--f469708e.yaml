@@ -1,0 +1,32 @@
+id: f469708e860b4b1f88fe8384de5baca0
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 4.2 恢复验证
+content: '### 4.2 恢复验证
+
+
+  | ID | 场景 | 恢复步骤 | 验证点 |
+
+  |----|------|----------|--------|
+
+  | REC-01 | SQLite 恢复 | 恢复数据目录可写 | 熔断器 HALF_OPEN→CLOSED，日志写入恢复正常 |
+
+  | REC-02 | Embedding 恢复 | embedding 服务恢复 | 向量检索自动恢复，混合检索重新生效 |
+
+  | REC-03 | OpenAI API 恢复 | API 恢复正常 | 熔断器 HALF_OPEN -> CLOSED，正常调用恢复 |
+
+  | REC-04 | 全部恢复 | 所有依赖正常 | 全链路验证，确认回到 Level 0 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.468367+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-4-2-恢复验证--f469708e.yaml

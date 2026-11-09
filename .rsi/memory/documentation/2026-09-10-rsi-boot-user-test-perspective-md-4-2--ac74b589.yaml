@@ -1,0 +1,29 @@
+id: ac74b589c5ac41c5b87531257a9aad28
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 4.2 反馈机制在测试场景下的信号噪声大
+content: '### 4.2 反馈机制在测试场景下的信号噪声大
+
+
+  PRD 中描述的反馈机制（隐式反馈目标 80% 覆盖率、显式反馈目标 2%）从测试角度看存在严重问题：
+
+
+  - **修改 vs 不修改的二元陷阱**：QA 修改了 LLM 生成的用例，可能只是因为「我想按自己的风格写」，不意味着生成质量差。反过来，QA 没改可能只是「太忙了没空改」。
+
+  - **无法表达「部分正确」**：当前的反馈系统可能只能传递「好」或「不好」，但实际上 LLM 生成的用例往往是「框架正确、细节错误」，需要一个更细粒度的评分机制。
+
+  - **采纳率目标的误导性**：在测试场景中，如果 QA 团队对 LLM 本身就抱有怀疑态度（这是正常的健康的怀疑），采纳率天然会偏低——不是因为系统不好，而是因为责任归属问题：测试用例质量最终由
+  QA 负责，他们不敢轻信 LLM。
+
+  - **Orchestrator 的日志不适合做测试质量评估**：当前的日志主要面向请求/响应的链路追踪，缺少对「生成内容的测试覆盖度」的度量能力。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.341590+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-4-2--ac74b589.yaml

@@ -1,0 +1,54 @@
+id: 792d79c7e32b4c2c8506ce932ad5f501
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 2.5 配置继承链与合并策略
+content: '### 2.5 配置继承链与合并策略
+
+
+  多层级配置，链式继承 + 合并覆盖，由独立 config_merger 模块处理。本地单用户工具无服务端配置层，全部配置来自文件与请求参数。
+
+
+  **配置层级（优先级从低到高）**
+
+
+  1. 默认配置 — 包内 `config/default.yaml`（产品内置基线）
+
+  2. 用户全局配置 — `~/.rsi/config.yaml`（跨项目的个人偏好，如默认模型、API Key 引用）
+
+  3. 项目配置 — 项目根目录 `rsi-boot.yaml`（schema 见 §10.3.1）
+
+  4. 请求参数 — 单次请求携带的 context / preferences 覆盖（仅当次生效，不持久化）
+
+
+  **合并策略**
+
+  - 默认合并深度为 2 层（浅合并 + 一层嵌套）
+
+  - 列表字段采用替换策略（非追加）
+
+  - 关键路径（如 model.endpoint）不允许请求参数层覆盖，仅允许文件层配置
+
+  - 合并前校验类型安全（使用 Pydantic schema 约束）；校验失败时回退到上一层级并记 warning
+
+
+  **热加载机制**
+
+
+  | 触发方式 | 实现 | 生效范围 |
+
+  |----------|------|----------|
+
+  | 文件变更 | watchfiles 监听 `~/.rsi/config.yaml` 与项目 `rsi-boot.yaml` | 当前进程 |
+
+  | 进程重启 | 启动时全量加载合并 | 当前进程 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.662404+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-2-5-配置继承链与合并策略--792d79c7.yaml

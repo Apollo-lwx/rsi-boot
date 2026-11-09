@@ -84,7 +84,9 @@ def is_ablated(name: str, project_root: Path | None = None) -> bool:
 # - diversity   MMR 多样性去重（实测误伤正当证据，见 benchmark/results/abl-mmr）
 # - coverage    查询词项覆盖率重排
 # - vector      fastembed/ONNX 本地向量与词面通道融合（rag/vector.py）
-# - multihop    首跳桥接词发起第二跳级联召回（多跳题）
+# - multihop    首跳桥接词发起第二跳级联召回（多跳题，实测中性，见 ablation 榜）
+# - decompose   LLM 子查询分解（rag/decompose.py，需 OpenAI 兼容端点，分解结果落盘缓存）。
+#               实测负结果：LoCoMo +8/−20（v3-always），见 benchmark/results/ablation-decompose-20261109
 ENABLE_ENV = "RSI_ENABLE"
 
 

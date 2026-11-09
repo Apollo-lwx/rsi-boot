@@ -1,0 +1,44 @@
+id: 68a22225ef41481b8c63737803882f64
+type: teaching_case
+title: 提案门禁与观察期巡检不再返回固定桩
+content: validate 对 proposed 或中断的 validating 提案跑 StaticGate（未注入门禁时自建），通过则 approved
+  并写入 gate 报告，否则 rejected。validate_pending 只扫当前 proposed，返回 validated 与 approved。patrol
+  只看仍在 observe_until 内的 active 提案，用 events.jsonl 比较观察期与晋升前 7 天采纳率（正向动作为 accepted、applied、copied、referenced，与
+  StatsService.adoption_rate 相同）；四舍五入到万分位后下降超过 5% 才 rollback。无反馈的窗口不回滚。若还有更晚且未掉点的
+  active 提案，跳过整库快照回滚，避免误撤后者。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T05:55:55Z'
+updated_at: '2026-10-28T05:55:55Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: proposal-engine-validate-patrol-stub
+    failure_type: stub
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: validate 对 proposed 或中断的 validating 提案跑 StaticGate（未注入门禁时自建），通过则
+      approved 并写入 gate 报告，否则 rejected。validate_pending 只扫当前 proposed，返回 validated
+      与 approved。patrol 只看仍在 observe_until 内的 active 提案，用 events.jsonl 比较观察期与晋升前 7
+      天采纳率（正向动作为 accepted、applied、copied、referenced，与 StatsService.adoption_rate 相同）；四舍五入到万分位后下降超过
+      5% 才 rollback。无反馈的窗口不回滚。若还有更晚且未掉点的 active 提案，跳过整库快照回滚，避免误撤后者。
+    reason: 三个方法是桩，产品承诺的观察期自动回滚没有执行路径。
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: validate、validate_pending、patrol 直接返回固定值。调度器每天会调用 patrol，但采纳率下降不会回滚。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-28T05:55:55Z'
+path: memory/teaching-cases/提案门禁与观察期巡检不再返回固定桩--68a22225.yaml

@@ -53,8 +53,10 @@ def retype_distilled_for_pack(store: MemoryStore, pack_id: str) -> int:
         tags = set(doc.tags or [])
         if marker not in tags or "signal:distilled" not in tags:
             continue
-        if doc.type == want and doc.path and official_dir(store.rsi_dir, want).as_posix() in Path(doc.path).as_posix().replace("\\", "/"):
-            if want != "skill" or str(doc.path).replace("\\", "/").endswith("/skill.yaml"):
+        if doc.type == want and doc.path:
+            rel = Path(doc.path).as_posix().replace("\\", "/")
+            official_rel = official_dir(store.rsi_dir, want).relative_to(store.rsi_dir).as_posix()
+            if official_rel in rel and (want != "skill" or rel.endswith("/skill.yaml")):
                 continue
         payload = dict(doc.payload or {})
         if want == "skill":

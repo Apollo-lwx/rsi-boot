@@ -1,0 +1,46 @@
+id: 2276430abc614908bf16f4ed882b996e
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 4.1 主请求处理流程（Pipeline 模式）
+content: '### 4.1 主请求处理流程（Pipeline 模式）
+
+
+  RSI Boot 采用 Pipeline 模式编排请求处理流程，每个阶段为独立 Handler，通过 Orchestrator 串联。
+
+
+  ```
+
+  +-----------+    +-----------+    +-----------+    +-----------+    +-----------+
+
+  |Preprocess |--->| Strategy  |--->|   Model   |--->|Postprocess|--->|   Log     |
+
+  | Handler   |    | Handler   |    |  Adapter  |    | Handler   |    | Handler   |
+
+  |           |    |           |    |           |    |           |    |           |
+
+  | Intent    |    | Route     |    | Call LLM  |    | Parse     |    | Persist   |
+
+  | Context   |    | Template  |    | SSE stream|    | Format    |    | Cost calc
+  |
+
+  | Retrieval |    | Thompson  |    | Fallback  |    | Feedback  |    |           |
+
+  +-----------+    +-----------+    +-----------+    +-----------+    +-----------+
+
+  ```
+
+
+  **日志两段式写入**：feedback_token 在 Preprocess 阶段随 request_id 一并生成；Log Handler 在模型调用**之前**先
+  INSERT `status=''pending''` 的日志记录（含 request_id 与 token），响应完成后再 UPDATE 为终态（success/error
+  + 成本与延迟）。这样即使服务在模型调用后崩溃，token 也已持久化可关联；遗留的 pending 记录由离线对账任务扫描补齐（见 §4.3）。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.714445+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-4-1-主请求处理流程-pipeline--2276430a.yaml

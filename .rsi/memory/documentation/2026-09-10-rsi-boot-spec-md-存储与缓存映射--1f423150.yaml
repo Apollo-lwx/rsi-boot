@@ -1,0 +1,29 @@
+id: 1f4231506a5840168c3bbcd62d114ec9
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 存储与缓存映射
+content: '#### 存储与缓存映射
+
+
+  | 层 | 位置 | 说明 |
+
+  |----|------|------|
+
+  | 持久层 | `user_profiles.profile_data`（JSONB，§2.2） | `UserProfile.model_dump()` 整体序列化；主键
+  `(user_id, project_id)`，project_id 为 NULL 表示跨项目全局画像 |
+
+  | 缓存层 | `rsi:profile_cache:{user_id}:{project_id}`（Hash，TTL 600s，§2.4） | 读路径：缓存
+  miss → 读库 → 回填；写路径：**写穿**——先 UPDATE 落库，再 DEL 缓存，禁止先删缓存后写库（防并发脏读） |
+
+  | 读取合并 | PreprocessHandler | 全局画像与项目画像同时存在时，项目画像字段覆盖全局画像（与 §2.5 配置合并方向一致） |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.690484+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-存储与缓存映射--1f423150.yaml

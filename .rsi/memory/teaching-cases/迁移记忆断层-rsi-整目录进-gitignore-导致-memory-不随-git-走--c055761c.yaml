@@ -1,0 +1,41 @@
+id: c055761c83a94f76b5eeb752f8d37034
+type: teaching_case
+title: 迁移记忆断层：.rsi/ 整目录进 gitignore 导致 memory 不随 git 走
+content: 默认只忽略 .rsi/ 下的日志/缓存/索引（.rsi/* + !.rsi/memory/），memory 默认随 git 追踪；提供 rsi doctor
+  自检+一键修复和 rsi bundle 兜底迁移；用 clone 一致性测试验收（origin 与 clone 的 .rsi/memory 文件树 SHA256
+  逐位相同，且 cache 等本地产物不跟库）。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-09T03:33:44Z'
+updated_at: '2026-11-09T03:33:44Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: gitignore-blanket-rsi-dir:memory-not-tracked-on-clone
+    failure_type: ''
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 默认只忽略 .rsi/ 下的日志/缓存/索引（.rsi/* + !.rsi/memory/），memory 默认随 git 追踪；提供
+      rsi doctor 自检+一键修复和 rsi bundle 兜底迁移；用 clone 一致性测试验收（origin 与 clone 的 .rsi/memory
+      文件树 SHA256 逐位相同，且 cache 等本地产物不跟库）。
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: bootstrap 默认把整个 .rsi/ 写进 .gitignore，AGENTS.md 托管块只承载核准约定摘要，召回全文所在的
+      .rsi/memory 被 git 忽略——项目迁移/协作时记忆断层，README 还让用户手动把 memory 纳入版本库。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-11-09T03:33:44Z'
+path: memory/teaching-cases/迁移记忆断层-rsi-整目录进-gitignore-导致-memory-不随-git-走--c055761c.yaml

@@ -1,0 +1,48 @@
+id: b13c0b24bd16448a927a25c90a7bd2b1
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9.2 自学习数据来源矩阵
+content: '#### 10.9.2 自学习数据来源矩阵
+
+
+  系统自动从以下信号源中汲取信息，无需用户标注数据来源：
+
+
+  | 信号源 | 自动发现方式 | 学习产出 | 首次扫描耗时 |
+
+  |--------|------------|---------|------------|
+
+  | **项目文档**（README、docs/、ADR、Wiki） | 扫描常见文档路径 + 文件名模式 | 知识库条目（向量化） | 2-10s |
+
+  | **代码结构**（函数/类/模块/API 路由） | AST 静态分析提取代码骨架 | 项目架构知识、函数签名映射 | 5-30s（项目大小） |
+
+  | **Git 历史**（commit message、分支模式、文件归属） | `git log --all` + 统计分析 | 编码风格画像、贡献领域、团队协作模式
+  | 5-15s |
+
+  | **对话上下文**（IDE 聊天记录、代码审查评论） | 扫描 `.cursor/`、`.vscode/`、`CHANGELOG*` 等（**需用户显式同意**）
+  | 常见问题模式、历史决策记录；提取的模式默认经人工确认后入项目知识库，个人可标记 `private` 不共享 | 2-8s |
+
+  | **项目配置**（package.json、pyproject.toml、pom.xml、Makefile） | 文件存在性检测 + 解析 | 技术栈识别、构建工具、测试框架偏好
+  | 0.5-2s |
+
+  | **测试文件**（test_*.py、*.spec.ts、*_test.go、测试配置） | 按语言约定目录和命名模式扫描 | 测试风格、覆盖率习惯、断言风格画像
+  | 3-10s |
+
+  | **规范文件**（.editorconfig、eslintrc、tsconfig、prettierrc、Dockerfile） | 规则文件检测 + 解析
+  | 代码规范、命名约定、格式规则 | 0.5-2s |
+
+  | **PR/Issue 模板**（.github/*.md、CONTRIBUTING） | 路径模式匹配 | 团队协作规范、角色模板参考 | 1-3s |
+
+  | **构建/CI 配置**（.github/workflows/*、Jenkinsfile、.gitlab-ci.yml） | 路径模式匹配 + 解析 | CI
+  流程知识、部署架构模式 | 1-5s |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.773560+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-2-自学习数据来源矩阵--b13c0b24.yaml

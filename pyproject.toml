@@ -46,6 +46,10 @@ dev = [
 vec = [
     "sqlite-vec>=0.1",
 ]
+# 向量检索臂（RSI_ENABLE=vector / rsi init --vector）：本地 fastembed/ONNX 嵌入
+vector = [
+    "fastembed>=0.4",
+]
 # Anthropic Provider（§1.1，P4.1）：仅使用 claude-* 模型时需要
 anthropic = [
     "anthropic>=0.40",

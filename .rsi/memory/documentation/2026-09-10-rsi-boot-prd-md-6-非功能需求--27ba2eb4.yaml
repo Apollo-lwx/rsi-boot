@@ -1,0 +1,41 @@
+id: 27ba2eb4192445c2bb0d27cf773120fc
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 6. 非功能需求
+content: '## 6. 非功能需求
+
+
+  | 需求 | 要求 |
+
+  |------|------|
+
+  | **安全性** | 日志脱敏（API key、用户敏感信息）；外发 LLM 前密钥/Token/内网地址扫描；LLM API Key 仅走环境变量，禁止写入项目配置文件；可选字段级加密（AES-256-GCM，默认关闭）
+  |
+
+  | **可观测性** | 全链路日志（请求/响应/错误）落本地 SQLite；结构化日志（JSON 格式）；支持流式响应 SSE |
+
+  | **可扩展性** | 模型适配器可插拔；策略引擎可配置；角色/意图插件化注册 |
+
+  | **可测试性** | 所有核心模块契约可 mock；支持 CI 自动化测试（临时目录 SQLite，无外部服务依赖） |
+
+  | **可维护性** | 遵循 SDD 规范驱动；模块文档齐全；代码规范统一 |
+
+  | **数据生命周期** | 日志 90 天保留期（过期导出 `.rsi/archive/` 后删除）；支持数据导出（JSON/CSV）；卸载即删 `.rsi/`
+  目录完成全部数据清除 |
+
+  | **部署轻量化** | 零外部服务依赖：SQLite 单文件 + sqlite-vec + FTS5 全内嵌；pip 安装即用；进程内存占用 < 200MB（不含模型）
+  |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.580352+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-6-非功能需求--27ba2eb4.yaml

@@ -1,0 +1,26 @@
+id: da4a86d2bc8244058549f4eb3414f3ba
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# feedback_token 生成机制
+content: "#### feedback_token 生成机制\n\n```python\nimport hmac\nimport hashlib\nimport\
+  \ uuid\n\ndef generate_feedback_token(request_id: UUID, user_id: str, secret_key:\
+  \ str) -> str:\n    \"\"\"\n    生成 feedback_token：UUIDv4 + HMAC-SHA256 签名\n    -\
+  \ 前半段：UUIDv4（唯一标识）\n    - 后半段：HMAC(request_id + user_id, secret_key) 前 16 位\n  \
+  \  - 用途：防止伪造，同时可校验 token 是否属于该请求\n    - 时序：在请求入口（PreprocessHandler）生成；Log Handler\
+  \ 先 INSERT status='pending'\n           的日志记录（含 request_id 与 token），再进入模型调用，响应完成后\
+  \ UPDATE 终态。\n           token 跟随 RSIResponse 返回；客户端在 Feedback 中原样提交，\n        \
+  \   服务端按 token 索引回查日志并校验 HMAC 匹配后才更新记录\n    \"\"\"\n    raw = f\"{request_id}:{user_id}\"\
+  \n    signature = hmac.new(\n        secret_key.encode(),\n        raw.encode(),\n\
+  \        hashlib.sha256\n    ).hexdigest()[:16]\n    token_uuid = str(uuid.uuid4())\n\
+  \    return f\"{token_uuid}-{signature}\"\n```\n\n---"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.649301+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-feedback-token-生成机制--da4a86d2.yaml

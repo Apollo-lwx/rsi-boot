@@ -1,0 +1,37 @@
+id: 58b4736d5f7241d497e19f5b6c5dccb1
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 5.4 降级策略链
+content: '### 5.4 降级策略链
+
+
+  全功能 → 无知识检索/画像 → 无持久化 → 仅 LLM 直连 → 返回静态降级消息
+
+
+  | 级别 | 触发条件（对应熔断器 OPEN） | 可用功能 | 不可用功能 |
+
+  |------|---------------------------|----------|------------|
+
+  | Level 0 (正常) | 全部 CLOSED | 全功能 | 无 |
+
+  | Level 1 | embedding OPEN | 基础 + FTS5 关键词检索 + 日志 | 向量语义检索 |
+
+  | Level 2 | sqlite OPEN | 基础模型调用 + 内存态画像/缓存 | 日志持久化、画像读取、反馈落库 |
+
+  | Level 3 | llm_primary OPEN | fallback 模型直连 | Pipeline 编排中的增强环节（检索/画像注入跳过） |
+
+  | Level 4 | 全部 LLM（含 fallback）OPEN | 返回静态降级消息 | 所有外部依赖不可用 |
+
+
+  **恢复方向**：级别由请求处理时实时评估各熔断器状态得出，无独立状态机——对应依赖熔断器回到 CLOSED 后，下一请求自动恢复更高级别，无需人工介入。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.729098+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-5-4-降级策略链--58b4736d.yaml

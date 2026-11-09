@@ -1,0 +1,39 @@
+id: 77d48a8a127e40d6a4eeb15038839f05
+type: teaching_case
+title: 回放门禁用合并后的增强配置
+content: 把门禁配置改成 _enhance_view 合并后的 view，使 enhance.model 与 enhance.quality 进入回放门禁。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T07:12:41Z'
+updated_at: '2026-10-28T07:12:41Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: regression-gate-reads-unmerged-config
+    failure_type: wiring
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 把门禁配置改成 _enhance_view 合并后的 view，使 enhance.model 与 enhance.quality
+      进入回放门禁。
+    reason: 增强层组件读的是合并视图，原始配置顶层没有 model。
+    applies_to: []
+    tags:
+    - harness
+    - gate
+    open_questions: []
+    wrong_action: gate_replay 把原始 config 交给 RegressionGate，模型名只写在 enhance.model 时门禁仍用默认模型。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-28T07:12:41Z'
+path: memory/teaching-cases/回放门禁用合并后的增强配置--77d48a8a.yaml

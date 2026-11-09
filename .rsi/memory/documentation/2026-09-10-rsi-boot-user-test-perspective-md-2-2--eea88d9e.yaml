@@ -1,0 +1,37 @@
+id: eea88d9e20d3496f8e188eb93e93584b
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 2.2 测试金字塔覆盖合理
+content: '### 2.2 测试金字塔覆盖合理
+
+
+  根据 Test Plan 文档，测试策略覆盖了：
+
+
+  | 层级 | 占比 | 评价 |
+
+  |------|------|------|
+
+  | 单元测试 | 60% | 核心模块的逻辑独立，适合高覆盖 |
+
+  | 契约测试 | 10% | MCP 工具定义与实现一致性验证，很必要 |
+
+  | 集成测试 | 20% | Pipeline 全链路 + 数据库/外部依赖，适中 |
+
+  | E2E 测试 | 5% | 完整服务 + MCP 真实调用，成本可控 |
+
+  | 混沌测试 | 5% | 熔断器/超时/降级验证，风险导向 |
+
+
+  这个分布合理，但我注意到当前 Test Plan 完全以开发者为视角编写——测试用例的输入数据（如 `raw_input` 包含 "fix this bug"）和预期都面向开发调试场景，缺乏对测试工程师日常工作的覆盖。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.326265+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-2-2--eea88d9e.yaml

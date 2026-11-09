@@ -1,0 +1,44 @@
+id: 179b68df1d454ba5a075f82ca0d40cbb
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.5 数据目录约定
+content: '### 10.5 数据目录约定
+
+
+  ```
+
+  <project>/.rsi/
+
+  ├── rsi.db            # SQLite 主库（含 sqlite-vec 向量与 FTS5 索引）
+
+  ├── rsi.db-wal/-shm   # WAL 伴随文件
+
+  ├── archive/          # 过期日志归档（YYYYMM.jsonl，§8.3）
+
+  └── cache/            # 可重建的临时产物（嵌入缓存等），可随时清空
+
+
+  ~/.rsi/
+
+  ├── config.yaml       # 个人全局配置（§2.5）
+
+  └── global.db         # 全局画像与跨项目统计（§10.4）
+
+  ```
+
+
+  **`.gitignore` 建议**（`rsi bootstrap` 自动写入，§10.9）：
+
+
+  ```gitignore'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.763478+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-5-数据目录约定--179b68df.yaml

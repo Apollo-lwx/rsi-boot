@@ -1,0 +1,46 @@
+id: a76124996cd74dc79a15739058530e7b
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 格式化规则配置（config/response_format.yaml）
+content: '#### 格式化规则配置（config/response_format.yaml）
+
+
+  | 参数 | developer | test | pm | default | 说明 |
+
+  |-----------|-----------|------|-----|---------|------|
+
+  | prefer_markdown_code_blocks | true | true | false | true | 是否用代码块包装代码 |
+
+  | max_suggestion_count | 3 | 5 | 3 | 3 | 最大建议条数 |
+
+  | show_token_usage | true | true | false | false | 是否显示代理用量 |
+
+  | response_style | concise | detailed | balanced | balanced | concise / detailed
+  / balanced |
+
+  | include_source_refs | true | true | true | false | 是否附框架来源引用 |
+
+
+  **实现要点**：
+
+  - 格式化在 Postprocessor 阶段完成，在模型输出解析之后、质量评估之前
+
+  - 角色配置为空时使用 default 格式
+
+  - 格式化规则可通过管理 API 热加载（Phase 1 M2 config_merger）
+
+  - 同样的模型输出，不同角色看到的格式不同，但内容一致（仅展示方式差异）
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.686079+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-格式化规则配置-config-respo--a7612499.yaml

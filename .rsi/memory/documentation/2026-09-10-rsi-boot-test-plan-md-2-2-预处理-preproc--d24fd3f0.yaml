@@ -1,0 +1,53 @@
+id: d24fd3f08c624e25bc2a33d36f76e3ab
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.2 预处理 Preprocessor
+content: '### 2.2 预处理 Preprocessor
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | PRE-01 | 意图识别：code_gen 类型 | 输入包含"write a function" | 1. 调用 detect_intent | 返回
+  intent=code_gen, confidence=0.80（Spec §3.1 规则版） | P0 |
+
+  | PRE-02 | 意图识别：debug 类型 | 输入包含"fix this bug" | 1. 调用 detect_intent | 返回 intent=debug,
+  confidence=0.85 | P0 |
+
+  | PRE-03 | 意图识别：code_review 类型 | 输入"review this" | 1. 调用 detect_intent | 返回 intent=code_review,
+  confidence=0.85 | P0 |
+
+  | PRE-04 | 意图识别：无匹配回退 | 输入"hello world" | 1. 调用 detect_intent | 返回 intent=general_assist,
+  confidence=0.5 | P0 |
+
+  | PRE-05 | 意图识别：多规则匹配（顺序敏感） | 输入"fix bug and write test" | 1. 调用 detect_intent |
+  规则按 INTENT_RULES 列表顺序先匹配：code_gen（含 "write"）先命中，返回 code_gen(0.80) | P0 |
+
+  | PRE-06 | 用户画像加载：用户存在 | 库中该 user_id 有 profile | 1. 发送请求 2. 预处理加载 | ProcessedRequest.user_profile
+  非空 | P1 |
+
+  | PRE-07 | 用户画像加载：用户不存在 | 库中无该 user_id | 1. 发送请求 2. 预处理加载 | ProcessedRequest.user_profile=None，使用默认画像
+  | P1 |
+
+  | PRE-08 | 项目配置加载：多级继承 | 默认+用户全局+项目 三级配置 | 1. 发送请求（有 project_id） | ProcessedRequest.merged_config
+  正确合并三级配置（§2.5） | P1 |
+
+  | PRE-09 | context 输入超长 | raw_input=32769 字符 | 1. 发送请求 | Pydantic 校验拒绝，返回校验错误 |
+  P0 |
+
+  | PRE-10 | 空输入 | raw_input="" | 1. 发送请求 | Pydantic 校验拒绝（min_length=1） | P0 |
+
+  | PRE-11 | user_id 自动解析 | 未显式传 user_id | 1. git config user.email 存在时发送请求 | user_id
+  取 git email；无 git 配置时为 `local`（§7.2） | P1 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.431489+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-2-预处理-preproc--d24fd3f0.yaml

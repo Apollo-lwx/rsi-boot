@@ -1,0 +1,35 @@
+id: ace59f570262401c92dae3c625d5d762
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# LLM 调用示例：base=1s, cap=30s → 第 1/2/3 次重试分别在 [0,2s]
+  / [0,4s] / [0,8s] 内随机
+content: '# LLM 调用示例：base=1s, cap=30s → 第 1/2/3 次重试分别在 [0,2s] / [0,4s] / [0,8s] 内随机
+
+  ```
+
+
+  **可重试与不可重试**：
+
+
+  | 类别 | 错误 | 处理 |
+
+  |------|------|------|
+
+  | 可重试 | 连接错误、读超时、HTTP 429 / 5xx、SQLite `SQLITE_BUSY` | 按上表退避重试 |
+
+  | 不可重试 | HTTP 4xx（除 429）、LLM API Key 无效、请求校验错误、响应解析错误、SQLite 约束冲突 | 立即失败，计入熔断器失败计数（4xx
+  除外，见 §5.1 口径） |
+
+
+  **幂等约束**：仅对幂等操作重试——查询类直接重试；LLM 调用携带 request_id 供日志去重；**流式响应一旦已开始输出 token 即不再重试**（重试会导致重复输出），失败直接走降级链。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.727728+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-llm-调用示例-base-1s-cap--ace59f57.yaml

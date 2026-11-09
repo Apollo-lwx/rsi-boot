@@ -1,0 +1,31 @@
+id: 3e5f650b24d347299c34f83979d23f33
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 9.3 集成测试
+content: '### 9.3 集成测试
+
+
+  | 测试 | 组件 | 依赖 |
+
+  |------|------|------|
+
+  | 数据库 CRUD | LogService | 临时目录 SQLite 文件（tmp_path fixture） |
+
+  | 缓存行为 | TTLCache 封装 | 进程内，无需外部依赖 |
+
+  | 反馈流程 | Feedback Task | 临时 SQLite + asyncio 队列 |
+
+  | 向量检索 | sqlite-vec + FTS5 | 临时 SQLite（加载 vec 扩展） |
+
+  | 完整 Pipeline | Orchestrator | mock LLM + 临时 SQLite |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.745671+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-9-3-集成测试--3e5f650b.yaml

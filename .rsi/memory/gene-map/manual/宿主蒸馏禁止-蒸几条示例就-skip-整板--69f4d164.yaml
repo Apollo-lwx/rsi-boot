@@ -1,0 +1,33 @@
+id: 69f4d164192f496590ef3371c40d54f6
+type: gene_case
+title: 宿主蒸馏禁止「蒸几条示例就 skip 整板」
+content: skip 只允许 README 文件名或路径落在 .cursor/audit-result、.rsi/audit。产品路径含 ats-/audit
+  必须蒸馏。pack_list reopen_skipped 要把 index=skipped 且 yaml=pending 的非法 skip 改回 pending，load_pack
+  失败也要改 index。对话板已有几条 done 不算学完。.cursor/knowledge/gene-map 按 gene_case 蒸，不要整板 skip。文案要求全
+  lane 并行、pending=0，pack_done skipped 被拒就继续蒸馏。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T11:25:23Z'
+updated_at: '2026-09-15T11:25:23Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: process
+  error_signature: host-distill-skip-after-examples-leaves-boards-empty
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: skip 只允许 README 文件名或路径落在 .cursor/audit-result、.rsi/audit。产品路径含 ats-/audit
+    必须蒸馏。pack_list reopen_skipped 要把 index=skipped 且 yaml=pending 的非法 skip 改回 pending，load_pack
+    失败也要改 index。对话板已有几条 done 不算学完。.cursor/knowledge/gene-map 按 gene_case 蒸，不要整板 skip。文案要求全
+    lane 并行、pending=0，pack_done skipped 被拒就继续蒸馏。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-09-15T11:25:23Z'
+path: memory/gene-map/manual/宿主蒸馏禁止-蒸几条示例就-skip-整板--69f4d164.yaml

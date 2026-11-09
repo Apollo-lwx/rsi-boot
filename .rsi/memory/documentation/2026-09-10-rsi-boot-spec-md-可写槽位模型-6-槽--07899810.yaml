@@ -1,0 +1,61 @@
+id: 078998103c8b479dbb09d31b4f8d35d1
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 可写槽位模型（6 槽）
+content: '#### 可写槽位模型（6 槽）
+
+
+  | 槽位 | 载体 | 加法 | 减法 | 修改 |
+
+  |------|------|------|------|------|
+
+  | prompt_template | `config/templates/*.jinja2` | 新增模板 | 停用引用 | 修订（存 diff） |
+
+  | skill | `config/skills/<name>/SKILL.md`（frontmatter + 指令，可选脚本/资源文件） | 新增技能 | 停用/删除技能
+  | 修订指令或触发条件 |
+
+  | strategy | `strategy_configs` 行 | 新策略候选 | `is_active=0` 淘汰 | weight/模型/模板引用调整
+  |
+
+  | intent_rule | `config/intent_rules.yaml` | 新规则 | 移除无效规则 | 置信度/关键词调整 |
+
+  | knowledge | `knowledge_items` | §4.3 知识提取 | `status=rejected/archived` | 内容修订
+  |
+
+  | profile | `user_profiles` | — | — | §3.8 衰减与聚合（不经提案流程） |
+
+
+  与 MetaRSI-v1 五槽位（System Prompt / Skill / MCP / Tools / Memory）的映射：`prompt_template`
+  ≈ System Prompt，`skill` ≈ Skill，`knowledge` + `profile` ≈ Memory，`strategy`/`intent_rule`
+  是检索与路由层策略（MetaRSI 无对应物，属本系统特有槽位）。
+
+
+  **关于 Skill / Tools / MCP 三槽的修正说明（v2.3）**：v2.2 曾以「自身即 MCP server、工具面固定」为由判定三槽不适用，该论断不成立——Superpowers
+  同为 MCP 形态，证明了「薄的固定工具层 + 厚的数据驱动技能层」可行：技能是数据（文件型指令包）而非代码，增删技能不需要改代码。因此：
+
+
+  - **Skill 槽：纳入可写面**（本表 skill 行）。技能 = 程序性记忆（"怎么做"），与 knowledge 的事实性记忆（"是什么"）互补，是自我改进最高频的产出物。文件型设计（SKILL.md
+  风格）使其天然可走提案流程、进配置快照、随 bundle 导出
+
+  - **Tools 槽：记为未来路径**。声明式工具（yaml 定义的 HTTP 调用/提示词链，经校验注册）技术上可行，但技能文件已可编排「何时调用哪个已有工具」，优先级低，需要时再立项
+
+  - **MCP 槽：刻意不做，但属范围取舍而非形态必然**——聚合/代理其他 MCP server 是网关方向，与「不做网关」的定位冲突（§10.7）
+
+
+  **技能槽运行时**：`config/skills/` 目录随配置热加载（§2.5）被发现；每个技能的 frontmatter 声明 name/description/trigger（意图或关键词）；查询时由策略引擎按
+  trigger 匹配，命中技能的指令体注入提示词（与知识注入共用 §3.2 的预算与标注机制，来源标注为 `skill:<name>`）；技能内容变更与模板一样经提案流程与快照版本化。
+
+
+  **生产/消费关系**：技能的消费者是**下游调用方 Agent**（指令随增强提示词返回，指导其行为，与 Superpowers 技能同类，仅触发方式为自动匹配而非显式调用）；Harness-RSI
+  闭环是技能的**生产者/管理者**（失败挖掘 → 技能提案 → 门禁晋升），闭环自身的行为由代码固定、不消费技能——否则改进机制将可被自身产出物驱动，破坏元级修改禁令（见安全边界）。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.707847+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-可写槽位模型-6-槽--07899810.yaml

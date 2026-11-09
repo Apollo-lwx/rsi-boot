@@ -1,0 +1,29 @@
+id: d8c9ab8dcc074f48947632c16ed87b35
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 2.1 可测试性设计的亮点
+content: '### 2.1 可测试性设计的亮点
+
+
+  从测试工程师的角度看，RSI Gateway 在可测试性方面有一些值得肯定的设计：
+
+
+  - **契约可 mock**：Spec 明确要求所有核心模块「契约可 mock」，这为单元测试和集成测试提供了良好的基础。我可以轻松地 mock 模型适配层、数据库层，专注于验证编排器和策略引擎的逻辑正确性。
+
+  - **结构化日志**：JSON 格式结构化日志配合 OpenTelemetry 集成，让我可以方便地构建测试断言来验证请求/响应链路。这在定位管道中各 Handler
+  的执行顺序和异常传播时非常有用。
+
+  - **熔断器可测试**：熔断器的状态机（Closed → Open → Half-Open）和阈值配置是明确的，可以编写确定性测试来验证熔断和恢复行为。
+
+  - **限流算法可验证**：令牌桶算法的行为可以用确定的参数（速率、容量）来验证，不需要依赖真实 API 调用。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.326265+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-2-1--d8c9ab8d.yaml

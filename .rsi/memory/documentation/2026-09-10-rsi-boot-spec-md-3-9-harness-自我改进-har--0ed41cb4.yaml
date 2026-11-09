@@ -1,0 +1,25 @@
+id: 0ed41cb4fbad48199fbe004668290d5a
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 3.9 Harness 自我改进（Harness-RSI）
+content: '### 3.9 Harness 自我改进（Harness-RSI）
+
+
+  RSI Boot 的「RSI」即 Recursive Self-Improvement（递归自我改进）。遵循 2026 年 Harness-RSI 路线（MetaRSI-v1
+  / Self-Harness / AHE 等）：**模型权重不动，把 Harness 本身作为可写面**——用执行轨迹反馈驱动「评估 → 挖掘 → 提案 → 验证
+  → 晋升」闭环。
+
+
+  与 §3.3 Thompson Sampling 的分工：Thompson 在**既有策略候选**间做探索/利用；本节机制负责**创造与淘汰候选本身**（对槽位做加法/减法/修改）。§4.3
+  的知识提取与策略调优是本框架在 knowledge / strategy 槽位的子集，本节为其上位框架，统一提案、验证与版本化语义。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.703023+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-3-9-harness-自我改进-har--0ed41cb4.yaml

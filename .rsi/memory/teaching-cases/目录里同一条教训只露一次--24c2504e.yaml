@@ -1,0 +1,36 @@
+id: 24c2504e121c4e71a48baab6a92fb49e
+type: teaching_case
+title: 目录里同一条教训只露一次
+content: 记忆目录折叠同 id 的 gene_case，只保留 teaching_case。没有对应教学的基因仍进入目录。知识树继续用全量条目计数。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-29T10:48:43Z'
+updated_at: '2026-10-29T10:48:43Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: catalog-gene-teaching-same-id
+    failure_type: duplicate_catalog_line
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 记忆目录折叠同 id 的 gene_case，只保留 teaching_case。没有对应教学的基因仍进入目录。知识树继续用全量条目计数。
+    reason: 召回已经按 id 跳过成对基因，目录没有做同样的折叠。
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 把同 id 的 teaching_case 和 gene_case 都放进 AGENTS.md 记忆目录，标题连着重复，40 条槽位被占掉一半。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-29T10:48:43Z'
+path: memory/teaching-cases/目录里同一条教训只露一次--24c2504e.yaml

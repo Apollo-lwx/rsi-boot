@@ -1,0 +1,31 @@
+id: 85ad072c573f44b9ad83e517b37bfdd9
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 5.6 用例质量评分机制
+content: '### 5.6 用例质量评分机制
+
+
+  在 Orchestrator 的后处理模块中，增加一个（可选的）质量评分阶段：
+
+
+  - **覆盖度评分**：检查生成的用例是否覆盖了 P0 路径、异常路径、边界条件
+
+  - **断言完整性评分**：检查断言是否包含状态码、响应体、数据一致性验证
+
+  - **可读性评分**：检查命名规范、注释、代码组织
+
+  - **历史回归评分**：对比历史生成的用例，评估是否有退化
+
+
+  评分结果作为元数据返回给客户端，帮助 QA 快速判断需要重点检视的部分。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.353924+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-5-6--85ad072c.yaml

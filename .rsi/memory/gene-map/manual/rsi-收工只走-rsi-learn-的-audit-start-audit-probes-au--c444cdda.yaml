@@ -1,0 +1,31 @@
+id: c444cdda8e0948cdb9b8e2217fa3f71e
+type: gene_case
+title: RSI 收工只走 rsi_learn 的 audit_start/audit_probes/audit_report/audit_finish。Cursor
+  命名空间 user-skill-audit 来自用户级 mcp.json 的 sk
+content: RSI 收工只走 rsi_learn 的 audit_start/audit_probes/audit_report/audit_finish。Cursor
+  命名空间 user-skill-audit 来自用户级 mcp.json 的 skill-audit 条目，不是 MemoryStore skill，也不是 rsi
+  serve 工具。现网仓库/git/pyproject 都没有 skill-audit；本机也没有 skill-audit CLI。该条目是一行 python
+  伪 MCP，发现阶段就会失败。确认是残留后从 ~/.cursor/mcp.json 删掉，不要再因它跳过 RSI audit_finish。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T03:22:14Z'
+updated_at: '2026-09-15T03:22:14Z'
+refs: []
+extra: {}
+payload:
+  weight: 8
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: user-skill-audit mistaken as RSI closeout gate
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: RSI 收工只走 rsi_learn 的 audit_start/audit_probes/audit_report/audit_finish。Cursor
+    命名空间 user-skill-audit 来自用户级 mcp.json 的 skill-audit 条目，不是 MemoryStore skill，也不是
+    rsi serve 工具。现网仓库/git/pyproject 都没有 skill-audit；本机也没有 skill-audit CLI。该条目是一行 python
+    伪 MCP，发现阶段就会失败。确认是残留后从 ~/.cursor/mcp.json 删掉，不要再因它跳过 RSI audit_finish。
+  validation: skipped
+  scope: project
+path: memory/gene-map/manual/rsi-收工只走-rsi-learn-的-audit-start-audit-probes-au--c444cdda.yaml

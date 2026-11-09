@@ -1,0 +1,26 @@
+id: 16a48f1f5fc749e68aa3038ed8005e28
+type: episode
+title: 解释 user-skill-audit 是什么：RSI skill 还是其它组件，以及为何 audit_finish 跳过它
+content: '2026-09-10-rsi-boot-spec.md# 可写槽位模型（6 槽）
+
+  2026-09-10-rsi-boot-spec.md# 10.9.9 错误处理与部分恢复
+
+  2026-09-10-rsi-boot-spec.md# 10.9.7 数据验证规则
+
+  2026-09-10-rsi-boot-prd.md# 4. 验证——此时工具已经对项目有全面认知
+
+  2026-09-10-rsi-boot-spec.md# 修订记录
+
+  RSI 代码只做进度、耗时预估和流程串联（skill/MCP/阅读包）；深入分析与知识蒸馏必须留在宿主 agent。禁止用分词/Jaccard 等代替理解，也禁止把零
+  Key 读成 bootstrap 不能用模型。'
+status: active
+tags: []
+roles: []
+created_at: '2026-09-15T03:26:43Z'
+updated_at: '2026-09-15T03:26:43Z'
+refs: []
+extra: {}
+payload:
+  fingerprint: audit_finish rsi skill user-skill-audit 为何 么： 什么 以及 件， 其它 及为 它组 是什
+    是其 组件 解释 跳过 过它 还是 ，以
+path: memory/episodes/解释-user-skill-audit-是什么-rsi-skill-还是其它组件-以及为何-au--16a48f1f.yaml

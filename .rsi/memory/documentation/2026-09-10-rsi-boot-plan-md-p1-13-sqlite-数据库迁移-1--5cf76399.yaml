@@ -1,0 +1,29 @@
+id: 5cf763996ed7418a8a77ec262b71d1d1
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.13 SQLite 数据库迁移（1天）
+content: '### P1.13 SQLite 数据库迁移（1天）
+
+
+  **实现依据**：Spec §2.2 Schema 迁移策略（PRAGMA user_version、migrations/ 顺序脚本、幂等可重入）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | 迁移执行器（user_version 检查 + 事务包裹顺序执行） | data/migrate.py + migrations/001_init.sql
+  | 0.5d |
+
+  | 中断重入与幂等测试 | tests/unit/test_migrate.py | 0.5d |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.388345+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-13-sqlite-数据库迁移-1--5cf76399.yaml

@@ -1,0 +1,32 @@
+id: 4166b9a550eb4ffab6f7d86c182b7298
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 4.3 测试团队需要投入什么
+content: '### 4.3 测试团队需要投入什么
+
+
+  | 投入项 | 说明 | 工作量 |
+
+  |-------|------|--------|
+
+  | 测试知识库初始化 | 导入历史 bug、测试规范、接口文档 | 2-3 人天（一次性） |
+
+  | 测试模板定制 | 调整 test_gen.jinja2 以匹配项目风格 | 0.5-1 人天 |
+
+  | 反馈标注 | 初期需要显式反馈以加速学习 | 每次操作 < 5 秒 |
+
+  | 持续维护 | 知识库更新、模板优化 | 每迭代 0.5 人天 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.292754+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-4-3-测--4166b9a5.yaml

@@ -1,0 +1,30 @@
+id: 643dd65789bf4886975647176b39a80e
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 内置三套意图模板
+content: '#### 内置三套意图模板
+
+
+  | 角色 | 预置意图 | 来源 |
+
+  |------|----------|------|
+
+  | **Developer** | explain, debug, refactor, testing, implement, review, devops,
+  howto, documentation | 系统内置 |
+
+  | **Test Engineer** | test_gen, test_review, bug_analyze, test_data, coverage_check
+  | 系统内置 |
+
+  | **Product Manager** | req_analyze, prd_gen, doc_review, data_analysis, stakeholder_comm
+  | 系统内置 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.679985+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-内置三套意图模板--643dd657.yaml

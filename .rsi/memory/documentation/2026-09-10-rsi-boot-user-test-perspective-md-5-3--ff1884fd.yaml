@@ -1,0 +1,32 @@
+id: ff1884fd812944d985f8987125b4627a
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 5.3 测试管理工具集成
+content: '### 5.3 测试管理工具集成
+
+
+  建议在 Phase 4（优化扩展）中增加以下集成：
+
+
+  | 工具 | 集成方式 | 价值 |
+
+  |------|----------|------|
+
+  | Jira | 通过 API 自动创建/更新 Bug + Test Case | 打通开发-测试-管理链路 |
+
+  | TestRail | 同步测试用例、步骤、结果 | 统一测试管理入口 |
+
+  | Xray | Jira 插件集成，自动关联测试覆盖 | 提高测试可追溯性 |
+
+  | Allure | 生成标准测试报告 | 可视化测试结果 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.348918+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-5-3--ff1884fd.yaml

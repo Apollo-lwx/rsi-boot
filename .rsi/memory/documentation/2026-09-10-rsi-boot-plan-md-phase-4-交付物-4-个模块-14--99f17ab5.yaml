@@ -1,0 +1,33 @@
+id: 99f17ab5bc3d43bab0159b61c15c5c56
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 4 交付物（4 个模块，14 人天）
+content: '### Phase 4 交付物（4 个模块，14 人天）
+
+  | 模块 | 交付物文件 | 关联 PRD 需求 | 关联 Specs 章节 |
+
+  |------|-----------|-------------|----------------|
+
+  | 多模型适配 | model/providers/anthropic.py, model/providers/deepseek.py | §4.4 优化扩展
+  | §1.1 模型适配层 |
+
+  | 跨厂商 Fallback + 成本路由 | strategy/cost_router.py | §4.4 优化扩展 | §6.1 成本核算, §5.1 熔断器
+  |
+
+  | 用量统计增强 | api/tools/stats_tool.py | §4.4 优化扩展 | §6.3 用量查询 |
+
+  | 性能优化 + 进程内缓存 | data/cache 调优 | §4.4 优化扩展 | §2.4 进程内运行时结构 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.419127+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-4-交付物-4-个模块-14--99f17ab5.yaml

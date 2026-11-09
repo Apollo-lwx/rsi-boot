@@ -1,0 +1,75 @@
+id: 062e7ad63b384d2ea4f48596deb69b78
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 系统仍会从已有文件中尽力学习
+content: '# 系统仍会从已有文件中尽力学习
+
+  ```
+
+  - 产出物有限，但系统能识别技术栈（如果有 package.json 等）
+
+  - 后续在日常使用中通过学习引擎逐步构建画像
+
+
+  **场景 B：成长项目（1-2 年，有文档、有测试）**
+
+  ```bash
+
+  rsi bootstrap --then-start
+
+  ```
+
+  - 文档和测试丰富，知识库密度高
+
+  - Git 历史能提取稳定的编码风格和团队协作模式
+
+  - 关联推理效果好：文档 ↔ 代码 ↔ 测试 之间能建立联系
+
+
+  **场景 C：成熟项目（3+ 年，多信号源丰富）**
+
+  ```bash
+
+  rsi bootstrap --max-file-size=2MB --then-start
+
+  ```
+
+  - 信号源丰富，但部分文档可能过时 → 报告标注最后修改时间，过时文档检索权重降低
+
+  - Git 历史能分析多个贡献者的风格差异 → 生团队画像摘要
+
+  - 建议先 `--dry-run` 预览信号发现结果
+
+
+  **场景 D：有对话记录的项目（使用过 Cursor/Codex 等 AI 工具的团队）**
+
+  ```bash
+
+  rsi bootstrap --scope=conversation,docs,git
+
+  ```
+
+  - 从历史对话中提取常见问题模式 → 生成 FAQ 知识
+
+  - 从对话中了解团队对架构的讨论 → 补充决策上下文
+
+  - 特别注意：对话类信号中包含的意见分歧和最终决策，是最有价值的知识之一
+
+
+
+  **场景 E：存量项目（3+ 年，多贡献者，大量历史数据和行为习惯）**
+
+  ```bash
+
+  rsi bootstrap --max-file-size=2MB --dry-run'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.789215+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-系统仍会从已有文件中尽力学习--062e7ad6.yaml

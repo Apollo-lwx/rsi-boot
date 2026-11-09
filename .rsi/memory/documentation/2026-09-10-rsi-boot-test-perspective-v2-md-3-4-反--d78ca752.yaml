@@ -1,0 +1,31 @@
+id: d78ca75207d04a14a3f8c9bdadd55062
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 3.4 反馈机制：隐式信号的质量
+content: '### 3.4 反馈机制：隐式信号的质量
+
+
+  测试场景下反馈信号天然带有噪声：
+
+  - 一个被"修改"的测试用例不一定代表生成的差——可能只是命名风格偏好
+
+  - 一个直接"采纳"的用例也不一定真的好——可能只是测试时间紧没细看
+
+
+  RSI 的隐式反馈设计如果只跟踪"采纳/修改"二元信号，在测试场景下的信噪比堪忧。
+
+  建议关注差异分析的深度：比较修改前后的 diff，提取实际改进点而非仅记录"被修改了"。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.288477+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-3-4-反--d78ca752.yaml

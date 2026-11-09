@@ -1,0 +1,24 @@
+id: b5993854afa54e20b539b6314c4de02d
+type: gene_case
+title: 修了用户可见的 bug 就要 teach_record，成功也算。lesson 必须写清如何产生（wrong_action）与如何修复（correct_fix），供下次同类实现召回规避。不能只在修失败多次时才记。
+content: 修了用户可见的 bug 就要 teach_record，成功也算。lesson 必须写清如何产生（wrong_action）与如何修复（correct_fix），供下次同类实现召回规避。不能只在修失败多次时才记。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-14T11:20:00Z'
+updated_at: '2026-09-14T11:20:00Z'
+refs: []
+extra: {}
+payload:
+  weight: 8
+  source: manual
+  scenario_type: repair
+  failure_type: process
+  error_signature: bugfix-must-be-first-class-learn
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 修了用户可见的 bug 就要 teach_record，成功也算。lesson 必须写清如何产生（wrong_action）与如何修复（correct_fix），供下次同类实现召回规避。不能只在修失败多次时才记。
+  validation: skipped
+  scope: project
+path: memory/gene-map/manual/修了用户可见的-bug-就要-teach-record-成功也算-lesson-必须写清如何产生--b5993854.yaml

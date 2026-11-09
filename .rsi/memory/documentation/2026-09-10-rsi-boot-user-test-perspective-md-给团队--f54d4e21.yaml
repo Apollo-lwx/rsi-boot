@@ -1,0 +1,37 @@
+id: f54d4e210f6b418fa1c61c1c0e8f6d2e
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 给团队的改进建议
+content: '### 给团队的改进建议
+
+
+  1. **短期（Phase 1-M2）**：在配置层面预留测试专用意图的扩展点，让有 SDET 的团队可以自定义路由
+
+  2. **中期（Phase 2）**：提供测试领域知识库的初始化模板和种子脚本，降低冷启动成本
+
+  3. **长期（Phase 4）**：将测试管理工具集成纳入 roadmap，考虑增加确定性模式和批量测试数据生成能力
+
+  4. **始终需要**：在所有输出中显式标注置信度和溯源信息，帮助 QA 做出判断决策
+
+
+  ---
+
+
+  > **文档信息**
+
+  > - 版本：v0.1
+
+  > - 视角：QA 测试工程师
+
+  > - 最后更新：2026-09-10'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.360653+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-给团队--f54d4e21.yaml

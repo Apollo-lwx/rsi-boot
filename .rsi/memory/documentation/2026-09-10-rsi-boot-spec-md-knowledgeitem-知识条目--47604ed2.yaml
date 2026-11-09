@@ -1,0 +1,22 @@
+id: 47604ed2f3f54b3d8600a48919328fb0
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# KnowledgeItem（知识条目）
+content: "#### KnowledgeItem（知识条目）\n\n```python\nclass KnowledgeItem(BaseModel):\n\
+  \    id: UUID = Field(default_factory=uuid4)\n    project_id: str\n    title: str\n\
+  \    content: str\n    content_type: str = \"documentation\"\n    tags: List[str]\
+  \ = Field(default_factory=list)\n    embedding: Optional[List[float]] = None\n \
+  \   source_url: Optional[str] = None\n    created_at: datetime = Field(default_factory=utcnow)\n\
+  \    updated_at: datetime = Field(default_factory=utcnow)\n    status: str = \"\
+  active\"\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.646301+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-knowledgeitem-知识条目--47604ed2.yaml

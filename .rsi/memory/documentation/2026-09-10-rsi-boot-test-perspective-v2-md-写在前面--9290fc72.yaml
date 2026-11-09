@@ -1,0 +1,33 @@
+id: 9290fc727b2a4b1f9ffc2a3c68fcd761
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 写在前面
+content: '## 写在前面
+
+
+  本文档从一个测试工程师的视角出发，分析 RSI Adaptive Gateway 作为一个**通用的 LLM 编排网关**，
+
+  在已经内置 Test Engineer 角色能力的前提下，能为我的日常工作带来什么价值，
+
+  以及这个框架对于测试团队而言是否值得推广。
+
+
+  > 核心认知：RSI 不是一个"测试工具"，而是一个**让 AI 更懂我的网关**。
+
+  > 它内置的 test 角色配置，让我可以像开发者和产品经理一样，
+
+  > 在同一个网关中获得贴合自己岗位需求的 AI 辅助。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.271540+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-写在前面--9290fc72.yaml

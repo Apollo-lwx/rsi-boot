@@ -1,0 +1,41 @@
+id: 192c3c404fe74b97b3eaf80b5295b02e
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 核心结论
+content: '### 核心结论
+
+
+  RSI Adaptive Gateway **是一个优秀的 LLM 编排网关**——在模型统一接入、策略路由、成本控制、可观测性等方面展示了扎实的技术设计。但**当前的设计和
+  roadmap 以开发者为第一公民**，测试工程师不是优先考虑的用户角色。
+
+
+  | 维度 | 评分（1-5） | 说明 |
+
+  |------|------------|------|
+
+  | 架构设计 | ★★★★★ | 分层清晰，Pipeline 编排合理，可测试性设计到位 |
+
+  | 测试意图覆盖 | ★★ | 缺少测试专用意图，QA 只能凑合用现有意图 |
+
+  | 学习成本 | ★★★★ | 对 SDET 中低，对手工测试团队高 |
+
+  | 测试用例质量 | ★★★ | 模板代码节省时间，但核心逻辑和边界条件不可信 |
+
+  | 工具链集成 | ★ | 主流测试管理工具无集成 |
+
+  | 确定性支持 | ★ | 当前版本缺乏 |
+
+  | 团队适配度 | ★★★ | 适合有 SDET 的团队，不适合纯手工团队 |
+
+  | 长期潜力 | ★★★★ | 知识库 + 学习闭环完善后，测试场景价值值得期待 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.359643+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-核心结--192c3c40.yaml

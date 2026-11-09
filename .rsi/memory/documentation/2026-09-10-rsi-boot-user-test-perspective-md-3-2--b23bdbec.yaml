@@ -1,0 +1,28 @@
+id: b23bdbecafb04d6fad7ac35ea70b1ed4
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 3.2 不适合纯手工测试团队
+content: '### 3.2 不适合纯手工测试团队
+
+
+  对于纯手工测试团队，RSI Gateway 几乎没有任何直接价值：
+
+
+  - **需要命令行操作**：MCP 协议的接入方式要求操作者熟悉 CLI/IDE 插件，与纯手工测试的工作流不匹配。
+
+  - **知识库建设成本高**：纯手工测试团队通常文档化程度较低，建立知识库的初始投入过高。
+
+  - **无法验证输出质量**：没有编程能力的测试人员无法判断 LLM 生成的测试代码是否正确。
+
+  - **ROI 极难评估**：对于手工测试团队，引入 RSI Gateway 意味着先要培养 SDET 能力，然后再叠加网关的学习成本，周期可能长达 3-6 个月。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.331419+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-3-2--b23bdbec.yaml

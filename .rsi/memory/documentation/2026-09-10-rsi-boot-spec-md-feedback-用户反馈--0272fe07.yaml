@@ -1,0 +1,24 @@
+id: 0272fe072a0d444eba167cdca5951d89
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# Feedback（用户反馈）
+content: "#### Feedback（用户反馈）\n\n```python\nclass FeedbackAction(str, Enum):\n   \
+  \ ACCEPTED = \"accepted\"        # 完全采纳\n    MODIFIED = \"modified\"        # 修改后采纳\n\
+  \    IGNORED = \"ignored\"          # 忽略\n    REJECTED = \"rejected\"        # 明确拒绝\n\
+  \    COPIED = \"copied\"            # 复制了内容\n    APPLIED = \"applied\"         \
+  \ # 应用了建议\n    REFERENCED = \"referenced\"    # 参考了但未直接使用（测试/PM 场景常见）\n\nclass Feedback(BaseModel):\n\
+  \    feedback_token: str\n    user_id: str\n    project_id: Optional[str] = None\n\
+  \    action: FeedbackAction\n    modified_content: Optional[str] = None\n    rating:\
+  \ Optional[int] = Field(None, ge=1, le=5)\n    comment: Optional[str] = Field(None,\
+  \ max_length=2048)\n    timestamp: datetime = Field(default_factory=utcnow)\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.639744+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-feedback-用户反馈--0272fe07.yaml

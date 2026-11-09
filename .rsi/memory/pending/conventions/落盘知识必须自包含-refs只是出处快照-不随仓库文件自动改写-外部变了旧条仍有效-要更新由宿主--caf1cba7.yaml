@@ -1,0 +1,18 @@
+id: caf1cba74bd34209a8e75dd847dc5351
+type: convention
+title: 落盘知识必须自包含。refs只是出处快照，不随仓库文件自动改写。外部变了旧条仍有效；要更新由宿主显式写新条或改旧条。
+content: 落盘知识必须自包含。refs只是出处快照，不随仓库文件自动改写。外部变了旧条仍有效；要更新由宿主显式写新条或改旧条。
+status: pending_review
+tags: []
+roles: []
+source: promote
+created_at: '2026-09-15T02:49:57Z'
+updated_at: '2026-09-15T02:49:57Z'
+refs:
+- 4538a2bd8af24f558ead80c2fee181e5
+extra: {}
+payload:
+  error_signature: knowledge-must-be-self-contained
+  failure_type: process
+  source_id: 4538a2bd8af24f558ead80c2fee181e5
+path: memory/pending/conventions/落盘知识必须自包含-refs只是出处快照-不随仓库文件自动改写-外部变了旧条仍有效-要更新由宿主--caf1cba7.yaml

@@ -1,0 +1,20 @@
+id: 1fd55ad21a1646029bde12996f169d7f
+type: convention
+title: 判断 rsi bootstrap 第一次学习报告是否正确，以
+content: 'Q: 判断 rsi bootstrap 第一次学习报告是否正确，以及如何触发全量重学（--force / 清空 .rsi）
+
+  A: 2026-09-10-rsi-boot-user-test-perspective.md# 3.2 不适合纯手工测试团队
+
+  2026-09-10-rsi-boot-spec.md# 10.9.3 自学习流程
+
+  2026-09-10-rsi-boot-spec.md# 10.9.13 持续学习机制'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-13T03:48:07.172185+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/判断-rsi-bootstrap-第一次学习报告是否正确-以--1fd55ad2.yaml

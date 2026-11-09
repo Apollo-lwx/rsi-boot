@@ -13,7 +13,7 @@
 
 简体中文 | [English](README.en.md)
 
-> **Agent 的工程记忆，不是对话记忆：约定和禁止项落在仓库里，换一个宿主读到的还是这一份。**
+> **Agent 的工程记忆，跟着 git 走：约定、禁止项和修复经验落在仓库里随库迁移，换宿主、换同事、换机器，读到的还是这一份。**
 
 Cursor 在 2.1 删掉了 Memories，新会话对你的项目一无所知；Claude Code 的记忆锁在本机、不跟 git，换一个同事就对不上；云记忆要 Key、要服务，记忆还跟账号走。同一个人换着 Cursor、Claude Code、Codex、DeepSeek Harness 写同一个仓库，或者团队里各用各的工具，写法、禁止项和修 bug 的经验也各记各的。
 
@@ -27,14 +27,30 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 负反馈进失败桶，只改可写槽位（提示词 / 技能 / 召回策略 / 意图规则 / 知识）。提案过静态门禁和人工确认才晋升，观察 7 天，采纳率掉就回滚。留下的是槽位版本。这条环已经在软件里；公开基准还没有量过「下一轮是否更好」。
 
 **跟随项目迁移**
-记忆按仓库隔离，不跟账号、不跟 IDE。仓库拷走、换机器、换目录，`.rsi/` 一起走；打开另一个仓库就是另一份，不会串。Harness 基因组可导出 bundle，跨项目备份或迁槽位。
+记忆按仓库隔离，不跟账号、不跟 IDE。`.rsi/memory` 默认纳入版本库，仓库拷走、换机器、换目录，记忆跟着 git 一起走；日志、缓存、索引留在本机。打开另一个仓库就是另一份，不会串。没有 git 时用 `rsi bundle export / import` 整包搬运。Harness 基因组也可导出 bundle，跨项目备份或迁槽位。
 
 **跨 AI 工具、多人共用一份项目记忆**
 同一套 MCP（`rsi serve`）接 Cursor、Qoder、Codex 和 DeepSeek Harness；状态栏同时吃 Claude Code 与 Cursor CLI。要共用的是这个仓库的项目记忆：函数名怎么写、支付日志里不能打卡号、上次空指针是怎么修的。聊天记录不在这里面。
 
-核准后的约定写进仓库根的 `AGENTS.md` 托管块，也写进 `.cursor/rules`。Cursor、Claude Code、Codex、Qoder、DeepSeek Harness 打开同一份仓库，都会读到这段托管块。接上 MCP 之后，召回读的是同一份 `.rsi/`：上午在 Cursor 里记下的禁止项，晚上换 DeepSeek Harness、或者同事换 Codex 打开这个仓库，读到的是同一条。
+核准后的约定写进仓库根的 `AGENTS.md` 托管块，也写进 `.cursor/rules`。Cursor、Claude Code、Codex、Qoder、DeepSeek Harness 打开同一份仓库，都会读到这段托管块。接上 MCP 之后，召回读的是同一份 `.rsi/memory`：上午在 Cursor 里记下的禁止项，晚上换 DeepSeek Harness、或者同事换 Codex 打开这个仓库，读到的是同一条。
 
-同事要拿到召回用的全文，仓库里得有同一份 `.rsi/`。学习默认把 `.rsi/` 写进 `.gitignore`，日志和缓存留在本机。交给同事时，把核准过的 `.rsi/memory` 纳入版本库；Git 一旦忽略了整个 `.rsi/` 目录，里面的文件需要改忽略规则才能再提交。`AGENTS.md` 在仓库根，提交后大家拉下来就能读到托管块。
+`AGENTS.md` 托管块只承载核准约定的摘要，召回用的全文在 `.rsi/memory`。所以学习默认只把 `.rsi/` 下的日志、缓存、索引写进 `.gitignore`，`memory/` 跟着仓库提交；整目录忽略是老版本的写法，升级后跑一次 `rsi doctor --fix` 自动改成细粒度规则。
+
+## 换机器、克隆、交给同事
+
+仓库迁移或克隆之后，验证记忆完整性：
+
+```bash
+rsi doctor          # 检查 .rsi/memory 是否随 git 追踪；有风险时给出修复命令
+rsi doctor --fix    # 一键把旧的整目录忽略改成细粒度规则
+```
+
+`rsi doctor` 全绿说明这份克隆里的记忆和源仓库是同一份。仓库不在 git 里（拷压缩包、内网迁移）时走 bundle：
+
+```bash
+rsi bundle export --out ./backup          # 源机器：导出 memory 全量
+rsi bundle import --from ./backup         # 目标机器：合并导入；--replace 先备份再整体替换
+```
 
 | | 宿主自带记忆 | 云端记忆（Mem0 一类） | 通用本地记忆 MCP | RSI Boot |
 |---|---|---|---|---|
@@ -138,6 +154,25 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 ### 混合检索消融（向量通道 + 多跳级联）
 
 两个实验开关（默认关，`RSI_ENABLE=vector|multihop` 或 rsi-boot.yaml `enable:` 打开）：本地 fastembed/ONNX 向量通道（bge-large，与 vanilla-rag 臂同模型）在门禁后与词面幸存者 RRF(k=60) 融合；首跳桥接词二跳级联。LoCoMo 全量四臂对照：**向量通道 Hit@5 62.0%→68.2%（配对 McNemar 98 对 3，p=1.4e-25），multi-hop 分项 39.4%→48.9%，与向量版 vanilla-rag（68.6%）达到统计平价**；多跳级联为中性（如实记录为负结果）。答题准确率复测（rsi 臂换混合检索重生成，其余两臂原样复用）：Claude 生成 52.5%→56.2%、Kimi 生成 46.3%→47.5%，multi-hop 答题 5%→23%；代价是不可答题拒答 64%→50%，如实披露。见 [benchmark/results/ablation-hybrid-20261105/SUMMARY.md](benchmark/results/ablation-hybrid-20261105/SUMMARY.md) 与 [benchmark/results/answer-acc-vec-20261105/SUMMARY.md](benchmark/results/answer-acc-vec-20261105/SUMMARY.md)。
+
+第三个开关是 LLM 查询分解（`RSI_ENABLE=decompose`，把问题拆成 2–3 条子查询再合并证据）：两臂实测（保守分解、强制分解）最好成绩只是与基线持平，强制臂逐题胜负 +8/−20——**负结果，不建议开**。见 [benchmark/results/ablation-decompose-20261109/SUMMARY.md](benchmark/results/ablation-decompose-20261109/SUMMARY.md)。
+
+### 什么时候该开向量臂
+
+| 你的记忆以什么为主 | 建议 | 依据 |
+|---|---|---|
+| 对话/聊天转写（客服记录、访谈、会议纪要） | **开** | 对话型语料 Hit@5 +6.2pt、multi-hop +9.5pt，统计显著 |
+| 规则、约定、修复经验（典型工程仓库用法） | 不开 | 工程文档型语料词面检索已够；向量臂多 130MB 下载与首次嵌入成本 |
+| 中文为主 | 开，并设 `RSI_VECTOR_MODEL=BAAI/bge-m3` | 默认 bge-small 是英文模型 |
+| 离线/内网但有 OpenAI 兼容端点 | 开托管档：`RSI_VECTOR_MODEL=text-embedding-3-small`（模型名不带 '/' 即走端点，密钥读 `OPENAI_API_KEY`） | 与 vanilla-rag 基线同一约定 |
+
+三条命令内启用：
+
+```bash
+pip install "rsi-boot[vector]"
+rsi init --vector        # 检查依赖、下载模型、写 rsi-boot.yaml、自检
+rsi serve                # 首次召回后台自动预热，之后零等待
+```
 
 ## 安装
 
@@ -346,3 +381,9 @@ python scripts/export_schemas.py
 ```
 
 不经对话、直接调命令时，写盘要带 `--host-judge` 或 `--local-judge`（`--dry-run` 不用）。旧的 `.rsi/rsi.db` 用 `rsi memory migrate` 迁到文件库。
+
+### 维护命令
+
+- `rsi wipe --yes`：清除本项目记忆（保留 `identity.json` 与 `.rsi/manifest.json` 学习指纹，指纹在就不会重复学）。
+- `rsi memory migrate`：把旧版 `~/.rsi/rsi.db` 里的命名空间迁到当前项目的文件库。
+- 核准后的约定会同步成 `.cursor/rules` 下的 `rsi-convention-<板块>.mdc` 规则文件，与 `AGENTS.md` 托管块内容一致。

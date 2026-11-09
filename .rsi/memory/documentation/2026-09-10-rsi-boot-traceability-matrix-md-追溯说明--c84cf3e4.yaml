@@ -1,0 +1,29 @@
+id: c84cf3e4b0b44fc9b70d41c9423fa040
+type: documentation
+title: 2026-09-10-rsi-boot-traceability-matrix.md# 追溯说明
+content: '## 追溯说明
+
+
+  本矩阵建立 **PRD 需求 -> Specs 章节 -> Plans 任务** 之间的映射关系，确保：
+
+  1. **无遗漏**：每个 PRD 定义的功能都有 Specs 设计和 Plans 任务覆盖
+
+  2. **可审计**：从任意方向可追溯（需求->设计->实现 / 任务->设计->需求）
+
+  3. **优先级对齐**：优先级以 PRD §4 MoSCoW 定义为唯一权威来源（Phase 1 = P0、Phase 2 = P1、Phase 3 = P2、Phase
+  4 = P3）
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-traceability-matrix.md
+created_at: '2026-09-10T11:46:29.302205+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-traceability-matrix-md-追溯说明--c84cf3e4.yaml

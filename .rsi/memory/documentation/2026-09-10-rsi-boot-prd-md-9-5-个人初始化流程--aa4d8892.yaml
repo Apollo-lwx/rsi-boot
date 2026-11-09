@@ -1,0 +1,27 @@
+id: aa4d889258be43239c980bb10e702448
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 9.5 个人初始化流程
+content: '### 9.5 个人初始化流程
+
+
+  1. `pip install rsi-boot`，IDE 中注册一次 MCP Server（全局生效）
+
+  2. 进入项目：`rsi init` 生成 `rsi-boot.yaml`（可选，无配置也能跑）
+
+  3. (可选但强烈建议) `rsi bootstrap` 项目自学习——自动扫描文档/代码/Git/对话上下文
+
+  4. 在 `rsi-boot.yaml` 设置本人该项目的主要角色（`role.default`）
+
+  5. 正常使用，运行一段时间后用 `rsi_stats` 查看采纳率与用量基线'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.612585+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-9-5-个人初始化流程--aa4d8892.yaml

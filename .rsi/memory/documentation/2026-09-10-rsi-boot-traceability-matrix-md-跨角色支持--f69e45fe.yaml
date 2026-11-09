@@ -1,0 +1,32 @@
+id: f69e45fe6b07442ab74cbf1a46844121
+type: documentation
+title: 2026-09-10-rsi-boot-traceability-matrix.md# 跨角色支持覆盖
+content: '### 跨角色支持覆盖
+
+
+  | 内置角色 | P1 M1 | P1 M2 | P2 | P3 | P4 |
+
+  |---------|-------|-------|----|----|----|
+
+  | Developer | ✅ 完整 | ✅ 稳定 | ✅ 完善 | ✅ 完善 | ✅ 完整 |
+
+  | Test Engineer | - | ✅ 基础 | ✅ intent 注册 | ✅ 独立反馈 | ✅ 完整 |
+
+  | Product Manager | - | ✅ 基础 | ✅ intent 注册 | ✅ 独立反馈 | ✅ 完整 |
+
+  | 自定义角色 | - | - | ✅ 配置注册 | ✅ 反馈统计 | ✅ 完整 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-traceability-matrix.md
+created_at: '2026-09-10T11:46:29.314467+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-traceability-matrix-md-跨角色支持--f69e45fe.yaml

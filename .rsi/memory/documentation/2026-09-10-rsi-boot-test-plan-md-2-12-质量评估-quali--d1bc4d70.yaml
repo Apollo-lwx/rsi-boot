@@ -1,0 +1,39 @@
+id: d1bc4d7061a0455798f33a7c1726b71e
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.12 质量评估 QualityEvaluation (Phase 3)
+content: '### 2.12 质量评估 QualityEvaluation (Phase 3)
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | QAL-01 | 高相关性评分 | response 与 request 语义一致 | 1. evaluate_quality() | relevance
+  >= 0.7（Spec §3.5 维度） | P2 |
+
+  | QAL-02 | 低相关性评分 | response 答非所问 | 1. evaluate_quality() | relevance <= 0.3 | P2
+  |
+
+  | QAL-03 | 可操作性：代码意图含可执行代码 | intent=code_gen 且含代码块 | 1. 检查 actionability | actionability
+  得分显著提升 | P2 |
+
+  | QAL-04 | 可操作性：含可执行步骤 | response 含分步骤操作指引 | 1. 检查 actionability | actionability
+  加分 | P2 |
+
+  | QAL-05 | 准确性：LLM-as-judge 事实一致 | response 事实正确 | 1. LLM-as-judge 检查 | accuracy
+  得分高 | P2 |
+
+  | QAL-06 | 角色权重：test 角色 accuracy 优先 | role=test | 1. 对比 default 权重计算 | 按 quality_rubric.yaml
+  中 test 权重（accuracy=0.4）加权 | P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.458674+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-12-质量评估-quali--d1bc4d70.yaml

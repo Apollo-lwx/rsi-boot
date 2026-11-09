@@ -1,0 +1,32 @@
+id: 30b05a9907ca4ae2bc0ac151a5144a16
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 运行时增量更新（Phase 2 起，Feedback Worker 执行）
+content: '#### 运行时增量更新（Phase 2 起，Feedback Worker 执行）
+
+
+  每条反馈处理时按 §4.2 的映射规则更新画像，字段级规则：
+
+
+  | 字段 | 更新规则 | 约束 |
+
+  |------|---------|------|
+
+  | `frequently_used_intents` | 每次请求对应 intent 计数 +1 | 按 30 天滑动窗口统计，每日离线重算（见下） |
+
+  | `preferred_models` | 按模型采纳率降序排列 | 仅统计曝光 ≥ 20 次的模型，避免小样本噪声 |
+
+  | `knowledge_interests` | 检索命中文档的 domain/tags 计数 +1 | 保留 Top 20，超出淘汰计数最低项 |
+
+  | `preferences.*` | **不**从隐式行为自动改写；仅接受用户显式配置与离线聚合结果 | 防止噪声行为污染偏好 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.693633+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-运行时增量更新-phase-2-起-fe--30b05a99.yaml

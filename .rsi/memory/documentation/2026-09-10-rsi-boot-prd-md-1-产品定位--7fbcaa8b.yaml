@@ -1,0 +1,25 @@
+id: 7fbcaa8b17874248ab902e39680d463b
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 1. 产品定位
+content: '## 1. 产品定位
+
+
+  **RSI Boot** 是一个面向个人开发者的本地 MCP 工具（与 Superpowers 同类：pip 安装、IDE 注册即用、零外部服务依赖）。它不训练大模型，而是通过统一模型接入、上下文增强、交互反馈和学习闭环，让通用大模型在用户的每个项目中表现持续优化，逐步成为「越用越懂你」的专职
+  AI 助手。
+
+
+  「RSI」取自 **Recursive Self-Improvement（递归自我改进）**，走 **Harness-RSI** 路线（2026 年 MetaRSI-v1
+  / Self-Harness / AHE 等前沿实践）：不改模型权重，而是把包裹模型的 Harness——提示词模板、策略、知识库、画像、工具——作为可写面，从执行轨迹中挖掘失败模式，自动生成最小化改进提案，经回归验证与人工确认后晋升，并可一键回滚（详见
+  Spec §3.9）。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.521873+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-1-产品定位--7fbcaa8b.yaml

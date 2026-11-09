@@ -1,0 +1,49 @@
+id: 8916ee74e7b342aaa4c4facd63b80710
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 1.1 早晨：测试用例生成（test_gen）
+content: '### 1.1 早晨：测试用例生成（test_gen）
+
+
+  场景：新接口文档发布，需要写 CRUD 测试
+
+  操作：在 IDE 中粘贴接口定义，调用 rsi_query，设置 role=test, intent=test_gen
+
+
+  网关处理流程：
+
+  1. 意图识别 → test_gen
+
+  2. 加载 Test Engineer 策略 → 路由到 GPT-4o，使用 test_gen.jinja2 模板
+
+  3. 知识检索 → 检索项目测试规范、历史测试用例模式
+
+  4. 组装提示词 → 包含接口定义 + 项目测试规范 + 历史模式
+
+  5. 调用模型 → 流式返回测试用例
+
+  6. 后处理 → 按 test 角色格式渲染（detailed 风格，5 条建议）
+
+  7. 质量评估 → 按 test 角色权重（accuracy=0.4 优先）
+
+
+  输出效果：
+
+  - 基础 CRUD 正向流程：可用，节省约 40% 模板代码
+
+  - 边界条件：标记为"低置信度"，提醒人工补充
+
+  - 断言语句：按项目测试规范风格生成
+
+  - 附带来源："参考了 test_spec.md 第 3 节命名规范"'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.274511+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-1-1-早--8916ee74.yaml

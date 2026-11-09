@@ -1,0 +1,44 @@
+id: 5ec0b958c8ca4794afb12a2604359da9
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 9. 集成方案（Integration Scheme）
+content: '## 9. 集成方案（Integration Scheme）
+
+
+  > **一句话定义**：RSI Boot 是一个 **Python CLI 工具（MCP Server 进程）**。它不是库/SDK（你的项目不用改代码），不是
+  SaaS（数据全在本机），不是 IDE 插件（但 IDE 可以通过 MCP 连它）。它由 IDE 按项目拉起，通过 stdio 与 IDE/CLI 通信。
+
+  >
+
+  > **对比理解**：
+
+  > - ❌ 不是 `pip install rsi-boot && import rsi` → 不改项目代码
+
+  > - ❌ 不是 订阅一个 SaaS 服务 → 数据存本地
+
+  > - ✅ 是 IDE 打开项目时自动拉起 `rsi start --stdio` 进程
+
+  >
+
+  > | 你做的事 | 等价行为 |
+
+  > |---------|---------|
+
+  > | `pip install rsi-boot` | 安装 CLI 工具 |
+
+  > | `cd my-project && rsi init` | 生成项目配置文件 |
+
+  > | `rsi bootstrap` | 自动扫描项目学习 |
+
+  > | IDE 配一次 MCP Server | 之后每个项目窗口自动拉起 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.591884+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-9-集成方案-integration-sc--5ec0b958.yaml

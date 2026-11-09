@@ -1,0 +1,29 @@
+id: 9e0b23a30d284c779af0ec606cc2c93f
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H3：成功指标偏向代码产出
+content: '### H3：成功指标偏向代码产出
+
+
+  | 位置 | PRD Section 5「成功指标」 |
+
+  |------|--------------------------|
+
+  | **原文** | 代码采纳率 > 60%，上下文相关性评分 > 0.8 |
+
+  | **隐含假设** | 系统的主要产出是代码，可以被"采纳" |
+
+  | **影响** | 测试人员的产出（用例、报告）和产品经理的产出（文档、分析）无法用"采纳率"衡量 |
+
+  | **修正方向** | 按角色定义不同的成功指标模板，系统可配置 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.252391+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h3-成--9e0b23a3.yaml

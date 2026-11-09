@@ -1,0 +1,20 @@
+id: ee535194247347c488a3e54e741019b5
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 12. 算法质量评估与验收基线（RSI 特有）
+content: '## 12. 算法质量评估与验收基线（RSI 特有）
+
+
+  > 传统软件测试（单元/集成/契约）验证「代码正确性」，本节验证「算法有效性」——RSI 特有组件必须有**量化基线 + 版本化评测集 + 统计方法**，不接受「跑通即验收」。评测代码位于
+  `tests/eval/`，数据集位于 `tests/eval/datasets/`（JSONL + 标注规范 README，随仓库版本化），报告归档 `tests/eval/reports/`。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.482776+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-12-算法质量评估与验收基线--ee535194.yaml

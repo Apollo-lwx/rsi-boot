@@ -1,0 +1,33 @@
+id: 8c4d943b7b704673bf6cd40015eecd47
+type: teaching_case
+title: 列出列名
+content: 列出列名
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T01:52:43Z'
+updated_at: '2026-09-15T01:52:43Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: select-star
+    failure_type: sql
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 列出列名
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: SELECT *
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 8
+    promote_to_pattern: false
+path: memory/teaching-cases/列出列名--8c4d943b.yaml

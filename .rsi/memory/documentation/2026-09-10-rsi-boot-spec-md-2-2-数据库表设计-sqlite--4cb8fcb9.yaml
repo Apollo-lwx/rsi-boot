@@ -1,0 +1,83 @@
+id: 4cb8fcb9e0444f4380a267f5b67532de
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 2.2 数据库表设计 (SQLite)
+content: "### 2.2 数据库表设计 (SQLite)\n\n单文件库：项目根目录 `.rsi/rsi.db`，WAL 模式（读不阻塞写）。数据落点分两层（§10.4）：`<project>/.rsi/rsi.db`\
+  \ 存项目域数据（本节全部表）；`~/.rsi/global.db` 存全局画像（`user_profiles` 中 `project_id=''` 的行）与跨项目用量统计，两库表结构同构。SQLite\
+  \ 无分区/数组/JSONB 类型，对应调整：数组存 JSON 文本、JSONB 存 TEXT(JSON)、时间戳存 ISO8601 UTC TEXT、UUID\
+  \ 存 TEXT hex。个人工具数据量级（年约数万行日志）无需分区，归档走 §8.3 导出删除。\n\n```sql\nPRAGMA journal_mode\
+  \ = WAL;\nPRAGMA foreign_keys = ON;\n\nCREATE TABLE IF NOT EXISTS interaction_logs\
+  \ (\n    id                TEXT PRIMARY KEY,          -- UUIDv4 hex\n    request_id\
+  \        TEXT NOT NULL UNIQUE,\n    user_id           TEXT NOT NULL,\n    project_id\
+  \        TEXT,                      -- 项目标识（§10.3.2 自动发现），非租户概念\n    session_id\
+  \        TEXT,\n    raw_input         TEXT NOT NULL,\n    context           TEXT,\
+  \                      -- JSON\n    intent            TEXT,\n    intent_confidence\
+  \ REAL,\n    strategy_name     TEXT,\n    model_name        TEXT,\n    prompt_tokens\
+  \     INTEGER DEFAULT 0,\n    completion_tokens INTEGER DEFAULT 0,\n    total_tokens\
+  \      INTEGER DEFAULT 0,\n    cost_usd          REAL,                      -- 未定价模型为\
+  \ NULL（§6.1）\n    latency_ms        INTEGER NOT NULL,\n    quality_score     REAL,\n\
+  \    status            TEXT NOT NULL DEFAULT 'pending',   -- pending/success/error\n\
+  \    feedback_token    TEXT NOT NULL UNIQUE,\n    feedback_action   TEXT,\n    feedback_rating\
+  \   INTEGER CHECK (feedback_rating BETWEEN 1 AND 5),\n    created_at        TEXT\
+  \ NOT NULL,             -- ISO8601 UTC\n    completed_at      TEXT\n);\n\nCREATE\
+  \ TABLE IF NOT EXISTS user_profiles (\n    user_id      TEXT NOT NULL,\n    project_id\
+  \   TEXT NOT NULL DEFAULT '',       -- '' = 跨项目全局画像\n    profile_data TEXT NOT NULL\
+  \ DEFAULT '{}',     -- JSON（UserProfile 序列化）\n    created_at   TEXT NOT NULL,\n\
+  \    updated_at   TEXT NOT NULL,\n    PRIMARY KEY (user_id, project_id)\n);\n\n\
+  CREATE TABLE IF NOT EXISTS project_configs (\n    project_id  TEXT PRIMARY KEY,\n\
+  \    config_data TEXT NOT NULL DEFAULT '{}',      -- JSON\n    created_at  TEXT\
+  \ NOT NULL,\n    updated_at  TEXT NOT NULL\n);\n\nCREATE TABLE IF NOT EXISTS strategy_configs\
+  \ (\n    id             TEXT PRIMARY KEY,\n    project_id     TEXT NOT NULL,\n \
+  \   intent         TEXT NOT NULL,\n    role           TEXT,                    \
+  \     -- 适用业务角色，NULL 表示通用\n    strategy_name  TEXT NOT NULL,\n    model_name   \
+  \  TEXT NOT NULL,\n    template_ref   TEXT,\n    weight         REAL DEFAULT 1.0,\n\
+  \    alpha          REAL NOT NULL DEFAULT 1.0,    -- Thompson 成功计数（§3.3）\n    beta\
+  \           REAL NOT NULL DEFAULT 1.0,    -- Thompson 失败计数（§3.3）\n    exposure_count\
+  \ INTEGER NOT NULL DEFAULT 0,   -- 曝光次数（采纳率统计与最小曝光门槛用）\n    is_active      INTEGER\
+  \ NOT NULL DEFAULT 1,   -- SQLite 无 BOOLEAN，0/1\n    created_at     TEXT NOT NULL,\n\
+  \    updated_at     TEXT NOT NULL\n);\n\nCREATE TABLE IF NOT EXISTS knowledge_items\
+  \ (\n    id           TEXT PRIMARY KEY,\n    project_id   TEXT NOT NULL,\n    title\
+  \        TEXT NOT NULL,\n    content      TEXT NOT NULL,\n    content_type TEXT\
+  \ DEFAULT 'documentation',\n    roles        TEXT DEFAULT '[]',              --\
+  \ JSON 数组，空数组表示通用\n    domain       TEXT,                           -- 领域标签：test_framework/code_style/prd_template\n\
+  \    tags         TEXT DEFAULT '[]',              -- JSON 数组\n    source_url   TEXT,\n\
+  \    status       TEXT DEFAULT 'active',          -- active/pending_review/rejected/archived\n\
+  \    embedding    BLOB,                           -- float32 LE 字节，向量后端的事实来源（§2.3\
+  \ 回退设计）\n    created_at   TEXT NOT NULL,\n    updated_at   TEXT NOT NULL\n);\n\n\
+  -- Harness 自我改进提案（§3.9，全程落库可审计）\nCREATE TABLE IF NOT EXISTS harness_proposals (\n\
+  \    id                TEXT PRIMARY KEY,\n    project_id        TEXT NOT NULL,\n\
+  \    slot              TEXT NOT NULL,             -- prompt_template/skill/strategy/intent_rule/knowledge/profile\n\
+  \    target_ref        TEXT NOT NULL,             -- 槽位目标标识（模板名/策略 id/规则名/条目 id）\n\
+  \    action            TEXT NOT NULL,             -- add/remove/modify\n    payload\
+  \           TEXT NOT NULL,             -- JSON：before/after 快照或 diff\n    evidence\
+  \          TEXT,                      -- JSON：失败模式桶与样本 request_id 列表\n    regression_report\
+  \ TEXT,                      -- JSON：回放集指标对比\n    status            TEXT NOT NULL\
+  \ DEFAULT 'proposed',  -- proposed/validating/approved/rejected/active/rolled_back\n\
+  \    created_at        TEXT NOT NULL,\n    decided_at        TEXT,             \
+  \         -- 人工确认时间\n    activated_at      TEXT,\n    observe_until     TEXT   \
+  \                    -- 观察期截止（晋升后 7 天）\n);\n\n-- 配置版本快照（§3.9 Genome 式整体快照，晋升即产生新版本）\n\
+  CREATE TABLE IF NOT EXISTS config_snapshots (\n    id                TEXT PRIMARY\
+  \ KEY,\n    project_id        TEXT NOT NULL,\n    version           INTEGER NOT\
+  \ NULL,          -- 项目内单调递增\n    trigger_proposal  TEXT,                      --\
+  \ 触发生成的 proposal id（手动快照为 NULL）\n    slots             TEXT NOT NULL,          \
+  \   -- JSON：6 槽位整体导出（模板/技能/策略/规则/知识引用/画像引用）\n    status            TEXT NOT NULL\
+  \ DEFAULT 'active',  -- active/superseded/rolled_back_to\n    created_at       \
+  \ TEXT NOT NULL,\n    UNIQUE(project_id, version)\n);\n\nCREATE INDEX IF NOT EXISTS\
+  \ idx_logs_created_at ON interaction_logs(created_at DESC);\nCREATE INDEX IF NOT\
+  \ EXISTS idx_logs_intent ON interaction_logs(intent);\nCREATE INDEX IF NOT EXISTS\
+  \ idx_logs_status ON interaction_logs(status);\nCREATE INDEX IF NOT EXISTS idx_knowledge_project\
+  \ ON knowledge_items(project_id, status);\nCREATE INDEX IF NOT EXISTS idx_strategy_lookup\
+  \ ON strategy_configs(project_id, intent, role);\nCREATE INDEX IF NOT EXISTS idx_proposals_status\
+  \ ON harness_proposals(status, project_id);\nCREATE INDEX IF NOT EXISTS idx_snapshots_project\
+  \ ON config_snapshots(project_id, version DESC);\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.654345+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-2-2-数据库表设计-sqlite--4cb8fcb9.yaml

@@ -1,0 +1,18 @@
+id: 162e9895c2bf4affb2df09571621a458
+type: convention
+title: 修了用户可见的 bug 就要 teach_record，成功也算。lesson 必须写清如何产生（wrong_action）与如何修复（correct_fix），供下次同类实现召回规避。不能只在修失败多次时才记。
+content: 修了用户可见的 bug 就要 teach_record，成功也算。lesson 必须写清如何产生（wrong_action）与如何修复（correct_fix），供下次同类实现召回规避。不能只在修失败多次时才记。
+status: pending_review
+tags: []
+roles: []
+source: promote
+created_at: '2026-09-15T02:49:57Z'
+updated_at: '2026-09-15T02:49:57Z'
+refs:
+- b5993854afa54e20b539b6314c4de02d
+extra: {}
+payload:
+  error_signature: bugfix-must-be-first-class-learn
+  failure_type: process
+  source_id: b5993854afa54e20b539b6314c4de02d
+path: memory/pending/conventions/修了用户可见的-bug-就要-teach-record-成功也算-lesson-必须写清如何产生--162e9895.yaml

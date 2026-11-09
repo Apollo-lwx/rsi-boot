@@ -1,0 +1,33 @@
+id: 4538a2bd8af24f558ead80c2fee181e5
+type: teaching_case
+title: 落盘知识必须自包含。refs只是出处快照，不随仓库文件自动改写。外部变了旧条仍有效；要更新由宿主显式写新条或改旧条。
+content: 落盘知识必须自包含。refs只是出处快照，不随仓库文件自动改写。外部变了旧条仍有效；要更新由宿主显式写新条或改旧条。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-14T11:23:06Z'
+updated_at: '2026-09-14T11:23:06Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: knowledge-must-be-self-contained
+    failure_type: process
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 落盘知识必须自包含。refs只是出处快照，不随仓库文件自动改写。外部变了旧条仍有效；要更新由宿主显式写新条或改旧条。
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 短条依赖refs正文，源文件一改知识跟着变或召回还要打开源文件
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 8
+    promote_to_pattern: false
+path: memory/teaching-cases/落盘知识必须自包含-refs只是出处快照-不随仓库文件自动改写-外部变了旧条仍有效-要更新由宿主--4538a2bd.yaml

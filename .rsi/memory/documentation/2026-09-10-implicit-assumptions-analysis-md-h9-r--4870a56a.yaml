@@ -1,0 +1,30 @@
+id: 4870a56a96ac4328b6b50c9893bb032e
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H9：RSIResponse 没有角色上下文
+content: '### H9：RSIResponse 没有角色上下文
+
+
+  | 位置 | Spec Section 2.1 - RSIResponse |
+
+  |------|--------------------------------|
+
+  | **隐含假设** | 响应是自包含的，不需要知道用户角色来渲染 |
+
+  | **影响** | 同一请求对不同角色的最佳展示格式不同（开发者要代码块、测试要表格、产品要结构化文档） |
+
+  | **修正方向** | 角色信息传入后处理，支持角色感知的响应格式化 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.261579+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h9-r--4870a56a.yaml

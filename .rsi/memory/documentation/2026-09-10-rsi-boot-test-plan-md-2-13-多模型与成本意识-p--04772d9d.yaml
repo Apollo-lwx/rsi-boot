@@ -1,0 +1,35 @@
+id: 04772d9ded5b4134927f617757a13174
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.13 多模型与成本意识 (Phase 4)
+content: '### 2.13 多模型与成本意识 (Phase 4)
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | MUL-01 | 模型适配器切换 | 注册 OpenAI+Anthropic | 1. 配置 intent=debug 用 Anthropic | 请求路由到
+  Anthropic | P3 |
+
+  | MUL-02 | Fallback 链 | 主模型全不可用 | 1. 主模型模拟失败 | 自动沿 fallback 链切换 | P3 |
+
+  | MUL-03 | 每日 token 上限 | 配置 daily_token_cap，当日用量已达上限 | 1. 发送请求 | 返回降级提示（含当日已用量）；preferences.force=true
+  可覆盖（§6.2） | P3 |
+
+  | MUL-04 | 用量 80% 提醒 | 当日用量达上限 80% | 1. 发送请求 | 响应 metadata.budget_warning 附带提示（§6.2）
+  | P3 |
+
+  | MUL-05 | 成本核算 | 模型已定价 | 1. 完成请求 2. 查 interaction_logs | cost_usd = prompt/1e6×单价
+  + completion/1e6×单价；未定价模型为 NULL 且有告警日志（§6.1） | P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.460671+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-13-多模型与成本意识-p--04772d9d.yaml

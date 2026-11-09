@@ -1,0 +1,35 @@
+id: eaae0aecdcf445ad8d9a2a9cadde64de
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 5.3 重试策略
+content: '### 5.3 重试策略
+
+
+  | 场景 | 策略 | 最大重试 | 超时 |
+
+  |------|------|----------|------|
+
+  | LLM 调用 | 指数退避 base=1s + full jitter | 3 | 60s |
+
+  | SQLite 写入 | 指数退避 base=0.1s + full jitter（WAL 下写锁竞争短暂） | 3 | 10s |
+
+  | Embedding 调用 | 指数退避 base=0.5s + full jitter | 2 | 30s |
+
+
+  **退避算法（full jitter，防重试风暴同步）**：
+
+
+  ```python
+
+  sleep = random.uniform(0, min(cap, base * 2 ** attempt))'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.726715+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-5-3-重试策略--eaae0aec.yaml

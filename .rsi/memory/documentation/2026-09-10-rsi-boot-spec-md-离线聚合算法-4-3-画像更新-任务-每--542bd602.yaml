@@ -1,0 +1,25 @@
+id: 542bd6024aad45f0bf1230b620cd0db3
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 离线聚合算法（§4.3「画像更新」任务，每日执行）
+content: "#### 离线聚合算法（§4.3「画像更新」任务，每日执行）\n\n```python\ndef rebuild_profile(user_id:\
+  \ str, project_id: str | None) -> UserProfile:\n    logs = query_logs(user_id, project_id,\
+  \ days=90)        # 近 90 天交互 + 反馈\n    profile = load_or_default(user_id, project_id)\n\
+  \n    # 1. 意图频率：衰减后重算\n    profile.frequently_used_intents = decayed_count(logs,\
+  \ key=\"intent\")\n\n    # 2. 偏好模型：采纳率 = (accepted + 0.5 × modified) / 总反馈，曝光 >=\
+  \ 20 才纳入\n    profile.preferred_models = rank_by_accept_rate(logs, min_exposure=20)\n\
+  \n    # 3. 知识兴趣：检索命中 domain/tags 衰减计数，取 Top 20\n    profile.knowledge_interests\
+  \ = decayed_top_k(logs, key=\"retrieval_hits\", k=20)\n\n    # 4. 画像未覆盖的偏好字段保持现状（离线任务不猜测用户偏好）\n\
+  \    profile.updated_at = utcnow()\n    return profile  # 写穿：UPDATE user_profiles\
+  \ + DEL redis 缓存\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.695653+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-离线聚合算法-4-3-画像更新-任务-每--542bd602.yaml

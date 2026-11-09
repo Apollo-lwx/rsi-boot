@@ -1,0 +1,19 @@
+id: ee376d28fa834339b7ddba0002daf1cb
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H2：用户画像只有技术偏好
+content: "### H2：用户画像只有技术偏好\n\n| 位置 | PRD Section 4«功能优先级» - user_profiles |\n|------|------------------------------------------|\n\
+  | **原文** | preferences: code_style, response_lang, detail_level |\n| **隐含假设** |\
+  \ 用户的核心偏好围绕「代码风格」和「技术细节」| \n| **影响** | 测试人员关心的是测试框架偏好（pytest vs jest）、报告格式；产品经理关心的是文档详细度、输出格式\
+  \ |\n| **修正方向** | 将 code_style 改为角色无关的偏好命名空间，支持 role-specific 扩展 |"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.250289+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h2-用--ee376d28.yaml

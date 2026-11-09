@@ -1,0 +1,32 @@
+id: db26c663a183450db0baa4eabfd188b7
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 3.3 预期瓶颈与监控
+content: '### 3.3 预期瓶颈与监控
+
+
+  | 瓶颈 | 监控指标 | 调优策略 |
+
+  |------|----------|----------|
+
+  | SQLite 写锁竞争（WAL 单写者） | 写入延迟、SQLITE_BUSY 次数 | 写操作串行化队列、批量写入、异步落库 |
+
+  | OpenAI API 限流 | 429 错误率 | 客户端限速（asyncio.Semaphore）、退避重试 |
+
+  | Python GIL | CPU 使用率 | 异步 I/O 为主，CPU 密集（AST 扫描）放线程池 |
+
+  | 向量检索内存 | 进程 RSS | sqlite-vec 按需加载，嵌入缓存容量上限 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.464981+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-3-3-预期瓶颈与监控--db26c663.yaml

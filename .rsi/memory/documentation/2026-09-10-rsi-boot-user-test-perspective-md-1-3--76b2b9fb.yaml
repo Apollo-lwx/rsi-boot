@@ -1,0 +1,29 @@
+id: 76b2b9fb646e49c391fe353b32491f96
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 1.3 反馈分析的价值有限
+content: '### 1.3 反馈分析的价值有限
+
+
+  隐式反馈捕获（P2.5，采纳行为跟踪）和显式反馈（P3.1）理论上可以帮助系统学习 QA 的偏好。但在测试场景下，我严重怀疑反馈机制的有效性：
+
+
+  - **信号噪声大**：一个测试用例被「修改」不代表 LLM 生成的版本是错的——可能只是因为编码风格偏好不同。反之，一个没被修改的用例也可能只是 QA 太忙没发现其中的缺陷。
+
+  - **反馈延迟高**：测试通常在开发完成后较晚才执行，反馈信号的时效性很差，等系统学到东西时项目可能已经迭代了多个版本。
+
+  - **采纳率目标的误导性**：PRD 设置的采纳率目标是 > 60%，但测试场景中「采纳」的定义非常模糊——究竟是「使用了生成的代码框架」还是「直接通过了代码审查」？
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.324282+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-1-3--76b2b9fb.yaml

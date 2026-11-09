@@ -1,0 +1,28 @@
+id: 4b189fba981d4a9caf34aedf2802f402
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9.13 持续学习机制
+content: "#### 10.9.13 持续学习机制\n\n`rsi bootstrap` 解决的是冷启动问题——让 RSI Boot 第一天就了解项目。\n\
+  但它只是开始，持续学习才是真正的进化引擎：\n\n```\n──── 时间线 ────\n\nrsi bootstrap    →  日常使用 (rsi start)\
+  \    →  项目演进\n    │                      │                       │\n    ▼      \
+  \                ▼                       ▼\n 初始知识库          学习引擎持续运行         重新\
+  \ bootstrap\n 初始画像           ├─ 隐式反馈捕获          (每季度或大版本)\n 关联索引           ├─ 策略\
+  \ A/B 调优         ├─ 检测架构变化\n                    ├─ 知识条目更新           ├─ 重新关联推理\n\
+  \                    └─ 画像渐进修正           └─ 更新知识索引\n\n    冷启动阶段           持续优化阶段\
+  \              重构适应阶段\n```\n\n| 学习模式 | 触发条件 | 范围 | 对知识库影响 |\n|---------|---------|------|------------|\n\
+  | **一次性自学习** | `rsi bootstrap` | 全量或指定 scope | 初始填充 |\n| **文件监听学习** | `rsi start\
+  \ --watch` + 文件变化 | 仅变化文件 | 增量更新 |\n| **隐式反馈学习** | 用户交互（采纳/修改/复制） | 单轮交互 | 策略调优\
+  \ + 质量评分 |\n| **显式反馈学习** | `rsi_feedback` | 单轮交互 | 画像修正 + 知识提取 |\n| **离线重学** | 定时任务（Cron/CI）\
+  \ | 全量增量 | 知识库刷新 + 过期清理 |\n\n> **最佳实践**：首次 `rsi bootstrap` 解决冷启动，日常依靠 `rsi start\
+  \ --watch` 和反馈闭环持续进化，\n> 每季度或大版本重构后执行一次 `rsi bootstrap --force` 刷新项目认知。\n\n---"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.798321+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-13-持续学习机制--4b189fba.yaml

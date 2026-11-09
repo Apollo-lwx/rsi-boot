@@ -1,0 +1,41 @@
+id: fd0094c963864ab48528ed541ca53f8c
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 9.4 IDE 集成
+content: '### 9.4 IDE 集成
+
+
+  用户在 IDE 中连接本项目拉起的 RSI Boot 进程，通过 MCP 协议交互：
+
+
+  | IDE | 连接方式 | 配置方法 |
+
+  |-----|---------|---------|
+
+  | VS Code | MCP stdio | `.vscode/mcp.json` 配置 `rsi start --stdio` 命令 |
+
+  | JetBrains | MCP stdio | MCP 插件配置启动命令 |
+
+  | Cursor | MCP 原生支持 | Cursor Settings → MCP Server |
+
+  | 任何 MCP 客户端 | stdio | 参考 MCP 协议规范连接 |
+
+
+  **交互方式**：
+
+  - **选中操作**：选中内容 → 右键 → RSI → 审查/优化/生成
+
+  - **对话查询**：打开 MCP 对话面板 → 输入问题 → 流式接收结果
+
+  - **CLI 直接调用**：`rsi query "..."`（终端中直接使用）'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.610059+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-9-4-ide-集成--fd0094c9.yaml

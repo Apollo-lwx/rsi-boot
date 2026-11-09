@@ -1,0 +1,27 @@
+id: 594a389b1967481a98d0a0e45082dd3c
+type: gene_case
+title: 方案类交付物：做完再交付，不要分次迭代
+content: 长文档/方案类交付物：先在文件里写完整、自查无遗漏后，一次性交付并附简短摘要
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-03T12:00:35Z'
+updated_at: '2026-11-03T12:00:35Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: user-corrected-delivery-style::deliver-complete-plan
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 长文档/方案类交付物：先在文件里写完整、自查无遗漏后，一次性交付并附简短摘要
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-03T12:00:35Z'
+path: memory/gene-map/manual/方案类交付物-做完再交付-不要分次迭代--594a389b.yaml

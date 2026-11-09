@@ -1,0 +1,21 @@
+id: dad5eea30f0d424c8627dc38961fc8db
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# ProcessedRequest（预处理输出 — 独立 Pydantic 模型）
+content: "#### ProcessedRequest（预处理输出 — 独立 Pydantic 模型）\n\n```python\nclass ProcessedRequest(BaseModel):\n\
+  \    \"\"\"完全解析后的内部中间表达，与原始 RSIRequest 形成清晰区分\"\"\"\n    request: RSIRequest\n \
+  \   intent: str\n    confidence: float = Field(..., ge=0, le=1)\n    retrieved_docs:\
+  \ List[\"KnowledgeItem\"] = Field(default_factory=list)\n    user_profile: Optional[\"\
+  UserProfile\"] = None\n    merged_config: Dict[str, Any] = Field(default_factory=dict)\n\
+  \    additional_context: Dict[str, Any] = Field(default_factory=dict)\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.644306+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-processedrequest-预处理--dad5eea3.yaml

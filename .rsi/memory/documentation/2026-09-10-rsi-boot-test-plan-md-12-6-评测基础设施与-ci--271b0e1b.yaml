@@ -1,0 +1,27 @@
+id: 271b0e1bd11a4fedaa91c63b9d9e7010
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 12.6 评测基础设施与 CI 分级
+content: '### 12.6 评测基础设施与 CI 分级
+
+
+  | 级别 | 内容 | 时机 |
+
+  |------|------|------|
+
+  | 快速门槛 | 意图分类评测 + 门禁注入验证（< 5 min） | 每次 PR |
+
+  | 全量评测 | 检索网格复测 + Thompson 仿真 + 画像抽样 | nightly |
+
+  | 基线管理 | 基线数值存 `tests/eval/baselines.json`，版本化；提升基线需 PR 说明依据，禁止悄降 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.503833+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-12-6-评测基础设施与-ci--271b0e1b.yaml

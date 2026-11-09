@@ -1,0 +1,23 @@
+id: 0fc4ef98298f4031a8204ba16432f724
+type: teaching_case
+title: pytest basetemp 不得放在被测仓库内
+content: 现象：python -m pytest tests/ --basetemp=.pytest-tmp 时 test_resolve_uses_cwd_not_parent_git
+  / test_resolve_does_not_claim_user_home_rsi 失败，resolve_project_root(cwd=nested)
+  返回仓库根而非临时目录。原因：basetemp 在仓库内，tmp_path 位于仓库 git 工作树之下，项目根解析向上找到仓库 .git。正确做法：basetemp
+  指到仓库外（如 D:\pytest-rsi-tmp）或用默认 %TEMP%。另外本机 %TEMP%\pytest-of-AH\pytest-current 清理报
+  PermissionError 会吞掉 pytest 摘要行并置 exit code=1，需把输出重定向到文件再读，或改用仓库外 basetemp 规避。
+status: active
+tags: []
+roles: []
+source: extract
+created_at: '2026-09-17T02:34:53Z'
+updated_at: '2026-09-17T02:34:53Z'
+refs: []
+extra: {}
+payload:
+  error_signature: test_project_isolation resolve_project_root returns repo root under
+    in-repo basetemp
+  failure_type: test-env-setup
+  wrong_action: pytest --basetemp 指向仓库内目录（.pytest-tmp）
+  correct_fix: basetemp 用仓库外路径或默认 %TEMP%；摘要被 PermissionError 吞掉时重定向输出到文件读取
+path: memory/teaching-cases/pytest-basetemp-不得放在被测仓库内--0fc4ef98.yaml

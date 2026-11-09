@@ -1,0 +1,24 @@
+id: 4e149d725a3f41279bff32c500547506
+type: gene_case
+title: 规格里废弃的实现必须删除：代码、测试、报告字段、注入句一并清掉。禁止断开调用留函数、禁止兼容空字段、禁止另开P1复活旧门。
+content: 规格里废弃的实现必须删除：代码、测试、报告字段、注入句一并清掉。禁止断开调用留函数、禁止兼容空字段、禁止另开P1复活旧门。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-14T11:14:24Z'
+updated_at: '2026-09-14T11:14:24Z'
+refs: []
+extra: {}
+payload:
+  weight: 8
+  source: manual
+  scenario_type: repair
+  failure_type: process
+  error_signature: deprecated-must-delete-not-keep
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 规格里废弃的实现必须删除：代码、测试、报告字段、注入句一并清掉。禁止断开调用留函数、禁止兼容空字段、禁止另开P1复活旧门。
+  validation: skipped
+  scope: project
+path: memory/gene-map/manual/规格里废弃的实现必须删除-代码-测试-报告字段-注入句一并清掉-禁止断开调用留函数-禁止兼容空字--4e149d72.yaml

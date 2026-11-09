@@ -1,0 +1,57 @@
+id: d233b034835a43d99d5c2216c6f87ac6
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.9.6 支持的扫描格式
+content: '#### 10.9.6 支持的扫描格式
+
+
+  系统自动检测并处理以下格式，无需用户配置：
+
+
+  | 信号类别 | 被检测文件 / 路径模式 | 处理方式 |
+
+  |---------|---------------------|---------|
+
+  | **文档** | `**/*.md`、`**/*.rst`、`**/*.txt`、`**/*.adoc`、`**/README*`、`**/CONTRIBUTING*`、`docs/**/*`、`wiki/**/*`
+  | 全文 → 按标题/段落切片 → 向量化 |
+
+  | **代码骨架** | `**/*.py`、`**/*.js`、`**/*.ts`、`**/*.java`、`**/*.go`、`**/*.rs`、`**/*.cs`、`**/*.cpp`
+  | AST 提取：模块/类/函数/API 路由签名 + docstring |
+
+  | **配置** | `**/pyproject.toml`、`**/package.json`、`**/pom.xml`、`**/build.gradle*`、`**/Cargo.toml`、`**/go.mod`、`**/*.yaml`、`**/*.yml`、`**/*.toml`、`**/*.json`、`**/*.ini`、`**/*.cfg`
+  | 解析结构化数据 → 提取关键键值对 → 作为结构化知识 |
+
+  | **规范** | `**/.editorconfig`、`**/.eslintrc*`、`**/.prettierrc*`、`**/tsconfig*`、`**/Dockerfile*`、`**/Makefile*`、`**/docker-compose*`
+  | 识别规则集 → 生成项目规范摘要 |
+
+  | **Git** | `.git/`（自动检测） | `git log --all --format=...` → 风格/贡献/协作模式分析 |
+
+  | **对话上下文** | `.cursor/**/*`、`.vscode/**/*.json`、`**/CHANGELOG*`、`**/HISTORY*`、`**/RELEASE_NOTES*`、`**/AUTHORS*`
+  | 提取历史对话模式 → 常见问题聚类 → FAQ 知识 |
+
+  | **测试** | `**/test_*.py`、`**/*.test.js`、`**/*.spec.ts`、`**/*_test.go`、`**/__tests__/**`、`**/tests/**`
+  | 统计测试框架/断言风格/覆盖率倾向 |
+
+  | **CI/CD** | `.github/workflows/**`、`**/Jenkinsfile*`、`**/.gitlab-ci.yml`、`**/.circleci/**`
+  | 解析构建步骤 → 部署架构知识 |
+
+  | **模板** | `.github/ISSUE_TEMPLATE/**`、`.github/PULL_REQUEST_TEMPLATE/**`、`**/CONTRIBUTING*`
+  | 提取模板结构 → 角色提示词参考 |
+
+
+  > **设计原则**：不扫描二进制文件、编译产物、依赖目录（`node_modules/`、`vendor/`、`__pycache__/`、`.git/objects/`）。
+
+  > 代码文件仅提取骨架签名（模块名、类名、函数签名、路由定义），不导入完整源码，避免知识库膨胀和许可证风险。
+
+  > 对话上下文仅提取问题和模式，不导入个人信息。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.780565+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-9-6-支持的扫描格式--d233b034.yaml

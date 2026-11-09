@@ -1,0 +1,19 @@
+id: a12e7a3684b44d7c8d97eba27f84dd6e
+type: episode
+title: 'Task 4: drop judge_* BootstrapReport fields, add pack_count/pack_omitted_sources/harvest_warning,
+  update phase names to '
+content: 'Task 4: drop judge_* BootstrapReport fields, add pack_count/pack_omitted_sources/harvest_warning,
+  update phase names to include 分包 without 冲突检测, verify and commit existing working-tree
+  edits'
+status: active
+tags: []
+roles: []
+created_at: '2026-09-14T14:16:04Z'
+updated_at: '2026-09-14T14:16:04Z'
+refs: []
+extra: {}
+payload:
+  fingerprint: ', 4: add and bootstrapreport commit drop edits existing fields, include
+    judge_* names pack_count/pack_omitted_sources/harvest_warning, phase select task
+    to update verify without working-tree 冲突 分包 列名 检测 突检'
+path: memory/episodes/task-4-drop-judge-bootstrapreport-fields-add-pac--a12e7a36.yaml

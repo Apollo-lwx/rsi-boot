@@ -1,0 +1,20 @@
+id: c07faa7f64de4a34aaeac376b951ed8e
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 5.1 测试专用意图路由
+content: "### 5.1 测试专用意图路由\n\n在策略引擎中增加测试专用意图的配置支持。我想看到这样的配置：\n\n```yaml\nintents:\n\
+  \  test_gen:\n    model: gpt-4o\n    template: test_gen.jinja2\n    temperature:\
+  \ 0\n    seed: 42\n  test_review:\n    model: gpt-4o\n    template: test_review.jinja2\n\
+  \  bug_analyze:\n    model: gpt-4o\n    template: bug_analyze.jinja2\n  test_data:\n\
+  \    model: gpt-4o-mini\n    template: test_data.jinja2\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.347121+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-5-1--c07faa7f.yaml

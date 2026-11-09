@@ -1,0 +1,40 @@
+id: d6b5a035bca54004bb677d80a5566c56
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 5. 数据一致性测试
+content: '## 5. 数据一致性测试
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 |
+
+  |----|------|----------|----------|----------|
+
+  | CON-01 | 模型调用后进程崩溃 | 两段式日志（Spec §4.1）：pending 记录已在模型调用前 INSERT | 1. pending 已写入
+  2. 模拟崩溃 3. 重启后客户端持 token 提交反馈 | token 可关联到唯一 pending 记录，反馈正常受理；离线对账任务后续补齐终态 |
+
+  | CON-02 | 日志 INSERT pending 后崩溃 | 崩溃发生在 INSERT 后 UPDATE 前 | 1. INSERT pending 2.
+  进程崩溃 | 重启后离线对账任务（§4.3，每小时）扫描 pending 日志，补齐 UPDATE 或标记异常 |
+
+  | CON-03 | 反馈重复提交幂等 | 同一 feedback_token 提交两次 | 1. 第一次处理成功 2. 第二次提交 | 第二次返回已处理，策略统计不重复
+  |
+
+  | CON-04 | 队列消费异常 | 反馈处理 task 消费时抛异常 | 1. 注入一条毒消息 | 该条标记失败并跳过，后续消息正常消费，队列不阻塞 |
+
+  | CON-05 | 配置更新正在生效时请求 | 更新策略时发送请求 | 1. 更新策略 2. 同时发送请求 | 读旧配置或新配置，不出现配置混合 |
+
+  | CON-06 | 迁移中断 | 迁移脚本执行到一半 kill 进程 | 1. 中断迁移 2. 重启 | user_version 未前进，重启后重入执行幂等脚本，库结构正确（§2.2）
+  |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.472332+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-5-数据一致性测试--d6b5a035.yaml

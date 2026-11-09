@@ -1,0 +1,34 @@
+id: 0343c2a98dad459da31099d8578737c5
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 3.1 角色设计：内置但不过度
+content: '### 3.1 角色设计：内置但不过度
+
+
+  RSI 没有把 test 角色做到代码级别硬编码，而是通过配置注册的方式：
+
+  - config/roles/test.yaml 定义意图规则
+
+  - config/role_templates/test_gen.jinja2 等模板
+
+  - quality_rubric.yaml 中 test 角色的 quality 权重
+
+  - response_format.yaml 中 test 角色的格式化配置
+
+
+  这意味着：
+
+  - **新角色扩展不需要改代码**——如果我想再加一个 performance_test 角色，只用加配置
+
+  - **没有 test 角色的团队**也不会受影响——走通用模式，照样能用'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.282640+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-3-1-角--0343c2a9.yaml

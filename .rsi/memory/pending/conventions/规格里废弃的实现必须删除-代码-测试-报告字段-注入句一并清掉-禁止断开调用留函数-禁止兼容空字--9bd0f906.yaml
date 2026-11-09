@@ -1,0 +1,18 @@
+id: 9bd0f9066ee24e5889f261034ab32715
+type: convention
+title: 规格里废弃的实现必须删除：代码、测试、报告字段、注入句一并清掉。禁止断开调用留函数、禁止兼容空字段、禁止另开P1复活旧门。
+content: 规格里废弃的实现必须删除：代码、测试、报告字段、注入句一并清掉。禁止断开调用留函数、禁止兼容空字段、禁止另开P1复活旧门。
+status: pending_review
+tags: []
+roles: []
+source: promote
+created_at: '2026-09-15T02:49:57Z'
+updated_at: '2026-09-15T02:49:57Z'
+refs:
+- 4e149d725a3f41279bff32c500547506
+extra: {}
+payload:
+  error_signature: deprecated-must-delete-not-keep
+  failure_type: process
+  source_id: 4e149d725a3f41279bff32c500547506
+path: memory/pending/conventions/规格里废弃的实现必须删除-代码-测试-报告字段-注入句一并清掉-禁止断开调用留函数-禁止兼容空字--9bd0f906.yaml

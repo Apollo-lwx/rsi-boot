@@ -1,0 +1,35 @@
+id: 6c9c4737a88d4667be84e2c3b2552d2b
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.3.3 配置优先级链
+content: '#### 10.3.3 配置优先级链
+
+
+  ```
+
+  低                                                              高
+
+  +-------------+-------------------+----------------+-------------+
+
+  default.yaml    ~/.rsi/config.yaml  rsi-boot.yaml    请求参数覆盖
+
+  (包内置基线)    (个人全局偏好)      (项目配置)       (运行时动态)
+
+  ```
+
+
+  后层配置**层叠覆盖**前层。本链路与 §2.5 配置继承链为同一套规则，config_merger 以此为准。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.758187+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-3-3-配置优先级链--6c9c4737.yaml

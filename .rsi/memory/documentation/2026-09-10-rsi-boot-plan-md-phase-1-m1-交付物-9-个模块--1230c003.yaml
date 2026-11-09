@@ -1,0 +1,47 @@
+id: 1230c003c8ce4f3f8fee8a1621b742f1
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 1-M1 交付物（9 个模块，26.5-29.5 人天）
+content: '### Phase 1-M1 交付物（9 个模块，26.5-29.5 人天）
+
+
+  | 模块 | 交付物文件 | 关联 PRD 需求 | 关联 Specs 章节 |
+
+  |------|-----------|-------------|----------------|
+
+  | 项目骨架 | pyproject.toml, __main__.py, data/sqlite.py, data/migrate.py, migrations/001_init.sql
+  | §4.1-M1 基础设施 | §11 目录结构, §2.2 数据库表设计 |
+
+  | 核心模型 | core/models.py, schemas/*.json | §4.1-M1 标准化格式 | §2.1 核心 Pydantic 模型 |
+
+  | 预处理 | preprocessor/handler.py, preprocessor/intent_classifier.py, config/intent_rules.yaml
+  | §4.1-M1 意图识别 | §3.1 意图识别, §4.1 数据流程 |
+
+  | 策略引擎 | strategy/engine.py, strategy/prompt_renderer.py | §4.1-M1 路由决策 | §3.3 策略选择,
+  §3.4 提示词渲染 |
+
+  | 模型适配 | model/adapter.py, model/providers/openai.py, model/registry.py | §4.1-M1
+  模型接入 | §1.1 模型适配层 |
+
+  | MCP 接口 | api/mcp_server.py, api/tools/query_tool.py | §4.1-M1 MCP 协议 | §7 MCP
+  接口契约 |
+
+  | 编排器 | orchestrator/pipeline.py, orchestrator/handlers/* | §4.1-M1 流程编排 | §4.1
+  主请求处理流程 |
+
+  | 后处理+日志 | orchestrator/handlers/postprocess.py, services/log_service.py | §4.1-M1
+  输出处理 | §3.5 质量评估, §2.2 数据库表设计 |
+
+  | 轻量价值闭环 | knowledge/retriever.py（FTS5 版）, api/tools/feedback_tool.py（基础版）, cli/knowledge_command.py
+  | §4.2 知识增强（M1 子集）, §4.3 学习闭环（采集先行） | §3.2 知识检索, §4.2 反馈处理流程 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.408184+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-1-m1-交付物-9-个模块--1230c003.yaml

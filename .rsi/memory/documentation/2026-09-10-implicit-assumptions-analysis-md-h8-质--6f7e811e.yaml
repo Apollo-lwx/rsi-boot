@@ -1,0 +1,29 @@
+id: 6f7e811ea38e496fb5a70f9d38db2ab0
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# H8：质量评估偏向代码输出
+content: '### H8：质量评估偏向代码输出
+
+
+  | 位置 | Spec Section 3.5 |
+
+  |------|------------------|
+
+  | **原文** | 三维度评分：相关性(0.5)+完整性(0.3)+格式合规(0.2)，其中完整性检查 code intent→含代码块 +50% |
+
+  | **隐含假设** | 高质量响应的标志是包含代码块 |
+
+  | **影响** | 对测试场景（测试用例列表）和产品场景（PRD 大纲）的评分可能偏低 |
+
+  | **修正方向** | 评分 rubric 可配置，按角色/意图选择不同的评估模板 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.260491+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-h8-质--6f7e811e.yaml

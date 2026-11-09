@@ -1,0 +1,18 @@
+id: e278626dae704b85b3e61d3f25c0ce77
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# config/roles/operator.yaml
+content: "# config/roles/operator.yaml\nrole: operator\nintents:\n  - name: deploy_check\n\
+  \    patterns: [\"(?i)check deployment|verify release|deploy status\"]\n    fallback:\
+  \ general\n    prompt_template: operator_deploy.jinja2\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.683116+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-config-roles-operato--e278626d.yaml

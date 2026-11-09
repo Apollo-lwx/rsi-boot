@@ -1,0 +1,35 @@
+id: 661ac462575e4fb3a7ea0c50e82b7b74
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 3.2 知识检索（混合检索）
+content: "### 3.2 知识检索（混合检索）\n\n**分阶段可用性（v2.6）**：M1 交付 FTS5-only 子集（BM25 关键词检索 + TopN\
+  \ 注入 + token 预算，零新增依赖，P1.18），知识来源为 `rsi knowledge add` 手动种子；Phase 2 在同一注入路径上升级为混合检索（+\
+  \ 向量召回 + RRF + 置信度门槛，P2.1/P2.3）。\n\nPhase 2 实现混合检索策略，结合 BM25（关键词）和向量检索（语义），通过 RRF（Reciprocal\
+  \ Rank Fusion）融合排序。\n\n**检索流程**\n\n```\n用户查询\n   |\n   +-- BM25 检索 (FTS5)      \
+  \        -> TopK 候选\n   +-- 向量检索 (sqlite-vec cosine)   -> TopK 候选\n   |\n   +--\
+  \ RRF 融合排序 -> 最终结果 (TOP_N)\n```\n\n**BM25 检索**：使用 SQLite FTS5 内置 BM25（`knowledge_fts`\
+  \ 表，§2.3），中文分词依赖 jieba 预处理后写入 FTS。\n\n**向量检索**：使用 text-embedding-3-small 生成查询向量，sqlite-vec\
+  \ cosine 搜索（`knowledge_vectors` 虚拟表，§2.3）。\n\n**RRF 融合**：`score = sum(1 / (k + rank\
+  \ + 1))`，其中 k=60。RRF 仅用于融合排序——其原始分数空间约为 (0, 0.033]（k=60 时理论最大值 2/61），不适合做绝对阈值判断。\n\
+  \n**注入门槛**：改用检索阶段的原始分数判断——向量 cosine 相似度 >= 0.6 或 BM25 归一化分数 >= 0.6 的条目才注入并标注来源；融合排序后每个请求最多注入\
+  \ 5 条，注入内容总 token 数 <= 2000（超出时按分数从低到高裁剪）。\n\n**检索参数表**\n\n| 参数 | 值 | 说明 |\n|------|-----|------|\n\
+  | BM25 k1 / b | 1.5 / 0.75 | rank_bm25 默认值，Phase 2 预留调优 |\n| BM25 归一化 | `score /\
+  \ max(批内 score)` | 批内 min-max 归一化到 [0,1] 后与阈值比较 |\n| Embedding 模型 | text-embedding-3-small（1536\
+  \ 维） | 知识条目写入与查询共用同一模型，禁止混用 |\n| 各通道候选数 TopK | 20 | BM25 与向量各取 Top 20 进入 RRF 融合\
+  \ |\n| RRF k | 60 | 经验值，平衡头部与长尾 |\n| 注入条数上限 TOP_N | 5 | 融合排序后取前 5 |\n| 注入 token\
+  \ 上限 | 2000 | 超出按分数从低到高裁剪 |\n| 注入门槛 | cosine ≥ 0.6 或 BM25 归一化 ≥ 0.6 | 原始分数判断，低置信度不注入\
+  \ |\n\n**过滤与隔离**：向量/全文召回后在 SQL 层 JOIN `knowledge_items` 过滤（`project_id` 必须匹配；`roles`\
+  \ 为空或包含当前角色，用 `json_each` 匹配；`domain` 按请求上下文可选过滤；`status = 'active'`）。\n\n**索引维护**：知识条目写入/更新时在同一事务内同步更新\
+  \ `knowledge_vectors` 与 `knowledge_fts`（§2.3）；每日离线任务执行 `INSERT INTO knowledge_fts(knowledge_fts)\
+  \ VALUES('rebuild')` 全量重建 FTS 索引（§4.3），防止增量更新累积漂移。\n\n---"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.665888+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-3-2-知识检索-混合检索--661ac462.yaml

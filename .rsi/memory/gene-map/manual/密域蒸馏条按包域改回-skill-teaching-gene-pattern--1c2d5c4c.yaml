@@ -1,0 +1,29 @@
+id: 1c2d5c4cc257456c9a2bc2cd61d81169
+type: gene_case
+title: 密域蒸馏条按包域改回 skill/teaching/gene/pattern
+content: 用 retype_distilled_for_pack 按包域搬家：skill 落到 skills/<name>/skill.yaml，teaching_case/gene_case/pattern
+  落到对应正式目录。已批准条保持 active。不要重新 bootstrap。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T16:27:14Z'
+updated_at: '2026-09-15T16:27:14Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: process
+  error_signature: dense-pack-distilled-wrong-type
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 用 retype_distilled_for_pack 按包域搬家：skill 落到 skills/<name>/skill.yaml，teaching_case/gene_case/pattern
+    落到对应正式目录。已批准条保持 active。不要重新 bootstrap。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-09-15T16:27:14Z'
+path: memory/gene-map/manual/密域蒸馏条按包域改回-skill-teaching-gene-pattern--1c2d5c4c.yaml

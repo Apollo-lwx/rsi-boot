@@ -1,0 +1,66 @@
+id: 3de0f75680f240abba1c0a2d0869b8fb
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 8.1 数据脱敏
+content: '### 8.1 数据脱敏
+
+
+  | 敏感数据类型 | 脱敏规则 | 作用域 |
+
+  |-------------|----------|--------|
+
+  | API Key / Token | 保留前4位后4位，中间用 **** 替换 | 日志 |
+
+  | 用户邮箱 | 用户名部分用 *** 替换 | 日志、响应 |
+
+  | IP 地址 | 保留前两段，后两段用 .* 替换 | 日志 |
+
+  | 代码片段 | 默认保留（业务需要）；落库与外发 LLM 前执行密钥/Token/内网地址正则扫描（规则见下表，§10.9.7 复用同一规则集），命中部分脱敏后存储/发送
+  | 日志、外发 |
+
+
+  **脱敏正则模式表**（`core/masking.py` 的 `MASKING_RULES`，日志脱敏与 §10.9.7 敏感信息扫描共用同一定义，单一事实来源）：
+
+
+  | 规则名 | 正则模式 | 替换为 |
+
+  |--------|---------|--------|
+
+  | email | `\b[\w.+-]+@(([\w-]+\.)+[\w-]{2,})\b` | `***@\1` |
+
+  | ipv4 | `\b(\d{1,3}\.\d{1,3})\.\d{1,3}\.\d{1,3}\b` | `\1.*.*` |
+
+  | openai_key | `sk-[A-Za-z0-9_-]{20,}` | `sk-****` |
+
+  | aws_akid | `AKIA[0-9A-Z]{16}` | `AKIA****` |
+
+  | github_token | `(ghp\|gho\|ghu\|ghs\|ghr)_[A-Za-z0-9]{36,}` | `gh*_****` |
+
+  | slack_token | `xox[baprs]-[A-Za-z0-9-]{10,}` | `xox*-****` |
+
+  | jwt | `eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}` | `eyJ****`
+  |
+
+  | private_key | `-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE
+  KEY-----` | `[PRIVATE KEY REDACTED]` |
+
+  | password_field | `(?i)(password\|passwd\|pwd\|secret)\s*[:=]\s*["'']?[^\s"'']{4,}`
+  | `\1=****` |
+
+  | internal_ip | `\b(10\.\d{1,3}\|172\.(1[6-9]\|2\d\|3[01])\|192\.168)\.\d{1,3}\.\d{1,3}\b`
+  | `[INTERNAL_IP]` |
+
+
+  执行时机：Log Handler 写库前对 `raw_input` / 响应内容执行全表扫描；外发 LLM 的 prompt 组装后同样过一遍（防知识库内容带密钥外发）。正则用
+  `re.compile` 预编译，扫描耗时计入 §9 性能预算（单请求 < 5ms）。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.738725+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-8-1-数据脱敏--3de0f756.yaml

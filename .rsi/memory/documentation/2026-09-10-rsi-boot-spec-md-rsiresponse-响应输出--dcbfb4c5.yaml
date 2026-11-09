@@ -1,0 +1,33 @@
+id: dcbfb4c5553b41edb9768c3fb9225cdb
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# RSIResponse（响应输出）
+content: "#### RSIResponse（响应输出）\n\n```python\nfrom enum import Enum\n\nclass ContentType(str,\
+  \ Enum):\n    TEXT = \"text\"\n    CODE = \"code\"\n    MARKDOWN = \"markdown\"\n\
+  \    JSON = \"json\"\n    IMAGE = \"image\"\n    ERROR = \"error\"\n\nclass ContentItem(BaseModel):\n\
+  \    type: ContentType\n    body: str = Field(..., max_length=65536)\n    language:\
+  \ Optional[str] = None\n    structured_data: Optional[Dict[str, Any]] = None\n \
+  \   order: int = 0\n    # 该内容块适用的业务角色列表，None 表示通用；Postprocessor 按角色过滤（见 §3.7）\n\
+  \    applicable_roles: Optional[List[str]] = None\n\nclass Suggestion(BaseModel):\n\
+  \    type: str = Field(..., pattern=r\"^(alternative_code|related_doc|follow_up|optimization)$\"\
+  )\n    body: str\n    metadata: Dict[str, Any] = Field(default_factory=dict)\n\n\
+  class CostInfo(BaseModel):\n    model: str\n    prompt_tokens: int = 0\n    completion_tokens:\
+  \ int = 0\n    total_tokens: int = 0\n    cost_usd: Decimal = Field(default=Decimal(\"\
+  0\"), max_digits=10, decimal_places=6)\n    latency_ms: int = 0\n\nclass RSIResponse(BaseModel):\n\
+  \    request_id: UUID\n    api_version: str = \"1.0\"\n    status: str = Field(...,\
+  \ pattern=r\"^(success|error|partial)$\")\n    content: List[ContentItem] = Field(...,\
+  \ min_length=1)\n    suggestions: List[Suggestion] = Field(default_factory=list)\n\
+  \    cost_info: Optional[CostInfo] = None\n    quality_score: Optional[float] =\
+  \ Field(None, ge=0, le=1)\n    feedback_token: str\n    error: Optional[Dict[str,\
+  \ Any]] = None\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.637618+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-rsiresponse-响应输出--dcbfb4c5.yaml

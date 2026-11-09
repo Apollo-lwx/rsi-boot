@@ -1,0 +1,18 @@
+id: cc9d8e55c18c4b4ea91c5af5eadc3502
+type: convention
+title: 列出列名
+content: 列出列名
+status: pending_review
+tags: []
+roles: []
+source: promote
+created_at: '2026-09-15T02:49:57Z'
+updated_at: '2026-09-15T02:49:57Z'
+refs:
+- 12b443be22ac4b2c83f9e31952767a4f
+extra: {}
+payload:
+  error_signature: select-star
+  failure_type: sql
+  source_id: 12b443be22ac4b2c83f9e31952767a4f
+path: memory/pending/conventions/列出列名--cc9d8e55.yaml

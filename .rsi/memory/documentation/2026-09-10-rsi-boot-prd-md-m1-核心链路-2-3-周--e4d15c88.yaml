@@ -1,0 +1,41 @@
+id: e4d15c88808c4e789f8017dae4536d21
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# M1：核心链路（2-3 周）
+content: '#### M1：核心链路（2-3 周）
+
+
+  | 功能 | 说明 | 优先级 |
+
+  |------|------|--------|
+
+  | MCP 协议接入 | 以 MCP Server 形式暴露（stdio），客户端自动发现工具 | P0 |
+
+  | rsi_query 工具 | 统一查询入口，接收标准化请求，返回标准化响应 | P0 |
+
+  | 请求预处理 | 意图识别（规则版）+ 基础上下文组装 | P0 |
+
+  | 策略引擎 | 基于意图的模型/模板路由，固定策略配置 | P0 |
+
+  | 模型适配层 | 接入至少 1 个 LLM（OpenAI），统一调用接口 | P0 |
+
+  | 响应后处理 | 模型输出解析、格式化为标准 RSIResponse | P0 |
+
+  | 编排器（Pipeline 模式） | 协调预处理→策略→模型→后处理全流程 | P0 |
+
+  | 交互日志 | 记录请求/响应的关键字段到 SQLite（`.rsi/rsi.db`） | P0 |
+
+  | 配置管理 | Pydantic Settings + YAML 类型安全配置 | P0 |
+
+  | 错误处理 | 熔断器、指数退避重试、降级策略 | P0 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.546694+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-m1-核心链路-2-3-周--e4d15c88.yaml

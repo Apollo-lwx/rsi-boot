@@ -1,0 +1,32 @@
+id: f1ac09cb243845edb285672ee2f202cc
+type: documentation
+title: 2026-09-10-rsi-boot-traceability-matrix.md# P3 — Won't Have This Time（Phase
+  4，5 项）
+content: '### P3 — Won''t Have This Time（Phase 4，5 项）
+
+
+  | # | PRD 需求 | PRD 章节 | Specs 章节 | Plans 任务 |
+
+  |---|----------|----------|-----------|-----------|
+
+  | 32 | 多模型适配（Anthropic / DeepSeek） | §4.4 | §1.1 模型适配层 | P4.1 |
+
+  | 33 | 成本路由（含跨厂商 fallback） | §4.4 | §6.1 成本核算, §5.1 熔断器 | P4.2 |
+
+  | 34 | 用量统计增强（rsi_stats 报表） | §4.4 | §6.3 用量查询 | P4.3 |
+
+  | 35 | 缓存优化（进程内 TTLCache 调优） | §4.4 | §2.4 进程内运行时结构 | P4.4 |
+
+  | 36 | 团队共享模式（刻意不做，决策记录） | §4.4 | §10.7 设计取舍说明 | —（不立项，如需另起独立项目评估） |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-traceability-matrix.md
+created_at: '2026-09-10T11:46:29.309487+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-traceability-matrix-md-p3-wo--f1ac09cb.yaml

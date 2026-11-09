@@ -1,0 +1,48 @@
+id: 1e14deb8dd1d40f89ec1ec0e3a2d3ddf
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 4.2 推广建议
+content: '### 4.2 推广建议
+
+
+  不要一上来就让整个测试团队用。建议分三步走：
+
+
+  **Step 1 — 探路者（前 2 周）**
+
+  - 1 名 SDET 或技术能力强的测试工程师先行试用
+
+  - 配置 test 角色意图和模板
+
+  - 导入已有测试文档到知识库
+
+  - 聚焦 test_gen 场景，评估模板节省效率
+
+
+  **Step 2 — 深耕（1-2 个月）**
+
+  - 基于探路者的反馈优化模板和知识库
+
+  - 扩展到 test_review 和 bug_analyze 场景
+
+  - 开始收集隐式反馈
+
+
+  **Step 3 — 推广（3 个月+）**
+
+  - 知识库内容丰富后，向全体测试团队开放
+
+  - 分享最佳实践和模板
+
+  - 持续评估 ROI'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.291751+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-4-2-推--1e14deb8.yaml

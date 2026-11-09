@@ -1,0 +1,29 @@
+id: 960486d76a254c4684037bb2e543b8f9
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 4.4 缺少与测试管理工具的集成
+content: '### 4.4 缺少与测试管理工具的集成
+
+
+  当前 RSI Gateway 的设计中看不到与主流测试管理工具的集成：
+
+
+  - **Jira**：无法自动将生成的测试用例创建为 Jira Issue 或 Test Case
+
+  - **TestRail / Xray**：不支持将测试结果同步到测试管理平台
+
+  - **Allure Reports**：无法将测试执行的日志和结果生成标准的 Allure 报告
+
+
+  这意味着即使 RSI Gateway 生成了有价值的测试内容，QA 仍然需要手动将其搬运到现有的工作流中。这不仅降低了效率，还增加了出错的可能性。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.344709+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-4-4--960486d7.yaml

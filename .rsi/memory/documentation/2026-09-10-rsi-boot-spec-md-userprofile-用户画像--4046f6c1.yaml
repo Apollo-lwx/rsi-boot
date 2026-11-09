@@ -1,0 +1,26 @@
+id: 4046f6c181af4e779eca1a152d91f344
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# UserProfile（用户画像）
+content: "#### UserProfile（用户画像）\n\n```python\nclass UserProfile(BaseModel):\n   \
+  \ user_id: str\n    project_id: Optional[str] = None\n    preferences: UserPreferences\
+  \ = Field(default_factory=UserPreferences)\n    frequently_used_intents: Dict[str,\
+  \ int] = Field(default_factory=dict)\n    preferred_models: List[str] = Field(default_factory=list)\n\
+  \    feedback_history: List[str] = Field(default_factory=list)\n    knowledge_interests:\
+  \ List[str] = Field(default_factory=list)\n    # 以下字段由 rsi bootstrap 初始填充（见 §10.9.4）\n\
+  \    expertise: List[str] = Field(default_factory=list)              # 专长领域（文件归属\
+  \ + 代码结构推断）\n    project_insights: Dict[str, Any] = Field(default_factory=dict)\
+  \  # 项目级综合认知（架构/构建/CI/文档质量等）\n    history_summary: Optional[str] = None        \
+  \                   # 项目历史摘要\n    created_at: datetime = Field(default_factory=utcnow)\n\
+  \    updated_at: datetime = Field(default_factory=utcnow)\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.647301+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-userprofile-用户画像--4046f6c1.yaml

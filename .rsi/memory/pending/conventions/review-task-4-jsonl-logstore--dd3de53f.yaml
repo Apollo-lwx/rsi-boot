@@ -1,0 +1,29 @@
+id: dd3de53f64fc432c99d62a9a3801142f
+type: convention
+title: 'Review Task 4 JSONL logstore: '
+content: 'Q: Review Task 4 JSONL logstore: EventLogStore append/roll/iter, retrieved
+  32-hex ids, no Runtime/sqlite/recall/inject
+
+  A: 2026-09-10-rsi-boot-spec.md# ProcessedRequest（预处理输出 — 独立 Pydantic 模型）
+
+  2026-09-10-rsi-boot-plan.md# Phase 3 交付物（7 个模块，21.5 人天）
+
+  2026-09-10-rsi-boot-test-plan.md# 12. 算法质量评估与验收基线（RSI 特有）
+
+  2026-09-10-rsi-boot-spec.md# 10.5 数据目录约定
+
+  2026-09-10-rsi-boot-plan.md# P1.12 数据生命周期（2天）
+
+  2026-09-10-rsi-boot-spec.md# 4.3 离线分析任务
+
+  2026-09-10-rsi-boot-spec.md# 9.3 集成测试'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-14T02:13:54.085119+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/review-task-4-jsonl-logstore--dd3de53f.yaml

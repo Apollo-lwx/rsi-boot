@@ -1,0 +1,43 @@
+id: c9f72a3552544b2da11d569dca23d91c
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 2：知识增强 (Knowledge Enhancement)
+content: '## Phase 2：知识增强 (Knowledge Enhancement)
+
+
+  | 任务 | 说明 | 工时 | 实现依据 (Spec) |
+
+  |------|------|------|----------------|
+
+  | P2.1 向量检索集成 (sqlite-vec) | VectorBackend 抽象 + sqlite-vec 后端 + brute 内置回退 + auto
+  探测 | 4d | §2.3 向量检索 Schema 与后端回退（knowledge_vectors/knowledge_fts/embedding BLOB）
+  |
+
+  | P2.2 意图识别升级 | 从规则版升级为 ML/LLM 分类版 | 3d | §3.1 意图识别 |
+
+  | P2.3 知识检索升级 | 在 M1 FTS5 路径（P1.18）上升级：+ 向量召回 + RRF 融合 + 置信度门槛 | 2d | §3.2 知识检索（cosine
+  ≥ 0.6 门槛、最多 5 条、2000 token 上限） |
+
+  | P2.4 用户画像 | ProfileService 完整实现 + 进程内 TTLCache | 2d | §2.1 UserProfile 模型、§3.8
+  画像构建与更新（推理规则/衰减/离线聚合） |
+
+  | P2.5 隐式反馈 | 采纳/修改/复制行为的自动捕获 | 3d | §4.2 反馈处理流程（客户端事件上报协议） |
+
+  | P2.6 bootstrap 深度信号层 | 代码骨架 AST（2d）+ Git 历史分析（1d）+ 对话上下文扫描（1d）+ 跨信号源关联推理（1.5d）+
+  增量学习监听（1d） | 6.5d | §10.9 项目自学习（代码/ Git/对话信号源、关联推理、增量指纹） |
+
+  | P2.7 算法评测基线框架 | tests/eval/ harness + 意图/检索标注数据集构建 + baselines.json 版本化 + CI 分级接入
+  | 2.5d | §9 测试策略、测试计划 §12 算法验收基线 |
+
+  | 角色横向：Test/PM 角色 intent 完整注册 + 模板 | intent_rules.yaml 扩展 | 2d | §3.6 意图系统 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.397533+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-2-知识增强-knowled--c9f72a35.yaml

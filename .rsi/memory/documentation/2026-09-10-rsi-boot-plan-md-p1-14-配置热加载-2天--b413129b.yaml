@@ -1,0 +1,32 @@
+id: b413129ba30d40bd85d36852a4b566fb
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.14 配置热加载（2天）
+content: '### P1.14 配置热加载（2天）
+
+
+  **实现依据**：Spec §2.5 配置继承链（watchfiles 监听、四层优先级）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | YAML 配置文件监听（watchfiles） | config/loader.py | 0.5d |
+
+  | 热加载事件通知机制 | config/loader.py | 0.5d |
+
+  | 运行时重载策略 | config/loader.py | 0.5d |
+
+  | 单元测试 | tests/unit/test_config.py | 0.5d |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.390343+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-14-配置热加载-2天--b413129b.yaml

@@ -1,0 +1,27 @@
+id: 67132f0e1c6948cbadbaa27d6efa7a14
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 10.3.2 项目自动发现
+content: "#### 10.3.2 项目自动发现\n\n进程启动时按以下路径逐级查找项目配置：\n\n```\n查找顺序（优先级从高到低）：\n1. 命令行参数:\
+  \ --project-root /path/to/project\n2. 当前工作目录: cwd 目录下的 rsi-boot.yaml（IDE 拉起时 cwd\
+  \ = 项目根目录，绝大多数情况命中此层）\n3. Git 仓库根: git rev-parse --show-toplevel 下的 rsi-boot.yaml\n\
+  4. 父目录递归: 递归向上查找 rsi-boot.yaml\n5. 默认配置: 使用包内 config/default.yaml\n```\n\n**项目初始化流程**：\n\
+  \n```\n进程启动 (stdio 连接建立)\n       |\n       v\n  +----------------+\n  | 查找项目配置 \
+  \    |<---- 按优先级逐级查找 rsi-boot.yaml\n  +-------+--------+\n          |\n        \
+  \  v\n  +----------------+\n  | 加载合并配置     |<---- §2.5 配置链合并\n  +-------+--------+\n\
+  \          |\n          v\n  +----------------+\n  | 初始化数据目录   |<---- .rsi/ 不存在则创建；建库\
+  \ + 执行迁移（§2.2）\n  +-------+--------+\n          |\n          v\n  +----------------+\n\
+  \  | 加载运行时状态   |<---- 画像缓存预热、策略加载、熔断器冷启动\n  +-------+--------+\n          |\n  \
+  \        v\n  +----------------+\n  | 进入服务循环     |<---- tools/list + tools/call\n\
+  \  +----------------+\n```"
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.757190+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-10-3-2-项目自动发现--67132f0e.yaml

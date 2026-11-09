@@ -1,0 +1,31 @@
+id: b20c1e3c74a74259a7503ee8952c0e6c
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# Phase 与角色支持对应
+content: '### Phase 与角色支持对应
+
+
+  | Phase | Developer | Test Engineer | Product Manager | 自定义角色 |
+
+  |-------|-----------|---------------|-----------------|-----------|
+
+  | P1 M1 | 完整支持 | 通用兜底 | 通用兜底 | - |
+
+  | P1 M2 | 稳定 | 基础支持 (test_gen) | 基础支持 (prd_gen) | - |
+
+  | P2 | 完善 | 角色 intent 注册 | 角色 intent 注册 | 通过配置注册 |
+
+  | P3 | 完善 | 独立反馈统计 | 独立反馈统计 | 独立反馈统计 |
+
+  | P4 | 完整 | 完整 | 完整 | 完整 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.404592+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-phase-与角色支持对应--b20c1e3c.yaml

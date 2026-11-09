@@ -1,0 +1,33 @@
+id: 7f481ccbe370446b8ecfb50eaeeaa74b
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.16 config_merger 配置合并（2天）
+content: '### P1.16 config_merger 配置合并（2天）
+
+
+  **实现依据**：Spec §2.5 配置继承链（default → ~/.rsi/config.yaml → 项目 rsi-boot.yaml → 请求参数，与
+  §10.3.3 一致）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | YAML 层级叠加（default -> 用户全局 -> project -> 请求参数） | core/config_merger.py | 0.5d |
+
+  | 环境变量覆盖 + 明文 Key 检测拒绝（§8.2） | core/config_merger.py | 0.5d |
+
+  | 类型验证 + 错误报告 | core/config_merger.py | 0.5d |
+
+  | 单元测试 | tests/unit/test_config_merger.py | 0.5d |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.392975+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-16-config-merger--7f481ccb.yaml

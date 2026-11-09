@@ -1,0 +1,35 @@
+id: 5d3fbf79145c4298ad521ec681b475d1
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 7. 升级测试（PRAGMA user_version 迁移）
+content: '## 7. 升级测试（PRAGMA user_version 迁移）
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 |
+
+  |----|------|----------|----------|----------|
+
+  | MIG-01 | 全新安装 | 无 .rsi/ 目录 | 1. 启动进程 | 自动建库，所有表创建成功，user_version = 最新 |
+
+  | MIG-02 | 增量升级 | 已有 v1 schema | 1. 放入 002_xxx.sql 2. 启动 | 新字段/表创建，旧数据不丢失，user_version
+  前进 |
+
+  | MIG-03 | 中断重入 | 迁移执行中 kill | 1. 中断 2. 重启 | 事务回滚或幂等重跑，库结构最终正确 |
+
+  | MIG-04 | 迁移前后数据兼容性 | 升级前有 100 条日志 | 1. 升级 2. 查询日志 | 旧数据可正常读取，新字段为默认值 |
+
+  | MIG-05 | 幂等重复执行 | 已是最新版本 | 1. 再次启动 | 迁移跳过，无重复执行副作用 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.476215+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-7-升级测试-pragma-u--5d3fbf79.yaml

@@ -1,0 +1,35 @@
+id: d27735ba0f6849fa9ac0e34af573ffee
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 2. 目标用户
+content: '## 2. 目标用户
+
+
+  | 用户角色 | 核心诉求 | 使用方式 |
+
+  |----------|----------|----------|
+
+  | **开发者** | 在 IDE/CLI 中获得更符合项目上下文的高质量代码建议 | MCP 客户端（IDE 插件、CLI 工具） |
+
+  | **测试工程师** | 生成测试用例、审查测试质量、分析 Bug 根因 | MCP 客户端（IDE 插件、CLI 工具） |
+
+  | **产品经理** | 生成 PRD 草稿、审查需求文档、数据分析 | MCP 客户端（文档工具、CLI 工具） |
+
+  | **项目维护者** | 沉淀项目知识，让 AI 回复包含项目特有文档和规范 | 知识库管理 / 反馈标注 |
+
+
+  > 均为同一人的不同角色侧面——RSI Boot 是单用户工具，「角色」指使用者当前的工作身份（developer/test/pm），用于意图路由与知识检索，不含权限语义。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.528487+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-2-目标用户--d27735ba.yaml

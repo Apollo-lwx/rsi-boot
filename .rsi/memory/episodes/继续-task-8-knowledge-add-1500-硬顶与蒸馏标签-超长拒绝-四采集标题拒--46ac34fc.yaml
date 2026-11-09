@@ -1,0 +1,36 @@
+id: 46ac34fcd42c4141a15340cda3c25cc8
+type: episode
+title: 继续 Task 8 knowledge_add 1500 硬顶与蒸馏标签：超长拒绝、四采集标题拒绝、distilled 必带 bootstrap_run_id、MCP/CLI
+  error 原样传出
+content: '2026-09-10-rsi-boot-spec.md# 10.9.6 支持的扫描格式
+
+  2026-09-10-rsi-boot-spec.md# 10.9.2 自学习数据来源矩阵
+
+  2026-09-10-rsi-boot-spec.md# 4.2 反馈处理流程（异步任务）
+
+  2026-09-10-rsi-boot-test-plan.md# 2.2 预处理 Preprocessor
+
+  2026-09-10-rsi-boot-spec.md# 初始构建推理规则（rsi bootstrap，Phase 1 M2）
+
+  中间 task 只跑计划点名的聚焦测试；全量套件放到波结束或后台，不要堵住对话。看 PASSED/FAILED 点，忽略 pytest-current 的 WinError
+  5。子代理被中断就在本会话落地，不要为重建上下文再等一轮。
+
+  RSI 代码只做进度、耗时预估和流程串联（skill/MCP/阅读包）；深入分析与知识蒸馏必须留在宿主 agent。禁止用分词/Jaccard 等代替理解，也禁止把零
+  Key 读成 bootstrap 不能用模型。
+
+  修bug首次teach_record必须立刻能被召回，但weight=2只作建议。同一error_signature在召回命中后再修，weight+2封顶10，不新建条。从未命中不加分。用户纠正仍直接10。hit_count>=3或weig
+
+  修了用户可见的 bug 就要 teach_record，成功也算。lesson 必须写清如何产生（wrong_action）与如何修复（correct_fix），供下次同类实现召回规避。不能只在修失败多次时才记。
+
+  列出列名'
+status: active
+tags: []
+roles: []
+created_at: '2026-09-15T02:55:48Z'
+updated_at: '2026-09-15T02:55:48Z'
+refs: []
+extra: {}
+payload:
+  fingerprint: 1500 8 bootstrap_run_id distilled error knowledge_add mcp/cli task
+    、 、四 与蒸 传出 原样 四采 必带 拒绝 标签 标题 样传 硬顶 签： 绝、 继续 蒸馏 超长 采集 长拒 集标 顶与 题拒 馏标 ：超
+path: memory/episodes/继续-task-8-knowledge-add-1500-硬顶与蒸馏标签-超长拒绝-四采集标题拒--46ac34fc.yaml

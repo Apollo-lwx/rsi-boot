@@ -1,0 +1,30 @@
+id: eeace3db97be4937895d8efb3e38a7e6
+type: teaching_case
+title: MCP server 的工作区边界用 roots/list 协议拿，别信进程 cwd
+content: '背景：Cursor 插件形态的全局 MCP server 进程 cwd 是 Cursor 用户目录，
+
+  IDE 注入环境变量（WORKSPACE_FOLDER_PATHS）无文档背书，VSCODE_CWD 更是
+
+  编辑器安装目录。若按 cwd 落盘 .rsi/，记忆会写进错误位置。
+
+  做法：runtime 延迟到首个 MCP 请求才构建（ServeSession.ensure_started），
+
+  此时经 server.request_context.session.list_roots() 拿到客户端声明的
+
+  工作区根；绑定顺序：显式锚点（--project-root / RSI_PROJECT_ROOT）
+
+  > roots/list > IDE 注入环境变量 > cwd。显式契约永远优先于自动协商。
+
+  客户端无 roots 能力时 list_roots 抛 McpError，捕获后保持回退即可。'
+status: active
+tags: []
+roles: []
+source: extract
+created_at: '2026-09-17T03:52:38Z'
+updated_at: '2026-09-17T03:52:38Z'
+refs: []
+extra: {}
+payload:
+  error_signature: ''
+  failure_type: ''
+path: memory/teaching-cases/mcp-server-的工作区边界用-roots-list-协议拿-别信进程-cwd--eeace3db.yaml

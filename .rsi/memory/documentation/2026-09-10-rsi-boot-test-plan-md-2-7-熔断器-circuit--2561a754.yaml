@@ -1,0 +1,45 @@
+id: 2561a754cefb481c8d93b1200f9d9046
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 2.7 熔断器 CircuitBreaker
+content: '### 2.7 熔断器 CircuitBreaker
+
+
+  | ID | 场景 | 前置条件 | 测试步骤 | 预期结果 | 优先级 |
+
+  |----|------|----------|----------|----------|--------|
+
+  | CIR-01 | CLOSED→OPEN 转换 | sqlite 熔断器（阈值 3，§5.2） | 1. 模拟连续 3 次失败 2. 检查状态 | 状态变为
+  OPEN（注：各依赖阈值不同——sqlite 3 / embedding 3 / llm 5） | P0 |
+
+  | CIR-02 | OPEN→HALF_OPEN 转换 | sqlite 熔断器（恢复超时 30s） | 1. 设置 OPEN 2. 等待 30s | 状态自动变为
+  HALF_OPEN（llm 60s 需分别验证） | P0 |
+
+  | CIR-03 | HALF_OPEN→CLOSED 恢复 | 探测请求成功 | 1. HALF_OPEN 下放行 1 个探测成功 2. 检查状态 | 状态恢复
+  CLOSED，计数清零 | P0 |
+
+  | CIR-04 | HALF_OPEN→OPEN 再次断开 | HALF_OPEN 下探测失败 | 1. 设置 HALF_OPEN 2. 模拟失败 | 状态回到
+  OPEN 并重新计时 recovery_timeout | P0 |
+
+  | CIR-05 | OPEN 状态快速失败 | 状态为 OPEN | 1. 调用 generate() | 不实际发起请求，直接抛 CircuitOpenError
+  走降级链 | P0 |
+
+  | CIR-06 | 纯进程内语义 | 熔断器为内存对象（§2.4/§5.1） | 1. 触发 OPEN 2. 检查实现 | 状态存内存对象属性，无任何外部存储依赖
+  | P0 |
+
+  | CIR-07 | 进程重启冷启动 | 重启进程 | 1. 重启 2. 检查熔断器 | 全部从 CLOSED 冷启动，failure_count=0 | P1
+  |
+
+  | CIR-08 | 计数器重置 | OPEN→CLOSED 后 | 1. 状态恢复后检查 failure_count | failure_count 重置为
+  0 | P1 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.444950+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-2-7-熔断器-circuit--2561a754.yaml

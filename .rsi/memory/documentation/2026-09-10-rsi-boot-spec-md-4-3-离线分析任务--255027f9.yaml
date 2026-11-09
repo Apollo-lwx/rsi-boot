@@ -1,0 +1,68 @@
+id: 255027f9dcb94926807f604f68a0ea0d
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 4.3 离线分析任务
+content: '### 4.3 离线分析任务
+
+
+  离线任务由进程内调度器（`asyncio` 定时任务）执行，进程运行期间按周期触发；进程未运行则跳过，下次启动时补跑当日任务（以 `user_profiles`
+  外的内部状态表记录上次执行时间）。
+
+
+  | 任务 | 周期 | 输入 | 输出 |
+
+  |------|------|------|------|
+
+  | 日志归档 | 每日 | interaction_logs（超过 90 天保留期） | 导出为 `.rsi/archive/` 下 JSONL 文件后从库中删除（§8.3
+  数据生命周期） |
+
+  | pending 日志对账 | 每小时 | status=''pending'' 且超过 10 分钟的记录 | 补齐 UPDATE 或标记为异常 |
+
+  | 采纳率统计 | 每日 | interaction_logs | 各意图/策略采纳率报表 |
+
+  | 成本统计 | 每周 | interaction_logs | Token 用量与费用汇总（§6.1） |
+
+  | 画像更新 | 每日 | interaction_logs + feedback | 按 §3.8 离线聚合算法重算画像（衰减 + TopK + 采纳率），写穿落库并失效缓存
+  |
+
+  | 策略调优 | 每周 | strategy_configs 的 alpha/beta/exposure_count | alpha/beta 向先验回归（×0.9）；曝光
+  ≥ 100 且采纳率 < 20% 的策略标记 is_active=0（§3.3） |
+
+  | FTS 索引重建 | 每日 | knowledge_items 全量 | `knowledge_fts` rebuild，修正增量漂移（§3.2） |
+
+  | 知识提取 | 每日 | 候选队列（modified diff>20%、rating ≥ 4 的交互） | 候选知识条目进入人工确认队列（见下） |
+
+  | 失败模式挖掘 | 每周 | interaction_logs 负信号（rejected/rating≤2/quality<0.5/fallback） | intent×strategy
+  失败模式桶（§3.9） |
+
+  | Harness 提案生成与回归验证 | 每周 | 失败模式桶 + 近 30 天回放集 | harness_proposals 状态流转（§3.9） |
+
+  | 提案观察期巡检 | 每日 | 处于 7 天观察期内的已晋升提案 | 指标恶化 > 5% 自动回滚（§3.9） |
+
+
+  **知识提取流程（Phase 3）**：
+
+
+  1. **候选汇集**：modified 反馈 diff>20% 的（问题, 修改后内容）对；rating ≥ 4 的高质量交互
+
+  2. **LLM 提取**：gpt-4o-mini（temperature=0.2）从候选对生成知识条目草稿（title / content / tags /
+  domain / roles），要求提炼「可复用的经验规则」而非流水账
+
+  3. **去重**：草稿与现有 knowledge_items 做向量比对，cosine ≥ 0.9 视为重复——合并入现有条目（更新 updated_at），不产生新条目
+
+  4. **人工确认**：草稿以 `status=''pending_review''` 入库，经 `rsi_knowledge` 工具的 review 操作确认后转
+  `active` 并生成 embedding 进入检索；拒绝则转 `rejected` 留存 30 天后清理
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.723140+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-4-3-离线分析任务--255027f9.yaml

@@ -1,0 +1,43 @@
+id: a3a3b58a703e475f95ceaff9d6efdda4
+type: teaching_case
+title: 文件运行时回放、零采纳和差评补评按真实事件接线
+content: 缺省 status 的召回可回放并解析 evidence.bucket.intent；零采纳必须已有反馈且非正向；短语未命中的配对用剩余 8 次预算做语义判定；目录行
+  injected 且 surface=catalog；每周都 validate_pending；反馈在 extract_llm 下先问模型再回落规则；quality_judge
+  无 embedding 仍做 accuracy，缓存未命中时用召回摘录补评；观察窗口用 all_rolls，默认热路径仍只读最近滚动文件。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-10-28T06:21:44Z'
+updated_at: '2026-10-28T06:21:44Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: file-runtime-replay-statusless-unjudged-adoption-quality-cache
+    failure_type: wiring
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 缺省 status 的召回可回放并解析 evidence.bucket.intent；零采纳必须已有反馈且非正向；短语未命中的配对用剩余
+      8 次预算做语义判定；目录行 injected 且 surface=catalog；每周都 validate_pending；反馈在 extract_llm
+      下先问模型再回落规则；quality_judge 无 embedding 仍做 accuracy，缓存未命中时用召回摘录补评；观察窗口用 all_rolls，默认热路径仍只读最近滚动文件。
+    reason: 清单逐条核对后，前八项是接线错误，第九项是有测试锁定的读取上限，第十项是 sqlite 遗留且文件运行时已有替代。
+    applies_to: []
+    tags:
+    - harness
+    - file-runtime
+    open_questions: []
+    wrong_action: 回放只认 status=success 且只读提案顶层 intent；零采纳把未反馈的召回当成否决；冲突模型只在短语命中后调用；目录行标记未注入；安静周跳过
+      validate_pending；反馈提取不走 extract_llm；差评补评依赖未挂载的 Pipeline 缓存。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-10-28T06:21:44Z'
+path: memory/teaching-cases/文件运行时回放-零采纳和差评补评按真实事件接线--a3a3b58a.yaml

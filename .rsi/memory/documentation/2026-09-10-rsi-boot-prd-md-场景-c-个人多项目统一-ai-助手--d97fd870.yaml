@@ -1,0 +1,31 @@
+id: d97fd87036b34638befd11f3cbb0998b
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# 场景 C：个人多项目统一 AI 助手
+content: '### 场景 C：个人多项目统一 AI 助手
+
+
+  > 用户一次配置模型和偏好，所有项目窗口自动获得一致的 AI 助手体验；每个项目的知识库与画像独立，通用偏好跨项目沉淀。
+
+
+  **示例**：用户在项目 A 习惯 pytest 风格，切到项目 B 时全局画像自动带上该偏好；项目 B 的专有知识（如其特有的测试环境文档）只在项目 B 内生效。
+
+
+  **期望**：按意图+角色路由不同模型（如简单问题用便宜模型，专业生成用高性能模型）；个人 token 用量与成本可按日/周/月自查（`rsi_stats`）。
+
+
+  **成功标准**：相比无路由直连单一高价模型的成本节省 > 30%；跨项目切换零配置。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.542908+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-场景-c-个人多项目统一-ai-助手--d97fd870.yaml

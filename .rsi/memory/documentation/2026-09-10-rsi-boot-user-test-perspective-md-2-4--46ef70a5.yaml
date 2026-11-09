@@ -1,0 +1,32 @@
+id: 46ef70a55c0248c7b3eea9582af4eece
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 2.4 确定性模式的缺失
+content: '### 2.4 确定性模式的缺失
+
+
+  LLM 天生的非确定性是测试场景的大敌。当前系统中看不出有 `temperature=0` 或固定 `seed` 的支持。这意味着：
+
+
+  - 同样的输入在不同时间可能生成不同的测试用例
+
+  - 回归测试中无法重现之前的生成结果
+
+  - 无法建立稳定的基准线来评估系统改进效果
+
+
+  我强烈建议在请求参数中增加 `deterministic` 选项，固定 `temperature=0` 和 `seed` 参数，确保可复现性。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.329415+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-2-4--46ef70a5.yaml

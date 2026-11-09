@@ -1,0 +1,29 @@
+id: 1ea4f72c54db42229c09e517e9258e2b
+type: documentation
+title: 2026-09-10-implicit-assumptions-analysis.md# 修订记录
+content: '## 修订记录
+
+
+  | 版本 | 日期 | 修订人 | 变更内容 |
+
+  |------|------|--------|----------|
+
+  | v0.2 | 2026-09-10 | QA (审阅修复) | 新增第六节「修复状态追踪」，逐项标注 H1-H10 在 v1.1 文档集中的修复状态与落点；修正
+  H5 原文引用位置（9 意图实际定义于 Spec §3.6 角色意图映射，非 §3.1） |
+
+  | v0.1 | 2026-09-10 | 分析师 | 初稿 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-implicit-assumptions-analysis.md
+created_at: '2026-09-10T11:46:29.248039+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-implicit-assumptions-analysis-md-修订记录--1ea4f72c.yaml

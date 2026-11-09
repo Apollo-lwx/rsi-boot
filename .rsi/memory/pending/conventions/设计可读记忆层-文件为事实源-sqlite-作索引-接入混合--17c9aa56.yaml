@@ -1,0 +1,20 @@
+id: 17c9aa5632774524bc111170996396fb
+type: convention
+title: 设计可读记忆层：文件为事实源、SQLite 作索引、接入混合
+content: 'Q: 设计可读记忆层：文件为事实源、SQLite 作索引、接入混合 RAG 与知识/学习 DAG，替换当前不友好的纯 DB 存储
+
+  A: 2026-09-10-rsi-boot-spec.md# 修订记录
+
+  2026-09-10-rsi-boot-spec.md# 2.3 向量检索 Schema (sqlite-vec + FTS5)
+
+  2026-09-10-rsi-boot-spec.md# 可写槽位模型（6 槽）'
+status: pending_review
+tags: []
+roles: []
+source: auto-extract
+created_at: '2026-09-14T02:16:29.655286+00:00'
+updated_at: '2026-09-15T01:50:58Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/pending/conventions/设计可读记忆层-文件为事实源-sqlite-作索引-接入混合--17c9aa56.yaml

@@ -1,0 +1,34 @@
+id: b73f5bfd58d547dea30d84ad4ce03799
+type: documentation
+title: 2026-09-10-rsi-boot-prd.md# Phase 4 — Won't Have This Time (优化扩展)
+content: '### Phase 4 — Won''t Have This Time (优化扩展)
+
+
+  | 功能 | 说明 | 优先级 |
+
+  |------|------|--------|
+
+  | 多模型适配 | Anthropic、DeepSeek 等接入 | P3 |
+
+  | 成本路由 | 按意图将请求路由到最优性价比模型 | P3 |
+
+  | 用量统计增强 | `rsi_stats` 报表增强（趋势、意图/模型分组） | P3 |
+
+  | 缓存优化 | 进程内缓存热点请求和检索结果调优 | P3 |
+
+  | 团队共享模式 | HTTP 服务 + 认证 + 多租户（刻意不做，见 Spec §10.7；如未来有真实需求作为独立项目评估） | P3 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\prd\2026-09-10-rsi-boot-prd.md
+created_at: '2026-09-10T11:46:29.564144+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-prd-md-phase-4-won-t-have-th--b73f5bfd.yaml

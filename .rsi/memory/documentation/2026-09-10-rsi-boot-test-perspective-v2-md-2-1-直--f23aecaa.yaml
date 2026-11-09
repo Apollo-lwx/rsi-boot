@@ -1,0 +1,33 @@
+id: f23aecaac6a64fb08af953c39ade40f5
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 2.1 直接价值（开箱即用）
+content: '### 2.1 直接价值（开箱即用）
+
+
+  | 能力 | 对我的帮助 | 依赖 Phase |
+
+  |------|-----------|-----------|
+
+  | test_gen 意图 | 生成测试用例模板，节省 30-40% 编写时间 | P1 M2（基础支持）→ P2（完善） |
+
+  | test_review 意图 | 辅助测试代码审查，发现遗漏场景 | P2 |
+
+  | bug_analyze 意图 | 结合知识库分析 bug，减少排查时间 | P2（知识库）→ P3（学习闭环） |
+
+  | 角色感知知识检索 | 优先返回测试相关文档，避免信息噪声 | P2 |
+
+  | test 角色质量评估 | 按 accuracy 优先的评分标准，更贴合测试关注点 | P3 |
+
+  | test 角色格式化 | detailed 风格输出，更适合测试场景的步骤式展示 | P2 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.279941+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-2-1-直--f23aecaa.yaml

@@ -1,0 +1,31 @@
+id: 127ad1520a114fda8fbe98ec2c8865a4
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 时间衰减
+content: '#### 时间衰减
+
+
+  行为计数类字段（frequently_used_intents、knowledge_interests、模型采纳/曝光计数）按指数衰减：
+
+
+  ```
+
+  count_effective = count × 0.5 ^ (days_since_event / HALF_LIFE_DAYS)
+
+  HALF_LIFE_DAYS = 30    # 半衰期 30 天：一个月前的行为权重减半
+
+  ```
+
+
+  衰减在每日离线聚合时统一重算（而非每次写入时衰减），保证写入路径 O(1)。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.694666+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-时间衰减--127ad152.yaml

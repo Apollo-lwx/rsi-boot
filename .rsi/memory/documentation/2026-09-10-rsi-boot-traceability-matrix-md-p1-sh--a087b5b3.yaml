@@ -1,0 +1,47 @@
+id: a087b5b3731d4257abaddadffdbeee24
+type: documentation
+title: 2026-09-10-rsi-boot-traceability-matrix.md# P1 — Should Have（10 项）
+content: '### P1 — Should Have（10 项）
+
+
+  | # | PRD 需求 | PRD 章节 | Specs 章节 | Plans 任务 | 备注 |
+
+  |---|----------|----------|-----------|-----------|------|
+
+  | 15 | 角色感知基础设施（role 字段 + config/roles/ + 角色维度日志，含 Test/PM 内置角色） | §4.1-M2, §2 目标用户
+  | §2.1 RSIRequest, §3.6 意图系统, §3.7 格式化 | 角色基础设施（M2） | 业务角色，无权限语义 |
+
+  | 16 | 向量检索集成（sqlite-vec，含向量化服务） | §4.2 | §2.3 向量检索 Schema | P2.1 | 与主库同文件，缺失时降级纯
+  FTS5 |
+
+  | 17 | 意图识别升级（few-shot 分类） | §4.2 | §3.1 意图识别 | P2.2 | |
+
+  | 18 | 知识检索与注入（含来源标注、低置信度不注入） | §4.2, §7 约束 | §3.2 知识检索 | P1.18（M1 FTS5 版）+ P2.3（混合升级）
+  | 注入门槛：cosine 相似度 >= 0.6（Phase 2 起；M1 为 FTS5 关键词子集） |
+
+  | 19 | 用户画像基础 | §4.2 | §2.1 UserProfile 模型, §3.8 画像构建与更新 | P2.4 | 全局/项目双层（§10.4）
+  |
+
+  | 20 | 上下文增强（项目配置读取） | §4.2 | §4.1 数据流程 | P2.3 | |
+
+  | 21 | 隐式反馈捕获 | §4.2 | §4.2 反馈处理流程（隐式行为上报协议） | P2.5 | 依赖客户端事件上报集成 |
+
+  | 22 | 模型 fallback（同厂商型号） | §4.2 | §5.2 DataServiceProxy | P2 阶段嵌入实现 | 跨厂商 fallback
+  见 #32 |
+
+  | 23 | 配置热加载（watchfiles） | §4.2 | §2.5 配置继承链 | P1.14 | Plans 提前至 M2 实现 |
+
+  | 24 | rsi bootstrap 项目自学习 | §4.1-M2, §9.3 存量项目自学习 | §10.9 项目自学习与初始化 | P1.17（核心扫描层）+
+  P2.6（深度信号层） | 存量项目启用时强烈建议执行；v2.4 起分两期交付 |'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-traceability-matrix.md
+created_at: '2026-09-10T11:46:29.307201+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-traceability-matrix-md-p1-sh--a087b5b3.yaml

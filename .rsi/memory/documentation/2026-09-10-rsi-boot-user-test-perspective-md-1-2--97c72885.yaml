@@ -1,0 +1,31 @@
+id: 97c728850bb44e7c95f237353c267725
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 1.2 知识库辅助测试的价值
+content: '### 1.2 知识库辅助测试的价值
+
+
+  知识库是 RSI Gateway 对 QA 最有吸引力的功能之一。设想我可以将以下内容导入知识库：
+
+
+  - 历史 Bug 记录与根因分析
+
+  - 模块间的接口契约文档
+
+  - 测试环境配置与数据准备脚本
+
+  - 测试规范与检视清单
+
+
+  但在 Phase 1 中知识库是 P2 功能，Phase 2 才进入开发。这意味着在最关键的初期阶段（项目正式提测前半年），QA 无法获得知识库红利。而且知识库的质量高度依赖初始导入的内容——「冷启动期太长」是一个现实的痛点。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.323295+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-1-2--97c72885.yaml

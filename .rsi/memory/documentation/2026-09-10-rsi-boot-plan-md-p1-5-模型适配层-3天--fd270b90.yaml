@@ -1,0 +1,35 @@
+id: fd270b9037324286be43cbf173890a45
+type: documentation
+title: 2026-09-10-rsi-boot-plan.md# P1.5 模型适配层（3天）
+content: '### P1.5 模型适配层（3天）
+
+
+  **实现依据**：Spec §1.1 模型适配层（统一调用接口、流式 SSE）
+
+
+  | 任务 | 产出 | 工时 |
+
+  |------|------|------|
+
+  | ModelAdapter 抽象基类 + ModelResponse | model/adapter.py | 0.5d |
+
+  | OpenAIAdapter 实现（同步 + 流式） | model/providers/openai.py | 1d |
+
+  | 模型注册中心（registry） | model/registry.py | 0.5d |
+
+  | 单元测试：test_model_adapter.py | 测试用例 | 0.5d |
+
+
+  **验收**：能通过统一接口调用 OpenAI 并返回标准响应'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-plan.md
+created_at: '2026-09-10T11:46:29.376384+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-plan-md-p1-5-模型适配层-3天--fd270b90.yaml

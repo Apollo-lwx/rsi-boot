@@ -1,0 +1,36 @@
+id: d25621c980004914bb5e55889f62aabd
+type: documentation
+title: 2026-09-10-rsi-boot-test-perspective-v2.md# 3.2 意图覆盖：基础可用，依赖后续 Phase
+content: '### 3.2 意图覆盖：基础可用，依赖后续 Phase
+
+
+  | 测试意图 | P1 M1 | P1 M2 | P2 | P3 | P4 |
+
+  |----------|-------|-------|----|-----|-----|
+
+  | test_gen | — | 基础支持 | 完善 | ✓ | ✓ |
+
+  | test_review | — | — | ✓ | ✓ | ✓ |
+
+  | bug_analyze | — | — | ✓ | ✓ | ✓ |
+
+  | test_data | — | — | — | ✓ | ✓ |
+
+  | coverage_check | — | — | — | ✓ | ✓ |
+
+
+  **关键发现**：测试角色的核心能力集中在 Phase 2 之后。Phase 1 M1 测试工程师只能用通用模式。
+
+  这意味着早期项目（前 4-5 周）测试团队的实际收益有限——但这是所有非开发角色的共性，不是设计缺陷。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-test-perspective-v2.md
+created_at: '2026-09-10T11:46:29.284752+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-perspective-v2-md-3-2-意--d25621c9.yaml

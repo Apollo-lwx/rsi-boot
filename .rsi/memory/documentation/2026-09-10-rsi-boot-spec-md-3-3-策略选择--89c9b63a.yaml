@@ -1,0 +1,54 @@
+id: 89c9b63aa6ef4cf485f2c5300df8b834
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 3.3 策略选择
+content: '### 3.3 策略选择
+
+
+  策略选择分为两步：确定路由 + 概率探索（Thompson Sampling）。
+
+
+  **确定路由**：根据 intent + user_profile + project_config 匹配策略规则。
+
+
+  **Thompson Sampling 设计**
+
+
+  | 组件 | 说明 |
+
+  |------|------|
+
+  | Arms | 每条候选策略为一个 arm。同一 intent 下可配置多条策略（不同模型/模板组合） |
+
+  | Reward | 用户反馈评估，按 action 映射（完整映射表见 §4.2）：采纳/应用 +2，复制/好评(4-5分) +1，修改 +1，参考 +0.5，差评(1-2分)
+  -1，拒绝 -1，忽略 0 |
+
+  | Prior | Beta(alpha=1, beta=1) 均匀先验 |
+
+  | Update Rule | reward > 0 时 `alpha += reward`；reward < 0 时 `beta += abs(reward)`；reward
+  = 0 不更新。从每个 arm 的 Beta(alpha, beta) 分布采样，选择采样值最大的 arm |
+
+  | 状态持久化 | alpha / beta / exposure_count 存 `strategy_configs` 表（§2.2），Feedback Worker
+  更新；运行时读取走内存缓存（60s 刷新），不阻塞主链路 |
+
+  | 离线衰减 | 每周策略调优任务（§4.3）将 alpha/beta 向先验回归：`alpha = 1 + (alpha - 1) × 0.9`，beta 同理——防止历史数据锁定导致策略永久固化
+  |
+
+  | 淘汰规则 | 曝光 ≥ 100 且采纳率 < 20% 的策略标记 `is_active=false`（人工复核后删除） |
+
+
+  > 注：纯 Thompson Sampling 不需要额外的 epsilon 随机探索——样本量小的 arm 其 Beta 分布方差大，探索自然发生。
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.669627+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-3-3-策略选择--89c9b63a.yaml

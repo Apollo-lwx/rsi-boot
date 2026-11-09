@@ -1,0 +1,58 @@
+id: c534d86c869b4ec2bb07603ac411874f
+type: documentation
+title: 2026-09-10-rsi-boot-test-plan.md# 修订记录
+content: '## 修订记录
+
+
+  | 版本 | 日期 | 修订人 | 变更内容 |
+
+  |------|------|--------|----------|
+
+  | v2.6 | 2026-09-10 | QA (评审修复) | 响应外部评审 #1/#2：§2.9/§2.10 标注 M1 轻量版（P1.18）与后续 Phase
+  的用例适用边界（FTS5 子集 / 反馈基础版） |
+
+  | v2.5 | 2026-09-10 | QA (评审修复) | 响应外部评审 #5：新增 §12 算法质量评估与验收基线——意图分类（标注集 ≥50 条/意图，规则版
+  ≥85%/LLM 版 ≥92%）、知识检索（Recall@5 ≥80%/MRR ≥0.65，3 类项目泛化，网格调优归档）、Thompson 收敛（仿真 1000
+  轮最优臂 ≥90%、regret 优于随机 ≥40%）、Harness 提案（最小化五项客观标准、门禁注入拦截 100%、首批接受率 ≥50%、回滚率 >30%
+  告警）、画像推断（≥80%）、评测基础设施 tests/eval/ 与 CI 分级（per-PR 快速门槛 / nightly 全量 / baselines.json
+  版本化）；原 §12 风险与应对顺移 §13 |
+
+  | v2.4 | 2026-09-10 | QA (评审修复) | 跟随 Spec/Plans v2.4：KNO-09 改写为三级回退链（sqlite-vec→brute→纯
+  FTS5），新增 KNO-10 双后端 TopK 一致性（≥80%）与 KNO-11 后端配置强制；风险表 sqlite-vec 行同步回退策略 |
+
+  | v2.3 | 2026-09-10 | QA (Skill 槽补全) | 跟随 Spec v2.3：§2.14 新增 HRSI-16/17——技能槽提案生效（trigger
+  匹配注入 + 来源标注 + 进快照）、技能热加载与停用 |
+
+  | v2.2 | 2026-09-10 | QA (Genome 借鉴) | 跟随 Spec v2.2：§2.14 新增 HRSI-11~15——晋升即配置快照、回滚
+  = 切换快照、快照合并语义（缺省继承/null 重置/有值覆盖）、rsi_review generate 按需生成、快照导出 bundle |
+
+  | v2.1 | 2026-09-10 | QA (Harness-RSI) | 跟随 Spec v2.1：新增 §2.14 Harness 自我改进用例系列（HRSI-01~10）：失败挖掘分桶、提案最小化约束、回归门禁通过/否决、人工确认晋升、观察期自动回滚、手动回滚、速率硬上限、元级修改禁止、事实日志
+  append-only 验证 |
+
+  | v2.0 | 2026-09-10 | QA (定位重构) | 跟随 Spec v2.0 定位转向：**删除 §2.8 限流（RAT 系列 6 条）与 §2.9
+  认证鉴权（AUTH 系列 10 条）两整节**；熔断用例（CIR）改写为 sqlite/embedding/llm 三依赖与进程内冷启动语义；MCP 删除 HTTP
+  传输用例；反馈用例改 asyncio.Queue 进程内语义（重启丢失可接受、显式反馈同步落库）；预算用例改每日 token 上限（§6.2）；压力测试规模下调至个人工具量级并去除
+  QPS/吞吐指标；混沌测试故障面改 SQLite/Embedding/LLM；安全测试删除管理 API/暴力破解/TLS 服务端项；升级测试改 PRAGMA user_version
+  迁移；测试环境去除 testcontainers/docker-compose，改临时目录 SQLite + stdio 子进程 |
+
+  | v1.1 | 2026-09-10 | QA (审阅修复) | 与 Spec v1.1 全面校准：意图名/置信度对齐 §3.1 规则版（code_gen/code_review/general_assist）；限流用例对齐
+  §8.3（60 req/min + 桶容量 60）；质量评估维度对齐 §3.5（relevance/accuracy/actionability）；Thompson
+  用例对齐 §3.3（纯采样无 epsilon，reward 数值与 alpha/beta 更新规则一致）；熔断用例指明各服务阈值（§5.2）；CHA-07 改为单调时钟验证；AUTH
+  系列区分 X-API-Key/JWT 与 401/403 语义；CON-01 对齐两段式日志写入；补全测试金字塔图；覆盖率口径注明 |
+
+  | v0.1 | 2026-09-10 | QA | 初稿 |
+
+
+  ---'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\plans\2026-09-10-rsi-boot-test-plan.md
+created_at: '2026-09-10T11:46:29.426289+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-test-plan-md-修订记录--c534d86c.yaml

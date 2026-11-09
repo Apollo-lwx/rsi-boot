@@ -1,0 +1,25 @@
+id: de8a96d1240440f49c3a38cefd4dc192
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# Schema 迁移策略（PRAGMA user_version）
+content: '#### Schema 迁移策略（PRAGMA user_version）
+
+
+  - 版本号存 `PRAGMA user_version`；`migrations/` 目录下 `001_init.sql`、`002_xxx.sql` 按序执行
+
+  - 启动时检查 `user_version`，落后则依次执行迁移脚本，每个脚本以事务包裹（SQLite DDL 支持事务）
+
+  - 每个迁移脚本必须幂等（`IF NOT EXISTS` / 版本判断），支持中断后重入
+
+  - 不引入 Alembic——SQLite 场景下 PRAGMA + 顺序 SQL 脚本足够，减少依赖'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.657682+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-schema-迁移策略-pragma-u--de8a96d1.yaml

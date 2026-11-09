@@ -1,0 +1,33 @@
+id: a4ce274f23144e90b47845c635b8bd30
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 提案生成与验证（每周离线任务，§4.3）
+content: '#### 提案生成与验证（每周离线任务，§4.3）
+
+
+  1. **失败模式挖掘**：聚类近 7 天负信号（rejected、rating ≤ 2、quality_score < 0.5、fallback 触发），按
+  intent × strategy 分桶，仅处理样本数 ≥ 5 的桶（避免偶发噪声）
+
+  2. **提案生成**：LLM（gpt-4o-mini，temperature=0.2）对每个失败桶生成 ≤ 3 个**最小化、单槽位**提案——每个提案必须绑定具体失败机制（Self-Harness
+  约束），禁止泛化大改
+
+  3. **回归验证门禁**：候选改动在回放集（近 30 天该 intent 抽样 50 条请求，含历史反馈标签）上重放；晋升条件 = 目标指标（采纳率/质量分）提升**且无任何维度退化
+  > 5%**，否则 rejected
+
+  4. **人工确认**：通过门禁的提案进入 `approved`，经 `rsi_review` 工具确认后 `active`；信任度建立后可在 `rsi-boot.yaml`
+  配 `auto_apply: true` 跳过人工（不推荐初期开启）
+
+
+  除每周离线任务外，`rsi_review` 提供 `generate` 操作支持**按需触发**提案生成（借鉴 RSI-Harness 的交互式蒸馏）：立即对近
+  7 天负信号执行挖掘与提案生成，仍受单轮 ≤ 5 个提案的速率上限约束。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.711884+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-提案生成与验证-每周离线任务-4-3--a4ce274f.yaml

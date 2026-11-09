@@ -1,0 +1,28 @@
+id: 926dce5d6b764e32bb1af6d527f675e3
+type: documentation
+title: 2026-09-10-rsi-boot-user-test-perspective.md# 3.3 ROI 不清晰是最大阻力
+content: '### 3.3 ROI 不清晰是最大阻力
+
+
+  这是测试团队推动落地的最大障碍。具体来说：
+
+
+  - **量化困难**：「生成的测试代码节省 40% 编写时间」，但这 40% 是模板代码时间，用例设计的质量提升难以量化。
+
+  - **隐性成本高**：部署维护 PostgreSQL/Redis（或 Docker 环境）、知识库建设、种子数据准备、模型 API 费用——这些在 ROI 计算中往往被低估。
+
+  - **机会成本**：同样的时间投入，用于提升现有测试框架、引入更成熟的测试工具，是否比尝试 RSI Gateway 更有效？目前缺乏数据支撑回答这个问题。
+
+  - **没有免费模式**：每个请求都需要调用 LLM API，虽然不是自己付钱（团队/项目经费），但还是会被关注成本。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\analysis\2026-09-10-rsi-boot-user-test-perspective.md
+created_at: '2026-09-10T11:46:29.333287+00:00'
+updated_at: '2026-09-15T01:50:56Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-user-test-perspective-md-3-3--926dce5d.yaml

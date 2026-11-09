@@ -1,0 +1,75 @@
+id: d01ec0d829fc4afa828d1722fa2596be
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 3.5 质量评估
+content: '### 3.5 质量评估
+
+
+  Phase 3 实现三维度质量评估。评估标准可随角色动态调整，通过配置定义各角色的维度权重。
+
+
+  | 维度 | 默认权重 | 评估方法 |
+
+  |------|----------|----------|
+
+  | 相关性 | 0.4 | 回答与问题的语义匹配度（embedding cosine） |
+
+  | 准确性 | 0.35 | 事实一致性（LLM-as-judge 检查） |
+
+  | 可操作性 | 0.25 | 是否包含可执行的代码/步骤（规则检测） |
+
+
+  **各维度计算方法**：
+
+
+  | 维度 | 计算细节 | 成本与采样 |
+
+  |------|---------|-----------|
+
+  | relevance | text-embedding-3-small 分别嵌入 query 与 response（各截断 4000 字符），cosine 相似度经
+  `max(0, (s - 0.2) / 0.6)` 重标定到 [0,1]（cosine 0.2 以下视为不相关，0.8 以上视为满分） | 每次响应都计算（embedding
+  成本低） |
+
+  | accuracy | LLM-as-judge：gpt-4o-mini，temperature=0，提示词给出 query + response + 检索到的知识条目，要求判断事实一致性并输出
+  `{"score": 0.0~1.0, "reason": "..."}` | **抽样 10%** 的响应执行；用户差评（rating ≤ 2）的响应必查 |
+
+  | actionability | 规则检测加权：含带语言标记的代码块 +0.5；含分步骤列表（`1.` / `-` 枚举 ≥ 3 项）+0.3；正文长度 ≥
+  意图下限（code_gen ≥ 100 字符，explain ≥ 200 字符）+0.2；按 intent 类型启用不同规则子集 | 每次响应都计算（纯规则无成本）
+  |
+
+
+  综合分：`quality_score = Σ(weight_i × score_i)`，权重按角色取自 `config/quality_rubric.yaml`；accuracy
+  未采样时按其余两维度权重归一化折算。
+
+
+  **角色权重配置（config/quality_rubric.yaml）**
+
+
+  | 角色 | relevance | accuracy | actionability | 说明 |
+
+  |------|-----------|----------|--------------|------|
+
+  | developer | 0.3 | 0.3 | 0.4 | 开发者更看重可操作性（代码可执行性优先） |
+
+  | test | 0.3 | 0.4 | 0.3 | 测试场景准确性最关键 |
+
+  | pm | 0.5 | 0.3 | 0.2 | 产品经理更看重相关性 |
+
+  | default | 0.4 | 0.35 | 0.25 | 特殊角色未匹配时用此默认权重 |
+
+
+  **自定义角色扩展：**在配置文件中新增一个角色条目即可，无需修改代码。
+
+
+  质量分数随 `RSIResponse.metadata.quality_score` 返回，客户端可根据分数决定展示方式。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.675998+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-3-5-质量评估--d01ec0d8.yaml

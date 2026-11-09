@@ -1,0 +1,26 @@
+id: aa0faa39357b48eeaeabdf9446427b89
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 7.2 身份与信任模型
+content: '### 7.2 身份与信任模型
+
+
+  本地单用户工具，**无认证、无权限体系**：仅 stdio 传输，信任本地进程边界（与 Superpowers 等 MCP 工具一致，安装即用）。
+
+
+  - **user_id 解析**：默认取 `git config user.email`；未配置 git 时为 `local`。仅用于画像与日志归属，不用于任何访问控制
+
+  - **role 字段**：业务角色（developer/test/pm/自定义），信任客户端传入，仅影响意图路由/知识检索/响应格式化（§2.1）
+
+  - **多项目**：project_id 是数据命名空间（各项目画像/知识/策略隔离），不是租户隔离——所有数据本机可见，删除项目数据即删 `.rsi/` 目录'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.737183+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-7-2-身份与信任模型--aa0faa39.yaml

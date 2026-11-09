@@ -1,0 +1,31 @@
+id: d3d3c36a620f4baea1c25a4a95a5f4a9
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 版本化与回滚（Genome 式整体快照）
+content: '#### 版本化与回滚（Genome 式整体快照）
+
+
+  借鉴 RSI-Harness 的 Genome 模式：**提案层存 diff，版本层存整体快照，回滚 = 切换快照**（而非逆向重放 diff）。
+
+
+  - 提案的 `payload` 仍存 before/after diff（审计粒度）；每次提案**晋升生效时**，将 6 槽位当前内容整体导出写入 `config_snapshots`（§2.2），版本号项目内单调递增
+
+  - 快照合并语义与 §2.5 配置链一致：**缺省 = 继承上一版本；`null` = 显式重置回默认；有值 = 覆盖**（对象递归合并、数组整体替换）——单槽位小改不需要复制全量内容
+
+  - 回滚（`rsi_review` rollback 或观察期自动触发）= 将目标历史快照标记 `rolled_back_to` 并以其内容重建槽位，原快照转
+  `superseded`；任意历史版本可切换
+
+  - 快照可导出为目录型 bundle（`genome.json` 清单 + 各槽位文件），用于跨项目迁移或备份——个人工具的「换项目即换 Genome」
+
+  - 晋升后进入 **7 天观察期**：每日巡检，指标显著恶化（采纳率下降 > 5%）自动回滚到晋升前快照并标记提案 `rolled_back`'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.711884+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-版本化与回滚-genome-式整体快照--d3d3c36a.yaml

@@ -1,0 +1,30 @@
+id: aaed82174c6d48f99079724d6ce10a04
+type: gene_case
+title: skip 算未覆盖，禁止整板 skip，蒸馏按源类型落目录
+content: 报告 skipped=未覆盖。pack_done(skipped) 要求同 lane 已有 done。knowledge_add 按包域落 skill/teaching_case/gene_case/pattern。knowledge_review
+  写 kind=review 事件。bootstrap/write_relearn_skill 刷新 rsi-relearn。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-09-15T10:43:32Z'
+updated_at: '2026-09-15T10:43:32Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: coverage
+  error_signature: skip-counts-as-learned-and-wrong-type-dirs
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 报告 skipped=未覆盖。pack_done(skipped) 要求同 lane 已有 done。knowledge_add 按包域落
+    skill/teaching_case/gene_case/pattern。knowledge_review 写 kind=review 事件。bootstrap/write_relearn_skill
+    刷新 rsi-relearn。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-09-15T10:43:32Z'
+path: memory/gene-map/manual/skip-算未覆盖-禁止整板-skip-蒸馏按源类型落目录--aaed8217.yaml

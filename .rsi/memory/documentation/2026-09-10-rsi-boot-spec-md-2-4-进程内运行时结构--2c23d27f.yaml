@@ -1,0 +1,39 @@
+id: 2c23d27f1d4d4ae49998cb8cbf2a47a6
+type: documentation
+title: 2026-09-10-rsi-boot-spec.md# 2.4 进程内运行时结构
+content: '### 2.4 进程内运行时结构
+
+
+  本地单进程工具无需 Redis。缓存、队列、熔断器状态均为进程内结构，进程退出即失效（均为易失性数据，无持久化需求）。
+
+
+  | 结构 | 实现 | 容量/TTL | 用途 |
+
+  |------|------|----------|------|
+
+  | 响应缓存 | `cachetools.TTLCache` | maxsize=500, ttl=300s | LLM 响应缓存（key = 请求特征 SHA-256，§3.4）
+  |
+
+  | 画像缓存 | `cachetools.TTLCache` | maxsize=50, ttl=600s | UserProfile 缓存（key = `user_id:project_id`）
+  |
+
+  | 熔断器状态 | 内存对象（`CircuitBreaker.state`） | 进程生命周期 | 各模型服务熔断状态（§5.1） |
+
+  | 异步任务队列 | `asyncio.Queue` | maxsize=1000 | 反馈处理/画像更新等后台任务（§4.3） |
+
+  | 并发控制 | `asyncio.Semaphore` | 按配置（默认 10） | LLM 并发请求上限 |
+
+
+  > 进程重启后缓存/熔断状态冷启动：缓存 miss 即回源 LLM/DB，熔断器从 CLOSED 开始——对个人工具均为可接受的瞬态行为，不做持久化。'
+status: active
+domain: bootstrap
+tags:
+- signal:docs
+roles: []
+source: docs\specs\2026-09-10-rsi-boot-spec.md
+created_at: '2026-09-10T11:46:29.659915+00:00'
+updated_at: '2026-09-15T01:50:57Z'
+refs: []
+extra: {}
+payload: {}
+path: memory/documentation/2026-09-10-rsi-boot-spec-md-2-4-进程内运行时结构--2c23d27f.yaml
