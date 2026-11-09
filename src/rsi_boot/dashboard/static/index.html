@@ -152,6 +152,30 @@
   }
   .ev { margin-bottom: 12px; }
   .ev-head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 6px; }
+  .tl { position: relative; padding-left: 118px; }
+  .tl::before {
+    content: ""; position: absolute; left: 105px; top: 6px; bottom: 6px; width: 2px;
+    background: linear-gradient(rgba(33,211,238,0.5), rgba(33,211,238,0.05));
+  }
+  .tl-day { position: relative; margin-bottom: 18px; }
+  .tl-date {
+    position: absolute; left: 0; top: 9px; width: 88px; text-align: right;
+    font-size: 12px; color: var(--cyan); font-family: Consolas, monospace;
+  }
+  .tl-date small { display: block; color: var(--dim); font-size: 10px; }
+  .tl-item {
+    position: relative; background: var(--tile); border-radius: 8px;
+    padding: 8px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
+  }
+  .tl-item::before {
+    content: ""; position: absolute; left: -17px; top: 50%; transform: translateY(-50%);
+    width: 8px; height: 8px; border-radius: 50%; background: var(--dot, #FBBF24);
+    box-shadow: 0 0 6px var(--dot, #FBBF24);
+  }
+  .badge {
+    font-size: 10px; border: 1px solid var(--line); border-radius: 999px;
+    padding: 1px 8px; color: var(--muted); flex: none; white-space: nowrap;
+  }
   .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
   .err { padding: 48px 24px; text-align: center; color: var(--muted); }
   @media (max-width: 1100px) {
@@ -464,14 +488,22 @@ function listView(top) {
   const head = `<div class="muted" style="font-size:14px">记忆清单 · ${esc(top.title)}</div>
     <div class="mono big">${top.items ? esc(num(top.items.length)) : "…"}</div>`;
   if (!top.items) return modalFrame(head, `<p class="empty">正在读取清单…</p>`, "");
-  const rows = top.items.map((item) => `<div class="pend">
-    <span class="dot" style="background:${statusColor(item.status)}"></span>
-    <span class="grow link" data-doc="${esc(item.id)}" title="${esc(item.snippet)}">${esc(item.title)}</span>
-    <span class="dim" style="font-size:11px">${esc(item.type)}</span>
-    <span class="dim" style="font-size:11px">${esc(item.status)}</span>
-    <span class="mono dim" style="font-size:11px">${esc(item.updated)}</span>
-  </div>`).join("");
-  return modalFrame(head, rows || `<p class="empty">这个条件下没有记忆。</p>`, "点标题看全文与出处；最多列最近更新的 200 条。");
+  if (!top.items.length) return modalFrame(head, `<p class="empty">这个条件下没有记忆。</p>`, "");
+  const groups = {};
+  top.items.forEach((item) => {
+    const day = item.updated || "未知日期";
+    (groups[day] = groups[day] || []).push(item);
+  });
+  const days = Object.keys(groups).sort().reverse();
+  const body = `<div class="tl">${days.map((day) => `<div class="tl-day">
+    <div class="tl-date">${esc(day)}<small>${groups[day].length} 条</small></div>
+    ${groups[day].map((item) => `<div class="tl-item link" data-doc="${esc(item.id)}" style="--dot:${statusColor(item.status)}" title="${esc(item.snippet)}">
+      <span class="grow">${esc(item.title)}</span>
+      <span class="badge">${esc(item.type)}</span>
+      <span class="badge" style="color:${statusColor(item.status)};border-color:${statusColor(item.status)}44">${esc(item.status)}</span>
+    </div>`).join("")}
+  </div>`).join("")}</div>`;
+  return modalFrame(head, body, "时间轴按更新日期倒序分组；点条目看全文与出处；最多列最近更新的 200 条。");
 }
 function fbView(top) {
   const head = `<div class="muted" style="font-size:14px">反馈事件 · ${esc(top.action)}</div>
