@@ -1,0 +1,31 @@
+id: ad315a43a0724550b427b82c50184b3f
+type: gene_case
+title: 弹窗按钮禁止断行，键值元数据用固定标签列布局
+content: 弹窗按钮加 white-space:nowrap+flex:none；键值元数据用 .kv 布局（标签固定 56px 宽、值左对齐可折行 overflow-wrap:anywhere），不要用
+  meta-row 的左右分布；长标题 overflow-wrap:anywhere。改完 HTML 后大屏要 close+open 重开才会重新读盘（页面字节是
+  start 时读入内存的）。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-09T08:30:57Z'
+updated_at: '2026-11-09T08:30:57Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: 用户截图：返回/关闭按钮竖排断行，元数据表标签与值分裂在两端
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 弹窗按钮加 white-space:nowrap+flex:none；键值元数据用 .kv 布局（标签固定 56px 宽、值左对齐可折行 overflow-wrap:anywhere），不要用
+    meta-row 的左右分布；长标题 overflow-wrap:anywhere。改完 HTML 后大屏要 close+open 重开才会重新读盘（页面字节是
+    start 时读入内存的）。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-09T08:30:57Z'
+path: memory/gene-map/manual/弹窗按钮禁止断行-键值元数据用固定标签列布局--ad315a43.yaml

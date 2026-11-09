@@ -116,8 +116,11 @@
   .modal .big { font-size: 48px; font-weight: 700; line-height: 1; }
   .x {
     border: 1px solid rgba(33,211,238,0.2); background: transparent; color: var(--muted);
-    border-radius: 8px; padding: 4px 12px; cursor: pointer;
+    border-radius: 8px; padding: 4px 12px; cursor: pointer; white-space: nowrap; flex: none;
   }
+  .kv { display: flex; gap: 12px; font-size: 12px; align-items: baseline; }
+  .kv .k { color: var(--dim); width: 56px; flex: none; }
+  .kv .v { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .x:hover { color: white; }
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   .sec { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
@@ -505,14 +508,14 @@ function recallsView(top) {
 function docView(top) {
   const doc = top.doc;
   const head = `<div class="muted" style="font-size:14px">记忆详情</div>
-    <div style="font-size:20px;font-weight:600;margin-top:4px;line-height:1.4">${esc(doc ? doc.title : "…")}</div>`;
+    <div style="font-size:18px;font-weight:600;margin-top:4px;line-height:1.4;overflow-wrap:anywhere">${esc(doc ? doc.title : "…")}</div>`;
   if (!doc) return modalFrame(head, `<p class="empty">正在读取详情…</p>`, "");
   const meta = [
     ["ID", doc.id], ["类型", doc.type + " / " + doc.category], ["状态", doc.status],
     ["domain", doc.domain || "—"], ["来源", doc.source || "—"],
     ["标签", (doc.tags || []).join(", ") || "—"], ["角色", (doc.roles || []).join(", ") || "—"],
     ["创建", doc.created || "—"], ["更新", doc.updated_full || "—"], ["路径", doc.path || "—"],
-  ].map(([k, v]) => `<div class="meta-row"><span class="muted">${esc(k)}</span><span class="mono right grow" style="font-size:11px">${esc(v)}</span></div>`).join("");
+  ].map(([k, v]) => `<div class="kv"><span class="k">${esc(k)}</span><span class="v mono">${esc(v)}</span></div>`).join("");
   const actions = doc.status === "pending_review" ? `<div class="batchbar">
     <button class="act ok" data-doc-act="approve" type="button">✓ 批准转 active</button>
     <button class="act no" data-doc-act="reject" type="button">✕ 拒绝归档</button>
