@@ -159,19 +159,28 @@
   }
   .tl-day { position: relative; margin-bottom: 18px; }
   .tl-date {
-    position: absolute; left: 0; top: 9px; width: 88px; text-align: right;
+    position: absolute; left: 0; top: 6px; width: 88px; text-align: right;
     font-size: 12px; color: var(--cyan); font-family: Consolas, monospace;
+    background: var(--tile); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px;
   }
   .tl-date small { display: block; color: var(--dim); font-size: 10px; }
   .tl-item {
-    position: relative; background: var(--tile); border-radius: 8px;
+    position: relative; background: var(--tile); border: 1px solid transparent; border-radius: 8px;
     padding: 8px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
   }
+  .tl-item.col { align-items: flex-start; }
+  .tl-item:hover { border-color: rgba(33,211,238,0.35); background: #101F38; }
   .tl-item::before {
-    content: ""; position: absolute; left: -17px; top: 50%; transform: translateY(-50%);
-    width: 8px; height: 8px; border-radius: 50%; background: var(--dot, #FBBF24);
+    content: ""; position: absolute; left: -18px; top: 50%; transform: translateY(-50%);
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--panel); border: 2px solid var(--dot, #FBBF24);
     box-shadow: 0 0 6px var(--dot, #FBBF24);
   }
+  .tl-time {
+    width: 40px; flex: none; font-size: 11px; color: var(--dim);
+    font-family: Consolas, monospace; padding-top: 1px;
+  }
+  .tl-hits { margin-top: 6px; }
   .badge {
     font-size: 10px; border: 1px solid var(--line); border-radius: 999px;
     padding: 1px 8px; color: var(--muted); flex: none; white-space: nowrap;
@@ -504,20 +513,26 @@ function kpiModal(kpi, raw, data) {
   }
   return modalFrame(kpiHead(kpi), body, note);
 }
+function groupByDay(rows, dayOf) {
+  const days = [];
+  const seen = {};
+  rows.forEach((row) => {
+    const day = dayOf(row) || "未知日期";
+    if (!seen[day]) { seen[day] = { day, rows: [] }; days.push(seen[day]); }
+    seen[day].rows.push(row);
+  });
+  return days;
+}
 function listView(top) {
   const head = `<div class="muted" style="font-size:14px">记忆清单 · ${esc(top.title)}</div>
     <div class="mono big">${top.items ? esc(num(top.items.length)) : '<span class="spin"></span>'}</div>`;
   if (!top.items) return modalFrame(head, skel(4), "");
   if (!top.items.length) return modalFrame(head, `<p class="empty">这个条件下没有记忆。</p>`, "");
-  const groups = {};
-  top.items.forEach((item) => {
-    const day = item.updated || "未知日期";
-    (groups[day] = groups[day] || []).push(item);
-  });
-  const days = Object.keys(groups).sort().reverse();
-  const body = `<div class="tl">${days.map((day) => `<div class="tl-day">
-    <div class="tl-date">${esc(day)}<small>${groups[day].length} 条</small></div>
-    ${groups[day].map((item) => `<div class="tl-item link" data-doc="${esc(item.id)}" style="--dot:${statusColor(item.status)}" title="${esc(item.snippet)}">
+  const days = groupByDay(top.items, (item) => item.updated);
+  const body = `<div class="tl">${days.map((g) => `<div class="tl-day">
+    <div class="tl-date">${esc(g.day)}<small>${g.rows.length} 条</small></div>
+    ${g.rows.map((item) => `<div class="tl-item link" data-doc="${esc(item.id)}" style="--dot:${statusColor(item.status)}" title="${esc(item.snippet)}">
+      <span class="tl-time">${esc(item.time || "")}</span>
       <span class="grow">${esc(item.title)}</span>
       <span class="badge">${esc(item.type)}</span>
       <span class="badge" style="color:${statusColor(item.status)};border-color:${statusColor(item.status)}44">${esc(item.status)}</span>
@@ -529,33 +544,43 @@ function fbView(top) {
   const head = `<div class="muted" style="font-size:14px">反馈事件 · ${esc(top.action)}</div>
     <div class="mono big">${top.events ? esc(num(top.events.length)) : '<span class="spin"></span>'}</div>`;
   if (!top.events) return modalFrame(head, skel(3), "");
-  const rows = top.events.map((ev) => `<div class="pend">
-    <span class="dot" style="background:#34D399"></span>
-    <span class="mono dim" style="font-size:11px">${esc(String(ev.ts || "").slice(0, 16).replace("T", " "))}</span>
-    <span class="grow">${esc(ev.task || "（未记录任务）")}</span>
-    ${ev.rating != null ? `<span class="dim" style="font-size:11px">评分 ${esc(ev.rating)}</span>` : ""}
-  </div>`).join("");
-  return modalFrame(head, rows || `<p class="empty">这个动作下没有事件。</p>`, "反馈事件按时间倒序，最多列最近 50 条。");
+  if (!top.events.length) return modalFrame(head, `<p class="empty">这个动作下没有事件。</p>`, "");
+  const days = groupByDay(top.events, (ev) => String(ev.ts || "").slice(0, 10));
+  const body = `<div class="tl">${days.map((g) => `<div class="tl-day">
+    <div class="tl-date">${esc(g.day)}<small>${g.rows.length} 条</small></div>
+    ${g.rows.map((ev) => `<div class="tl-item" style="--dot:#34D399">
+      <span class="tl-time">${esc(String(ev.ts || "").slice(11, 16))}</span>
+      <span class="grow">${esc(ev.task || "（未记录任务）")}</span>
+      <span class="badge">${esc(ev.action || "")}</span>
+      ${ev.rating != null ? `<span class="badge" style="color:#FBBF24;border-color:#FBBF2444">评分 ${esc(ev.rating)}</span>` : ""}
+    </div>`).join("")}
+  </div>`).join("")}</div>`;
+  return modalFrame(head, body, "反馈事件按时间倒序，最多列最近 50 条。");
 }
 function recallsView(top) {
   const head = `<div class="muted" style="font-size:14px">召回事件明细</div>
     <div class="mono big">${top.events ? esc(num(top.events.length)) : '<span class="spin"></span>'}</div>`;
   if (!top.events) return modalFrame(head, skel(3), "");
-  const rows = top.events.map((ev) => {
-    const hits = ev.hits.length ? ev.hits.map((hit) => hit.missing
-      ? `<span class="hit missing">${esc(hit.title)}</span>`
-      : `<button class="hit" data-doc="${esc(hit.id)}" type="button">${esc(hit.title)}<span class="dim" style="font-size:11px"> · ${esc(hit.type)}</span></button>`
-    ).join("") : `<span class="dim" style="font-size:12px">本次没有命中</span>`;
-    return `<div class="ev">
-      <div class="ev-head">
-        <span class="mono dim" style="font-size:11px">${esc(ev.ts.slice(0, 16).replace("T", " "))}</span>
-        <span class="grow" style="font-size:13px">${esc(ev.task || "（未记录任务）")}</span>
-        <span class="dim" style="font-size:11px">命中 ${ev.hits.length} 条</span>
-      </div>
-      <div>${hits}</div>
-    </div>`;
-  }).join("");
-  return modalFrame(head, rows || `<p class="empty">还没有召回事件。</p>`, "点命中的记忆标题看全文与出处；最多列最近 30 次召回。");
+  if (!top.events.length) return modalFrame(head, `<p class="empty">还没有召回事件。</p>`, "");
+  const days = groupByDay(top.events, (ev) => String(ev.ts || "").slice(0, 10));
+  const body = `<div class="tl">${days.map((g) => `<div class="tl-day">
+    <div class="tl-date">${esc(g.day)}<small>${g.rows.length} 次</small></div>
+    ${g.rows.map((ev) => {
+      const hits = ev.hits.length ? ev.hits.map((hit) => hit.missing
+        ? `<span class="hit missing">${esc(hit.title)}</span>`
+        : `<button class="hit" data-doc="${esc(hit.id)}" type="button">${esc(hit.title)}<span class="dim" style="font-size:11px"> · ${esc(hit.type)}</span></button>`
+      ).join("") : `<span class="dim" style="font-size:12px">本次没有命中</span>`;
+      return `<div class="tl-item col" style="--dot:#21D3EE">
+        <span class="tl-time">${esc(String(ev.ts || "").slice(11, 16))}</span>
+        <div class="grow">
+          <div style="font-size:13px">${esc(ev.task || "（未记录任务）")}</div>
+          <div class="tl-hits">${hits}</div>
+        </div>
+        <span class="badge">命中 ${ev.hits.length}</span>
+      </div>`;
+    }).join("")}
+  </div>`).join("")}</div>`;
+  return modalFrame(head, body, "点命中的记忆标题看全文与出处；最多列最近 30 次召回。");
 }
 function docView(top) {
   const doc = top.doc;

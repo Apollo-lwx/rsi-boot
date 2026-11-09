@@ -31,6 +31,7 @@ def _doc_status(doc: MemoryDoc) -> str:
 
 
 def _doc_brief(doc: MemoryDoc) -> dict[str, Any]:
+    stamp = doc.updated_at or doc.created_at or ""
     return {
         "id": doc.id,
         "title": doc.title,
@@ -38,7 +39,8 @@ def _doc_brief(doc: MemoryDoc) -> dict[str, Any]:
         "domain": doc.domain or "",
         "status": _doc_status(doc),
         "tags": list(doc.tags or []),
-        "updated": (doc.updated_at or doc.created_at or "")[:10],
+        "updated": stamp[:10],
+        "time": stamp[11:16] if len(stamp) >= 16 else "",
         "snippet": _clip(doc.content or "", 80),
     }
 
