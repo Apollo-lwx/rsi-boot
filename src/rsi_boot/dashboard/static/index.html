@@ -161,9 +161,10 @@
   .tl-day { display: flex; gap: 28px; margin-bottom: 18px; }
   .tl-date {
     position: sticky; top: 104px; align-self: flex-start;
-    width: 96px; flex: none; text-align: left; cursor: pointer;
-    font-size: 12px; color: var(--cyan); font-family: Consolas, monospace;
+    width: 108px; flex: none; text-align: left; cursor: pointer;
+    font-size: 11px; color: var(--cyan); font-family: Consolas, monospace;
     background: var(--tile); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px;
+    white-space: nowrap; overflow: hidden;
   }
   .tl-date:hover { border-color: rgba(33,211,238,0.45); }
   .tl-date small { display: block; color: var(--dim); font-size: 10px; font-family: inherit; }
@@ -917,12 +918,27 @@ async function boot() {
     if (!response.ok) throw new Error("snapshot " + response.status);
     state.raw = await response.json();
     render();
+    openFromHash();
     setInterval(() => {
       const node = document.getElementById("clock");
       if (node) node.textContent = clockText();
     }, 1000);
   } catch (err) {
     document.getElementById("app").innerHTML = `<div class="err">读不到快照。确认 rsi_web_ui 仍是 open。<br>${esc(err.message || err)}</div>`;
+  }
+}
+function openFromHash() {
+  const m = /^#view=(kpi|cat|status|domain|recalls):(.+)$/.exec(location.hash || "");
+  if (!m) return;
+  const [, kind, value] = m;
+  if (kind === "kpi") {
+    state.stack = [{ kind: "kpi", index: Number(value) }];
+    render();
+  } else if (kind === "recalls") {
+    drillRecalls();
+  } else {
+    const param = kind === "cat" ? "category" : kind;
+    drillList(param + "=" + encodeURIComponent(decodeURIComponent(value)), value);
   }
 }
 document.addEventListener("keydown", (event) => {
