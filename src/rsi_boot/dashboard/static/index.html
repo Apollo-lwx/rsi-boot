@@ -158,7 +158,13 @@
   .ev { margin-bottom: 12px; }
   .ev-head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 6px; }
   .tl { position: relative; }
+  .tl::before {
+    content: ""; position: absolute; left: 141px; top: 14px; bottom: 14px; width: 2px;
+    background: linear-gradient(rgba(33,211,238,0.5), rgba(33,211,238,0.08));
+  }
   .tl-day { display: flex; gap: 28px; margin-bottom: 18px; }
+  .tl-day.closed { margin-bottom: 10px; }
+  .tl-day.closed .tl-item { display: none; }
   .tl-date {
     position: sticky; top: 104px; align-self: flex-start;
     width: 108px; flex: none; text-align: left; cursor: pointer;
@@ -170,15 +176,11 @@
   .tl-date small { display: block; color: var(--dim); font-size: 10px; font-family: inherit; }
   .caret { color: var(--dim); }
   .tl-items { flex: 1; min-width: 0; position: relative; padding-left: 18px; }
-  .tl-items::before {
-    content: ""; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px;
-    background: linear-gradient(rgba(33,211,238,0.5), rgba(33,211,238,0.05));
-  }
-  .tl-day.closed .tl-item { display: none; }
-  .tl-day.closed .tl-items { min-height: 22px; }
-  .tl-day.closed .tl-items::before {
-    top: 0; bottom: 4px;
-    background: repeating-linear-gradient(rgba(33,211,238,0.4) 0 3px, transparent 3px 7px);
+  .tl-day.closed .tl-items { min-height: 0; }
+  .tl-day.closed .tl-items::after {
+    content: ""; position: absolute; left: 2px; top: 10px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--panel); border: 2px solid rgba(33,211,238,0.4);
   }
   .tl-item {
     position: relative; background: var(--tile); border: 1px solid transparent; border-radius: 8px;
