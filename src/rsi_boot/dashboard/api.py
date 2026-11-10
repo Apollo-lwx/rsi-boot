@@ -94,16 +94,31 @@ def memory_list(
 
 
 def event_list(rsi_dir: Path, kind: str = "") -> list[dict[str, Any]]:
-    """近期事件流（反馈构成等下钻用），只带展示需要的字段。"""
+    """近期事件流（反馈构成等下钻用），只带展示需要的字段。
+
+    feedback 事件本身不记任务文本，用 token 反查同次 recall 的 task 补上证据链；
+    附带 comment（反馈理由）。
+    """
+    events = list(_iter_event_logs(Path(rsi_dir)))
+    token_task: dict[str, str] = {}
+    for event in events:
+        if event.get("kind") == "recall":
+            token = event.get("token")
+            if isinstance(token, str) and token:
+                token_task.setdefault(token, str(event.get("task") or ""))
     out: list[dict[str, Any]] = []
-    for event in _iter_event_logs(Path(rsi_dir)):
+    for event in events:
         if kind and event.get("kind") != kind:
             continue
         row = {
             key: event.get(key)
-            for key in ("ts", "kind", "action", "rating", "task", "processed")
+            for key in ("ts", "kind", "action", "rating", "task", "processed", "comment")
             if event.get(key) is not None
         }
+        if event.get("kind") == "feedback" and not row.get("task"):
+            task = token_task.get(str(event.get("token") or ""))
+            if task:
+                row["task"] = task
         out.append(row)
     out.sort(key=lambda row: str(row.get("ts") or ""), reverse=True)
     return out[:_EVENT_CAP]

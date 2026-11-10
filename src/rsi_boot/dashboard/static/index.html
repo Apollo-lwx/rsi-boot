@@ -587,13 +587,16 @@ function fbView(top) {
   if (!top.events.length) return modalFrame(head, `<p class="empty">这个动作下没有事件。</p>`, "");
   const days = groupByDay(top.events, (ev) => String(ev.ts || "").slice(0, 10));
   const vkey = "F:" + top.action;
-  const body = `<div class="tl">${days.map((g) => dayBlock(vkey, g, g.rows.map((ev) => `<div class="tl-item" style="--dot:#34D399">
+  const body = `<div class="tl">${days.map((g) => dayBlock(vkey, g, g.rows.map((ev) => `<div class="tl-item col" style="--dot:#34D399">
       <span class="tl-time">${esc(String(ev.ts || "").slice(11, 16))}</span>
-      <span class="grow">${esc(ev.task || "（未记录任务）")}</span>
+      <div class="grow">
+        <div style="font-size:13px">${esc(ev.task || "（未关联到召回）")}</div>
+        ${ev.comment ? `<div class="dim" style="font-size:12px;margin-top:3px;line-height:1.5">${esc(ev.comment)}</div>` : ""}
+      </div>
       <span class="badge">${esc(ev.action || "")}</span>
       ${ev.rating != null ? `<span class="badge" style="color:#FBBF24;border-color:#FBBF2444">评分 ${esc(ev.rating)}</span>` : ""}
     </div>`).join(""), "条")).join("")}</div>`;
-  return modalFrame(head, body, "反馈事件按时间倒序，点日期折叠/展开；最多列最近 50 条。");
+  return modalFrame(head, body, "任务文本经 feedback token 反查同次召回补全，下方小字为反馈理由；最多列最近 50 条。");
 }
 function recallsView(top) {
   const head = `<div class="muted" style="font-size:14px">召回事件明细</div>
@@ -936,7 +939,7 @@ async function boot() {
   }
 }
 function openFromHash() {
-  const m = /^#view=(kpi|cat|status|domain|recalls):(.+)$/.exec(location.hash || "");
+  const m = /^#view=(kpi|cat|status|domain|recalls|fb):(.+)$/.exec(location.hash || "");
   if (!m) return;
   const [, kind, value] = m;
   if (kind === "kpi") {
@@ -944,6 +947,8 @@ function openFromHash() {
     render();
   } else if (kind === "recalls") {
     drillRecalls();
+  } else if (kind === "fb") {
+    drillFb(decodeURIComponent(value));
   } else {
     const param = kind === "cat" ? "category" : kind;
     drillList(param + "=" + encodeURIComponent(decodeURIComponent(value)), value);

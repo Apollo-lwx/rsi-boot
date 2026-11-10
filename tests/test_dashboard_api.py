@@ -70,8 +70,9 @@ def rsi(tmp_path):
     (logs / "events.jsonl").write_text(
         "\n".join([
             json.dumps({"ts": "2026-10-02T01:00:00Z", "kind": "recall", "task": "命名规范",
-                        "retrieved": ["a" * 32, "f" * 32]}, ensure_ascii=False),
-            json.dumps({"ts": "2026-10-03T01:00:00Z", "kind": "feedback", "action": "accepted"}),
+                        "retrieved": ["a" * 32, "f" * 32], "token": "tok-1"}, ensure_ascii=False),
+            json.dumps({"ts": "2026-10-03T01:00:00Z", "kind": "feedback", "action": "accepted",
+                        "token": "tok-1", "comment": "用上了命名约定"}, ensure_ascii=False),
         ]) + "\n",
         encoding="utf-8",
     )
@@ -119,6 +120,15 @@ def test_event_list_filters_by_kind(rsi):
     assert all(ev["kind"] == "feedback" for ev in feedback)
     everything = event_list(rsi)
     assert {ev["kind"] for ev in everything} == {"recall", "feedback"}
+
+
+def test_feedback_resolves_task_via_token(rsi):
+    from rsi_boot.dashboard.api import event_list
+
+    feedback = event_list(rsi, "feedback")
+    # feedback 自身不记任务，经 token 反查同次 recall 补上
+    assert feedback[0]["task"] == "命名规范"
+    assert feedback[0]["comment"] == "用上了命名约定"
 
 
 def test_recall_events_resolve_titles(rsi):
