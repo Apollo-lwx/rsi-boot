@@ -1,0 +1,42 @@
+id: 5bd60c3a7e604d21a721d7fcbbd195f7
+type: teaching_case
+title: 大屏展示反馈事件时须用 token 反查同次召回的任务文本
+content: 在 dashboard api.event_list 中对 feedback 事件用 token 反查同次 recall 事件的 task，并附带
+  comment；前端双行展示任务文本+反馈理由
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-10T14:31:49Z'
+updated_at: '2026-11-10T14:31:49Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: feedback 事件列表所有条目的 task 均为「未记录任务」
+    failure_type: ''
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 在 dashboard api.event_list 中对 feedback 事件用 token 反查同次 recall 事件的
+      task，并附带 comment；前端双行展示任务文本+反馈理由
+    reason: ''
+    applies_to: []
+    tags:
+    - dashboard
+    - feedback
+    - token
+    - 证据链
+    open_questions: []
+    wrong_action: event_list 直接渲染 feedback 事件的 task 字段，而该字段设计上不冗余存储，导致全部显示「未记录任务」
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-11-10T14:31:49Z'
+path: memory/teaching-cases/大屏展示反馈事件时须用-token-反查同次召回的任务文本--5bd60c3a.yaml
