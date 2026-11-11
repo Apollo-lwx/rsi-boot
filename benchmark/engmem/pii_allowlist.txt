@@ -1,0 +1,33 @@
+# PII 门禁白名单：逐行精确匹配，# 开头为注释。
+# 仅收录「公开开源仓库官方文档中本就公开的联系邮箱」与「代码装饰器误报」。
+# 新增条目必须逐条人工确认来源公开后才可加入。
+
+# —— 上游仓库公开的安全/行为准则联系邮箱（出自各仓库 SECURITY/CODE_OF_CONDUCT 文档）——
+security@gunicorn.org
+security@celeryproject.org
+scrapy-security@googlegroups.com
+opensource@zyte.com
+coc@pytest.org
+pytest@the-compiler.org
+python-maint@redhat.com
+
+# —— 上游 changelog 中公开署名的维护者邮箱 / 文档示例 ——
+andrew.svetlov@gmail.com
+auvipy@gmail.com
+brianna@laugher.id.au
+nicoddemus@gmail.com
+git@github.com
+tomer.nosrati@gmail.com
+tom@gmail.com
+
+# —— 上游公开文档中的示例路径（uvicorn/celery 文档示例、psutil 作者公开 docstring）——
+/home/user/
+/home/developer/
+/home/giampaolo/
+
+# —— 装饰器被邮箱正则误报（flask/click 文档代码块中的 @app.get 等）——
+n@app.get
+n@app.put
+n@app.route
+n@click.command
+n@click.option

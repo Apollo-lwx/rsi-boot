@@ -59,6 +59,18 @@ Fleiss' κ = 0.738；对作者仲裁结论的 Cohen's κ 分别为 0.767 / 0.808
 三份裁决表、理由 JSONL、作者仲裁表），κ 计算见
 `annotation_pack.py --kappa/--fleiss`。
 
+## 打包发布（HuggingFace）
+
+```bash
+# 打包成 HF datasets 格式（先过 PII 门禁，违规即失败不出包）
+python -X utf8 benchmark/engmem/package_hf.py
+```
+
+产物在 `dist/engmem-bench/`（被 .gitignore，不入库）：`questions.jsonl` +
+`corpus.jsonl` + `repos.json` + dataset card + 零依赖加载示例。
+PII 门禁见 `pii_scan.py` / `pii_allowlist.txt`：命中邮箱/密钥形态/本机路径/
+中文/个人标识即失败，仅白名单内的公开上游联系邮箱放行。
+
 ## 标注流程与已知限制
 
 - 题目由 AI 依据仓库真实文本预标、再逐条人工复核锚点与答案；**单标注者，
