@@ -65,7 +65,13 @@ class RuleInjector:
         lock_key = project_id or str(self._store.rsi_dir)
         lock = self._locks.setdefault(lock_key, asyncio.Lock())
         async with lock:
-            bundle = self._load_bundle()
+            try:
+                bundle = self._load_bundle()
+            except Exception as exc:
+                # fail-closed：装配失败（记忆库损坏等）本轮不注入、记 error，
+                # 不阻塞主链路，下轮变更重试——无产物好过未知状态的产物。
+                logger.error("规则装配失败，本轮注入跳过（下轮变更重试）: %s", exc)
+                return {"written": 0, "removed": 0}
             written: List[Artifact] = []
             for target in self._targets:
                 try:

@@ -11,9 +11,12 @@ MASKING_RULES 是日志脱敏与 §10.9.7 敏感信息扫描的单一事实来�
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -48,13 +51,22 @@ _active_rules: List[MaskingRule] = MASKING_RULES
 
 
 def configure(config: Optional[dict[str, Any]] = None) -> None:
-    """按配置定制规则集：disabled_rules 禁用、extra_rules 追加（§8.1 可配置规则）"""
+    """按配置定制规则集：disabled_rules 禁用、extra_rules 追加（§8.1 可配置规则）
+
+    fail-closed 约定：单条 extra_rule 编译失败 = 跳过该条 + 记 error，
+    不阻断配置生效（内置锁定规则始终在，敏感信息处理不可整体关闭）。
+    """
     global _active_rules
     masking_cfg = (config or {}).get("masking", {})
     disabled = set(masking_cfg.get("disabled_rules", [])) - _LOCKED_SECRET_RULES
     rules = [r for r in MASKING_RULES if r.name not in disabled]
     for extra in masking_cfg.get("extra_rules", []):
-        rules.append(MaskingRule(extra["name"], re.compile(extra["pattern"]), extra["replacement"]))
+        try:
+            pattern = re.compile(extra["pattern"])
+        except (re.error, KeyError, TypeError) as exc:
+            logger.error("脱敏自定义规则 %r 编译失败，跳过该条: %s", extra.get("name"), exc)
+            continue
+        rules.append(MaskingRule(extra["name"], pattern, extra["replacement"]))
     _active_rules = rules
 
 
@@ -62,13 +74,25 @@ def active_rules() -> List[MaskingRule]:
     return _active_rules
 
 
-def mask_text(text: str, rules: Optional[Iterable[MaskingRule]] = None) -> str:
-    """对文本执行全表扫描脱敏（写库前与外发 LLM 前双时机）"""
+def mask_text(
+    text: str, rules: Optional[Iterable[MaskingRule]] = None, *, strict: bool = False,
+) -> str:
+    """对文本执行全表扫描脱敏（写库前与外发 LLM 前双时机）
+
+    fail-closed 约定：单条规则执行失败（如病态输入触发回溯异常）默认
+    跳过该条 + 记 error，文本继续过其余规则；strict=True（门禁判定等
+    安全决策点）改为上抛，由调用方拒绝——脱敏不完整时不放行。
+    """
     if not text:
         return text
     masked = text
     for rule in rules if rules is not None else _active_rules:
-        masked = rule.pattern.sub(rule.replacement, masked)
+        try:
+            masked = rule.pattern.sub(rule.replacement, masked)
+        except (re.error, RuntimeError) as exc:
+            if strict:
+                raise
+            logger.error("脱敏规则 %s 执行失败，跳过该条: %s", rule.name, exc)
     return masked
 
 

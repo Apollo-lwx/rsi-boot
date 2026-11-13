@@ -63,9 +63,11 @@ class StaticGate:
         if "after" not in payload and "before" not in payload:
             failures.append("payload 缺少 before/after")
 
-        # 脱敏扫描：after 文本若含未脱敏密钥/敏感串（mask 后有变化）即否决
+        # 脱敏扫描：after 文本若含未脱敏密钥/敏感串（mask 后有变化）即否决。
+        # strict=True：脱敏自身失败时上抛，由提案引擎按「门禁异常」拒绝（fail-closed），
+        # 不允许「规则跳过导致秘密漏检」静默放行。
         after_text = json.dumps(after, ensure_ascii=False) if after is not None else ""
-        if after_text and mask_text(after_text) != after_text:
+        if after_text and mask_text(after_text, strict=True) != after_text:
             failures.append("after 含未脱敏敏感信息")
         # 注入黑名单：提案内容将进入宿主上下文，命中元指令模式即否决
         if after_text and is_blocked(after_text):

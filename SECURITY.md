@@ -44,6 +44,26 @@ only these files:
 
 No file requests or references any external host or endpoint.
 
+## Fail-closed gates
+
+rsi-boot has three read-side safety gates, and their failure paths follow one rule
+set: **a gate that cannot decide must not let content through silently.**
+
+| Gate | What it does | Failure behavior |
+| --- | --- | --- |
+| Prompt masking (`rsi_boot.core.masking`) | Redacts secret-looking chunks before they are injected into prompts or proposals. | A single broken user rule is skipped and logged as an error; built-in locked secret rules cannot be disabled. At security decision points (`strict=True`, e.g. the pre-proposal scan) an incomplete masking pass raises instead of returning partially masked text. |
+| Injection blocklist (`rsi_boot.injector.blocklist`) | Rejects recalled/injected text that matches known prompt-injection patterns. | If the blocklist file itself fails to load, **every** candidate is treated as blocked (deny-all) and an error is logged; a single malformed pattern is skipped and logged. |
+| Proposal approval (`rsi_boot.learning.static_gate`) | Runs the masking scan before a distilled proposal can enter review. | Masking failure aborts the proposal: the gate raises and the proposal engine records a rejection — a proposal whose text cannot be fully scanned is never queued for review. |
+
+General conventions:
+
+1. **Checker failure = deny.** If a gate's own machinery fails at a decision point,
+   the answer is "no" plus an error log, never a silent pass.
+2. **Single-rule failure = skip that rule.** A malformed user-supplied rule is
+   dropped with an error log and does not crash startup or block other rules.
+3. **Strict at decision points.** Masking used for a safety verdict runs with
+   `strict=True` so partial output cannot be mistaken for clean output.
+
 ## About the `evil.sh` reference in a prior screening
 
 A previous automated screening referenced a "declared host" using a placeholder
