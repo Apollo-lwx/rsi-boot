@@ -238,8 +238,35 @@ def archive_expired_events(
     archive_dir.mkdir(parents=True, exist_ok=True)
     for month, lines in by_month.items():
         dest = archive_dir / f"{month}.jsonl"
+        # 中断语义：归档追加先于源文件删除，崩溃后重跑会再收同一批事件——
+        # 追加前按事件 id（无 id 按原文行）跳过已在归档中的行，重跑幂等。
+        seen: set[str] = set()
+        if dest.is_file():
+            try:
+                for existing in dest.read_text(encoding="utf-8").splitlines():
+                    existing = existing.strip()
+                    if not existing:
+                        continue
+                    try:
+                        obj = json.loads(existing)
+                    except json.JSONDecodeError:
+                        seen.add(existing)
+                        continue
+                    seen.add(str(obj.get("id")) if isinstance(obj, dict) and obj.get("id") else existing)
+            except OSError:
+                pass
         with dest.open("a", encoding="utf-8") as fh:
             for line in lines:
+                key = line
+                try:
+                    obj = json.loads(line)
+                    if isinstance(obj, dict) and obj.get("id"):
+                        key = str(obj["id"])
+                except json.JSONDecodeError:
+                    pass
+                if key in seen:
+                    continue
+                seen.add(key)
                 fh.write(line + "\n")
             fh.flush()
     for path, body in rewrites:

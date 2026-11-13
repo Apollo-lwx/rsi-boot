@@ -2,14 +2,22 @@
 
 文件 Runtime：事件按保留期归档到 archive/，召回臂在周任务里衰减并淘汰。
 知识提取与提案/冲突扫描走 store= 后端。
+
+中断语义（docs/specs/2026-11-13-learning-loop-recovery.md）：两个循环都会在
+serve 启动 60s 后首跑，因此每个任务经 `_run_due` 记录成功时间——重启只补跑
+「到期且上次未成功」的任务，周期任务不因频繁重启重复执行（decay_arms 每调用
+必衰减，重复执行会过度衰减，属必须防的 outward action）。
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, List, Optional, TYPE_CHECKING
+from typing import Any, Awaitable, Callable, Dict, List, Optional, TYPE_CHECKING
+
+import yaml
 
 from ..services.profile_service import ProfileService
 
@@ -46,23 +54,72 @@ class SchedulerManager:
         self._project_ids = [p for p in (project_ids or []) if p]
         self._tasks: List[asyncio.Task] = []
 
+    # ---- 中断语义：成功才记录，失败/中断的任务在下次到期（含重启首跑）重试 ----
+
+    def _runs_path(self) -> Optional[Path]:
+        if self._store is None:
+            return None
+        return self._store.rsi_dir / "state" / "scheduler-runs.yaml"
+
+    def _last_runs(self) -> Dict[str, str]:
+        path = self._runs_path()
+        if path is None or not path.is_file():
+            return {}
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def _mark_run(self, name: str) -> None:
+        path = self._runs_path()
+        if path is None:
+            return
+        runs = self._last_runs()
+        runs[name] = datetime.now(timezone.utc).isoformat()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = Path(str(path) + ".tmp")
+        tmp.write_text(yaml.safe_dump(runs, allow_unicode=True), encoding="utf-8")
+        tmp.replace(path)
+
+    def _due(self, name: str, interval_s: float) -> bool:
+        last = self._last_runs().get(name)
+        if not last:
+            return True
+        try:
+            dt = datetime.fromisoformat(str(last).replace("Z", "+00:00"))
+        except ValueError:
+            return True
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - dt).total_seconds() >= interval_s
+
+    async def _run_due(
+        self, name: str, interval_s: float, fn: Callable[[], Awaitable[None]],
+    ) -> None:
+        """到期才执行；成功落 last-run 记录。异常不吞：由外层循环捕获记日志。"""
+        if not self._due(name, interval_s):
+            return
+        await fn()
+        await asyncio.to_thread(self._mark_run, name)
+
     async def _daily_loop(self) -> None:
         await asyncio.sleep(_FIRST_RUN_DELAY_S)
         while True:
             try:
-                await self._rebuild_profiles()
+                await self._run_due("profiles", _DAILY_INTERVAL_S, self._rebuild_profiles)
             except Exception:
                 logger.exception("画像重建失败（下周期重试）")
             try:
-                await self._run_extraction()
+                await self._run_due("extraction", _DAILY_INTERVAL_S, self._run_extraction)
             except Exception:
                 logger.exception("知识提取失败（下周期重试）")
             try:
-                await self._patrol_proposals()
+                await self._run_due("proposal_patrol", _DAILY_INTERVAL_S, self._patrol_proposals)
             except Exception:
                 logger.exception("提案观察期巡检失败（下周期重试）")
             try:
-                await self._archive_events()
+                await self._run_due("event_archive", _DAILY_INTERVAL_S, self._archive_events)
             except Exception:
                 logger.exception("事件归档失败（下周期重试）")
             await asyncio.sleep(_DAILY_INTERVAL_S)
@@ -86,15 +143,15 @@ class SchedulerManager:
         await asyncio.sleep(_FIRST_RUN_DELAY_S)
         while True:
             try:
-                await self._decay_recall_arms()
+                await self._run_due("recall_arms", _WEEKLY_INTERVAL_S, self._decay_recall_arms)
             except Exception:
                 logger.exception("召回臂遗忘失败（下周期重试）")
             try:
-                await self._run_harness_cycle()
+                await self._run_due("harness_cycle", _WEEKLY_INTERVAL_S, self._run_harness_cycle)
             except Exception:
                 logger.exception("Harness 提案周期失败（下周期重试）")
             try:
-                await self._scan_conflicts()
+                await self._run_due("conflict_scan", _WEEKLY_INTERVAL_S, self._scan_conflicts)
             except Exception:
                 logger.exception("规则冲突扫描失败（下周期重试）")
             await asyncio.sleep(_WEEKLY_INTERVAL_S)

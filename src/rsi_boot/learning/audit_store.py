@@ -106,6 +106,8 @@ def audit_start(store: MemoryStore, arguments: dict[str, Any], lang: str) -> dic
         json.dumps({"changed_files": files, "globs": globs, "scope": folder}, ensure_ascii=False),
     )
     session = _read_session(store)
+    reopened = bool(session.get("opened_at")) and not session.get("closed_at")
+    previous_scope = str(session.get("scope_id") or "") if reopened else ""
     session.update({
         "scope": str(arguments.get("scope") or "session"),
         "scope_id": folder,
@@ -114,10 +116,15 @@ def audit_start(store: MemoryStore, arguments: dict[str, Any], lang: str) -> dic
     session.pop("closed_at", None)
     _write_session(store, session)
     rel = dest.relative_to(store.rsi_dir).as_posix()
+    data: dict[str, Any] = {"scope": folder, "path": rel}
+    # 中断语义：上次会话未 audit_finish（进程中断/宿主退出）不自动丢弃，显式告知宿主
+    if reopened:
+        data["reopened_unclosed"] = True
+        data["previous_scope"] = previous_scope
     return {
         "status": "success",
         "message": t("AUDIT_STARTED", lang, scope=folder),
-        "data": {"scope": folder, "path": rel},
+        "data": data,
     }
 
 
