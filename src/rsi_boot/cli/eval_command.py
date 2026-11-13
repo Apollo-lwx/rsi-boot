@@ -2,6 +2,7 @@
 
   rsi eval replay  [--snapshot N] [--probes PATH] [--project-root PATH]
   rsi eval export  [--project-root PATH] [--out PATH]
+  rsi eval tool-choice            # 工具选择案例集离线校验（benchmark/tool-choice）
 """
 
 from __future__ import annotations
@@ -24,7 +25,22 @@ def run_eval(argv: list[str]) -> int:
     p_export = sub.add_parser("export", help="导出 replay 纵向记录为 CSV")
     p_export.add_argument("--project-root", default=None)
     p_export.add_argument("--out", default=None)
+    p_tc = sub.add_parser("tool-choice", help="工具选择误用案例集校验（改工具描述前后必跑）")
+    p_tc.add_argument("--report", action="store_true", help="同时生成 SUMMARY.md 报告")
     args = parser.parse_args(argv)
+
+    if args.action == "tool-choice":
+        # 开发仓库布局：src/rsi_boot/cli/eval_command.py → 仓库根为第 4 层 parent；
+        # pip 安装不含 benchmark/ 目录，此时明确报错
+        bench = Path(__file__).resolve().parents[3] / "benchmark" / "tool-choice"
+        if not (bench / "check.py").is_file():
+            print("benchmark/tool-choice 不在包内（pip 安装不含 benchmark 目录）", file=sys.stderr)
+            return 2
+        sys.path.insert(0, str(bench))
+        import check
+
+        argv2 = ["--report"] if args.report else []
+        return check.main(argv2)
 
     root = Path(args.project_root).resolve() if args.project_root else Path.cwd()
     from ..learning import probe_eval

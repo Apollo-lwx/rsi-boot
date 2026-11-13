@@ -1,0 +1,183 @@
+# tool-choice 误用案例集（借鉴 OpenMausBot evals/tool-choice）
+#
+# 每条是一次真实发生过的工具误用：text 是宿主 agent 当时面临的场景
+# （用户原话或工作流节点），expect 是正确工具，misuse 是真实走错的工具/动作。
+# trigger_terms：期望工具描述中必须含有的锚点词——改工具描述删掉这些词，
+# check.py 就会红（描述回归哨兵）。
+# source：案例出处（本仓库 .rsi/memory 教学案例 / AGENTS.md 托管块纪律）。
+
+- id: recall-before-coding
+  text: "帮我改这个支付回调函数，加个幂等校验"
+  expect: [rsi_recall]
+  misuse: [直接改代码]
+  trigger_terms: {rsi_recall: ["coding", "prohibitions"]}
+  why: "编码任务前必须先召回禁止项与相关经验；直接改会踩已记录的坑"
+  source: "targets.py 托管块 + recall 工具描述首句"
+
+- id: explore-then-recall-detail
+  text: "知识树 backend 板块那条空指针教训的完整修复步骤是什么"
+  expect: [rsi_recall]
+  misuse: [rsi_explore]
+  why: "explore 只给目录（标题+简述+id），正文详情必须 recall；explore 描述自带此指引"
+  source: "AGENTS.md 记忆目录「下钻用 rsi_explore，召回用 rsi_recall」"
+  trigger_terms: {rsi_recall: ["feedback_token"], rsi_explore: ["rsi_recall"]}
+
+- id: explore-for-tree-counts
+  text: "我记忆里 bootstrap 板块现在有多少条？都是什么主题"
+  expect: [rsi_explore]
+  misuse: [rsi_recall]
+  why: "板块计数与目录浏览是 explore 的职责；recall 按任务文本检索，列不出板块全貌"
+  source: "AGENTS.md 记忆目录结构"
+  trigger_terms: {rsi_explore: ["knowledge tree"]}
+
+- id: feedback-after-adopted-recall
+  text: "收工：刚才召回的那条「禁止 SELECT *」我照做了"
+  expect: [rsi_feedback]
+  misuse: [再发一次 rsi_recall 确认]
+  why: "用了召回命中项必须带 feedback_token 上报 accepted/rejected，学习闭环靠它收信号"
+  source: "AGENTS.md 收工纪律 + DECISIONS_BODY"
+  trigger_terms: {rsi_feedback: ["feedback", "recall"]}
+
+- id: feedback-reject-with-comment
+  text: "这条召回的经验不对——我们早从 MyBatis 迁到 JPA 了"
+  expect: [rsi_feedback]
+  misuse: [rsi_knowledge_add]
+  why: "rejected+comment 会触发提取链自动生成 prohibition 候选并给原条目标低置信；手动加新条目绕过治理"
+  source: "feedback 工具描述 + learning/governance.py"
+  trigger_terms: {rsi_feedback: ["rejected"]}
+
+- id: closeout-audit-via-rsi-learn
+  text: "任务收尾，走收工审计"
+  expect: [rsi_learn]
+  misuse: [寻找 user-skill-audit 等其它 audit 入口]
+  why: "RSI 收工只走 rsi_learn 的 audit_start/probes/report/finish；user-skill-audit 是用户级 mcp.json 残留的伪 MCP"
+  source: ".rsi/memory/teaching-cases c444cdda"
+  trigger_terms: {rsi_learn: ["audit"]}
+
+- id: teach-record-after-user-visible-fix
+  text: "刚修好用户报的大屏弹窗按钮断行问题"
+  expect: [rsi_learn]
+  misuse: [rsi_knowledge_add]
+  why: "修了用户可见 bug（成功也算）必须 teach_record，lesson 含 wrong_action+correct_fix；knowledge_add 不进教学案例链"
+  source: "AGENTS.md 收工纪律 + teaching-cases b5993854"
+  trigger_terms: {rsi_learn: ["teach_record"]}
+
+- id: teach-catch-on-repeated-failure
+  text: "同一个测试我已经修失败两次了"
+  expect: [rsi_learn]
+  misuse: [直接再试第三次]
+  why: "修失败多次先 teach_catch 记现场再动手；无现场记录的反复试错丢上下文"
+  source: "AGENTS.md 收工纪律 teach_catch 条款"
+  trigger_terms: {rsi_learn: ["teach_record"]}
+
+- id: reading-pack-distill-after-bootstrap
+  text: "bootstrap 跑完了，把本轮阅读包按板块蒸完"
+  expect: [rsi_learn]
+  misuse: [rsi_memory]
+  why: "蒸馏走 pack_list/pack_open/pack_done；reindex 只重建缓存不蒸馏"
+  source: "DECISIONS_BODY「按板块并行蒸完本轮全部 pending」"
+  trigger_terms: {rsi_learn: ["pack_list"]}
+
+- id: review-approve-pending
+  text: "这批蒸馏提案看过了，没问题"
+  expect: [rsi_knowledge_review]
+  misuse: [rsi_knowledge_add]
+  why: "approve 把 pending 搬进正式目录并注入；手动重抄绕过审批链（不变量 V5 会红）"
+  source: "knowledge_review 工具描述 + learning/invariants.py V5"
+  trigger_terms: {rsi_knowledge_review: ["Approve pending"]}
+
+- id: conflicts-resolve-not-delete
+  text: "我手写的 AGENTS.md 规则和 RSI 学到的这条矛盾，处理一下"
+  expect: [rsi_conflicts]
+  misuse: [rsi_knowledge_delete]
+  why: "冲突要裁决（user_wins/memory_wins），直接删记忆丢演化历史且不提冲突记录"
+  source: "conflicts 工具描述 + DECISIONS_BODY"
+  trigger_terms: {rsi_conflicts: ["conflict"]}
+
+- id: memory-open-by-id
+  text: "把 5bd60c3a 开头那条记忆的全文给我看"
+  expect: [rsi_memory]
+  misuse: [rsi_recall]
+  why: "按 id 读全文是 memory open；recall 是任务检索，不保证召回指定 id"
+  source: "memory 工具描述（open 按 id 读全文）"
+  trigger_terms: {rsi_memory: ["open"]}
+
+- id: memory-rules-injected
+  text: "现在注入你上下文的 RSI 规则有哪些"
+  expect: [rsi_memory]
+  misuse: [rsi_stats]
+  why: "memory rules 列当前注入宿主的记忆；stats 是使用统计，列不出注入清单"
+  source: "memory 工具描述"
+  trigger_terms: {rsi_memory: ["rules"]}
+
+- id: stats-usage-rate
+  text: "这周 RSI 的召回采纳率怎么样"
+  expect: [rsi_stats]
+  misuse: [rsi_impact]
+  why: "周期采纳/触达统计是 stats；impact 是外宣价值面板，口径不同"
+  source: "stats 工具描述"
+  trigger_terms: {rsi_stats: ["stats"]}
+
+- id: impact-panel-for-report
+  text: "给我一份能拿去汇报的 RSI 价值面板，估算省了多少 token"
+  expect: [rsi_impact]
+  misuse: [rsi_stats]
+  why: "价值面板（注入成本/召回价值/行为收益/AB 估算）是 impact；stats 无汇报口径"
+  source: "impact 工具描述"
+  trigger_terms: {rsi_impact: ["impact"]}
+
+- id: harness-proposal-rollback
+  text: "RSI 自己提的那个提案回滚掉"
+  expect: [rsi_review]
+  misuse: [rsi_knowledge_review]
+  why: "harness 改进提案走 rsi_review（list/approve/reject/rollback）；knowledge_review 审批的是 pending 知识规范"
+  source: "review 工具描述（harness 提案）"
+  trigger_terms: {rsi_review: ["proposals"]}
+
+- id: memory-health-full-scan
+  text: "怀疑有记忆过时了，全面扫一遍健康问题"
+  expect: [rsi_memory_health]
+  misuse: [rsi_knowledge_search]
+  why: "健康扫描按差评归因/矛盾/来源失效三分类开发现；逐条搜索没有归因语义"
+  source: "memory_health 工具描述 + AGENTS.md 记忆目录「单独开记忆健康车道」"
+  trigger_terms: {rsi_memory_health: ["scan"]}
+
+- id: memory-health-explain-finding
+  text: "这条 incorrect 发现是什么意思，影响哪些条目"
+  expect: [rsi_memory_health]
+  misuse: [rsi_memory]
+  why: "发现的解释走 memory_health explain；memory open 只给条目全文，不给归因上下文"
+  source: "memory_health 工具描述（scan/list/explain/resolve）"
+  trigger_terms: {rsi_memory_health: ["explain"]}
+
+- id: knowledge-add-new-rule
+  text: "记下：这个仓库禁止直接提交到 main 分支"
+  expect: [rsi_knowledge_add]
+  misuse: [rsi_learn]
+  why: "主动声明的规则直接 knowledge_add；teach_record 是修复现场教训的入口，没出 bug 不走教学链"
+  source: "knowledge_add 工具描述"
+  trigger_terms: {rsi_knowledge_add: ["Add a knowledge item"]}
+
+- id: knowledge-search-manage-library
+  text: "找一下知识库里有没有关于发版流程的条目，想更新它"
+  expect: [rsi_knowledge_search]
+  misuse: [rsi_recall]
+  why: "库管理检索（找到条目再 update）走 knowledge_search；recall 面向任务上下文注入，不给可更新的条目句柄"
+  source: "knowledge_search 工具描述"
+  trigger_terms: {rsi_knowledge_search: ["Search the knowledge base"]}
+
+- id: web-ui-dashboard
+  text: "打开大屏看看学习环现在的状态"
+  expect: [rsi_web_ui]
+  misuse: [rsi_stats]
+  why: "大屏是 web_ui 起的本地 dashboard；stats 只返回文本统计"
+  source: "web_ui 工具描述"
+  trigger_terms: {rsi_web_ui: ["dashboard"]}
+
+- id: no-mcp-auth-during-distill
+  text: "蒸馏中途 rsi_learn 调用失败了"
+  expect: [rsi_learn]
+  misuse: [调用 mcp_auth 给用户弹授权]
+  why: "RSI 无登录体系；工具失败就重试 rsi_learn，弹授权是误判（DECISIONS_BODY 明令禁止）"
+  source: "DECISIONS_BODY「蒸馏中途禁止 mcp_auth」+ AGENTS.md 记忆目录"
+  trigger_terms: {rsi_learn: ["not_in_phase"]}
