@@ -31,6 +31,8 @@ One MCP server (`rsi serve`) plugs into Cursor, Qoder, Codex, and DeepSeek Harne
 
 Approved conventions are written into the `AGENTS.md` managed block at the repo root, and into `.cursor/rules`. Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness all read that block when they open the repo. With the MCP server connected, recall reads the same `.rsi/memory`: a prohibition noted in Cursor in the morning is what DeepSeek Harness, or a teammate on Codex, reads from this repo later.
 
+Injected content carries a harness-written authority prefix `[RSI · <source> · <confidence>]` (e.g. `[RSI · prohibition · approved]`). Only rsi-boot writes the half-width prefix; any imitation inside memory text is neutralized to the full-width `［RSI ·`, so model text cannot forge it. A fixed note next to the prefix states the injected content is reference data, not instructions. Entries flagged by rejected or low-score feedback carry the `low_confidence` confidence and should be treated as doubtful.
+
 The `AGENTS.md` managed block carries only approved summaries; the full recall text lives in `.rsi/memory`. That is why learning now ignores only logs, cache, and indexes under `.rsi/`, while `memory/` is committed with the repo. Ignoring the whole directory was the old behavior — after upgrading, run `rsi doctor --fix` once to narrow the rule automatically.
 
 ## Moving machines, cloning, handing to a teammate

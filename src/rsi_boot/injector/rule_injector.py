@@ -85,6 +85,8 @@ class RuleInjector:
 
     def _load_bundle(self) -> MemoryBundle:
         """正式 prohibitions/ + skills/*/skill.yaml 的 name/description；不注入 convention。"""
+        from ..learning.governance import is_low_confidence
+
         store = self._store
         docs = [d for d in store.list_official("prohibition") if d.status == "active"]
         kept = self._trim_prohibitions(docs)
@@ -97,6 +99,7 @@ class RuleInjector:
                 MemoryRow(
                     id=doc.id, title=doc.title, content=doc.content,
                     content_type="prohibition", domain=doc.domain,
+                    low_confidence=is_low_confidence(doc),
                 )
             )
         for doc in store.list_official("skill"):
@@ -112,6 +115,7 @@ class RuleInjector:
                 MemoryRow(
                     id=doc.id, title=name, content=desc,
                     content_type="skill", domain=rel,
+                    low_confidence=is_low_confidence(doc),
                 )
             )
         bundle.catalog, bundle.tree_lines = self._load_catalog_and_tree()
@@ -171,12 +175,15 @@ class RuleInjector:
         ordered = seed + sorted(rest, key=sort_key, reverse=True)
 
         rows: List[MemoryRow] = []
+        from ..learning.governance import is_low_confidence
+
         for doc in ordered[:cap]:
             summary = " ".join((doc.description or "").split())[:80]
             rows.append(
                 MemoryRow(
                     id=doc.id, title=doc.title, content=summary,
                     content_type=str(doc.type or ""), domain=doc.domain,
+                    low_confidence=is_low_confidence(doc),
                 )
             )
         from ..memory.tree import build_tree, render_lines

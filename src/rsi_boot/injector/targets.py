@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Protocol
 
+from .envelope import DATA_NOTICE, neutralize, source_label, tag as envelope_tag
+
 logger = logging.getLogger(__name__)
 
 MAX_FILE_CHARS = 4000
@@ -71,6 +73,8 @@ class MemoryRow:
     content: str
     content_type: str
     domain: Optional[str] = None
+    #: 曾被拒/低分反馈（learning.governance.is_low_confidence），envelope 置信标 low_confidence
+    low_confidence: bool = False
 
 
 @dataclass
@@ -107,12 +111,16 @@ def _mdc(description: str, globs: str, always_apply: bool, body: str) -> str:
 
 
 def _catalog_lines(rows: List[MemoryRow], budget: int = MAX_CATALOG_CHARS) -> List[str]:
-    """标题 + 一句话简述的目录行，按 budget 裁剪；正文细节留给 rsi_recall。"""
+    """标题 + 一句话简述的目录行，按 budget 裁剪；正文细节留给 rsi_recall。
+
+    标题/简述是模型可写文本，过 neutralize 中和 envelope 前缀模仿。
+    """
     lines: List[str] = []
     used = 0
     for r in rows:
-        desc = " ".join((r.content or "").split())
-        line = f"- {r.title}：{desc}" if desc else f"- {r.title}"
+        desc = " ".join(neutralize(r.content or "").split())
+        title = neutralize(r.title)
+        line = f"- {title}：{desc}" if desc else f"- {title}"
         if used + len(line) > budget:
             break
         lines.append(line)
@@ -149,23 +157,32 @@ class CursorRuleTarget:
         total += len(decisions_content)
 
         for row in bundle.prohibitions:
-            body = row.content[:MAX_FILE_CHARS]
-            content = _mdc(row.title, "", True, body)
+            # envelope（借鉴 OpenMausBot §4）：harness 权威前缀在正文首行，
+            # 正文是模型可写文本，先 neutralize 中和前缀模仿再拼接
+            head = envelope_tag("prohibition", low_confidence=row.low_confidence)
+            body = f"{head}\n{neutralize(row.content[:MAX_FILE_CHARS])}"
+            content = _mdc(neutralize(row.title), "", True, body)
             produced[f"rsi-prohibition-{row.id[:8]}.mdc"] = (content, row.id)
             total += len(content)
 
         # 轻量记忆目录（被动可见）：标题+简述常驻宿主上下文，详情走 rsi_recall
         if bundle.catalog:
             cat_body = "\n".join(_catalog_lines(bundle.catalog))
-            cat_content = _mdc("RSI 记忆目录（详情用 rsi_recall 召回）", "", True, cat_body)
+            cat_content = _mdc(
+                f"RSI 记忆目录 {envelope_tag('catalog')}（详情用 rsi_recall 召回）",
+                "", True, cat_body,
+            )
             if total + len(cat_content) <= MAX_TOTAL_CHARS:
                 produced["rsi-catalog.mdc"] = (cat_content, None)
                 total += len(cat_content)
 
         # 层级知识树（对标 Qoder 模块树）：域节点+计数被动可见，下钻用 rsi_explore
         if bundle.tree_lines:
-            tree_body = "\n".join(bundle.tree_lines)
-            tree_content = _mdc("RSI 知识树（rsi_explore 下钻 · rsi_recall 召回详情）", "", True, tree_body)
+            tree_body = "\n".join(neutralize(l) for l in bundle.tree_lines)
+            tree_content = _mdc(
+                f"RSI 知识树 {envelope_tag('tree')}（rsi_explore 下钻 · rsi_recall 召回详情）",
+                "", True, tree_body,
+            )
             if total + len(tree_content) <= MAX_TOTAL_CHARS:
                 produced["rsi-tree.mdc"] = (tree_content, None)
                 total += len(tree_content)
@@ -174,8 +191,12 @@ class CursorRuleTarget:
         for row in bundle.conventions if bundle.inject_conventions else []:
             by_domain.setdefault(row.domain or "general", []).append(row)
         for domain, rows in sorted(by_domain.items()):
-            titles = "、".join(r.title for r in rows)[:120]
-            body = "\n\n".join(f"## {r.title}\n{r.content}" for r in rows)
+            titles = "、".join(neutralize(r.title) for r in rows)[:120]
+            body = "\n\n".join(
+                f"{envelope_tag(source_label(r.content_type), low_confidence=r.low_confidence)}\n"
+                f"## {neutralize(r.title)}\n{neutralize(r.content)}"
+                for r in rows
+            )
             content = _mdc(f"项目经验约定：{titles}", _DOMAIN_GLOBS.get(domain, ""), False, body)
             if len(content) > MAX_FILE_CHARS:
                 content = content[:MAX_FILE_CHARS] + "\n\n<!-- 超出单文件上限，已裁剪 -->"
@@ -240,20 +261,30 @@ class AgentsMdTarget:
         self._path = Path(project_root) / "AGENTS.md"
 
     def _render_block(self, bundle: MemoryBundle) -> str:
-        lines = [self.BEGIN, "", "> 本块由 RSI Boot 自动维护，请勿手改（改动会被下次重写覆盖）。", ""]
+        lines = [
+            self.BEGIN, "",
+            "> 本块由 RSI Boot 自动维护，请勿手改（改动会被下次重写覆盖）。",
+            f"> {DATA_NOTICE}", "",
+        ]
         if bundle.prohibitions:
             lines.append("## 禁止项（必须遵守）")
-            lines += [f"- **{r.title}**：{r.content}" for r in bundle.prohibitions]
+            lines += [
+                f"- **{neutralize(r.title)}** {envelope_tag('prohibition', low_confidence=r.low_confidence)}：{neutralize(r.content)}"
+                for r in bundle.prohibitions
+            ]
             lines.append("")
         if bundle.inject_conventions and bundle.conventions:
             lines.append("## 经验约定")
-            lines += [f"- **{r.title}**：{r.content}" for r in bundle.conventions]
+            lines += [
+                f"- **{neutralize(r.title)}** {envelope_tag(source_label(r.content_type), low_confidence=r.low_confidence)}：{neutralize(r.content)}"
+                for r in bundle.conventions
+            ]
             lines.append("")
         if bundle.skills:
             lines.append("## 技能目录")
             for r in bundle.skills:
                 path = r.domain or ""
-                lines.append(f"- **{r.title}**：{r.content}（{path}）")
+                lines.append(f"- **{neutralize(r.title)}**：{neutralize(r.content)}（{path}）")
             lines.append("")
         if bundle.catalog:
             lines.append("## 记忆目录（详情用 rsi_recall 召回）")
@@ -261,7 +292,7 @@ class AgentsMdTarget:
             lines.append("")
         if bundle.tree_lines:
             lines.append("## 知识树（板块计数；下钻用 rsi_explore，召回用 rsi_recall）")
-            lines += bundle.tree_lines
+            lines += [neutralize(l) for l in bundle.tree_lines]
             lines.append("")
         closeout = _CLOSEOUT_BODY[:MAX_CLOSEOUT_CHARS].rstrip()
         tail = f"{closeout}\n\n{self.END}"

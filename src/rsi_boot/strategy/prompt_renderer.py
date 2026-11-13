@@ -12,6 +12,7 @@ from typing import Any, List, Optional
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, TemplateNotFound, select_autoescape
 
 from ..core.models import KnowledgeItem, ProcessedRequest, UserProfile
+from ..injector.envelope import neutralize, tag as envelope_tag
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class PromptRenderer:
             "project_context": (profile.project_insights.get("summary") if profile else "") or "",
             "user_expertise": profile.expertise if profile else [],
             "user_style": request.preferences.code_style,
-            "knowledge_items": processed.retrieved_docs,
+            "knowledge_items": self._envelope_views(processed.retrieved_docs),
             "code_content": request.context.selection or "",
             "language": request.context.language or "",
         }
@@ -82,3 +83,21 @@ class PromptRenderer:
                 + messages[-(_DEGRADED_HISTORY_TURNS + 1):]
             )
         return messages
+
+    @staticmethod
+    def _envelope_views(items: Optional[List[KnowledgeItem]]) -> List[dict[str, str]]:
+        """召回条目的模板视图（借鉴 OpenMausBot runtime-contract §4 envelope）：
+
+        每条带 harness 权威前缀 [RSI · knowledge · 置信]；标题/正文是模型可写文本，
+        先 neutralize 中和前缀模仿再进模板。置信：active → approved，其余 → low_confidence。
+        """
+        views: List[dict[str, str]] = []
+        for it in items or []:
+            low = (it.status or "active") != "active"
+            views.append({
+                "id": str(it.id),
+                "title": neutralize(it.title or ""),
+                "content": neutralize(it.content or ""),
+                "envelope": envelope_tag("knowledge", low_confidence=low),
+            })
+        return views
