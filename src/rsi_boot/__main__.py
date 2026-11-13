@@ -440,6 +440,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--fix", action="store_true",
         help="一键改写 .gitignore 为细粒度规则（memory 随 git 走）",
     )
+    p_doc.add_argument(
+        "--invariants", action="store_true",
+        help="不变量自检：事件流 × 记忆库对账（纯读，只报告不修改）",
+    )
     _add_verbose(p_doc)
 
     p_bun = sub.add_parser("bundle", help="memory 全量导出/导入（无 git 时的迁移兜底）")

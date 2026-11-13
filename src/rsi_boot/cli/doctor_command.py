@@ -77,8 +77,28 @@ def check_memory_tracking(project_root: Path) -> Dict[str, Any]:
     return report
 
 
+def _run_invariants(project_root: Path) -> int:
+    """--invariants：事件流 × 记忆库对账（learning/invariants.py，纯读）。"""
+    from ..learning.invariants import check_invariants
+
+    reports = check_invariants(project_root / ".rsi")
+    print(f"项目: {project_root}")
+    for report in reports:
+        mark = "✓" if report.ok else "✗"
+        print(f"  {mark} {report.code} {report.name}（检查 {report.checked} 项）")
+        for problem in report.problems:
+            print(f"      问题: {problem}")
+    if all(report.ok for report in reports):
+        print("结论: 全部不变量成立")
+        return 0
+    print("结论: 存在违例（本检查只报告，不修改；清洗请人工确认后另行执行）")
+    return 1
+
+
 def run_doctor(args: Any) -> int:
     project_root = Path(getattr(args, "project_root", None) or ".").resolve()
+    if getattr(args, "invariants", False):
+        return _run_invariants(project_root)
     if getattr(args, "fix", False):
         changed = ensure_gitignore(project_root)
         if changed:
