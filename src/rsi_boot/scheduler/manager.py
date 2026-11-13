@@ -19,6 +19,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, TYPE_CHECKING
 
 import yaml
 
+from ..learning.loop_guard import LoopGuard
 from ..services.profile_service import ProfileService
 
 if TYPE_CHECKING:
@@ -207,14 +208,24 @@ class SchedulerManager:
         engine = self._proposal_engine_provider() if self._proposal_engine_provider else None
         if engine is None:
             return
+        # 空转守卫（借鉴 OpenMausBot §6 loop guard）：连续空转则暂停，新事件到达即恢复。
+        # 暂停不影响 _run_due 的成功记录——每周仍醒来检查一次事件指纹，这正是恢复入口。
+        guard = LoopGuard(self._store.rsi_dir) if self._store is not None else None
+        if guard is not None and not guard.should_run("harness_cycle"):
+            logger.info("loop-guard：harness_cycle 暂停中，本轮跳过")
+            return
+        produced = 0
         for project_id in self._project_ids:
             ids = await engine.generate(project_id)
+            produced += len(ids or [])
             result = await engine.validate_pending(project_id)
             if ids or result.get("validated"):
                 logger.info(
                     "Harness 周期完成（项目 %s）：生成 %s，校验 %s",
                     project_id, ids, result,
                 )
+        if guard is not None:
+            await asyncio.to_thread(guard.record_outcome, "harness_cycle", produced=produced)
 
     async def _rebuild_profiles(self) -> None:
         if self._profiles is None:
