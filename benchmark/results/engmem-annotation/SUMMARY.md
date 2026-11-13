@@ -35,3 +35,9 @@ python -X utf8 benchmark/engmem/ai_annotator.py --sheet=sheet.csv               
 python -X utf8 benchmark/engmem/ai_annotator.py --sheet=sheet.csv --provider=anthropic  # claude
 python -X utf8 benchmark/engmem/annotation_pack.py --fleiss=a.csv,b.csv,c.csv
 ```
+
+## 不能证明什么
+
+- 87 题分层样本的 κ=0.738 支持标注协议可信，不外推为「315 题全部无缺陷」。
+- 核验团是三家模型加作者单人仲裁，无第二人类复核。
+- 核验的是锚点与答案正确性，不核验难度标定的准确性。

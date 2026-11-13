@@ -41,3 +41,9 @@ open-domain +10/−0、single-hop +40/−2、temporal +21/−1。
   fastembed/ONNX bge-large 真实文本吞吐 ≈1 向量/秒，LME 23,867 片全量
   嵌入需 20+ CPU 小时（4 窗均值池化已计入）；而词面通道在 LME 已达
   96.6% Hit@5，剩余空间 ≤3.4pt。默认词面在长会话语料上是经济理性选择。
+
+## 不能证明什么
+
+- vector 臂 +6.2pt 是 LoCoMo 单数据集结果，未在 LME/EngMem 验证同向性。
+- 单一嵌入模型（bge-large-en-v1.5），不代表其他向量模型收益。
+- multihop 臂持平说明当前桥接实现无增益，不证明多跳思路无效。

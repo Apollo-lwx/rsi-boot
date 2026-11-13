@@ -52,3 +52,9 @@
 - full 行为内部一致性重跑（与官方主榜样本量不同：LME 取前 50），
   与主榜 recall-20261103 的绝对值差异来自样本子集，不是管线变化。
 - context 开关只影响 LoCoMo 写入侧（turn 级上下文增强）。
+
+## 不能证明什么
+
+- 消融只到组件粒度：定位到「context 组件重要」不等于定位到组件内的机制。
+- ΔHit@5 在 ±1pt 内的组件（expansion/title/weakfilter/temporal）不能判为「无用」，可能是度量不敏感。
+- LoCoMo 全量 + LME 前 50 抽样口径，LME 结论强度弱于 LoCoMo。

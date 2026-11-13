@@ -31,3 +31,10 @@
 
 切分：LoCoMo 一条 turn 一条记忆，正文带 session 日期。类别 5 的答案为空，不进 Hit；另外有 4 题没有 evidence，也算进「该空时空了」。LoCoMo 类别标签以官方评测代码为准（1=multi-hop, 2=temporal, 3=open-domain, 4=single-hop），不是论文 §4.1 的叙述顺序（上游 issue #29 / EACL 2026 附录 A 已确认该不一致）。LongMemEval-S cleaned 一条 session 一条记忆，超过 18000 字按片切开，同一 session 的片都算这条证据。这张表是检索命中，不是模型答题分，不能和 Mem0 主页上的 92.5 / 94.4 放在同一列。
 LoCoMo 上下文增强版本：v2（附带前一 turn 但剥离日期锚点；前一 turn 含内嵌日期则不附）。
+
+## 不能证明什么
+
+- 检索命中不等于模型答题分：Hit@5 只说明标准证据进了前 5 条，不说明模型用了它。
+- LoCoMo/LongMemEval-S 是对话记忆语料，不代表工程记忆场景，后者看 engmem-20261105。
+- v2 上下文增强只对 LoCoMo 生效，未在 LongMemEval-S 上验证同向性。
+- 单次运行、单机结果；未评估不同硬件与嵌入模型下的波动。

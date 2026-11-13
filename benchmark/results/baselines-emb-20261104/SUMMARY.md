@@ -23,3 +23,9 @@
 - rsi: pipeline=RecallService recall-balanced, cold start
 - vanilla-rag: chunk=512 chars, overlap 64, embedding=LoCoMo: BAAI/bge-large-en-v1.5 (local fastembed/ONNX, no API key); LongMemEval-S: hashing-bow lower bound (512-char chunking of ~115k-token sessions yields ~564k chunks, offline embedding infeasible; embedding-backed LME run is future work)
 - full-context: role=upper-bound reference, no retrieval
+
+## 不能证明什么
+
+- LoCoMo 上 vanilla-rag（bge-large 向量）领先 rsi 词面臂：说明纯词面召回在多跳/开放域吃亏，不说明 rsi 架构上限——混合检索臂见 ablation-hybrid-20261105。
+- LME 臂 vanilla-rag 退为 hashing 词袋下界（56 万向量离线不可行），该行不参与优劣判定。
+- 单嵌入模型（bge-large-en-v1.5）结果不代表其他向量模型。

@@ -7,3 +7,9 @@ tokenizer: regex-approx (no tiktoken; same ruler for both arms)（两臂同一�
 - 配对 Wilcoxon：n=2036，z=39.08
 - p（双侧）：<0.001，效应量 r=0.866
 口径声明：这是「送入模型的上下文 token 数」测量，不含模型生成；真实 LLM-in-loop 的 usage token 研究用 --prepare 生成的协议执行。
+
+## 不能证明什么
+
+- regex 近似 tokenizer 不是任何真实模型的 tokenizer；口径是「送入上下文」，真实计费看 token-llm-20261105。
+- 压缩比高不等于答题质量保持，质量维度见 answer-acc 榜。
+- Wilcoxon 显著性证明分布差异，不证明每题都受益（受益长尾未单列）。

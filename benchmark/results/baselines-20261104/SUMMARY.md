@@ -23,3 +23,9 @@
 - rsi: pipeline=RecallService recall-balanced, cold start
 - vanilla-rag: chunk=512 chars, overlap 64, embedding=hashing-bow (fallback, no OPENAI_API_KEY)
 - full-context: role=upper-bound reference, no retrieval
+
+## 不能证明什么
+
+- vanilla-rag 臂是 hashing 词袋下界（无 Key），本表的 LoCoMo 差距不能被引为「rsi 优于向量检索」；真向量对照看 baselines-emb-20261104。
+- 三系统同机同题，不代表其他硬件/语料/嵌入模型下的排序。
+- full-context 是上界参照，其低分反映窗口外证据不可见，不反映长上下文模型的真实答题能力。

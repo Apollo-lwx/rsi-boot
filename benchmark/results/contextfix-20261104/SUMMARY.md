@@ -46,3 +46,8 @@
 - context 开关只影响 LoCoMo 写入侧（turn 级上下文增强）。
 - fullv1 是上下文增强 v1（修复前）的历史榜；noqdisc 是仅 context-v2、
   未开查询期引用降权的中间榜；full 是最终管线（v2 + 时间题引用降权）。
+
+## 不能证明什么
+
+- 引用降权的修复效果在 LoCoMo/LME 口径验证，未在 EngMem 复测。
+- 「−context」定位到组件，不拆分组件内机制（日期锚点与前置 turn 各自贡献未分离）。

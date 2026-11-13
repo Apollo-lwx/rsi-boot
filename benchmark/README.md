@@ -29,3 +29,25 @@ python -X utf8 benchmark/recall_board.py
 token 宿主没有报，记 null。
 
 仓库约定榜和「没有这条记忆就修不对」的修对榜还没有题集，不进这张表。
+
+## 评测报告模板（2026-11-13 起）
+
+每份 SUMMARY.md 固定四段，缺「不能证明什么」视为不完整：
+
+1. **数据口径**：数据集、切分、题数、指标定义、复跑命令。
+2. **数字**：结果表。
+3. **能证明什么**：这份数据支撑的结论，一句一段。
+4. **不能证明什么**：这份数据不支撑的结论。至少覆盖：样本外推广、指标外能力、
+   环境差异（硬件/宿主/语料）。写不出来时写「未评估 X」，不许省略本节。
+
+关键断言配变异测试：改坏哪一行、哪个测试变红、已恢复，记录在 SUMMARY 末尾。
+
+参照：OpenMausBot docs/verification/ 的「Not proven here / Limits」纪律。
+
+## 变异测试记录（2026-11-13）
+
+| 变异（改坏的行） | 应变红的测试 | 结果 |
+|---|---|---|
+| 删掉归档去重的 `if key in seen: continue`（logstore.py） | test_archive_rerun_after_crash_no_duplicates | 红 → 已恢复 |
+| `_due` 恒返回 True（scheduler/manager.py） | test_run_due_executes_once_per_interval | 红 → 已恢复 |
+| `replay_review_actions` 提前 return 空（learning/invariants.py） | test_v4_flags_approved_but_still_pending | 红 → 已恢复 |

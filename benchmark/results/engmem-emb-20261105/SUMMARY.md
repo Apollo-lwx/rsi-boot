@@ -49,3 +49,9 @@
 - rsi: pipeline=RecallService recall-balanced, cold start
 - vanilla-rag: chunk=512 chars, overlap 64, embedding=BAAI/bge-large-en-v1.5
 - full-context: role=upper-bound reference, no retrieval
+
+## 不能证明什么
+
+- 315 题人工编写、锚定 21 个开源仓库文档节，不代表未覆盖的仓库类型。
+- 数字是「文档节检索命中」，不证明宿主模型会把该节用进回答。
+- 向量通道用单一嵌入模型（bge-large-en-v1.5），不代表其他向量模型；标注核验覆盖 87/315 抽样。

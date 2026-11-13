@@ -49,3 +49,9 @@
 - rsi: pipeline=RecallService recall-balanced, cold start
 - vanilla-rag: chunk=512 chars, overlap 64, embedding=hashing-bow (fallback, no embedding backend)
 - full-context: role=upper-bound reference, no retrieval
+
+## 不能证明什么
+
+- 315 题人工编写、锚定 21 个开源仓库文档节，不代表未覆盖的仓库类型（前端/数据科学/非 Python 等）。
+- 数字是「文档节检索命中」，不证明宿主模型会把该节用进回答。
+- 标注质量经三模型抽样核验（87/315，见 engmem-annotation），未核验题目可能残留锚点缺陷。
