@@ -4,8 +4,9 @@
 
 ## 记忆目录（详情用 rsi_recall 召回）
 - 2026-09-10-rsi-boot-spec.md# 10.9.10 去重与增量更新
-- 弹窗按钮禁止断行，键值元数据用固定标签列布局
+- 大屏展示反馈事件时须用 token 反查同次召回的任务文本
 - Review host-distill-knowledge implementation against plan tasks 1-13 and spec §4/§7/§11: bootstrap reading packs, Jaccar
+- 弹窗按钮禁止断行，键值元数据用固定标签列布局
 - 大屏聚合数字必须可下钻，滚动条跟主题同色系
 - 大屏审批写链路复用 KnowledgeService，测试断言别凭文件名假设
 - LLM 分解缓存预热三坑：温度不兼容、并发截断、瞬态故障被缓存
@@ -42,7 +43,7 @@
 
 ## 知识树（板块计数；下钻用 rsi_explore，召回用 rsi_recall）
 - bootstrap (89)  ·  rsi_explore "bootstrap"
-- general (85)  ·  rsi_explore "general"
+- general (87)  ·  rsi_explore "general"
 
 ## 收工纪律
 
