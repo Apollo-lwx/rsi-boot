@@ -167,6 +167,16 @@ class SchedulerManager:
         )
         if archived:
             logger.info("已归档 %d 条过期事件到 %s", archived, self._archive_dir)
+        # 决策日志生命周期（借鉴 OpenMausBot decision log 保留窗）：
+        # 超滚动阈值按月归档，超保留窗删除；清理失败不阻塞事件归档
+        try:
+            from ..learning.audit_store import prune_audit_files
+
+            result = await asyncio.to_thread(prune_audit_files, self._store.rsi_dir)
+            if result.get("archived") or result.get("pruned"):
+                logger.info("决策日志清理：按月归档 %d，超窗删除 %d", result["archived"], result["pruned"])
+        except Exception:
+            logger.exception("决策日志清理失败（下周期重试）")
 
     async def _decay_recall_arms(self) -> None:
         if self._store is None:

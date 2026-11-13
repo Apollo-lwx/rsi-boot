@@ -88,6 +88,8 @@ async def _tags_of(knowledge: KnowledgeService, item_ids: list[str]) -> list[Any
 def _log_review(store: Any, *, action: str, ids: list[str], processed: int, bootstrap_run_id: str = "") -> None:
     if store is None:
         return
+    from ...learning.audit_store import resolve_host
+
     append_event(
         store.rsi_dir,
         {
@@ -98,6 +100,7 @@ def _log_review(store: Any, *, action: str, ids: list[str], processed: int, boot
             "processed": processed,
             "ids": [str(i) for i in ids if i][:200],
             "bootstrap_run_id": bootstrap_run_id or "",
+            "actor": {"host": resolve_host()},  # 决策日志：谁批准的
         },
     )
 

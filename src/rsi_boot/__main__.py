@@ -458,6 +458,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--replace", action="store_true",
         help="先备份并清空现有 memory 再导入",
     )
+
+    p_aud = sub.add_parser("audit", help="决策日志：导出 CSV / 生命周期清理")
+    _add_verbose(p_aud)
+    aud_sub = p_aud.add_subparsers(dest="audit_action", required=True)
+    p_aexp = aud_sub.add_parser("export", help="导出审计报告与审批事件为 CSV（公式注入中和 + 脱敏）")
+    p_aexp.add_argument("--out", required=True, help="CSV 输出路径")
+    p_aexp.add_argument("--project-root", default=".", help="项目根，默认当前目录")
+    p_aprune = aud_sub.add_parser("prune", help="超保留窗删除、超滚动阈值按月归档")
+    p_aprune.add_argument("--days", type=int, default=0, help="保留窗天数（默认 180 或项目配置 audit.retention_days）")
+    p_aprune.add_argument("--dry-run", action="store_true", help="只预览计数，不落盘")
+    p_aprune.add_argument("--project-root", default=".", help="项目根，默认当前目录")
     p_bimp.add_argument("--project-root", default=".", help="项目根，默认当前目录")
 
     p_mig = sub.add_parser("migrate", help="从旧版 ~/.rsi/rsi.db 认领命名空间到当前项目")
@@ -556,6 +567,15 @@ def main() -> None:
         setup_cli_logging(getattr(args, "verbose", False))
         try:
             sys.exit(run_bundle(args))
+        except KeyboardInterrupt:
+            sys.exit(130)
+
+    if args.command == "audit":
+        from .cli.audit_command import run_audit
+
+        setup_cli_logging(getattr(args, "verbose", False))
+        try:
+            sys.exit(run_audit(args))
         except KeyboardInterrupt:
             sys.exit(130)
 
