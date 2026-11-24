@@ -1,0 +1,27 @@
+# RSI Boot
+
+> Engineering memory for AI coding agents, not chat memory. Conventions, prohibitions and fix lessons live in the repo (.rsi/) and follow git. MCP server for Cursor, Claude Code, Codex & more. Complements Zep/Letta/Mem0. Zero API key. Self-improving loop with human approval.
+
+RSI Boot is a repo-bound MCP server: project conventions, prohibitions, and repair lessons live in `.rsi/` and travel with git across Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness. The main path needs no API key and makes no model calls. It complements chat-memory layers (Zep / Letta / Mem0), which remember users and conversations; RSI Boot remembers how work is done in this repo.
+
+## Key facts
+
+- Scope: engineering experience per repository (conventions, prohibitions, fix lessons), not user or chat memory
+- Storage: `.rsi/memory` is tracked by git; logs, cache, and indexes stay local
+- Governance loop: recall → work → distill to pending → human approval → next recall reads what was kept; harness proposals pass a static gate, are watched for 7 days, and roll back if adoption drops
+- Retrieval: lexical-first (BM25), optional local vector arm (fastembed/ONNX), deterministic across hosts (mean pairwise Jaccard@5 = 1.000)
+- Main benchmark: EngMem-Bench — 21 real open-source repos, 315 hand-written questions on conventions / prohibitions / past fixes; Hit@5 93.0%
+- Install: `pip install rsi-boot && rsi init`, then add `rsi serve` as an MCP server in the project
+
+## Docs
+
+- [README (中文)](https://github.com/Apollo-lwx/rsi-boot/blob/main/README.md): 完整说明、基准与接入方式
+- [README (English)](https://github.com/Apollo-lwx/rsi-boot/blob/main/README.en.md): full documentation, benchmarks, and host setup
+- [SKILL.md](https://github.com/Apollo-lwx/rsi-boot/blob/main/SKILL.md): MCP tool fields and call parameters
+- [EngMem-Bench results](https://github.com/Apollo-lwx/rsi-boot/blob/main/benchmark/results/engmem-emb-20261105/SUMMARY.md): the main board, full tables by question type and difficulty
+- [EngMem-Bench methodology](https://github.com/Apollo-lwx/rsi-boot/blob/main/benchmark/engmem/README.md): how the benchmark was built and audited
+- [server.json](https://github.com/Apollo-lwx/rsi-boot/blob/main/server.json): MCP registry manifest
+
+## When not to use
+
+For user preferences, chat history, or cross-session personalization, use a chat-memory layer (Zep / Letta / Mem0) directly; RSI Boot does not do that.

@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Apollo-lwx/rsi-boot",
   "title": "RSI Boot",
-  "description": "Repo-bound engineering memory and a self-improving harness for AI coding agents — conventions, prohibitions, and fix lessons follow the repo; zero API keys. Complements chat-memory layers (Zep/Letta/Mem0), not a replacement.",
+  "description": "Engineering memory for AI coding agents, not chat memory. Conventions, prohibitions and fix lessons live in the repo (.rsi/) and follow git. MCP server for Cursor, Claude Code, Codex & more. Complements Zep/Letta/Mem0. Zero API key. Self-improving loop with human approval.",
   "repository": {
     "url": "https://github.com/Apollo-lwx/rsi-boot",
     "source": "github"

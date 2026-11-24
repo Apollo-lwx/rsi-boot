@@ -1,6 +1,6 @@
 {
   "name": "rsi-boot",
-  "description": "Repo-bound Harness-RSI: engineering memory (conventions, prohibitions, fix lessons) follows the project across hosts; complements chat-memory layers. Zero API keys on the main path.",
+  "description": "Engineering memory for AI coding agents, not chat memory. Conventions, prohibitions and fix lessons live in the repo (.rsi/) and follow git. Complements Zep/Letta/Mem0. Zero API key. Self-improving loop with human approval.",
   "owner": {
     "name": "wenxing luo"
   },
@@ -8,7 +8,7 @@
     {
       "name": "rsi-boot",
       "source": "./",
-      "description": "Repo-bound engineering memory and a self-improving harness for AI coding agents — complements chat-memory layers (Zep/Letta/Mem0), zero API keys on the main path."
+      "description": "Engineering memory for AI coding agents, not chat memory. Conventions, prohibitions and fix lessons live in the repo (.rsi/) and follow git. MCP server for Cursor, Claude Code, Codex & more. Complements Zep/Letta/Mem0. Zero API key. Self-improving loop with human approval."
     }
   ]
 }

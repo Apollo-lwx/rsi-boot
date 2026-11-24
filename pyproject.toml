@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rsi-boot"
 version = "0.2.0"
-description = "Repo-bound engineering memory with recursive self-improvement (Harness-RSI) — conventions, prohibitions, and fix lessons follow the project across hosts, and the harness gets better as you use it. Complements chat-memory layers; not a chat memory itself."
+description = "Engineering memory for AI coding agents, not chat memory. Conventions, prohibitions and fix lessons live in the repo (.rsi/) and follow git. MCP server for Cursor, Claude Code, Codex & more. Complements Zep/Letta/Mem0. Zero API key. Self-improving loop with human approval."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
