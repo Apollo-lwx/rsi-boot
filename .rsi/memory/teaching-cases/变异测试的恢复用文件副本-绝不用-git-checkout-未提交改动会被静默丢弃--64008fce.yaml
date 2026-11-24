@@ -1,0 +1,39 @@
+id: 64008fce6c4e4a8ea799b3645c756314
+type: teaching_case
+title: 变异测试的恢复用文件副本，绝不用 git checkout——未提交改动会被静默丢弃
+content: 变异前 cp 源文件到临时副本；变异后跑目标测试确认变红；从副本 cp 恢复，删除临时文件；恢复后再跑一次确认绿。变异脚本用独立 .py 文件 +
+  chr(92) 拼接反斜杠，避免 shell/heredoc 多层转义陷阱；变异源串不匹配时用断言拦截，绝不让变异脚本静默通过。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-13T15:51:19Z'
+updated_at: '2026-11-13T15:51:19Z'
+refs: []
+extra: {}
+payload:
+  scenario_type: repair
+  trigger:
+    error_signature: git checkout 恢复变异误删未提交改动；shell 多层转义致变异串不匹配
+    failure_type: ''
+    fingerprint: ''
+  system_attempts: []
+  lesson:
+    author: agent
+    correct_fix: 变异前 cp 源文件到临时副本；变异后跑目标测试确认变红；从副本 cp 恢复，删除临时文件；恢复后再跑一次确认绿。变异脚本用独立
+      .py 文件 + chr(92) 拼接反斜杠，避免 shell/heredoc 多层转义陷阱；变异源串不匹配时用断言拦截，绝不让变异脚本静默通过。
+    reason: ''
+    applies_to: []
+    tags: []
+    open_questions: []
+    wrong_action: 做变异验证时用 sed/python 改坏源码后直接 git checkout -- 恢复，结果把该文件未提交的全部正常改动一并丢弃（变异串还因
+      shell 多层转义没匹配上，测试绿是假的）；同一命令链里变异未生效却跑了测试，险些把假绿当验证通过。
+  fix_and_learn:
+    applied: false
+    validation: ''
+    gene_map_weight: 2
+    promote_to_pattern: false
+    record_count: 1
+    recall_hits: 0
+    recorded_at: '2026-11-13T15:51:19Z'
+path: memory/teaching-cases/变异测试的恢复用文件副本-绝不用-git-checkout-未提交改动会被静默丢弃--64008fce.yaml

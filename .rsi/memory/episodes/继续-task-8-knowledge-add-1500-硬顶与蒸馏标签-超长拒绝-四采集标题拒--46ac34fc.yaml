@@ -27,9 +27,13 @@ status: active
 tags: []
 roles: []
 created_at: '2026-09-15T02:55:48Z'
-updated_at: '2026-09-15T02:55:48Z'
+updated_at: '2026-11-24T05:37:16Z'
 refs: []
-extra: {}
+extra:
+  low_confidence: true
+  low_confidence_count: 1
+  low_confidence_at: '2026-11-24T05:37:15Z'
+  low_confidence_reason: ignored
 payload:
   fingerprint: 1500 8 bootstrap_run_id distilled error knowledge_add mcp/cli task
     、 、四 与蒸 传出 原样 四采 必带 拒绝 标签 标题 样传 硬顶 签： 绝、 继续 蒸馏 超长 采集 长拒 集标 顶与 题拒 馏标 ：超

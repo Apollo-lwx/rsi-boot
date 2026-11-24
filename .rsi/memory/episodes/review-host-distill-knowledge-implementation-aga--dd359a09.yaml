@@ -29,9 +29,13 @@ status: active
 tags: []
 roles: []
 created_at: '2026-09-17T02:24:40Z'
-updated_at: '2026-09-17T02:24:40Z'
+updated_at: '2026-11-24T05:37:16Z'
 refs: []
-extra: {}
+extra:
+  low_confidence: true
+  low_confidence_count: 1
+  low_confidence_at: '2026-11-24T05:37:15Z'
+  low_confidence_reason: ignored
 payload:
   fingerprint: '1-13 against and bootstrap deletion, filters, host-distill-knowledge
     implementation intent:code_review jaccard knowledge.add, packs, plan reading recall

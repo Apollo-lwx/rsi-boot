@@ -1,0 +1,32 @@
+id: 98c02c379d7e499cb4cc240cbe61e443
+type: gene_case
+title: 加固调度器与安全闸时：中断恢复要点是把「做了」和「做成了」分开记，异常路径要 fail-closed
+content: 调度：serve 先对账——周期任务只在成功完成后写 scheduler-runs.yaml 记录，启动时跳过已有成功记录的到期任务，无 store
+  时回退旧行为。闸：检查器自身失败=拒绝+记 error（blocklist 加载失败全拒绝、static_gate strict 上抛、rule_injector
+  加载失败零注入下轮重试）；单条规则失败=跳过该条+记 error。配合变异测试（改坏即红）验证。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-13T15:36:51Z'
+updated_at: '2026-11-13T15:36:51Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: 'scheduler: 重启重复执行周期任务致 decay_arms 过度衰减；injector: blocklist 加载失败静默放行、rule_injector
+    bundle 加载异常崩溃'
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 调度：serve 先对账——周期任务只在成功完成后写 scheduler-runs.yaml 记录，启动时跳过已有成功记录的到期任务，无 store
+    时回退旧行为。闸：检查器自身失败=拒绝+记 error（blocklist 加载失败全拒绝、static_gate strict 上抛、rule_injector
+    加载失败零注入下轮重试）；单条规则失败=跳过该条+记 error。配合变异测试（改坏即红）验证。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-13T15:36:51Z'
+path: memory/gene-map/manual/加固调度器与安全闸时-中断恢复要点是把-做了-和-做成了-分开记-异常路径要-fail-clos--98c02c37.yaml

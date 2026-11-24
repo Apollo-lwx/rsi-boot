@@ -1,0 +1,35 @@
+id: 2184a795df504bd8a84a601dd7da3d3e
+type: episode
+title: 评估 rsi-boot 的定位：它是记忆体 MCP 还是规则/治理 MCP？与 Letta、Zep 这类自进化记忆层相比，rsi-boot 的记忆、蒸馏、反馈、审计机制分别覆盖什么，适合什么场景接入
+content: '消融定位到组件≠定位到机制：假设先行实测殿后
+
+  单独开记忆健康车道：整表归因到每个 retrieved id；词表极性三分类复用 ConflictDetector._polarity；矛盾才开 incorrect，来源哈希变且标题短语不在文件中才开
+  stale_source；扫描只写发现
+
+  迁移记忆断层：.rsi/ 整目录进 gitignore 导致 memory 不随 git 走
+
+  大屏聚合数字必须可下钻，滚动条跟主题同色系
+
+  MCP server 的工作区边界用 roots/list 协议拿，别信进程 cwd
+
+  按板块并行本轮蒸完，报告给人看不要下一步
+
+  拆行反馈要按 token 拼回召回
+
+  skip 算未覆盖，禁止整板 skip，蒸馏按源类型落目录'
+status: active
+tags: []
+roles: []
+created_at: '2026-11-24T03:15:54Z'
+updated_at: '2026-11-24T05:37:16Z'
+refs: []
+extra:
+  low_confidence: true
+  low_confidence_count: 1
+  low_confidence_at: '2026-11-24T05:37:15Z'
+  low_confidence_reason: ignored
+payload:
+  fingerprint: intent:debug letta mcp rsi-boot zep 、 、反 、审 、蒸 么场 么， 什么 位： 分别 别覆 制分
+    化记 反馈 合什 场景 它是 定位 审计 层相 忆、 忆体 忆层 接入 是规 是记 景接 机制 比， 治理 的定 的记 盖什 相比 类自 自进 蒸馏 覆盖
+    规则 计机 记忆 评估 还是 这类 进化 适合 馈、 馏、 ，适 ：它 ？与
+path: memory/episodes/评估-rsi-boot-的定位-它是记忆体-mcp-还是规则-治理-mcp-与-letta-ze--2184a795.yaml

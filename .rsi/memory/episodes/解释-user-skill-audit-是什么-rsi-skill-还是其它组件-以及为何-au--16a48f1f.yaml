@@ -17,9 +17,13 @@ status: active
 tags: []
 roles: []
 created_at: '2026-09-15T03:26:43Z'
-updated_at: '2026-09-15T03:26:43Z'
+updated_at: '2026-11-24T05:37:16Z'
 refs: []
-extra: {}
+extra:
+  low_confidence: true
+  low_confidence_count: 1
+  low_confidence_at: '2026-11-24T05:37:15Z'
+  low_confidence_reason: ignored
 payload:
   fingerprint: audit_finish rsi skill user-skill-audit 为何 么： 什么 以及 件， 其它 及为 它组 是什
     是其 组件 解释 跳过 过它 还是 ，以

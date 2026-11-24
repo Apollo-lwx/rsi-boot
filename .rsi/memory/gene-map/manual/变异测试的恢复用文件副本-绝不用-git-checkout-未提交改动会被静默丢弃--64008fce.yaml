@@ -1,0 +1,29 @@
+id: 64008fce6c4e4a8ea799b3645c756314
+type: gene_case
+title: 变异测试的恢复用文件副本，绝不用 git checkout——未提交改动会被静默丢弃
+content: 变异前 cp 源文件到临时副本；变异后跑目标测试确认变红；从副本 cp 恢复，删除临时文件；恢复后再跑一次确认绿。变异脚本用独立 .py 文件 +
+  chr(92) 拼接反斜杠，避免 shell/heredoc 多层转义陷阱；变异源串不匹配时用断言拦截，绝不让变异脚本静默通过。
+status: active
+tags: []
+roles: []
+source: manual
+created_at: '2026-11-13T15:51:19Z'
+updated_at: '2026-11-13T15:51:19Z'
+refs: []
+extra: {}
+payload:
+  weight: 2
+  source: manual
+  scenario_type: repair
+  failure_type: ''
+  error_signature: git checkout 恢复变异误删未提交改动；shell 多层转义致变异串不匹配
+  fingerprint: ''
+  solution_type: manual-teaching
+  solution: 变异前 cp 源文件到临时副本；变异后跑目标测试确认变红；从副本 cp 恢复，删除临时文件；恢复后再跑一次确认绿。变异脚本用独立 .py 文件
+    + chr(92) 拼接反斜杠，避免 shell/heredoc 多层转义陷阱；变异源串不匹配时用断言拦截，绝不让变异脚本静默通过。
+  validation: skipped
+  scope: project
+  record_count: 1
+  recall_hits: 0
+  recorded_at: '2026-11-13T15:51:19Z'
+path: memory/gene-map/manual/变异测试的恢复用文件副本-绝不用-git-checkout-未提交改动会被静默丢弃--64008fce.yaml

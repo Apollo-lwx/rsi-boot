@@ -6,9 +6,13 @@ status: active
 tags: []
 roles: []
 created_at: '2026-09-14T11:06:12Z'
-updated_at: '2026-09-14T11:06:12Z'
+updated_at: '2026-11-24T05:37:16Z'
 refs: []
-extra: {}
+extra:
+  low_confidence: true
+  low_confidence_count: 1
+  low_confidence_at: '2026-11-24T05:37:15Z'
+  low_confidence_reason: ignored
 payload:
   fingerprint: agent api key superpowers 一样 不是 不配 与蒸 参与 口径 型参 型， 宿主 径： 户要 是禁 样用 模型
     止模 正零 用宿 用户 禁止 纠正 蒸馏 要像 馏。 ，不 ：用

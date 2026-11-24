@@ -9,9 +9,13 @@ status: active
 tags: []
 roles: []
 created_at: '2026-09-14T14:16:04Z'
-updated_at: '2026-09-14T14:16:04Z'
+updated_at: '2026-11-24T05:37:16Z'
 refs: []
-extra: {}
+extra:
+  low_confidence: true
+  low_confidence_count: 1
+  low_confidence_at: '2026-11-24T05:37:15Z'
+  low_confidence_reason: ignored
 payload:
   fingerprint: ', 4: add and bootstrapreport commit drop edits existing fields, include
     judge_* names pack_count/pack_omitted_sources/harvest_warning, phase select task
