@@ -1,7 +1,7 @@
 {
   "name": "rsi-boot",
   "version": "0.1.0",
-  "description": "Repo-bound Harness-RSI for AI coding hosts: the harness improves from failures; memory lives in the repo's .rsi/ and follows the project across Cursor, Qoder, Codex and Claude Code. Zero API keys on the main path.",
+  "description": "Repo-bound engineering memory and Harness-RSI for AI coding hosts: conventions, prohibitions, and fix lessons live in the repo's .rsi/ and follow the project across Cursor, Qoder, Codex and Claude Code; the harness improves from failures. Complements chat-memory layers (Zep/Letta/Mem0); zero API keys on the main path.",
   "author": {
     "name": "wenxing luo"
   },

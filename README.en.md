@@ -16,7 +16,7 @@ Cursor removed Memories in 2.1 — new chats know nothing about your project. Cl
 
 RSI Boot keeps conventions, prohibitions, repair lessons, and harness slots in the repo's `.rsi/`. Install once; Cursor, Claude Code, Codex, Qoder, and DeepSeek Harness share that copy. The main path needs no API key and makes no model calls.
 
-The loop is fixed: **recall → do the work → distill a pending note → a person approves it → the next recall reads what was kept.** Negative feedback also lands in failure buckets and may change only writable slots (prompts, skills, recall strategy, intent rules, knowledge). A proposal is promoted only after a static gate and human review, watched for 7 days, and rolled back if adoption drops. That is how the software is built. The published retrieval table is in [benchmark/results/recall-20261028/SUMMARY.md](benchmark/results/recall-20261028/SUMMARY.md). It is not an answer-judge score.
+The loop is fixed: **recall → do the work → distill a pending note → a person approves it → the next recall reads what was kept.** Negative feedback also lands in failure buckets and may change only writable slots (prompts, skills, recall strategy, intent rules, knowledge). A proposal is promoted only after a static gate and human review, watched for 7 days, and rolled back if adoption drops. That is how the software is built. The main-board (engineering memory, EngMem-Bench) table is in [benchmark/results/engmem-emb-20261105/SUMMARY.md](benchmark/results/engmem-emb-20261105/SUMMARY.md). It is not an answer-judge score.
 
 ## Not another memory plugin
 
@@ -35,6 +35,9 @@ Injected content carries a harness-written authority prefix `[RSI · <source> ·
 
 The `AGENTS.md` managed block carries only approved summaries; the full recall text lives in `.rsi/memory`. That is why learning now ignores only logs, cache, and indexes under `.rsi/`, while `memory/` is committed with the repo. Ignoring the whole directory was the old behavior — after upgrading, run `rsi doctor --fix` once to narrow the rule automatically.
 
+**When not to use RSI Boot**
+If what you need is user preferences, chat history, or cross-session personalization (consumer assistants, support bots, companion products), that is a chat-memory layer's job — use Zep / Letta / Mem0 directly; RSI Boot does not do that. It remembers exactly one thing: this repo's engineering experience — conventions, prohibitions, and how past bugs were fixed.
+
 ## Moving machines, cloning, handing to a teammate
 
 After migrating or cloning a repo, verify memory integrity:
@@ -51,7 +54,7 @@ rsi bundle export --out ./backup          # source machine: export the full memo
 rsi bundle import --from ./backup         # target machine: merge-import; --replace backs up first
 ```
 
-| | Host-native memory | Cloud memory (Mem0 and the like) | Generic local memory MCP | RSI Boot |
+| | Host-native memory | Chat-memory layers (Zep / Letta / Mem0 and the like) | Generic local memory MCP | RSI Boot |
 |---|---|---|---|---|
 | Data follows | the account / the host | the cloud user | depends | **the current repo** |
 | Switch AI tools or teammates | start over, each copy private | only if that host is wired | usually store-and-recall | **the same `.rsi/` and `AGENTS.md`** |
@@ -59,74 +62,112 @@ rsi bundle import --from ./backup         # target machine: merge-import; --repl
 | API key on the main path | bound to the host | required | often | **none** |
 | Write gate | the model decides | server-side policy | rare | **review + prohibitions + conflict rulings** |
 
+RSI Boot complements chat-memory layers rather than competing with them: Zep / Letta remember "what the user said and when facts changed"; RSI Boot remembers "how work is done in this repo". Both speak MCP, so one project can run both — user and session facts live in them, engineering experience lives in `.rsi/`.
+
 ## Public benchmark
 
-The leaderboard is recall. The cold start returns 5 items. The denominator is questions that have a gold evidence id. MRR is the reciprocal rank of the first hit, from 0 to 1. Tokens are null. Protocol and the per-type breakdown: [benchmark/results/recall-20261028/SUMMARY.md](benchmark/results/recall-20261028/SUMMARY.md).
+**The main board is EngMem-Bench, our engineering-memory benchmark**: 21 real open-source repos (pinned commits), 315 hand-written questions anchored to real doc sections, in three types — conventions, prohibitions, and past fixes. That is RSI Boot's home turf. LoCoMo and LongMemEval-S are conversational corpora, demoted to secondary "we can also search chat transcripts" results: the conversational board only proves the retrieval engine is sound. We do not build a chat-memory layer; we complement other memory systems, not replace them.
 
-### This run
+Shared protocol: recall top-k hits. The cold start returns 5 items. The denominator is questions that have a gold evidence id. MRR is the reciprocal rank of the first hit, from 0 to 1. Tokens are null.
+
+### Main board: EngMem-Bench (engineering memory)
+
+Annotation quality was audited by a three-model panel (Kimi K3 / Claude Haiku / GLM 5.2 independently verified a stratified 87-question sample, Fleiss' κ=0.738; five anchor/version defects were fixed after author arbitration). Methodology: [benchmark/engmem/README.md](benchmark/engmem/README.md). Full tables (by question type, by difficulty): [benchmark/results/engmem-emb-20261105/SUMMARY.md](benchmark/results/engmem-emb-20261105/SUMMARY.md).
+
+| System | Questions | Hit@5 | Recall@5 | MRR |
+|---|---:|---:|---:|---:|
+| **rsi** | 315 | **93.0%** | **92.9%** | **0.817** |
+| vanilla-rag | 315 | 87.3% | 87.1% | 0.744 |
+| full-context | 315 | 25.4% | 25.4% | 0.096 |
+
+### Secondary board: conversational corpora (LoCoMo / LongMemEval-S)
+
+These two boards measure chat-transcript retrieval, not engineering memory; we run them only to show the retrieval engine also holds up on general conversational corpora. Protocol and the per-type breakdown: [benchmark/results/recall-20261104/SUMMARY.md](benchmark/results/recall-20261104/SUMMARY.md).
 
 | Dataset | Questions with evidence | Hit@5 | Recall@5 | MRR | Hit@10 | Recall@10 | Empty stayed empty |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| LoCoMo | 1536 | 56.5% | 51.0% | 0.427 | 64.0% | 57.8% | 0/450 |
-| LongMemEval-S | 500 | 96.6% | 90.1% | 0.907 | 98.4% | 94.8% | — |
+| LoCoMo | 1536 | 62.0% | 56.4% | 0.422 | 70.3% | 64.0% | 0/450 |
+| LongMemEval-S | 500 | 96.6% | 90.2% | 0.908 | 98.4% | 94.8% | — |
 
-These are retrieval scores, not answer-judge scores.
+These are retrieval scores, not answer-judge scores. LoCoMo category labels follow the official evaluation code (1=multi-hop, 2=temporal, 3=open-domain, 4=single-hop), which differs from the narrative order in paper §4.1 (confirmed in upstream issue #29 / EACL 2026 Appendix A).
+
+### Same-protocol baseline comparison
+
+Same questions, same metrics, three systems on the same machine. vanilla-rag is 512-character chunks + vectors: LoCoMo/EngMem use local bge-large-en-v1.5 (fastembed/ONNX, no key needed); LME falls back to a hashing bag-of-words lower bound, because 512-character chunking of 115k-token conversations would produce ~560k vectors, which is infeasible offline. full-context is the "stuff everything into the prompt" reference and does not count for win/loss. Full table: [benchmark/results/baselines-emb-20261104/SUMMARY.md](benchmark/results/baselines-emb-20261104/SUMMARY.md).
+
+| Dataset | System | Hit@5 | Recall@5 | MRR |
+|---|---|---:|---:|---:|
+| LoCoMo | rsi | 62.0% | 56.4% | 0.422 |
+| LoCoMo | **vanilla-rag** | **68.6%** | **60.4%** | **0.500** |
+| LoCoMo | full-context | 2.3% | 1.4% | 0.009 |
+| LongMemEval-S | **rsi** | **96.6%** | **90.2%** | **0.908** |
+| LongMemEval-S | vanilla-rag | 69.2% | 55.4% | 0.520 |
+| LongMemEval-S | full-context | 17.6% | 8.6% | 0.080 |
 
 ### Against published retrieval numbers
 
-The published column is a retrieval figure from the papers. This-run column is the table above. Delta is this run minus the published figure, in percentage points. The LoCoMo paper reports dialog recall accuracy; this run uses Hit@5 at k=5 and Hit@10 at k=10. The paper's overall includes adversarial questions. This run's overall is the 1,536 answerable questions. ECHO labels its LoCoMo Hit@10 as a development measurement, and query expansion may have used question-side phrases.
+The published column is a retrieval figure from the papers; the this-run column is the conversational board above. Delta is this run minus the published figure, in percentage points. The LoCoMo paper reports dialog recall accuracy; this run uses Hit@5 at k=5 and Hit@10 at k=10. The paper's overall includes adversarial questions; this run's overall is the 1,536 answerable questions. ECHO labels its LoCoMo Hit@10 as a development measurement, and query expansion may have used question-side phrases.
 
 | Source | Slice | Published | This run | Delta |
 |---|---|---:|---:|---:|
-| LoCoMo paper, dialog k=5 | Single-hop | 68.0 | 38.7 | −29.3 |
-| LoCoMo paper, dialog k=5 | Multi-hop | 35.4 | 63.2 | +27.8 |
-| LoCoMo paper, dialog k=5 | Temporal | 70.4 | 31.5 | −38.9 |
-| LoCoMo paper, dialog k=5 | Open-domain | 33.1 | 62.7 | +29.6 |
-| LoCoMo paper, dialog k=5 | Overall, paper includes adversarial | 56.7 | 56.5 | −0.2 |
-| LoCoMo paper, dialog k=10 | Overall, paper includes adversarial | 66.2 | 64.0 | −2.2 |
-| ECHO, LoCoMo 1,536 questions | Hit@10, development measurement | 96.29 | 64.0 | −32.3 |
+| LoCoMo paper, dialog k=5 | Single-hop | 68.0 | 72.2 | +4.2 |
+| LoCoMo paper, dialog k=5 | Multi-hop | 35.4 | 39.4 | +4.0 |
+| LoCoMo paper, dialog k=5 | Temporal | 70.4 | 64.5 | −5.9 |
+| LoCoMo paper, dialog k=5 | Open-domain | 33.1 | 30.4 | −2.7 |
+| LoCoMo paper, dialog k=5 | Overall, paper includes adversarial | 56.7 | 62.0 | +5.3 |
+| LoCoMo paper, dialog k=10 | Overall, paper includes adversarial | 66.2 | 70.3 | +4.1 |
+| ECHO, LoCoMo 1,536 questions | Hit@10, development measurement | 96.29 | 70.3 | −26.0 |
 | ECHO, LongMemEval-S 500 questions | Hit@10 | 97.60 | 98.4 | +0.8 |
-| ECHO, LongMemEval-S | Session Recall@5 | 88.71 | 90.1 | +1.4 |
+| ECHO, LongMemEval-S | Session Recall@5 | 88.71 | 90.2 | +1.5 |
 
 ### Deltas
 
-![LongMemEval in the same band, LoCoMo overall next to the paper. Bars on the right are higher than the published figure. Bars on the left are lower.](benchmark/results/recall-20261028/delta-en.png)
-
-The four rows within 5 points sit together. The wide gaps are the slices: multi-hop and open-domain are higher; single-hop, temporal, and LoCoMo Hit@10 against ECHO are lower.
+![LongMemEval in the same band, LoCoMo overall above the paper. Bars on the right are higher than the published retrieval figures, bars on the left are lower.](benchmark/results/recall-20261104/delta.png)
 
 | Comparison | This run | Published | Delta |
 |---|---:|---:|---:|
 | LongMemEval-S Hit@10 | 98.4 | 97.60 | +0.8 |
-| LongMemEval-S session Recall@5 | 90.1 | 88.71 | +1.4 |
-| LoCoMo overall k=5 | 56.5 | 56.7 | −0.2 |
-| LoCoMo overall k=10 | 64.0 | 66.2 | −2.2 |
-| LoCoMo open-domain k=5 | 62.7 | 33.1 | +29.6 |
-| LoCoMo multi-hop k=5 | 63.2 | 35.4 | +27.8 |
-| LoCoMo single-hop k=5 | 38.7 | 68.0 | −29.3 |
-| LoCoMo temporal k=5 | 31.5 | 70.4 | −38.9 |
-| LoCoMo Hit@10 vs ECHO | 64.0 | 96.29 | −32.3 |
+| LongMemEval-S session Recall@5 | 90.2 | 88.71 | +1.5 |
+| LoCoMo overall k=5 | 62.0 | 56.7 | +5.3 |
+| LoCoMo overall k=10 | 70.3 | 66.2 | +4.1 |
+| LoCoMo single-hop k=5 | 72.2 | 68.0 | +4.2 |
+| LoCoMo multi-hop k=5 | 39.4 | 35.4 | +4.0 |
+| LoCoMo open-domain k=5 | 30.4 | 33.1 | −2.7 |
+| LoCoMo temporal k=5 | 64.5 | 70.4 | −5.9 |
+| LoCoMo Hit@10 vs ECHO | 70.3 | 96.29 | −26.0 |
+
+### Governance loop and safety
+
+- Longitudinal self-improvement: a 10-round synthetic event stream across three arms — the governed arm's learn probes went 0/10→9/10 with noise exposure at 0 throughout; the gate-free arm (approve everything) showed 100% noise exposure from the first injection; the no-promotion ablation arm stayed at 0/10 on learn. Two retrieval-layer shortcomings were also exposed (memory growth crowding out old rules; word-form mismatches missing recall) and are recorded as-is. See [benchmark/results/longitudinal-20261104/SUMMARY.md](benchmark/results/longitudinal-20261104/SUMMARY.md).
+- Adversarial poisoning: pending-store poisoning and forged "approved" flags were 100% filtered; keyword stuffing failed to take the top spot (5/5). See [benchmark/results/adversarial-20261103/SUMMARY.md](benchmark/results/adversarial-20261103/SUMMARY.md).
+- Ablation: per-component switches (RSI_ABLATE) produce a comparison board — the context enhancement is the only individually measurable aggregate contribution, and it is exactly the source of the temporal-slice gap; every other switch alone moved aggregate metrics by ≤±0.3, recorded as-is. See [benchmark/results/ablation-20261104/SUMMARY.md](benchmark/results/ablation-20261104/SUMMARY.md). Two fixes followed, each validated on its own board: context-v2 (attaches the previous turn with date anchors stripped; aggregate 60.0→60.4; the date-contamination hypothesis contributed nothing to temporal, recorded as-is) plus a 0.15 query-time down-weight of citation lines on temporal questions (temporal 56.1→64.5, catching up with and slightly beating the enhancement-off 64.2; single-hop held at 72.2; aggregate 60.4→62.0; MRR 0.368→0.422). See [benchmark/results/contextfix-20261104/SUMMARY.md](benchmark/results/contextfix-20261104/SUMMARY.md).
+- Scale: a 10k-memory index builds in 8.1s with retrieval P50 at 47ms; 50k builds in 62.5s with P50 at 474ms. See [benchmark/results/scalability-20261103/SUMMARY.md](benchmark/results/scalability-20261103/SUMMARY.md).
 
 ### Tokens saved
 
-The recall board still records tokens as null. This section is a separate measurement: the same questions about this repo, answered once with the managed memory present and once without it, using the token counts Cursor CLI reports. 2026-10-29, CLI `2026.10.22`, ask mode, model Auto. A total is input + output + cache read + cache write.
+Three measurements with different protocols — do not mix them:
 
-The off arm is a checkout with the managed block and `.rsi/` removed. The on arm is this repo. Across six groups the off arm used 1,637,977 tokens and the on arm used 423,973, saving 1,214,004, **74.1%**. Single groups run from 10.5% to 89.7%. Quote the pooled figure.
+1. **Host-measured** (2026-10-29, Cursor CLI `2026.10.22`, ask mode, model Auto): the same set of questions about this repo answered once with memory and once without, subtracting the token counts the CLI reports. A total is input + output + cache read + cache write. Across six groups: off 1,637,977, on 423,973, saved 1,214,004 — **74.1%**. Protocol and per-group split: [benchmark/results/token-20261029/SUMMARY.md](benchmark/results/token-20261029/SUMMARY.md).
+2. **Controlled-context measurement** (2026-11-04, 2,036 questions, full LoCoMo + 50 LongMemEval-S samples): same tokenizer, paired comparison of "context tokens sent to the model" — RSI recall top-5 vs full conversation has a median compression ratio of 0.9% (a 99.1% reduction), paired Wilcoxon p<0.001, effect size r=0.866. See [benchmark/results/token-20261104/SUMMARY.md](benchmark/results/token-20261104/SUMMARY.md).
+3. **Real API billing** (2026-11-05, reproduced across two vendors): 80 stratified LoCoMo questions × two arms × two rounds, server-side usage recorded per call. Kimi K3: median prompt 50,307→610 (−98.8%), median latency −38.1%. Claude Haiku (same questions, same protocol): 75,540→2,688 (−96.4%; the relay gateway injects ~1.9k of fixed client overhead, so this is a conservative lower bound), latency −56.9%. All 160/160 pairs improved in both rounds, Wilcoxon p=5.3e-28, r=0.867. See [benchmark/results/token-llm-20261105/SUMMARY.md](benchmark/results/token-llm-20261105/SUMMARY.md) and [benchmark/results/token-llm-claude-20261105/SUMMARY.md](benchmark/results/token-llm-claude-20261105/SUMMARY.md).
 
-| Group | Off | On | Saved | Share |
-|---|---:|---:|---:|---:|
-| a project root / basetemp / workspace | 432455 | 44607 | 387848 | 89.7% |
-| b distill skip / auth / dense domain | 108446 | 71303 | 37143 | 34.3% |
-| c deps / secrets / health scan | 80383 | 71963 | 8420 | 10.5% |
-| a2 same questions as a, run again | 309865 | 74398 | 235467 | 76.0% |
-| a3 same questions as a, third run | 351853 | 88964 | 262889 | 74.7% |
-| a4 same questions as a, fourth run | 354975 | 72738 | 282237 | 79.5% |
-| Pooled | 1637977 | 423973 | 1214004 | 74.1% |
+### Cross-host consistency
 
-Protocol and the raw split: [benchmark/results/token-20261029/SUMMARY.md](benchmark/results/token-20261029/SUMMARY.md).
+The same `.rsi` seed, read twice by RSI itself, by Cursor CLI, and by Claude Code CLI, each through its own MCP chain on the same query set: mean pairwise Jaccard@5 = 1.000 across six host pairs, first-hit agreement 100% — recall is deterministic and does not break across hosts. See [benchmark/results/cross-host/SUMMARY.md](benchmark/results/cross-host/SUMMARY.md).
+
+### Answer accuracy (LLM double-judged)
+
+A retrieval hit is not a correct answer, so we measured the bottom of the funnel: the same 80 LoCoMo questions, three arms (full / rsi / rag) × two generators (Kimi K3, Claude Haiku), every answer cross-judged by both models (87.5% judge agreement; a question counts as correct only when both judges say so). Result: lexical rsi answers are statistically indistinguishable from the vector baseline (McNemar p=0.70 / 1.00); full-context remains the strongest (the price of a 98.8% context cut, reported as-is); **on unanswerable questions, lexical rsi refuses most reliably** (64% vs full 50% vs rag 39%). See [benchmark/results/answer-acc-20261105/SUMMARY.md](benchmark/results/answer-acc-20261105/SUMMARY.md).
+
+### Hybrid retrieval ablation (vector channel + multi-hop cascade)
+
+Two experimental switches (off by default; enable with `RSI_ENABLE=vector|multihop` or `enable:` in rsi-boot.yaml): a local fastembed/ONNX vector channel (bge-large, the same model as the vanilla-rag arm) RRF-fused (k=60) with the lexical survivors after the gate; and a first-hop bridge-term two-hop cascade. Four-arm comparison on full LoCoMo: **the vector channel lifts Hit@5 62.0%→68.2% (paired McNemar 98 vs 3, p=1.4e-25), multi-hop 39.4%→48.9%, reaching statistical parity with the vector vanilla-rag (68.6%)**; the multi-hop cascade is neutral (recorded as a negative result). Answer-accuracy retest (rsi arm regenerated with hybrid retrieval, the other two arms reused as-is): Claude-generated 52.5%→56.2%, Kimi-generated 46.3%→47.5%, multi-hop answers 5%→23%; the cost is unanswerable-question refusal dropping 64%→50%, disclosed as-is. See [benchmark/results/ablation-hybrid-20261105/SUMMARY.md](benchmark/results/ablation-hybrid-20261105/SUMMARY.md) and [benchmark/results/answer-acc-vec-20261105/SUMMARY.md](benchmark/results/answer-acc-vec-20261105/SUMMARY.md).
+
+A third switch is LLM query decomposition (`RSI_ENABLE=decompose`, splitting a question into 2–3 sub-queries and merging the evidence): across two measured arms (conservative, forced) the best result only ties the baseline, and the forced arm loses +8/−20 per question — **a negative result; leave it off**. See [benchmark/results/ablation-decompose-20261109/SUMMARY.md](benchmark/results/ablation-decompose-20261109/SUMMARY.md).
 
 ### When to enable the vector arm
 
-The hybrid arm (BM25 + local fastembed vectors, RRF-fused) is opt-in and off by default. Measured on LoCoMo: Hit@5 62.0%→68.2% (paired McNemar p=1.4e-25), multi-hop 39.4%→48.9%. Evidence: [benchmark/results/ablation-hybrid-20261105/SUMMARY.md](benchmark/results/ablation-hybrid-20261105/SUMMARY.md).
+The hybrid arm (BM25 + local fastembed vectors, RRF-fused) is opt-in and off by default.
 
 | Your memory is mostly | Recommendation | Why |
 |---|---|---|
@@ -142,8 +183,6 @@ pip install "rsi-boot[vector]"
 rsi init --vector        # checks deps, downloads the model, writes rsi-boot.yaml, self-checks
 rsi serve                # first recall warms up in the background; later recalls are instant
 ```
-
-LLM query decomposition (`RSI_ENABLE=decompose`) measured as a **negative result** on LoCoMo (+8/−20 per-question wins/losses) — leave it off. Evidence: [benchmark/results/ablation-decompose-20261109/SUMMARY.md](benchmark/results/ablation-decompose-20261109/SUMMARY.md).
 
 ## Installation
 

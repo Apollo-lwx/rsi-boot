@@ -1,7 +1,7 @@
 {
   "name": "rsi-boot",
   "version": "0.2.0",
-  "description": "Repo-bound memory and a self-improving harness for AI coding agents. Memory lives in the project's .rsi/ and follows it across Cursor, Claude Code, Codex, Qoder and VS Code. Zero API keys on the main path.",
+  "description": "Repo-bound engineering memory and a self-improving harness for AI coding agents. Conventions, prohibitions, and fix lessons live in the project's .rsi/ and follow it across Cursor, Claude Code, Codex, Qoder and VS Code. Complements chat-memory layers (Zep/Letta/Mem0); zero API keys on the main path.",
   "author": {
     "name": "wenxing luo"
   },

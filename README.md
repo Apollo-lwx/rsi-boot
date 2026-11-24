@@ -19,7 +19,7 @@ Cursor 在 2.1 删掉了 Memories，新会话对你的项目一无所知；Claud
 
 RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `.rsi/`，跟仓库走：装一次，Cursor / Claude Code / Codex / Qoder / DeepSeek Harness 通用。主链路零 API Key，不调用模型。
 
-环是固定的：**召回 → 干活 → 蒸馏成待审条目 → 人批准后才留下 → 下一轮召回读到留下的条目。** 负反馈另外进失败桶，只改可写槽位（提示词 / 技能 / 召回策略 / 意图规则 / 知识）。提案过静态门禁和人工确认才晋升，观察 7 天，采纳率掉就回滚。这是软件自己的写法。公开结果还没有和别人的答题分放在同一列。召回主榜的表在 [benchmark/results/recall-20261028/SUMMARY.md](benchmark/results/recall-20261028/SUMMARY.md)。
+环是固定的：**召回 → 干活 → 蒸馏成待审条目 → 人批准后才留下 → 下一轮召回读到留下的条目。** 负反馈另外进失败桶，只改可写槽位（提示词 / 技能 / 召回策略 / 意图规则 / 知识）。提案过静态门禁和人工确认才晋升，观察 7 天，采纳率掉就回滚。这是软件自己的写法。公开结果还没有和别人的答题分放在同一列。主榜（工程记忆 EngMem-Bench）的表在 [benchmark/results/engmem-emb-20261105/SUMMARY.md](benchmark/results/engmem-emb-20261105/SUMMARY.md)。
 
 ## 和「又一个记忆插件」差在哪
 
@@ -38,6 +38,9 @@ RSI Boot 把约定、禁止项、修复经验和 harness 槽位落在仓库的 `
 
 `AGENTS.md` 托管块只承载核准约定的摘要，召回用的全文在 `.rsi/memory`。所以学习默认只把 `.rsi/` 下的日志、缓存、索引写进 `.gitignore`，`memory/` 跟着仓库提交；整目录忽略是老版本的写法，升级后跑一次 `rsi doctor --fix` 自动改成细粒度规则。
 
+**什么时候不该用 RSI Boot**
+要记的是用户偏好、聊天历史、跨会话个性化（to-C 助手、客服、陪伴产品）——那是会话记忆层的活，直接用 Zep / Letta / Mem0，RSI Boot 不做这个。它的记忆对象只有一个：这个仓库的工程经验——约定、禁止项、修过的坑。
+
 ## 换机器、克隆、交给同事
 
 仓库迁移或克隆之后，验证记忆完整性：
@@ -54,7 +57,7 @@ rsi bundle export --out ./backup          # 源机器：导出 memory 全量
 rsi bundle import --from ./backup         # 目标机器：合并导入；--replace 先备份再整体替换
 ```
 
-| | 宿主自带记忆 | 云端记忆（Mem0 一类） | 通用本地记忆 MCP | RSI Boot |
+| | 宿主自带记忆 | 会话记忆层（Zep / Letta / Mem0 一类） | 通用本地记忆 MCP | RSI Boot |
 |---|---|---|---|---|
 | 数据跟谁走 | 跟账号 / 跟宿主 | 跟云端用户 | 看实现 | **跟当前仓库** |
 | 换 AI 工具、换同事 | 重学，各记各的 | 对方接得上才有 | 多数只做存取 | **同一份 `.rsi/` 与 `AGENTS.md`** |
@@ -62,11 +65,27 @@ rsi bundle import --from ./backup         # 目标机器：合并导入；--repl
 | 主链路 API Key | 绑宿主 | 要 | 常要 | **不要** |
 | 写入闸门 | 模型自觉 | 服务端策略 | 少 | **审批 + 禁止项 + 冲突裁决** |
 
+RSI Boot 和会话记忆层不互斥，推荐一起用：Zep / Letta 记「用户说过什么、事实何时变化」，RSI Boot 记「这个仓库怎么干活」。两边都是 MCP，一个项目里可以同时挂——用户与会话事实走它们，工程经验走 `.rsi/`。
+
 ## 公开基准
 
-主榜是召回。冷启动默认 5 条。分母是有标准证据的题数。MRR 是第一条命中的名次倒数（0 到 1）。token 记 null。协议和分项在 [benchmark/results/recall-20261104/SUMMARY.md](benchmark/results/recall-20261104/SUMMARY.md)。
+**主榜是工程记忆 EngMem-Bench**：21 个真实开源仓库（钉死 commit），315 道人工编写题锚定仓库真实文档节，分规范 / 禁令 / 历史修复三类——这是 RSI Boot 的主场。LoCoMo / LongMemEval-S 是对话语料榜，降级成「顺带也能查对话语料」的次要结果：对话榜只是证明召回引擎合格，我们不做会话记忆层，要和其它模型记忆互补而不是替代。
 
-### 这次的分
+公共口径：召回 top-k 命中。冷启动默认 5 条。分母是有标准证据的题数。MRR 是第一条命中的名次倒数（0 到 1）。token 记 null。
+
+### 主榜：工程记忆 EngMem-Bench
+
+标注质量经三模型核验团审计（Kimi K3 / Claude Haiku / GLM 5.2 独立核验 87 题分层样本，Fleiss' κ=0.738，作者仲裁后修复 5 处锚点/版本缺陷）。方法学见 [benchmark/engmem/README.md](benchmark/engmem/README.md)，完整表（含按题型、按难度）在 [benchmark/results/engmem-emb-20261105/SUMMARY.md](benchmark/results/engmem-emb-20261105/SUMMARY.md)。
+
+| 系统 | 题数 | Hit@5 | Recall@5 | MRR |
+|---|---:|---:|---:|---:|
+| **rsi** | 315 | **93.0%** | **92.9%** | **0.817** |
+| vanilla-rag | 315 | 87.3% | 87.1% | 0.744 |
+| full-context | 315 | 25.4% | 25.4% | 0.096 |
+
+### 次要榜：对话语料 LoCoMo / LongMemEval-S
+
+这两个榜考的是聊天转写检索，不是工程记忆；跑它们只为验证召回引擎在通用对话语料上同样合格。协议和分项在 [benchmark/results/recall-20261104/SUMMARY.md](benchmark/results/recall-20261104/SUMMARY.md)。
 
 | 数据集 | 有证据的题 | Hit@5 | Recall@5 | MRR | Hit@10 | Recall@10 | 该空时空了 |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -88,19 +107,9 @@ rsi bundle import --from ./backup         # 目标机器：合并导入；--repl
 | LongMemEval-S | vanilla-rag | 69.2% | 55.4% | 0.520 |
 | LongMemEval-S | full-context | 17.6% | 8.6% | 0.080 |
 
-### 工程记忆 EngMem-Bench
-
-自建基准：21 个真实开源仓库（钉死 commit），315 道人工编写题锚定仓库真实文档节，分规范 / 禁令 / 历史修复三类。标注质量经三模型核验团审计（Kimi K3 / Claude Haiku / GLM 5.2 独立核验 87 题分层样本，Fleiss' κ=0.738，作者仲裁后修复 5 处锚点/版本缺陷）。方法学见 [benchmark/engmem/README.md](benchmark/engmem/README.md)，完整表（含按题型、按难度）在 [benchmark/results/engmem-emb-20261105/SUMMARY.md](benchmark/results/engmem-emb-20261105/SUMMARY.md)。
-
-| 系统 | 题数 | Hit@5 | Recall@5 | MRR |
-|---|---:|---:|---:|---:|
-| **rsi** | 315 | **93.0%** | **92.9%** | **0.817** |
-| vanilla-rag | 315 | 87.3% | 87.1% | 0.744 |
-| full-context | 315 | 25.4% | 25.4% | 0.096 |
-
 ### 和公开检索分对照
 
-公开列来自论文里的检索数字，这次列就是上面的主榜。差值 = 这次 − 公开，单位是百分点。LoCoMo 论文的口径是对话 recall accuracy，这次 k=5 用 Hit@5、k=10 用 Hit@10。论文总平均含对抗题，这次的总平均是 1536 道可答题。ECHO 写明 LoCoMo 的 Hit@10 是开发测量，查询扩展可能沾了题面。
+公开列来自论文里的检索数字，这次列就是上面的对话榜。差值 = 这次 − 公开，单位是百分点。LoCoMo 论文的口径是对话 recall accuracy，这次 k=5 用 Hit@5、k=10 用 Hit@10。论文总平均含对抗题，这次的总平均是 1536 道可答题。ECHO 写明 LoCoMo 的 Hit@10 是开发测量，查询扩展可能沾了题面。
 
 | 对照 | 分项 | 公开 | 这次 | 差值 |
 |---|---|---:|---:|---:|
@@ -139,7 +148,7 @@ rsi bundle import --from ./backup         # 目标机器：合并导入；--repl
 
 ### 省 token
 
-两项测量，口径不同，不要混列：
+三项测量，口径不同，不要混列：
 
 1. **宿主实测**（2026-10-29，Cursor CLI `2026.10.22`，ask 模式，模型 Auto）：同一套关于本仓库的问题各答一遍，用它报出的 token 相减。token 是输入、输出、缓存读、缓存写四项之和。六组合计：关记忆 1637977，开记忆 423973，省 1214004，**74.1%**。协议和分项在 [benchmark/results/token-20261029/SUMMARY.md](benchmark/results/token-20261029/SUMMARY.md)。
 2. **受控上下文测量**（2026-11-04，2036 题，LoCoMo 全量 + LongMemEval-S 50 样本）：同一 tokenizer 配对比较「送入模型的上下文 token 数」，RSI 召回 top-5 对全量对话的中位压缩比 0.9%（即减少 99.1%），配对 Wilcoxon p<0.001、效应量 r=0.866。见 [benchmark/results/token-20261104/SUMMARY.md](benchmark/results/token-20261104/SUMMARY.md)。

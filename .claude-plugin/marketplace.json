@@ -1,6 +1,6 @@
 {
   "name": "rsi-boot",
-  "description": "Repo-bound Harness-RSI: memory follows the project across hosts, zero API keys on the main path.",
+  "description": "Repo-bound Harness-RSI: engineering memory (conventions, prohibitions, fix lessons) follows the project across hosts; complements chat-memory layers. Zero API keys on the main path.",
   "owner": {
     "name": "wenxing luo"
   },
@@ -8,7 +8,7 @@
     {
       "name": "rsi-boot",
       "source": "./",
-      "description": "Repo-bound memory and a self-improving harness for AI coding agents — zero API keys on the main path."
+      "description": "Repo-bound engineering memory and a self-improving harness for AI coding agents — complements chat-memory layers (Zep/Letta/Mem0), zero API keys on the main path."
     }
   ]
 }

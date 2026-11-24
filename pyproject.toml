@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "rsi-boot"
 version = "0.2.0"
-description = "Repo-bound MCP with recursive self-improvement (Harness-RSI) — memory follows the project across hosts, and the harness gets better as you use it."
+description = "Repo-bound engineering memory with recursive self-improvement (Harness-RSI) — conventions, prohibitions, and fix lessons follow the project across hosts, and the harness gets better as you use it. Complements chat-memory layers; not a chat memory itself."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "wenxing luo" },
 ]
-keywords = ["mcp", "agent-memory", "harness", "self-improvement", "knowledge-base", "repo-bound", "cursor", "claude-code", "codex"]
+keywords = ["mcp", "agent-memory", "engineering-knowledge", "harness", "self-improvement", "knowledge-base", "repo-bound", "cursor", "claude-code", "codex"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
